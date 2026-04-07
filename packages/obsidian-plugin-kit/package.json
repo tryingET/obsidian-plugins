@@ -1,0 +1,7 @@
+{
+  "name": "obsidian-plugin-kit",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Shared host utilities for the obsidian-plugins family.",
+  "type": "module"
+}

@@ -1,0 +1,7 @@
+{
+  "name": "obsidian-sidecar-bridge",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Thin sidecar/orchestration boundary for the obsidian-plugins family.",
+  "type": "module"
+}

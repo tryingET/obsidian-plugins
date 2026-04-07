@@ -1,0 +1,7 @@
+{
+  "name": "obsidian-workbench-contracts",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Shared contracts for the obsidian-plugins family.",
+  "type": "module"
+}
