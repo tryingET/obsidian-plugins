@@ -1,5 +1,6 @@
 import type { ElementDTO } from "../model/entities.js"
 import type { SceneIndexes } from "../model/indexes.js"
+import { readLmxElementLabel, readLmxGroupLabel } from "../model/lmxMetadata.js"
 import type { LayerNode, TreeBuildContext } from "../model/tree.js"
 
 const makeNodeId = (prefix: string, id: string): string => `${prefix}:${id}`
@@ -11,6 +12,15 @@ const normalizeLabelText = (value: string, maxLength = 24): string => {
   }
 
   return `${normalized.slice(0, maxLength)}…`
+}
+
+const normalizeExplicitLabel = (value: string | undefined): string | null => {
+  if (typeof value !== "string") {
+    return null
+  }
+
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
 }
 
 const getBoundTextContainerLabel = (element: ElementDTO, indexes: SceneIndexes): string | null => {
@@ -34,8 +44,14 @@ const getBoundTextContainerLabel = (element: ElementDTO, indexes: SceneIndexes):
 }
 
 const getElementLabel = (element: ElementDTO, indexes: SceneIndexes): string => {
-  if (element.name) {
-    return element.name
+  const metadataLabel = readLmxElementLabel(element.customData)
+  if (metadataLabel) {
+    return metadataLabel
+  }
+
+  const explicitName = normalizeExplicitLabel(element.name)
+  if (explicitName) {
+    return explicitName
   }
 
   const boundTextLabel = getBoundTextContainerLabel(element, indexes)
@@ -170,22 +186,48 @@ const isMutableGroupNode = (node: GroupChildNode): node is MutableGroupNode => {
   return "kind" in node && node.kind === "mutableGroup"
 }
 
+const readGroupLabelFromMembers = (
+  groupId: string,
+  primaryElementId: string,
+  elementIds: readonly string[],
+  indexes: SceneIndexes,
+): string | null => {
+  const candidateIds = [primaryElementId, ...elementIds.filter((id) => id !== primaryElementId)]
+
+  for (const elementId of candidateIds) {
+    const candidate = indexes.byId.get(elementId)
+    if (!candidate) {
+      continue
+    }
+
+    const metadataLabel = readLmxGroupLabel(candidate.customData, groupId)
+    if (metadataLabel) {
+      return metadataLabel
+    }
+  }
+
+  return null
+}
+
 const resolveGroupLabel = (
   defaultLabel: string,
+  groupId: string,
   primaryElementId: string,
+  elementIds: readonly string[],
   indexes: SceneIndexes,
 ): string => {
+  const metadataLabel = readGroupLabelFromMembers(groupId, primaryElementId, elementIds, indexes)
+  if (metadataLabel) {
+    return metadataLabel
+  }
+
   const representative = indexes.byId.get(primaryElementId)
-  if (!representative?.name) {
-    return defaultLabel
+  const fallbackName = normalizeExplicitLabel(representative?.name)
+  if (fallbackName) {
+    return fallbackName
   }
 
-  const trimmed = representative.name.trim()
-  if (trimmed.length === 0) {
-    return defaultLabel
-  }
-
-  return trimmed
+  return defaultLabel
 }
 
 const finalizeMutableGroupNode = (node: MutableGroupNode, indexes: SceneIndexes): LayerNode => {
@@ -215,7 +257,7 @@ const finalizeMutableGroupNode = (node: MutableGroupNode, indexes: SceneIndexes)
     isExpanded: node.isExpanded,
     groupId: node.groupId,
     frameId: node.frameId,
-    label: resolveGroupLabel(node.label, primaryElementId, indexes),
+    label: resolveGroupLabel(node.label, node.groupId, primaryElementId, elementIds, indexes),
   }
 }
 

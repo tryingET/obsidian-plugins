@@ -102,6 +102,32 @@ describe("buildLayerTree acceptance matrix", () => {
     expect(findNodeById(tree, elementNodeId("T"))).toBeUndefined()
   })
 
+  it("A03b — element label prefers customData.lmx metadata over legacy name and bound text", () => {
+    const tree = buildTree([
+      makeElement({
+        id: "S",
+        type: "rectangle",
+        zIndex: 0,
+        name: "Legacy name",
+        customData: {
+          lmx: {
+            label: "Metadata label",
+          },
+        },
+      }),
+      makeElement({
+        id: "T",
+        type: "text",
+        zIndex: 1,
+        containerId: "S",
+        text: "Bound text fallback",
+      }),
+    ])
+
+    expect(tree).toHaveLength(1)
+    expect(tree[0]?.label).toBe("Metadata label")
+  })
+
   it("A04 — orphan bound text visible", () => {
     const tree = buildTree([
       makeElement({ id: "T", type: "text", zIndex: 0, containerId: "missing" }),
@@ -149,6 +175,60 @@ describe("buildLayerTree acceptance matrix", () => {
     expect(tree[0]?.id).toBe(groupNodeId("G"))
     expect(tree[0]?.label).toBe("Renamed group")
     expect(tree[0]?.primaryElementId).toBe("B")
+  })
+
+  it("A05c — group label prefers customData.lmx metadata over representative name", () => {
+    const tree = buildTree(
+      [
+        makeElement({
+          id: "A",
+          zIndex: 0,
+          groupIds: ["G"],
+          customData: {
+            lmx: {
+              groupLabels: {
+                G: "Metadata group",
+              },
+            },
+          },
+        }),
+        makeElement({ id: "B", zIndex: 1, groupIds: ["G"], name: "Legacy group" }),
+      ],
+      {
+        expandedNodeIds: [groupNodeId("G")],
+      },
+    )
+
+    expect(tree).toHaveLength(1)
+    expect(tree[0]?.label).toBe("Metadata group")
+  })
+
+  it("A05d — nested group metadata survives regrouped paths", () => {
+    const tree = buildTree(
+      [
+        makeElement({
+          id: "A",
+          zIndex: 0,
+          groupIds: ["inner", "outer"],
+          customData: {
+            lmx: {
+              groupLabels: {
+                inner: "Inner label",
+              },
+            },
+          },
+        }),
+        makeElement({ id: "B", zIndex: 1, groupIds: ["outer"] }),
+      ],
+      {
+        expandedNodeIds: [groupNodeId("outer"), groupNodeId("outer/inner")],
+      },
+    )
+
+    const inner = findNodeById(tree, groupNodeId("outer/inner"))
+
+    expect(inner).toBeDefined()
+    expect(inner?.label).toBe("Inner label")
   })
 
   it("A06 — nested groups under one outer group", () => {

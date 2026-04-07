@@ -434,7 +434,16 @@ describe("sidepanel rename + drag-drop integration", () => {
   it("starts inline rename from row action button and commits via Enter", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
-      [{ id: "A", type: "rectangle", name: "Old name" }],
+      [
+        {
+          id: "A",
+          type: "rectangle",
+          name: "Old name",
+          customData: {
+            foreign: true,
+          },
+        },
+      ],
       [],
     )
 
@@ -462,6 +471,12 @@ describe("sidepanel rename + drag-drop integration", () => {
     await flushAsync()
 
     expect(runtime.elements.find((element) => element.id === "A")?.name).toBe("Renamed from button")
+    expect(runtime.elements.find((element) => element.id === "A")?.customData).toEqual({
+      foreign: true,
+      lmx: {
+        label: "Renamed from button",
+      },
+    })
   })
 
   it("starts inline rename from row action button and commits via Enter when legacy edit APIs are unavailable", async () => {
@@ -543,8 +558,27 @@ describe("sidepanel rename + drag-drop integration", () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
       [
-        { id: "A", type: "rectangle", groupIds: ["G"] },
-        { id: "B", type: "rectangle", groupIds: ["G"] },
+        {
+          id: "A",
+          type: "rectangle",
+          groupIds: ["G"],
+          customData: {
+            foreign: "A",
+          },
+        },
+        {
+          id: "B",
+          type: "rectangle",
+          groupIds: ["G"],
+          name: "Legacy representative",
+          customData: {
+            lmx: {
+              groupLabels: {
+                other: "Other group",
+              },
+            },
+          },
+        },
       ],
       [],
     )
@@ -552,7 +586,7 @@ describe("sidepanel rename + drag-drop integration", () => {
     createLayerManagerRuntime(runtime.ea)
 
     let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    const groupRow = findInteractiveRowByLabel(contentRoot, "[group] G")
+    const groupRow = findInteractiveRowByLabel(contentRoot, "[group] Legacy representative")
     if (!groupRow) {
       throw new Error("Expected interactive group row.")
     }
@@ -573,6 +607,26 @@ describe("sidepanel rename + drag-drop integration", () => {
 
     contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
     expect(findInteractiveRowByLabel(contentRoot, "[group] Renamed Group")).toBeDefined()
+    expect(runtime.elements.find((element) => element.id === "A")?.name).toBeUndefined()
+    expect(runtime.elements.find((element) => element.id === "B")?.name).toBe(
+      "Legacy representative",
+    )
+    expect(runtime.elements.find((element) => element.id === "A")?.customData).toEqual({
+      foreign: "A",
+      lmx: {
+        groupLabels: {
+          G: "Renamed Group",
+        },
+      },
+    })
+    expect(runtime.elements.find((element) => element.id === "B")?.customData).toEqual({
+      lmx: {
+        groupLabels: {
+          G: "Renamed Group",
+          other: "Other group",
+        },
+      },
+    })
   })
 
   it("reparents rows through drag and drop using the command seam", async () => {

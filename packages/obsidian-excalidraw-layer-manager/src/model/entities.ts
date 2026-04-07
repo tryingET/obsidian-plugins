@@ -11,8 +11,15 @@ export type ElementType =
   | "group"
   | "unknown"
 
+export interface LmxMetadata {
+  label?: string
+  groupLabels?: Readonly<Record<string, string>>
+  [key: string]: unknown
+}
+
 export interface ElementCustomData {
   originalOpacity?: number
+  lmx?: Readonly<LmxMetadata>
   [key: string]: unknown
 }
 

@@ -121,6 +121,13 @@ export class LayerManagerController {
       return resolved.outcome
     }
 
+    if (resolved.node.type === "group" && resolved.node.groupId) {
+      return resolved.commandFacade.renameNode({
+        groupId: resolved.node.groupId,
+        nextName,
+      })
+    }
+
     return resolved.commandFacade.renameNode({
       elementId: resolved.node.primaryElementId,
       nextName,

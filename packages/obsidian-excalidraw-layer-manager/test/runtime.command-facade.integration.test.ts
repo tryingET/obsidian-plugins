@@ -163,7 +163,16 @@ describe("runtime command facade + controller action seam", () => {
   })
 
   it("wires row-level rename action through the controller seam", async () => {
-    const runtime = makeInstrumentedEa([{ id: "A", type: "rectangle", name: "old" }])
+    const runtime = makeInstrumentedEa([
+      {
+        id: "A",
+        type: "rectangle",
+        name: "old",
+        customData: {
+          foreign: true,
+        },
+      },
+    ])
 
     const render = vi.fn()
 
@@ -180,6 +189,76 @@ describe("runtime command facade + controller action seam", () => {
       attempts: 1,
     })
     expect(runtime.elements.find((element) => element.id === "A")?.name).toBe("New Label")
+    expect(runtime.elements.find((element) => element.id === "A")?.customData).toEqual({
+      foreign: true,
+      lmx: {
+        label: "New Label",
+      },
+    })
+    expect(runtime.copyForEditing).toHaveBeenCalledTimes(1)
+    expect(runtime.addToView).toHaveBeenCalledTimes(1)
+    expect(runtime.updateScene).not.toHaveBeenCalled()
+  })
+
+  it("routes group rename through metadata instead of mutating representative element names", async () => {
+    const runtime = makeInstrumentedEa([
+      {
+        id: "A",
+        type: "rectangle",
+        groupIds: ["G"],
+        customData: {
+          foreign: "A",
+        },
+      },
+      {
+        id: "B",
+        type: "rectangle",
+        groupIds: ["G"],
+        name: "Legacy representative",
+        customData: {
+          lmx: {
+            groupLabels: {
+              other: "Other group",
+            },
+          },
+        },
+      },
+    ])
+
+    const render = vi.fn()
+
+    createLayerManagerRuntime(runtime.ea, {
+      render,
+      notify: vi.fn(),
+    })
+
+    const actions = getUiActions(render)
+    const outcome = await actions.renameNode("group:G", "  Renamed Group  ")
+
+    expect(outcome).toEqual({
+      status: "applied",
+      attempts: 1,
+    })
+    expect(runtime.elements.find((element) => element.id === "A")?.name).toBeUndefined()
+    expect(runtime.elements.find((element) => element.id === "B")?.name).toBe(
+      "Legacy representative",
+    )
+    expect(runtime.elements.find((element) => element.id === "A")?.customData).toEqual({
+      foreign: "A",
+      lmx: {
+        groupLabels: {
+          G: "Renamed Group",
+        },
+      },
+    })
+    expect(runtime.elements.find((element) => element.id === "B")?.customData).toEqual({
+      lmx: {
+        groupLabels: {
+          G: "Renamed Group",
+          other: "Other group",
+        },
+      },
+    })
     expect(runtime.copyForEditing).toHaveBeenCalledTimes(1)
     expect(runtime.addToView).toHaveBeenCalledTimes(1)
     expect(runtime.updateScene).not.toHaveBeenCalled()

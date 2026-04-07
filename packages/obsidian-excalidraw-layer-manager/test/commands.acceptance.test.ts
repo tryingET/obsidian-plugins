@@ -275,8 +275,22 @@ describe("commands acceptance matrix", () => {
     expect(plan.value.reorder?.orderedElementIds).toEqual(["A", "S", "T"])
   })
 
-  it("C14 — rename trims and applies only normalized name", () => {
-    const context = makeCommandContext([makeElement({ id: "A", name: "old" })])
+  it("C14 — element rename trims, mirrors label metadata, and preserves unrelated customData", () => {
+    const context = makeCommandContext([
+      makeElement({
+        id: "A",
+        name: "old",
+        customData: {
+          foreign: true,
+          lmx: {
+            groupLabels: {
+              G: "Existing Group",
+            },
+            persisted: "keep",
+          },
+        },
+      }),
+    ])
 
     const plan = planRenameNode(context, {
       elementId: "A",
@@ -292,7 +306,82 @@ describe("commands acceptance matrix", () => {
       {
         id: "A",
         set: {
+          customData: {
+            foreign: true,
+            lmx: {
+              groupLabels: {
+                G: "Existing Group",
+              },
+              label: "New name",
+              persisted: "keep",
+            },
+          },
           name: "New name",
+        },
+      },
+    ])
+  })
+
+  it("C14b — group rename writes metadata across members without clobbering other keys", () => {
+    const context = makeCommandContext([
+      makeElement({
+        id: "A",
+        groupIds: ["G"],
+        customData: {
+          foreign: "A",
+        },
+      }),
+      makeElement({
+        id: "B",
+        groupIds: ["G"],
+        customData: {
+          lmx: {
+            groupLabels: {
+              other: "Other group",
+            },
+            persisted: true,
+          },
+        },
+      }),
+      makeElement({ id: "C", groupIds: ["other"] }),
+    ])
+
+    const plan = planRenameNode(context, {
+      groupId: "G",
+      nextName: "  Renamed group  ",
+    })
+
+    expect(plan.ok).toBe(true)
+    if (!plan.ok) {
+      return
+    }
+
+    expect(plan.value.elementPatches).toEqual([
+      {
+        id: "A",
+        set: {
+          customData: {
+            foreign: "A",
+            lmx: {
+              groupLabels: {
+                G: "Renamed group",
+              },
+            },
+          },
+        },
+      },
+      {
+        id: "B",
+        set: {
+          customData: {
+            lmx: {
+              groupLabels: {
+                G: "Renamed group",
+                other: "Other group",
+              },
+              persisted: true,
+            },
+          },
         },
       },
     ])

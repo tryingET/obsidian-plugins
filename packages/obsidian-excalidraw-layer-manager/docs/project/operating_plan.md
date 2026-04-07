@@ -1,8 +1,8 @@
 ---
-summary: "Current operating plan for the imported obsidian-excalidraw-layer-manager package inside the monorepo."
+summary: "Current operating plan for Layer Manager X as a projection-based Hybrid Pro Panel inside the obsidian-plugins monorepo."
 read_when:
-  - "You are resuming package work and need the current wave rather than the full external history."
-  - "You need the next bounded implementation moves for making this package monorepo-native."
+  - "You are resuming package work and need the current implementation wave."
+  - "You need the active slices after the package moved past its import-native baseline."
 type: "reference"
 ---
 
@@ -10,24 +10,57 @@ type: "reference"
 
 ## Current wave
 
-Make the imported Layer Manager package **monorepo-native without changing its product identity**.
+Turn the imported Layer Manager package into a **projection-based Hybrid Pro Panel** over native Excalidraw structure.
+
+The import/monorepo-native baseline is now good enough to shift the package focus from:
+- “prove the imported script package still works in the monorepo”
+
+to:
+- “make Layer Manager X feel like a serious Miro/Figma/Photoshop hybrid without inventing a second canonical layer engine.”
+
+## Guardrails for this wave
+
+- scene truth stays Excalidraw-native (`zIndex`, `groupIds`, `frameId`, `opacity`, `locked`, selection)
+- Layer Manager X remains a projection + interaction surface, not a shadow runtime authority
+- package-owned semantics should move into `customData.lmx`
+- preserve deterministic mutation flow: UI -> controller -> command facade -> planner -> adapter
+- keep strong test/performance coverage as the UI gets richer
 
 ## Active slices
 
-1. **Package-local docs + scope clarity**
-   - establish package-local `docs/project/` notes
-   - clarify script-style package role inside the plugin family
+1. **Metadata-backed naming foundation**
+   - add `customData.lmx` helpers/types
+   - resolve element + synthetic group labels through `customData.lmx` first
+   - separate display labels from raw group identity
+   - keep `name` as a compatibility/fallback read surface where useful
 
-2. **Reproducible lab-vault target**
-   - use `apps/lab-vault/Excalidraw/Scripts/LayerManager.md` as the default sync destination
-   - avoid hidden machine-local default paths in the normal flow
+2. **Hybrid Pro Panel row model**
+   - upgrade rows from thin text/action strips to richer structure rows
+   - improve type/state scanability
+   - surface mixed hidden/locked conditions
+   - add search/filter seams that remain compatible with keyboard navigation
 
-3. **Install + validation baseline**
-   - install package dependencies from the monorepo root
-   - prove the imported package can still run its checks/builds in the new home
+3. **Panel-native movement model**
+   - reduce prompt-based reparent flows
+   - expand quick-move into a more complete destination workflow
+   - support recent/pinned destinations where truthful
+   - keep movement semantics honest about frames/groups/root placement
 
-## Next likely slices
+4. **Better ordering semantics**
+   - extend beyond current bring-to-front behavior
+   - add clearer forward/backward/front/back concepts where supported
+   - improve drag/drop and ordering feedback so the panel feels more like a pro structure tool
 
-- decide what imported legacy docs are still worth migrating into package-local docs versus leaving behind
-- add package-local validation notes for real-host smoke expectations
-- decide whether a second Excalidraw-script-style package exists that would justify strengthening the internal seed template
+## Later slices
+
+- favorites/pins/tags beyond the minimum metadata foundation
+- solo/isolate and stronger structure-inspection modes
+- adaptive/semantic assistance after the core panel is trustworthy
+- more alienlike view/state transitions only after the pro-panel foundation feels obvious and stable
+
+## Not this wave
+
+- upstream-native Excalidraw layers
+- a second plugin-owned canonical layer engine
+- heavy sidecar intelligence embedded in the host before the core panel UX is excellent
+- speculative AI behavior that weakens determinism or clarity
