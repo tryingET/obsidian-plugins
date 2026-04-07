@@ -1,0 +1,7 @@
+{
+  "name": "lab-vault",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Local proving-ground vault for the obsidian-plugins monorepo.",
+  "type": "module"
+}

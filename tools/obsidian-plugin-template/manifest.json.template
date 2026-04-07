@@ -1,0 +1,9 @@
+{
+  "id": "{{plugin-id}}",
+  "name": "{{plugin-name}}",
+  "version": "0.0.0",
+  "minAppVersion": "1.8.0",
+  "description": "{{plugin-summary}}",
+  "author": "tryinget",
+  "isDesktopOnly": false
+}

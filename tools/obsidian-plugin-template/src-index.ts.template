@@ -1,0 +1,6 @@
+// summary: Entry point placeholder for a new Obsidian plugin package.
+// read_when: You are creating the first source file for a new plugin generated from the internal seed template.
+
+export function bootstrapPlaceholder(): string {
+  return "TODO: replace with real Obsidian plugin bootstrap";
+}
