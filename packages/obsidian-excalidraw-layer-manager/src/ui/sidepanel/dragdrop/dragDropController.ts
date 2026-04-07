@@ -1,0 +1,246 @@
+import type { LayerNode } from "../../../model/tree.js"
+import type { LayerManagerUiActions } from "../../renderer.js"
+
+export interface DragDropBranchContext {
+  readonly frameId: string | null
+  readonly groupPath: readonly string[]
+}
+
+interface DraggedNodeState {
+  readonly nodeId: string
+  readonly sourceGroupId: string | null
+  readonly sourceFrameId: string | null
+}
+
+export interface NodeDropTarget {
+  readonly targetParentPath: readonly string[]
+  readonly targetFrameId: string | null
+}
+
+export type DragDropDestination =
+  | {
+      readonly kind: "root"
+    }
+  | {
+      readonly kind: "preset"
+      readonly targetParentPath: readonly string[]
+      readonly targetFrameId: string | null
+    }
+
+type DragDropReparentOutcome =
+  | {
+      readonly status: "notReady"
+    }
+  | {
+      readonly status: "incompatible"
+    }
+  | {
+      readonly status: "notApplied"
+    }
+  | {
+      readonly status: "applied"
+      readonly destination: DragDropDestination
+    }
+
+interface SidepanelDragDropControllerHost {
+  notify: (message: string) => void
+  requestRenderFromLatestModel: () => void
+}
+
+interface StartRowDragInput {
+  readonly node: LayerNode
+  readonly nodeFrameId: string | null
+  readonly branchGroupPath: readonly string[]
+  readonly dragEvent: DragEvent
+}
+
+export class SidepanelDragDropController {
+  readonly #host: SidepanelDragDropControllerHost
+  #draggedNodeState: DraggedNodeState | null = null
+  #dropHintNodeId: string | null = null
+
+  constructor(host: SidepanelDragDropControllerHost) {
+    this.#host = host
+  }
+
+  get dropHintNodeId(): string | null {
+    return this.#dropHintNodeId
+  }
+
+  clear(): void {
+    this.#draggedNodeState = null
+    this.#dropHintNodeId = null
+  }
+
+  resolveNodeFrameId(node: LayerNode, branchContext: DragDropBranchContext): string | null {
+    if (node.type === "frame") {
+      return node.primaryElementId
+    }
+
+    return node.frameId ?? branchContext.frameId
+  }
+
+  resolveDropTargetForNode(node: LayerNode, branchContext: DragDropBranchContext): NodeDropTarget {
+    const nodeFrameId = this.resolveNodeFrameId(node, branchContext)
+
+    if (node.type === "group" && node.groupId) {
+      return {
+        targetParentPath: [...branchContext.groupPath, node.groupId],
+        targetFrameId: nodeFrameId,
+      }
+    }
+
+    if (node.type === "frame") {
+      return {
+        targetParentPath: [],
+        targetFrameId: node.primaryElementId,
+      }
+    }
+
+    return {
+      targetParentPath: [...branchContext.groupPath],
+      targetFrameId: nodeFrameId,
+    }
+  }
+
+  canDropDraggedNode(targetNodeId: string, dropTarget: NodeDropTarget): boolean {
+    const dragged = this.#draggedNodeState
+    if (!dragged) {
+      return false
+    }
+
+    if (dragged.nodeId === targetNodeId) {
+      return false
+    }
+
+    if (dragged.sourceFrameId !== dropTarget.targetFrameId) {
+      return false
+    }
+
+    if (dragged.sourceGroupId && dropTarget.targetParentPath.includes(dragged.sourceGroupId)) {
+      return false
+    }
+
+    return true
+  }
+
+  startRowDrag(input: StartRowDragInput): void {
+    const nearestParentGroupId = input.branchGroupPath.at(-1) ?? null
+
+    this.#draggedNodeState = {
+      nodeId: input.node.id,
+      sourceGroupId: input.node.type === "group" ? input.node.groupId : nearestParentGroupId,
+      sourceFrameId: input.nodeFrameId,
+    }
+
+    if (input.dragEvent.dataTransfer) {
+      input.dragEvent.dataTransfer.effectAllowed = "move"
+      input.dragEvent.dataTransfer.setData("text/plain", input.node.id)
+    }
+
+    this.updateDropHint(input.node.id)
+  }
+
+  endRowDrag(): void {
+    this.#draggedNodeState = null
+    this.updateDropHint(null)
+  }
+
+  handleDragEnter(targetNodeId: string, dropTarget: NodeDropTarget, event: DragEvent): void {
+    if (!this.canDropDraggedNode(targetNodeId, dropTarget)) {
+      return
+    }
+
+    event.preventDefault()
+    this.updateDropHint(targetNodeId)
+  }
+
+  handleDragOver(targetNodeId: string, dropTarget: NodeDropTarget, event: DragEvent): void {
+    if (!this.canDropDraggedNode(targetNodeId, dropTarget)) {
+      return
+    }
+
+    event.preventDefault()
+
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = "move"
+    }
+
+    this.updateDropHint(targetNodeId)
+  }
+
+  handleDragLeave(targetNodeId: string, relatedTargetInsideRow: boolean): void {
+    if (relatedTargetInsideRow) {
+      return
+    }
+
+    if (this.#dropHintNodeId === targetNodeId) {
+      this.updateDropHint(null)
+    }
+  }
+
+  resetDragState(): void {
+    this.#draggedNodeState = null
+    this.updateDropHint(null)
+  }
+
+  async runDragDropReparent(
+    actions: LayerManagerUiActions,
+    targetNodeId: string,
+    dropTarget: NodeDropTarget,
+  ): Promise<DragDropReparentOutcome> {
+    const dragged = this.#draggedNodeState
+    if (!dragged) {
+      return {
+        status: "notReady",
+      }
+    }
+
+    if (!this.canDropDraggedNode(targetNodeId, dropTarget)) {
+      this.#host.notify("Drop target is not compatible for this move.")
+      return {
+        status: "incompatible",
+      }
+    }
+
+    const outcome = await actions.reparentFromNodeIds({
+      nodeIds: [dragged.nodeId],
+      sourceGroupId: dragged.sourceGroupId,
+      targetParentPath: dropTarget.targetParentPath,
+      targetFrameId: dropTarget.targetFrameId,
+    })
+
+    if (outcome.status !== "applied") {
+      return {
+        status: "notApplied",
+      }
+    }
+
+    if (dropTarget.targetParentPath.length === 0) {
+      return {
+        status: "applied",
+        destination: {
+          kind: "root",
+        },
+      }
+    }
+
+    return {
+      status: "applied",
+      destination: {
+        kind: "preset",
+        targetParentPath: [...dropTarget.targetParentPath],
+        targetFrameId: dropTarget.targetFrameId,
+      },
+    }
+  }
+
+  private updateDropHint(nodeId: string | null): void {
+    if (this.#dropHintNodeId === nodeId) {
+      return
+    }
+
+    this.#dropHintNodeId = nodeId
+    this.#host.requestRenderFromLatestModel()
+  }
+}

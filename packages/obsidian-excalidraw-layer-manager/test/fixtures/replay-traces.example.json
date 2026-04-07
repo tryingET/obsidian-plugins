@@ -1,0 +1,54 @@
+{
+  "traces": [
+    {
+      "name": "example-session",
+      "snapshots": [
+        {
+          "name": "example-session-open",
+          "groupFreedraw": true,
+          "expandedNodeIds": ["frame:F", "group:G"],
+          "elements": [
+            { "id": "F", "type": "frame", "zIndex": 0 },
+            { "id": "S", "type": "rectangle", "zIndex": 1, "frameId": "F", "groupIds": ["G"] },
+            {
+              "id": "T",
+              "type": "text",
+              "zIndex": 2,
+              "frameId": "F",
+              "containerId": "S",
+              "groupIds": ["G"]
+            },
+            { "id": "D1", "type": "freedraw", "zIndex": 3, "frameId": "F" },
+            { "id": "D2", "type": "freedraw", "zIndex": 4, "frameId": "F" }
+          ]
+        },
+        {
+          "name": "example-session-collapsed",
+          "groupFreedraw": false,
+          "expandedNodeIds": ["frame:F"],
+          "elements": [
+            { "id": "F", "type": "frame", "zIndex": 0 },
+            {
+              "id": "S",
+              "type": "rectangle",
+              "zIndex": 1,
+              "frameId": "F",
+              "groupIds": ["inner", "G"]
+            },
+            {
+              "id": "T",
+              "type": "text",
+              "zIndex": 2,
+              "frameId": "F",
+              "containerId": "S",
+              "groupIds": ["inner", "G"]
+            },
+            { "id": "U", "type": "rectangle", "zIndex": 3, "frameId": "F", "groupIds": ["G"] },
+            { "id": "D1", "type": "freedraw", "zIndex": 4, "frameId": "F" },
+            { "id": "D2", "type": "freedraw", "zIndex": 5, "frameId": "F" }
+          ]
+        }
+      ]
+    }
+  ]
+}

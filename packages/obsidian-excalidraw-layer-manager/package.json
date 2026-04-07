@@ -1,0 +1,43 @@
+{
+  "name": "obsidian-excalidraw-layer-manager",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "TypeScript architecture-first Layer Manager package for Obsidian Excalidraw scripts",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "clean": "node -e \"import('node:fs/promises').then(fs=>fs.rm('dist',{recursive:true,force:true}))\"",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:tree": "vitest run test/treeBuilder.acceptance.test.ts",
+    "bench:tree": "vitest run test/treeBuilder.performance.test.ts",
+    "bench:commands": "vitest run test/commands.performance.test.ts",
+    "bench:runtime": "vitest run test/runtime.render-update.performance.test.ts",
+    "bench:complexity": "vitest run test/performance.complexity-sentinel.test.ts",
+    "arch": "depcruise --config .dependency-cruiser.cjs src",
+    "deadcode": "knip",
+    "check:fast": "npm run lint && npm run typecheck",
+    "check": "npm run check:fast && npm run test",
+    "check:full": "npm run check && npm run arch && npm run deadcode",
+    "build": "node build/build.mjs",
+    "sync:vault": "node build/sync-to-vault.mjs",
+    "bundle:and:sync": "npm run build && npm run sync:vault",
+    "docs:sync:ea": "node build/sync-excalidraw-automate-doc.mjs"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/node": "^22.13.5",
+    "dependency-cruiser": "^16.8.0",
+    "esbuild": "^0.25.0",
+    "fast-check": "^3.23.2",
+    "knip": "^5.45.0",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.9"
+  }
+}

@@ -1,0 +1,357 @@
+import { describe, expect, it, vi } from "vitest"
+
+import type { EaLike, RawExcalidrawElement } from "../src/adapter/excalidraw-types.js"
+import { applyPatch, readSnapshot } from "../src/adapter/excalidrawAdapter.js"
+
+interface MockEaRuntime {
+  readonly ea: EaLike
+  readonly elements: RawExcalidrawElement[]
+  readonly updateScene: ReturnType<typeof vi.fn>
+  readonly copyForEditing: ReturnType<typeof vi.fn>
+  readonly addToView: ReturnType<typeof vi.fn>
+  readonly selectInView: ReturnType<typeof vi.fn>
+  readonly setView: ReturnType<typeof vi.fn>
+}
+
+const makeMockEa = (
+  initialElements: readonly RawExcalidrawElement[],
+  options: {
+    readonly withReorderCapability?: boolean
+    readonly withElementEditCapabilities?: boolean
+    readonly requireSetViewForReads?: boolean
+    readonly failLegacyGetElement?: boolean
+  } = {},
+): MockEaRuntime => {
+  const elements: RawExcalidrawElement[] = initialElements.map((element) => ({
+    ...element,
+    groupIds: [...(element.groupIds ?? [])],
+    customData: { ...(element.customData ?? {}) },
+  }))
+
+  const updateScene = vi.fn((scene: { elements: RawExcalidrawElement[] }) => {
+    elements.splice(0, elements.length, ...scene.elements)
+  })
+
+  const copyForEditing = vi.fn()
+  const addToView = vi.fn(async () => {})
+  const selectInView = vi.fn()
+
+  const withElementEditCapabilities = options.withElementEditCapabilities !== false
+  let viewBound = options.requireSetViewForReads !== true
+
+  const setView = vi.fn(() => {
+    viewBound = true
+    return {
+      id: "mock-view",
+    }
+  })
+
+  const ea: EaLike = {
+    setView,
+    getViewElements: () => (viewBound ? elements : []),
+    getViewSelectedElements: () => (viewBound ? [] : []),
+    selectElementsInView: selectInView,
+    getExcalidrawAPI:
+      options.withReorderCapability === false ? () => ({}) : () => ({ updateScene }),
+  }
+
+  if (withElementEditCapabilities) {
+    ea.copyViewElementsToEAforEditing = copyForEditing
+    ea.getElement = (id: string) => {
+      if (options.failLegacyGetElement) {
+        return undefined
+      }
+
+      return elements.find((element) => element.id === id)
+    }
+    ea.addElementsToView = addToView
+  }
+
+  return {
+    ea,
+    elements,
+    updateScene,
+    copyForEditing,
+    addToView,
+    selectInView,
+    setView,
+  }
+}
+
+describe("applyPatch adapter preflight", () => {
+  it("rebinds target view via setView before snapshot reads", () => {
+    const runtime = makeMockEa(
+      [
+        { id: "A", type: "rectangle" },
+        { id: "B", type: "rectangle" },
+      ],
+      {
+        requireSetViewForReads: true,
+      },
+    )
+
+    const snapshot = readSnapshot(runtime.ea)
+
+    expect(runtime.setView).toHaveBeenCalled()
+    expect(snapshot.elements.map((element) => element.id)).toEqual(["A", "B"])
+  })
+
+  it("rebinds target view via setView before patch preflight/apply", async () => {
+    const runtime = makeMockEa(
+      [
+        { id: "A", type: "rectangle" },
+        { id: "B", type: "rectangle" },
+      ],
+      {
+        requireSetViewForReads: true,
+      },
+    )
+
+    const outcome = await applyPatch(runtime.ea, {
+      elementPatches: [],
+      reorder: {
+        orderedElementIds: ["A", "B"],
+      },
+    })
+
+    expect(runtime.setView).toHaveBeenCalled()
+    expect(outcome.status).toBe("applied")
+    expect(runtime.updateScene).toHaveBeenCalledTimes(1)
+  })
+
+  it("accepts target-view binding when setView mutates ea.targetView but returns null", () => {
+    const getViewElements = vi.fn(() => [{ id: "A", type: "rectangle" }])
+    const getViewSelectedElements = vi.fn(() => [])
+
+    const ea: EaLike = {
+      targetView: null,
+      setView: vi.fn(() => {
+        ea.targetView = {
+          _loaded: true,
+        }
+        return null
+      }),
+      getViewElements,
+      getViewSelectedElements,
+    }
+
+    const snapshot = readSnapshot(ea)
+
+    expect(ea.setView).toHaveBeenCalled()
+    expect(getViewElements).toHaveBeenCalledTimes(1)
+    expect(snapshot.elements.map((element) => element.id)).toEqual(["A"])
+  })
+
+  it("returns empty snapshot when setView cannot bind targetView and view reads throw", () => {
+    const getViewElements = vi.fn(() => {
+      throw new Error("targetView not set")
+    })
+    const getViewSelectedElements = vi.fn(() => {
+      throw new Error("targetView not set")
+    })
+
+    const ea: EaLike = {
+      targetView: null,
+      setView: vi.fn(() => null),
+      getViewElements,
+      getViewSelectedElements,
+    }
+
+    const snapshot = readSnapshot(ea)
+
+    expect(ea.setView).toHaveBeenCalled()
+    expect(getViewElements).toHaveBeenCalledTimes(1)
+    expect(getViewSelectedElements).toHaveBeenCalledTimes(1)
+    expect(snapshot.elements).toEqual([])
+    expect(snapshot.selectedIds.size).toBe(0)
+  })
+
+  it("R01 — aborts before writes when patch references missing IDs", async () => {
+    const runtime = makeMockEa([
+      { id: "A", type: "rectangle" },
+      { id: "B", type: "rectangle" },
+    ])
+
+    const outcome = await applyPatch(runtime.ea, {
+      elementPatches: [
+        {
+          id: "missing",
+          set: {
+            locked: true,
+          },
+        },
+      ],
+    })
+
+    expect(outcome.status).toBe("preflightFailed")
+    expect(runtime.copyForEditing).not.toHaveBeenCalled()
+    expect(runtime.addToView).not.toHaveBeenCalled()
+    expect(runtime.updateScene).not.toHaveBeenCalled()
+    expect(runtime.elements.map((element) => element.id)).toEqual(["A", "B"])
+  })
+
+  it("R02 — aborts before writes when reorder is not a full permutation", async () => {
+    const runtime = makeMockEa([
+      { id: "A", type: "rectangle" },
+      { id: "B", type: "rectangle" },
+      { id: "C", type: "rectangle" },
+    ])
+
+    const outcome = await applyPatch(runtime.ea, {
+      elementPatches: [],
+      reorder: {
+        orderedElementIds: ["A", "C"],
+      },
+    })
+
+    expect(outcome.status).toBe("preflightFailed")
+    expect(runtime.updateScene).not.toHaveBeenCalled()
+    expect(runtime.copyForEditing).not.toHaveBeenCalled()
+    expect(runtime.addToView).not.toHaveBeenCalled()
+    expect(runtime.elements.map((element) => element.id)).toEqual(["A", "B", "C"])
+  })
+
+  it("applies element patches via updateScene fallback when edit capabilities are missing", async () => {
+    const runtime = makeMockEa(
+      [
+        { id: "A", type: "rectangle", isDeleted: false },
+        { id: "B", type: "rectangle", isDeleted: false },
+      ],
+      {
+        withElementEditCapabilities: false,
+      },
+    )
+
+    const outcome = await applyPatch(runtime.ea, {
+      elementPatches: [
+        {
+          id: "A",
+          set: {
+            isDeleted: true,
+          },
+        },
+      ],
+    })
+
+    expect(outcome.status).toBe("applied")
+    expect(runtime.copyForEditing).not.toHaveBeenCalled()
+    expect(runtime.addToView).not.toHaveBeenCalled()
+    expect(runtime.updateScene).toHaveBeenCalledTimes(1)
+    expect(runtime.elements.find((element) => element.id === "A")?.isDeleted).toBe(true)
+    expect(runtime.elements.find((element) => element.id === "B")?.isDeleted).toBe(false)
+  })
+
+  it("passes patch targets to legacy copyViewElementsToEAforEditing", async () => {
+    const runtime = makeMockEa([
+      { id: "A", type: "rectangle", isDeleted: false },
+      { id: "B", type: "rectangle", isDeleted: false },
+      { id: "C", type: "rectangle", isDeleted: false },
+    ])
+
+    const outcome = await applyPatch(runtime.ea, {
+      elementPatches: [
+        {
+          id: "A",
+          set: {
+            isDeleted: true,
+          },
+        },
+        {
+          id: "B",
+          set: {
+            locked: true,
+          },
+        },
+      ],
+    })
+
+    expect(outcome.status).toBe("applied")
+    expect(runtime.copyForEditing).toHaveBeenCalledTimes(1)
+
+    const copiedTargets = runtime.copyForEditing.mock.calls[0]?.[0] as
+      | readonly RawExcalidrawElement[]
+      | undefined
+    expect(copiedTargets?.map((element) => element.id)).toEqual(["A", "B"])
+  })
+
+  it("falls back to updateScene when legacy element editing path cannot resolve editable elements", async () => {
+    const runtime = makeMockEa(
+      [
+        { id: "A", type: "rectangle", isDeleted: false },
+        { id: "B", type: "rectangle", isDeleted: false },
+      ],
+      {
+        failLegacyGetElement: true,
+      },
+    )
+
+    const outcome = await applyPatch(runtime.ea, {
+      elementPatches: [
+        {
+          id: "A",
+          set: {
+            isDeleted: true,
+          },
+        },
+      ],
+    })
+
+    expect(outcome.status).toBe("applied")
+    expect(runtime.copyForEditing).toHaveBeenCalledTimes(1)
+    expect(runtime.addToView).not.toHaveBeenCalled()
+    expect(runtime.updateScene).toHaveBeenCalledTimes(1)
+    expect(runtime.elements.find((element) => element.id === "A")?.isDeleted).toBe(true)
+    expect(runtime.elements.find((element) => element.id === "B")?.isDeleted).toBe(false)
+  })
+
+  it("fails closed for element patches when neither legacy editing nor updateScene is available", async () => {
+    const runtime = makeMockEa(
+      [
+        { id: "A", type: "rectangle", isDeleted: false },
+        { id: "B", type: "rectangle", isDeleted: false },
+      ],
+      {
+        withElementEditCapabilities: false,
+        withReorderCapability: false,
+      },
+    )
+
+    const outcome = await applyPatch(runtime.ea, {
+      elementPatches: [
+        {
+          id: "A",
+          set: {
+            isDeleted: true,
+          },
+        },
+      ],
+    })
+
+    expect(outcome.status).toBe("capabilityMissing")
+    expect(runtime.updateScene).not.toHaveBeenCalled()
+    expect(runtime.copyForEditing).not.toHaveBeenCalled()
+    expect(runtime.addToView).not.toHaveBeenCalled()
+  })
+
+  it("R03 — reports capability missing and performs no writes", async () => {
+    const runtime = makeMockEa(
+      [
+        { id: "A", type: "rectangle" },
+        { id: "B", type: "rectangle" },
+      ],
+      { withReorderCapability: false },
+    )
+
+    const outcome = await applyPatch(runtime.ea, {
+      elementPatches: [],
+      reorder: {
+        orderedElementIds: ["A", "B"],
+      },
+    })
+
+    expect(outcome.status).toBe("capabilityMissing")
+    expect(runtime.updateScene).not.toHaveBeenCalled()
+    expect(runtime.copyForEditing).not.toHaveBeenCalled()
+    expect(runtime.addToView).not.toHaveBeenCalled()
+  })
+})
