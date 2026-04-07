@@ -62,6 +62,28 @@ has_operator_cargo() {
   [ -x "$operator_cargo" ] && "$operator_cargo" --available >/dev/null 2>&1
 }
 
+path_fallback_enabled() {
+  case "${AK_ALLOW_PATH_FALLBACK:-0}" in
+    1|true|TRUE|yes|YES|on|ON)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+path_shim_active() {
+  case "${AK_PATH_SHIM_ACTIVE:-0}" in
+    1|true|TRUE|yes|YES|on|ON)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 usage() {
   cat <<'EOF'
 usage: scripts/ak.sh [--doctor|--which|--help] [ak args...]
@@ -70,7 +92,7 @@ Portable Agent Kernel launcher with deterministic resolution order:
   1) AK_BIN override
   2) vendored ./crates/ak-cli/Cargo.toml via the repo's explicit nightly cargo wrapper
   3) workspace core ~/ai-society/softwareco/owned/agent-kernel via the same nightly cargo wrapper
-  4) ak on PATH
+  4) ak on PATH only when AK_ALLOW_PATH_FALLBACK=1
 
 When invoked as:
   ./scripts/ak.sh work-items export ...
@@ -240,7 +262,15 @@ select_runner() {
   fi
 
   if has_cmd ak; then
-    printf '%s\n' "path-ak"
+    if path_fallback_enabled; then
+      if path_shim_active; then
+        printf '%s\n' "path-ak-recursive-blocked"
+      else
+        printf '%s\n' "path-ak"
+      fi
+    else
+      printf '%s\n' "path-ak-blocked"
+    fi
     return
   fi
 
@@ -268,7 +298,13 @@ runner_desc() {
       printf 'workspace core found but nightly cargo wrapper is unavailable: %s\n' "$core_project_default/crates/ak-cli/Cargo.toml"
       ;;
     path-ak)
-      printf 'ak on PATH (%s)\n' "$(command -v ak)"
+      printf 'ak on PATH (%s) with explicit AK_ALLOW_PATH_FALLBACK=1\n' "$(command -v ak)"
+      ;;
+    path-ak-recursive-blocked)
+      printf 'ak on PATH resolves to the installed launcher shim (%s) but the current repo has no non-PATH runner; fix vendored/workspace-core launcher wiring instead of falling back recursively\n' "$(command -v ak)"
+      ;;
+    path-ak-blocked)
+      printf 'ak on PATH is available (%s) but blocked by default; set AK_ALLOW_PATH_FALLBACK=1 or AK_BIN=/absolute/path/to/ak\n' "$(command -v ak)"
       ;;
     missing)
       printf 'unresolved (no viable ak runner)\n'
@@ -309,6 +345,7 @@ doctor() {
   say "- core_project_default: $core_project_default"
   say "- has operator cargo: $(has_operator_cargo && printf yes || printf no)"
   say "- has ak on PATH: $(has_cmd ak && printf yes || printf no)"
+  say "- path fallback enabled: $(path_fallback_enabled && printf yes || printf no)"
   say "- has answers file: $([ -f "$answers_file" ] && printf yes || printf no)"
   say "- has vendored crates/ak-cli: $([ -f "$repo_root/crates/ak-cli/Cargo.toml" ] && printf yes || printf no)"
   say "- has workspace core ak-cli: $([ -f "$core_project_default/crates/ak-cli/Cargo.toml" ] && printf yes || printf no)"
@@ -317,7 +354,7 @@ doctor() {
   say "- selected runner: $(runner_desc "$runner")"
 
   case "$runner" in
-    ak-bin-missing|vendored-missing-cargo|workspace-core-missing-cargo|missing)
+    ak-bin-missing|vendored-missing-cargo|workspace-core-missing-cargo|path-ak-recursive-blocked|path-ak-blocked|missing)
       return 1
       ;;
   esac
@@ -339,7 +376,7 @@ runner="$(select_runner)"
 if [ "${1:-}" = "--which" ]; then
   runner_desc "$runner"
   case "$runner" in
-    ak-bin-missing|vendored-missing-cargo|workspace-core-missing-cargo|missing)
+    ak-bin-missing|vendored-missing-cargo|workspace-core-missing-cargo|path-ak-recursive-blocked|path-ak-blocked|missing)
       exit 1
       ;;
   esac
@@ -406,7 +443,13 @@ case "$runner" in
   path-ak)
     exec ak "$@"
     ;;
+  path-ak-recursive-blocked)
+    die "ak on PATH resolves to the installed launcher shim but the current repo has no vendored/workspace-core Agent Kernel runner; fix scripts/cargo-operator.sh or AK_CORE_PROJECT instead of falling back recursively"
+    ;;
+  path-ak-blocked)
+    die "ak on PATH is available but blocked by default; set AK_ALLOW_PATH_FALLBACK=1 for an explicit ambient fallback, set AK_BIN=/absolute/path/to/ak, or provide the vendored/workspace-core Agent Kernel"
+    ;;
   *)
-    die "unable to locate Agent Kernel CLI; install 'ak' on PATH, ensure workspace core agent-kernel exists, or set AK_BIN=/absolute/path/to/ak"
+    die "unable to locate Agent Kernel CLI; set AK_BIN=/absolute/path/to/ak, provide the vendored/workspace-core Agent Kernel, or explicitly allow ak on PATH with AK_ALLOW_PATH_FALLBACK=1"
     ;;
 esac
