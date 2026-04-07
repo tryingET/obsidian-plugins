@@ -1,0 +1,10 @@
+node_modules/
+dist/
+build/
+coverage/
+.tmp/
+.DS_Store
+*.log
+apps/*/.obsidian/workspace*.json
+apps/*/.obsidian/cache
+apps/*/.obsidian/workspace.json

@@ -1,0 +1,15 @@
+{
+  "name": "obsidian-plugins-monorepo",
+  "private": true,
+  "description": "Monorepo root control plane for the Obsidian plugin family.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "check": "bash ./scripts/ci/smoke.sh",
+    "test": "bash ./scripts/ci/smoke.sh",
+    "ci": "bash ./scripts/ci/full.sh",
+    "doctor": "node --version && npm --version && ./scripts/ak.sh --doctor && ./scripts/rocs.sh --doctor"
+  }
+}
