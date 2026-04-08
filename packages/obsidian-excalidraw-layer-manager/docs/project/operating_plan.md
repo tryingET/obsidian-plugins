@@ -22,8 +22,10 @@ to:
 
 - scene truth stays Excalidraw-native (`zIndex`, `groupIds`, `frameId`, `opacity`, `locked`, selection)
 - Layer Manager X remains a projection + interaction surface, not a shadow runtime authority
+- command/move preflight must resolve from canonical selected element ids + scene frame truth, not only from the currently visible row projection
 - package-owned semantics should move into `customData.lmx`
 - preserve deterministic mutation flow: UI -> controller -> command facade -> planner -> adapter
+- keep stable ids separate from display labels; if a command mints a normalized id from user input, persist the human-readable label in `customData.lmx` in the same patch
 - keep strong test/performance coverage as the UI gets richer
 
 ## Active slices
