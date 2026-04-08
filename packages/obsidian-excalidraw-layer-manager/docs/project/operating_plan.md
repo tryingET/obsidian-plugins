@@ -1,8 +1,8 @@
 ---
-summary: "Current operating plan for Layer Manager X as a projection-based Hybrid Pro Panel inside the obsidian-plugins monorepo."
+summary: "Current operating plan for Layer Manager X as it enters projection-kernel recovery inside the obsidian-plugins monorepo."
 read_when:
   - "You are resuming package work and need the current implementation wave."
-  - "You need the active slices after the package moved past its import-native baseline."
+  - "You need the active slices after the package proved its Hybrid Pro Panel direction and exposed stabilization seams."
 type: "reference"
 ---
 
@@ -10,59 +10,87 @@ type: "reference"
 
 ## Current wave
 
-Turn the imported Layer Manager package into a **projection-based Hybrid Pro Panel** over native Excalidraw structure.
+Stabilize Layer Manager X as a **high-trust projection kernel** over native Excalidraw structure.
 
-The import/monorepo-native baseline is now good enough to shift the package focus from:
-- “prove the imported script package still works in the monorepo”
+The recent Hybrid Pro Panel slices proved the desired product shape:
+- metadata-backed naming
+- richer row model + filtering
+- panel-native movement
+- broader ordering semantics
 
-to:
-- “make Layer Manager X feel like a serious Miro/Figma/Photoshop hybrid without inventing a second canonical layer engine.”
+They also exposed the real recovery wave:
+- row identity vs representative element identity
+- full structural tree vs visible row projection
+- live destinations vs persisted convenience state
+- command outcomes vs optimistic UI state transitions
+- truthful affordances vs ambiguous mixed/filtered states
+
+The current wave is therefore **not** “add more intelligence.”
+It is: make the current panel trustworthy enough that later intelligence has a stable substrate.
+
+See also:
+- `docs/project/2026-04-08-projection-kernel-recovery.md`
 
 ## Guardrails for this wave
 
 - scene truth stays Excalidraw-native (`zIndex`, `groupIds`, `frameId`, `opacity`, `locked`, selection)
 - Layer Manager X remains a projection + interaction surface, not a shadow runtime authority
+- Layer Manager X must not persist alternate structural truth
+- `customData.lmx` stays bounded to labels and package-owned metadata, not shadow hierarchy
+- full structural truth and visible row truth are separate derived surfaces and must not be conflated
+- row identity, structural target identity, and representative element identity must not be conflated
+- convenience state (recent/last destinations, filter state, focus state, drafts) remains subordinate to live scene truth
 - command/move preflight must resolve from canonical selected element ids + scene frame truth, not only from the currently visible row projection
-- package-owned semantics should move into `customData.lmx`
+- command outcomes must drive UI state transitions; do not clear user intent optimistically when the outcome is still unknown
 - preserve deterministic mutation flow: UI -> controller -> command facade -> planner -> adapter
-- keep stable ids separate from display labels; if a command mints a normalized id from user input, persist the human-readable label in `customData.lmx` in the same patch
 - keep strong test/performance coverage as the UI gets richer
 
 ## Active slices
 
-1. **Metadata-backed naming foundation**
-   - add `customData.lmx` helpers/types
-   - resolve element + synthetic group labels through `customData.lmx` first
-   - separate display labels from raw group identity
-   - keep `name` as a compatibility/fallback read surface where useful
+1. **Projection-kernel contract**
+   - codify the authority split between scene truth, metadata truth, structural truth, visible truth, and convenience truth
+   - document what may be persisted vs what must be re-derived live
+   - make the recovery wave explicit in package docs before more UX expansion
 
-2. **Hybrid Pro Panel row model**
-   - upgrade rows from thin text/action strips to richer structure rows
-   - improve type/state scanability
-   - surface mixed hidden/locked conditions
-   - add search/filter seams that remain compatible with keyboard navigation
+2. **Identity + selection stabilization**
+   - separate row identity from representative element identity
+   - keep explicit row selection, structural selection, and raw element selection distinct
+   - ensure full-tree derivation and visible-row derivation are consumed intentionally, not accidentally
 
-3. **Panel-native movement model**
-   - replace prompt-based reparent flows with panel-native destination picking
-   - keep quick-move for root/top-level groups while exposing a full destination picker in-panel
-   - support recent destinations now and leave pinned destinations as a bounded follow-up
-   - keep movement semantics honest about frames/groups/root placement
+3. **Destination registry hardening**
+   - keep quick-move destinations live-derived, frame-aware, and compatibility-ranked
+   - preserve canonical destination keys while re-projecting labels against the live tree
+   - disambiguate destinations when human-readable labels collide
 
-4. **Better ordering semantics**
-   - keep ordering actions sibling-aware so selected rows move as structural blocks instead of raw input-order fragments
-   - expose forward/backward/front/back through the panel toolbar plus keyboard shortcuts (`F/B` for one-step reorder, `Shift+F/B` for front/back)
-   - keep drag/drop honest by surfacing explicit reparent destination feedback instead of pretending drag/drop is an order move
+4. **Affordance honesty pass**
+   - ensure filtered containers only present expand/collapse affordances that remain truthful in filtered mode
+   - keep mixed visibility/lock actions semantically honest
+   - preserve inline rename intent until the command outcome is known
+
+5. **Reorder + drag/drop requalification**
+   - rebind reorder and drag/drop behavior to canonical structural targets after identity stabilization
+   - keep reorder semantics honest about scope, especially for collapsed/grouped/frame-aware selections
+   - fail closed on malformed ancestry or drift instead of silently normalizing meaning away
+
+## Completed slices informing this wave
+
+These are done and now serve as the proving ground the recovery wave must harden:
+- **Metadata-backed naming foundation**
+- **Hybrid Pro Panel row model**
+- **Panel-native movement model**
+- **Broader ordering semantics**
 
 ## Later slices
 
+- adaptive/semantic assistance after the projection kernel is trustworthy
 - favorites/pins/tags beyond the minimum metadata foundation
 - solo/isolate and stronger structure-inspection modes
-- adaptive/semantic assistance after the core panel is trustworthy
 - more alienlike view/state transitions only after the pro-panel foundation feels obvious and stable
 
 ## Not this wave
 
 - upstream-native Excalidraw layers
 - a second plugin-owned canonical layer engine
-- heavy sidecar intelligence embedded in the host before the core panel UX is excellent
 - speculative AI behavior that weakens determinism or clarity
+- adaptive scene intelligence before the current projection kernel is re-qualified as trustworthy
+- persistence schemes that turn convenience state into shadow structure
