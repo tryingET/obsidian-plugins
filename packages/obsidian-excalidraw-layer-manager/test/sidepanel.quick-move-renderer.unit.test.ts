@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest"
 
 import type { LayerNode } from "../src/model/tree.js"
+import { buildSidepanelQuickMoveDestinationProjection } from "../src/ui/sidepanel/quickmove/destinationProjection.js"
 import type { GroupReparentPreset } from "../src/ui/sidepanel/quickmove/presetHelpers.js"
 import { makePresetKey } from "../src/ui/sidepanel/quickmove/presetHelpers.js"
 import type { LastQuickMoveDestination } from "../src/ui/sidepanel/quickmove/quickMovePersistenceService.js"
@@ -153,6 +154,7 @@ const makeGroupNode = (
   groupId: string,
   childNodes: readonly LayerNode[],
   frameId: string | null = null,
+  label = groupId,
 ): LayerNode => ({
   id: `group:${groupId}`,
   type: "group",
@@ -163,7 +165,20 @@ const makeGroupNode = (
   isExpanded: true,
   groupId,
   frameId,
-  label: groupId,
+  label,
+})
+
+const makeFrameNode = (frameId: string, childNodes: readonly LayerNode[]): LayerNode => ({
+  id: `frame:${frameId}`,
+  type: "frame",
+  elementIds: [frameId, ...childNodes.flatMap((child) => child.elementIds)],
+  primaryElementId: frameId,
+  children: childNodes,
+  canExpand: childNodes.length > 0,
+  isExpanded: true,
+  groupId: null,
+  frameId: null,
+  label: frameId,
 })
 
 const createToolbarButton = (
@@ -179,40 +194,59 @@ const createToolbarButton = (
   return button as unknown as HTMLButtonElement
 }
 
+const makeFrameResolution = (frameId: string | null) => ({
+  ok: true as const,
+  frameId,
+})
+
 const makeBaseInput = (
   document: FakeDocument,
   container: FakeDomElement,
   overrides: Partial<{
     tree: readonly LayerNode[]
-    selection: { readonly elementIds: readonly string[]; readonly nodes: readonly LayerNode[] }
+    selection: {
+      readonly elementIds: readonly string[]
+      readonly nodes: readonly LayerNode[]
+      readonly frameResolution: { readonly ok: true; readonly frameId: string | null }
+    }
     lastQuickMoveDestination: LastQuickMoveDestination | null
     recentQuickMoveDestinations: readonly LastQuickMoveDestination[]
-    onMoveSelectionToRoot: () => Promise<void>
+    quickPresetInlineMax: number
+    quickPresetTotalMax: number
+    allDestinationTotalMax: number
+    onMoveSelectionToRoot: (targetFrameId: string | null) => Promise<void>
     onApplyGroupPreset: (preset: GroupReparentPreset) => Promise<void>
     onNotify: (message: string) => void
   }> = {},
 ) => {
   const onMoveSelectionToRoot =
-    overrides.onMoveSelectionToRoot ?? vi.fn<() => Promise<void>>(async () => {})
+    overrides.onMoveSelectionToRoot ??
+    vi.fn<(targetFrameId: string | null) => Promise<void>>(async () => {})
   const onApplyGroupPreset =
     overrides.onApplyGroupPreset ??
     vi.fn<(preset: GroupReparentPreset) => Promise<void>>(async () => {})
   const onNotify = overrides.onNotify ?? vi.fn<(message: string) => void>()
+  const tree = overrides.tree ?? [makeElementNode("A")]
+  const quickPresetTotalMax = overrides.quickPresetTotalMax ?? 24
+  const allDestinationTotalMax = overrides.allDestinationTotalMax ?? 48
 
   return {
     container: container as unknown as HTMLElement,
     ownerDocument: document as unknown as Document,
     hasActions: true,
-    tree: overrides.tree ?? [makeElementNode("A")],
     selection: overrides.selection ?? {
       elementIds: ["A"],
       nodes: [makeElementNode("A")],
+      frameResolution: makeFrameResolution(null),
     },
+    destinationProjection: buildSidepanelQuickMoveDestinationProjection(
+      tree,
+      quickPresetTotalMax,
+      allDestinationTotalMax,
+    ),
     lastQuickMoveDestination: overrides.lastQuickMoveDestination ?? null,
     recentQuickMoveDestinations: overrides.recentQuickMoveDestinations ?? [],
-    quickPresetInlineMax: 4,
-    quickPresetTotalMax: 24,
-    allDestinationTotalMax: 48,
+    quickPresetInlineMax: overrides.quickPresetInlineMax ?? 4,
     lastMoveLabelMax: 26,
     createToolbarButton,
     onMoveSelectionToRoot,
@@ -226,7 +260,9 @@ describe("sidepanel quick-move renderer", () => {
     const document = new FakeDocument()
     const container = document.createElement("div")
 
-    const onMoveSelectionToRoot = vi.fn(async () => {})
+    const onMoveSelectionToRoot = vi.fn<(targetFrameId: string | null) => Promise<void>>(
+      async () => {},
+    )
     const onApplyGroupPreset = vi.fn<(preset: GroupReparentPreset) => Promise<void>>(async () => {})
     const onNotify = vi.fn<(message: string) => void>()
 
@@ -262,6 +298,7 @@ describe("sidepanel quick-move renderer", () => {
     await flushAsync()
 
     expect(onMoveSelectionToRoot).toHaveBeenCalledTimes(1)
+    expect(onMoveSelectionToRoot).toHaveBeenCalledWith(null)
 
     const firstPresetOption = topLevelSelect.children.find(
       (child) => child.tagName === "OPTION" && child.value.length > 0,
@@ -289,7 +326,9 @@ describe("sidepanel quick-move renderer", () => {
     const document = new FakeDocument()
     const container = document.createElement("div")
 
-    const onMoveSelectionToRoot = vi.fn(async () => {})
+    const onMoveSelectionToRoot = vi.fn<(targetFrameId: string | null) => Promise<void>>(
+      async () => {},
+    )
     const onApplyGroupPreset = vi.fn<(preset: GroupReparentPreset) => Promise<void>>(async () => {})
 
     renderSidepanelQuickMove(
@@ -302,6 +341,7 @@ describe("sidepanel quick-move renderer", () => {
         selection: {
           elementIds: ["A"],
           nodes: [makeElementNode("A", "F1")],
+          frameResolution: makeFrameResolution("F1"),
         },
         lastQuickMoveDestination: {
           kind: "preset",
@@ -356,6 +396,7 @@ describe("sidepanel quick-move renderer", () => {
         selection: {
           elementIds: ["A"],
           nodes: [makeElementNode("A", "F1")],
+          frameResolution: makeFrameResolution("F1"),
         },
         lastQuickMoveDestination: {
           kind: "preset",
@@ -430,6 +471,192 @@ describe("sidepanel quick-move renderer", () => {
       targetParentPath: ["Outer", "Inner"],
       targetFrameId: "F1",
     })
+  })
+
+  it("projects persisted destinations onto live labels and hides stale presets", () => {
+    const document = new FakeDocument()
+    const container = document.createElement("div")
+
+    renderSidepanelQuickMove(
+      makeBaseInput(document, container, {
+        tree: [makeGroupNode("G", [makeElementNode("A")], null, "Renamed Group")],
+        lastQuickMoveDestination: {
+          kind: "preset",
+          preset: {
+            key: makePresetKey(["G"], null),
+            label: "Inside G",
+            targetParentPath: ["G"],
+            targetFrameId: null,
+          },
+        },
+        recentQuickMoveDestinations: [
+          {
+            kind: "preset",
+            preset: {
+              key: makePresetKey(["missing"], null),
+              label: "Inside missing",
+              targetParentPath: ["missing"],
+              targetFrameId: null,
+            },
+          },
+        ],
+      }),
+    )
+
+    const renderedContainer = container as unknown as FakeDomElement
+
+    expect(findButtonByText(renderedContainer, "Inside missing")).toBeUndefined()
+
+    const repeatButton = findButtonWithPrefix(renderedContainer, "↺ Last:")
+    expect(repeatButton).toBeDefined()
+    expect(repeatButton?.textContent).toContain("Renamed")
+  })
+
+  it("disables structural quick-move controls when selection includes frame rows", () => {
+    const document = new FakeDocument()
+    const container = document.createElement("div")
+
+    renderSidepanelQuickMove(
+      makeBaseInput(document, container, {
+        tree: [makeFrameNode("F1", [makeGroupNode("G1", [makeElementNode("A", "F1")], "F1")])],
+        selection: {
+          elementIds: ["F1"],
+          nodes: [makeFrameNode("F1", [makeElementNode("A", "F1")])],
+          frameResolution: makeFrameResolution("F1"),
+        },
+      }),
+    )
+
+    const renderedContainer = container as unknown as FakeDomElement
+    const rootButton = findButtonByText(renderedContainer, "Root")
+    const presetButton = findButtonByText(renderedContainer, "Inside G1")
+
+    expect(rootButton?.disabled).toBe(true)
+    expect(rootButton?.title).toBe("Selection includes frame rows.")
+    expect(presetButton?.disabled).toBe(true)
+    expect(presetButton?.title).toBe("Selection includes frame rows.")
+  })
+
+  it("disables repeat-last root when it points at a different frame root", () => {
+    const document = new FakeDocument()
+    const container = document.createElement("div")
+
+    renderSidepanelQuickMove(
+      makeBaseInput(document, container, {
+        tree: [makeFrameNode("F1", []), makeFrameNode("F2", [makeElementNode("A", "F2")])],
+        selection: {
+          elementIds: ["A"],
+          nodes: [makeElementNode("A", "F2")],
+          frameResolution: makeFrameResolution("F2"),
+        },
+        lastQuickMoveDestination: {
+          kind: "root",
+          targetFrameId: "F1",
+        },
+      }),
+    )
+
+    const renderedContainer = container as unknown as FakeDomElement
+    const repeatButton = findButtonWithPrefix(renderedContainer, "↺ Last:")
+
+    if (!repeatButton) {
+      throw new Error("Expected repeat-last control to exist.")
+    }
+
+    expect(repeatButton.disabled).toBe(true)
+    expect(repeatButton.title).toBe("Last destination is in a different frame.")
+    expect(findButtonByText(renderedContainer, "Root ★")).toBeUndefined()
+  })
+
+  it("renders recent root destinations with distinct labels and replays the remembered root target", async () => {
+    const document = new FakeDocument()
+    const container = document.createElement("div")
+    const onMoveSelectionToRoot = vi.fn<(targetFrameId: string | null) => Promise<void>>(
+      async () => {},
+    )
+
+    renderSidepanelQuickMove(
+      makeBaseInput(document, container, {
+        tree: [makeFrameNode("F1", [makeElementNode("A", "F1")]), makeFrameNode("F2", [])],
+        selection: {
+          elementIds: ["A"],
+          nodes: [makeElementNode("A", "F1")],
+          frameResolution: makeFrameResolution("F1"),
+        },
+        lastQuickMoveDestination: {
+          kind: "preset",
+          preset: {
+            key: makePresetKey(["G1"], "F1"),
+            label: "Inside G1",
+            targetParentPath: ["G1"],
+            targetFrameId: "F1",
+          },
+        },
+        recentQuickMoveDestinations: [
+          { kind: "root", targetFrameId: "F1" },
+          { kind: "root", targetFrameId: "F2" },
+        ],
+        onMoveSelectionToRoot,
+      }),
+    )
+
+    const renderedContainer = container as unknown as FakeDomElement
+    const frameOneRootButton = findButtonByText(renderedContainer, "Frame root: F1")
+    const frameTwoRootButton = findButtonByText(renderedContainer, "Frame root: F2")
+
+    expect(frameOneRootButton).toBeDefined()
+    expect(frameTwoRootButton).toBeDefined()
+    expect(frameTwoRootButton?.disabled).toBe(true)
+
+    frameOneRootButton?.click()
+    await flushAsync()
+
+    expect(onMoveSelectionToRoot).toHaveBeenCalledWith("F1")
+  })
+
+  it("keeps remembered destinations available in the picker when the base list is capped", () => {
+    const document = new FakeDocument()
+    const container = document.createElement("div")
+
+    renderSidepanelQuickMove(
+      makeBaseInput(document, container, {
+        tree: [
+          makeElementNode("A", "F1"),
+          makeGroupNode("G1", [makeElementNode("B", "F1")], "F1"),
+          makeGroupNode("G2", [makeElementNode("C", "F1")], "F1"),
+          makeGroupNode("G3", [makeElementNode("D", "F1")], "F1"),
+        ],
+        selection: {
+          elementIds: ["A"],
+          nodes: [makeElementNode("A", "F1")],
+          frameResolution: makeFrameResolution("F1"),
+        },
+        lastQuickMoveDestination: {
+          kind: "preset",
+          preset: {
+            key: makePresetKey(["G3"], "F1"),
+            label: "Inside G3",
+            targetParentPath: ["G3"],
+            targetFrameId: "F1",
+          },
+        },
+        allDestinationTotalMax: 1,
+      }),
+    )
+
+    const renderedContainer = container as unknown as FakeDomElement
+    const selects = findSelects(renderedContainer)
+    const pickerSelect = selects.at(-1)
+
+    if (!pickerSelect) {
+      throw new Error("Expected destination picker to exist.")
+    }
+
+    const rememberedOption = pickerSelect.children.find(
+      (child) => child.tagName === "OPTION" && child.value === makePresetKey(["G3"], "F1"),
+    )
+
+    expect(rememberedOption).toBeDefined()
   })
 
   it("skips rendering when actions are unavailable", () => {

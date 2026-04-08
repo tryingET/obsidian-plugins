@@ -1,38 +1,43 @@
 import type { LayerNode } from "../../../model/tree.js"
 import {
+  type SidepanelQuickMoveDestinationProjection,
+  projectQuickMoveDestination,
+  projectQuickMoveDestinations,
+} from "../quickmove/destinationProjection.js"
+import {
   type GroupReparentPreset,
   type SharedFrameResolution,
-  collectAllGroupReparentPresets,
-  collectTopLevelGroupReparentPresets,
-  makePresetOptionLabel,
-  resolveSharedFrame,
   truncateLabel,
 } from "../quickmove/presetHelpers.js"
 import type { LastQuickMoveDestination } from "../quickmove/quickMovePersistenceService.js"
+import {
+  type StructuralMoveSelection,
+  resolveStructuralSelectionIssue,
+} from "../selection/structuralMoveSelection.js"
 
 interface SidepanelQuickMoveSelection {
   readonly elementIds: readonly string[]
   readonly nodes: readonly LayerNode[]
+  readonly frameResolution: SharedFrameResolution
+  readonly structuralMove?: StructuralMoveSelection | null
 }
 
 interface SidepanelQuickMoveRenderInput {
   readonly container: HTMLElement
   readonly ownerDocument: Document
   readonly hasActions: boolean
-  readonly tree: readonly LayerNode[]
   readonly selection: SidepanelQuickMoveSelection
+  readonly destinationProjection: SidepanelQuickMoveDestinationProjection
   readonly lastQuickMoveDestination: LastQuickMoveDestination | null
   readonly recentQuickMoveDestinations: readonly LastQuickMoveDestination[]
   readonly quickPresetInlineMax: number
-  readonly quickPresetTotalMax: number
-  readonly allDestinationTotalMax: number
   readonly lastMoveLabelMax: number
   readonly createToolbarButton: (
     ownerDocument: Document,
     label: string,
     action: () => Promise<unknown>,
   ) => HTMLButtonElement
-  readonly onMoveSelectionToRoot: () => Promise<void>
+  readonly onMoveSelectionToRoot: (targetFrameId: string | null) => Promise<void>
   readonly onApplyGroupPreset: (preset: GroupReparentPreset) => Promise<void>
   readonly onNotify: (message: string) => void
 }
@@ -40,9 +45,17 @@ interface SidepanelQuickMoveRenderInput {
 interface SidepanelQuickMoveRenderState {
   readonly hasSelection: boolean
   readonly frameResolution: SharedFrameResolution
+  readonly selectionIssue: string | null
 }
 
 const RECENT_TARGET_BUTTON_MAX = 2
+
+const resolveSelectionIssue = (
+  selection: SidepanelQuickMoveSelection,
+  _frameResolution: SharedFrameResolution,
+): string | null => {
+  return resolveStructuralSelectionIssue(selection)
+}
 
 const isPresetFrameCompatible = (
   frameResolution: SharedFrameResolution,
@@ -51,12 +64,80 @@ const isPresetFrameCompatible = (
   return frameResolution.ok && frameResolution.frameId === preset.targetFrameId
 }
 
+const isRootFrameCompatible = (
+  frameResolution: SharedFrameResolution,
+  destination: Extract<LastQuickMoveDestination, { readonly kind: "root" }>,
+): boolean => {
+  return frameResolution.ok && frameResolution.frameId === destination.targetFrameId
+}
+
+const isDestinationFrameCompatible = (
+  frameResolution: SharedFrameResolution,
+  destination: LastQuickMoveDestination,
+): boolean => {
+  if (destination.kind === "root") {
+    return isRootFrameCompatible(frameResolution, destination)
+  }
+
+  return isPresetFrameCompatible(frameResolution, destination.preset)
+}
+
+const describeRootDestination = (
+  destination: Extract<LastQuickMoveDestination, { readonly kind: "root" }>,
+  frameLabelById: ReadonlyMap<string, string>,
+): string => {
+  if (!destination.targetFrameId) {
+    return "Canvas root"
+  }
+
+  const frameLabel = frameLabelById.get(destination.targetFrameId) ?? destination.targetFrameId
+  return `Frame root: ${frameLabel}`
+}
+
+const appendUniquePreset = (
+  target: GroupReparentPreset[],
+  seenKeys: Set<string>,
+  preset: GroupReparentPreset,
+): void => {
+  if (seenKeys.has(preset.key)) {
+    return
+  }
+
+  seenKeys.add(preset.key)
+  target.push(preset)
+}
+
+const buildPickerPresets = (
+  basePresets: readonly GroupReparentPreset[],
+  lastDestination: LastQuickMoveDestination | null,
+  recentDestinations: readonly LastQuickMoveDestination[],
+): readonly GroupReparentPreset[] => {
+  const presets = [...basePresets]
+  const seenKeys = new Set(basePresets.map((preset) => preset.key))
+
+  if (lastDestination?.kind === "preset") {
+    appendUniquePreset(presets, seenKeys, lastDestination.preset)
+  }
+
+  for (const destination of recentDestinations) {
+    if (destination.kind !== "preset") {
+      continue
+    }
+
+    appendUniquePreset(presets, seenKeys, destination.preset)
+  }
+
+  return presets
+}
+
 const isSameDestination = (
   left: LastQuickMoveDestination,
   right: LastQuickMoveDestination,
 ): boolean => {
   if (left.kind === "root" || right.kind === "root") {
-    return left.kind === right.kind
+    return (
+      left.kind === "root" && right.kind === "root" && left.targetFrameId === right.targetFrameId
+    )
   }
 
   return left.preset.key === right.preset.key
@@ -71,40 +152,62 @@ export const renderSidepanelQuickMove = (
 
   const renderState: SidepanelQuickMoveRenderState = {
     hasSelection: input.selection.elementIds.length > 0,
-    frameResolution: resolveSharedFrame(input.selection.nodes),
+    frameResolution: input.selection.frameResolution,
+    selectionIssue: resolveSelectionIssue(input.selection, input.selection.frameResolution),
   }
 
-  const presetRow = createControlRow(input)
-  appendRowTitle(presetRow, input, "Move selection:")
-
-  appendLastQuickMoveControl(input, presetRow, renderState)
-  appendRecentDestinationControls(input, presetRow, renderState)
-  appendRootMoveControl(input, presetRow, renderState)
-
-  const topLevelPresets = collectTopLevelGroupReparentPresets(input.tree, input.quickPresetTotalMax)
-
-  if (topLevelPresets.length <= input.quickPresetInlineMax) {
-    appendInlinePresetButtons(input, presetRow, topLevelPresets, renderState)
-  } else {
-    appendPresetDropdown(input, presetRow, topLevelPresets, renderState)
+  const projectedInput: SidepanelQuickMoveRenderInput = {
+    ...input,
+    lastQuickMoveDestination: projectQuickMoveDestination(
+      input.lastQuickMoveDestination,
+      input.destinationProjection.destinationByKey,
+      input.destinationProjection.liveFrameIds,
+    ),
+    recentQuickMoveDestinations: projectQuickMoveDestinations(
+      input.recentQuickMoveDestinations,
+      input.destinationProjection.destinationByKey,
+      input.destinationProjection.liveFrameIds,
+    ),
   }
 
-  const allDestinationCandidates = collectAllGroupReparentPresets(
-    input.tree,
-    input.allDestinationTotalMax + 1,
-  )
-  const allDestinations = allDestinationCandidates.slice(0, input.allDestinationTotalMax)
-  const destinationPickerWasCapped = allDestinationCandidates.length > input.allDestinationTotalMax
+  const presetRow = createControlRow(projectedInput)
+  appendRowTitle(presetRow, projectedInput, "Move selection:")
 
-  if (allDestinations.length > 0) {
-    const pickerRow = createControlRow(input)
-    appendRowTitle(pickerRow, input, "Destination picker:")
-    appendDestinationPicker(
-      input,
-      pickerRow,
-      allDestinations,
+  appendLastQuickMoveControl(projectedInput, presetRow, renderState)
+  appendRecentDestinationControls(projectedInput, presetRow, renderState)
+  appendRootMoveControl(projectedInput, presetRow, renderState)
+
+  if (input.destinationProjection.topLevelPresets.length <= projectedInput.quickPresetInlineMax) {
+    appendInlinePresetButtons(
+      projectedInput,
+      presetRow,
+      input.destinationProjection.topLevelPresets,
       renderState,
-      destinationPickerWasCapped,
+    )
+  } else {
+    appendPresetDropdown(
+      projectedInput,
+      presetRow,
+      input.destinationProjection.topLevelPresets,
+      renderState,
+    )
+  }
+
+  const pickerPresets = buildPickerPresets(
+    input.destinationProjection.allDestinations,
+    projectedInput.lastQuickMoveDestination,
+    projectedInput.recentQuickMoveDestinations,
+  )
+
+  if (pickerPresets.length > 0) {
+    const pickerRow = createControlRow(projectedInput)
+    appendRowTitle(pickerRow, projectedInput, "Destination picker:")
+    appendDestinationPicker(
+      projectedInput,
+      pickerRow,
+      pickerPresets,
+      renderState,
+      input.destinationProjection.destinationPickerWasCapped,
     )
   }
 
@@ -140,15 +243,20 @@ const appendRootMoveControl = (
   presetRow: HTMLElement,
   renderState: SidepanelQuickMoveRenderState,
 ): void => {
-  const rootLabel = input.lastQuickMoveDestination?.kind === "root" ? "Root ★" : "Root"
+  const rootLabel =
+    renderState.hasSelection &&
+    input.lastQuickMoveDestination?.kind === "root" &&
+    isRootFrameCompatible(renderState.frameResolution, input.lastQuickMoveDestination)
+      ? "Root ★"
+      : "Root"
   const rootButton = input.createToolbarButton(input.ownerDocument, rootLabel, async () => {
-    await input.onMoveSelectionToRoot()
+    await input.onMoveSelectionToRoot(renderState.frameResolution.frameId)
   })
 
-  rootButton.disabled = !renderState.hasSelection || !renderState.frameResolution.ok
+  rootButton.disabled = !!renderState.selectionIssue
 
-  if (renderState.hasSelection && !renderState.frameResolution.ok) {
-    rootButton.title = "Selection spans multiple frames."
+  if (renderState.selectionIssue) {
+    rootButton.title = renderState.selectionIssue
   }
 
   presetRow.appendChild(rootButton)
@@ -165,14 +273,16 @@ const appendLastQuickMoveControl = (
   }
 
   const label =
-    lastDestination.kind === "root" ? "↺ Last: Root" : `↺ Last: ${lastDestination.preset.label}`
+    lastDestination.kind === "root"
+      ? `↺ Last: ${describeRootDestination(lastDestination, input.destinationProjection.frameLabelById)}`
+      : `↺ Last: ${lastDestination.preset.label}`
 
   const repeatButton = input.createToolbarButton(
     input.ownerDocument,
     truncateLabel(label, input.lastMoveLabelMax),
     async () => {
       if (lastDestination.kind === "root") {
-        await input.onMoveSelectionToRoot()
+        await input.onMoveSelectionToRoot(lastDestination.targetFrameId)
         return
       }
 
@@ -180,16 +290,19 @@ const appendLastQuickMoveControl = (
     },
   )
 
-  if (!renderState.hasSelection) {
+  if (renderState.selectionIssue) {
     repeatButton.disabled = true
-    repeatButton.title = "Select elements in canvas first."
+    repeatButton.title = renderState.selectionIssue
     presetRow.appendChild(repeatButton)
     return
   }
 
-  if (!renderState.frameResolution.ok) {
+  if (
+    lastDestination.kind === "root" &&
+    !isRootFrameCompatible(renderState.frameResolution, lastDestination)
+  ) {
     repeatButton.disabled = true
-    repeatButton.title = "Selection spans multiple frames."
+    repeatButton.title = "Last destination is in a different frame."
     presetRow.appendChild(repeatButton)
     return
   }
@@ -214,10 +327,6 @@ const appendRecentDestinationControls = (
 ): void => {
   const recentDestinations = input.recentQuickMoveDestinations
     .filter((destination) => {
-      if (destination.kind === "root") {
-        return false
-      }
-
       const lastDestination = input.lastQuickMoveDestination
       if (!lastDestination) {
         return true
@@ -240,36 +349,26 @@ const appendRecentDestinationControls = (
   for (const destination of recentDestinations) {
     const buttonLabel =
       destination.kind === "root"
-        ? "Root"
+        ? describeRootDestination(destination, input.destinationProjection.frameLabelById)
         : truncateLabel(destination.preset.label, input.lastMoveLabelMax)
 
     const button = input.createToolbarButton(input.ownerDocument, buttonLabel, async () => {
       if (destination.kind === "root") {
-        await input.onMoveSelectionToRoot()
+        await input.onMoveSelectionToRoot(destination.targetFrameId)
         return
       }
 
       await input.onApplyGroupPreset(destination.preset)
     })
 
-    if (!renderState.hasSelection) {
+    if (renderState.selectionIssue) {
       button.disabled = true
-      button.title = "Select elements in canvas first."
+      button.title = renderState.selectionIssue
       presetRow.appendChild(button)
       continue
     }
 
-    if (!renderState.frameResolution.ok) {
-      button.disabled = true
-      button.title = "Selection spans multiple frames."
-      presetRow.appendChild(button)
-      continue
-    }
-
-    if (
-      destination.kind === "preset" &&
-      !isPresetFrameCompatible(renderState.frameResolution, destination.preset)
-    ) {
+    if (!isDestinationFrameCompatible(renderState.frameResolution, destination)) {
       button.disabled = true
       button.title = "Recent destination is in a different frame."
     }
@@ -295,9 +394,11 @@ const appendInlinePresetButtons = (
     })
 
     const isFrameCompatible = isPresetFrameCompatible(renderState.frameResolution, preset)
-    presetButton.disabled = !renderState.hasSelection || !isFrameCompatible
+    presetButton.disabled = !!renderState.selectionIssue || !isFrameCompatible
 
-    if (renderState.hasSelection && renderState.frameResolution.ok && !isFrameCompatible) {
+    if (renderState.selectionIssue) {
+      presetButton.title = renderState.selectionIssue
+    } else if (!isFrameCompatible) {
       presetButton.title = "Preset is in a different frame than the current selection."
     }
 
@@ -353,12 +454,9 @@ const appendPresetDropdown = (
     select.value = lastPresetKey
   }
 
-  if (!renderState.hasSelection) {
+  if (renderState.selectionIssue) {
     select.disabled = true
-    select.title = "Select elements in canvas first."
-  } else if (!renderState.frameResolution.ok) {
-    select.disabled = true
-    select.title = "Selection spans multiple frames."
+    select.title = renderState.selectionIssue
   } else if (compatibleCount === 0) {
     select.disabled = true
     select.title = "No compatible top-level group presets for this frame."
@@ -382,19 +480,13 @@ const appendPresetDropdown = (
 
     const canApply =
       !!preset &&
-      renderState.hasSelection &&
-      renderState.frameResolution.ok &&
+      !renderState.selectionIssue &&
       isPresetFrameCompatible(renderState.frameResolution, preset)
 
     applyButton.disabled = !canApply
 
-    if (!renderState.hasSelection) {
-      applyButton.title = "Select elements in canvas first."
-      return
-    }
-
-    if (!renderState.frameResolution.ok) {
-      applyButton.title = "Selection spans multiple frames."
+    if (renderState.selectionIssue) {
+      applyButton.title = renderState.selectionIssue
       return
     }
 
@@ -442,7 +534,7 @@ const appendDestinationPicker = (
   const placeholder = input.ownerDocument.createElement("option")
   placeholder.value = ""
   placeholder.textContent = wasCapped
-    ? `All group destinations (showing first ${presets.length})`
+    ? `All group destinations (${presets.length} shown, list capped)`
     : `All group destinations (${presets.length})`
   select.appendChild(placeholder)
 
@@ -451,10 +543,7 @@ const appendDestinationPicker = (
   for (const preset of presets) {
     const option = input.ownerDocument.createElement("option")
     option.value = preset.key
-    option.textContent =
-      preset.key === lastPresetKey
-        ? `${makePresetOptionLabel(preset.targetParentPath)} ★`
-        : makePresetOptionLabel(preset.targetParentPath)
+    option.textContent = preset.key === lastPresetKey ? `${preset.label} ★` : preset.label
 
     const isFrameCompatible = isPresetFrameCompatible(renderState.frameResolution, preset)
     if (renderState.hasSelection && renderState.frameResolution.ok && !isFrameCompatible) {
@@ -468,12 +557,9 @@ const appendDestinationPicker = (
     select.appendChild(option)
   }
 
-  if (!renderState.hasSelection) {
+  if (renderState.selectionIssue) {
     select.disabled = true
-    select.title = "Select elements in canvas first."
-  } else if (!renderState.frameResolution.ok) {
-    select.disabled = true
-    select.title = "Selection spans multiple frames."
+    select.title = renderState.selectionIssue
   } else if (compatibleCount === 0) {
     select.disabled = true
     select.title = "No compatible group destinations for this frame."
@@ -495,19 +581,13 @@ const appendDestinationPicker = (
     const preset = presetByKey.get(select.value)
     const canApply =
       !!preset &&
-      renderState.hasSelection &&
-      renderState.frameResolution.ok &&
+      !renderState.selectionIssue &&
       isPresetFrameCompatible(renderState.frameResolution, preset)
 
     applyButton.disabled = !canApply
 
-    if (!renderState.hasSelection) {
-      applyButton.title = "Select elements in canvas first."
-      return
-    }
-
-    if (!renderState.frameResolution.ok) {
-      applyButton.title = "Selection spans multiple frames."
+    if (renderState.selectionIssue) {
+      applyButton.title = renderState.selectionIssue
       return
     }
 

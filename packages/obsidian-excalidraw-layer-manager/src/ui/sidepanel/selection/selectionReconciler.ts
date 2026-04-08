@@ -1,4 +1,4 @@
-import { collectUniqueSelectionIds, haveSameIdsInSameOrder } from "./selectionIds.js"
+import { collectUniqueSelectionIds, haveSameIds } from "./selectionIds.js"
 
 type SelectionResolutionSource =
   | "noLiveSelectionApi"
@@ -43,7 +43,7 @@ export const reconcileSelectedElementIds = <T extends SelectionElementLike>(
   try {
     const liveSelection = collectUniqueSelectionIds(input.getViewSelectedElements() ?? [])
 
-    if (input.selectionOverride && haveSameIdsInSameOrder(liveSelection, input.selectionOverride)) {
+    if (input.selectionOverride && haveSameIds(liveSelection, input.selectionOverride)) {
       return {
         source: "liveMatchesOverride",
         resolvedSelection: liveSelection,
@@ -61,8 +61,7 @@ export const reconcileSelectedElementIds = <T extends SelectionElementLike>(
 
     if (liveSelection.length === 0 && input.snapshotSelection.length > 0) {
       const hasStaleOverrideAgainstSnapshot =
-        !!input.selectionOverride &&
-        !haveSameIdsInSameOrder(input.selectionOverride, input.snapshotSelection)
+        !!input.selectionOverride && !haveSameIds(input.selectionOverride, input.snapshotSelection)
 
       return {
         source: "snapshotPreferredOverEmptyLive",
@@ -73,7 +72,7 @@ export const reconcileSelectedElementIds = <T extends SelectionElementLike>(
       }
     }
 
-    if (!haveSameIdsInSameOrder(liveSelection, input.snapshotSelection)) {
+    if (!haveSameIds(liveSelection, input.snapshotSelection)) {
       return {
         source: "liveDiffersFromSnapshot",
         resolvedSelection: liveSelection,
@@ -82,7 +81,7 @@ export const reconcileSelectedElementIds = <T extends SelectionElementLike>(
     }
 
     const hasStaleOverrideAgainstLive =
-      !!input.selectionOverride && !haveSameIdsInSameOrder(liveSelection, input.selectionOverride)
+      !!input.selectionOverride && !haveSameIds(liveSelection, input.selectionOverride)
 
     if (hasStaleOverrideAgainstLive) {
       return {

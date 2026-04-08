@@ -6,6 +6,11 @@ import { SidepanelSelectionActionController } from "../src/ui/sidepanel/actions/
 import { SidepanelPromptInteractionService } from "../src/ui/sidepanel/prompt/promptInteractionService.js"
 import { makePresetKey } from "../src/ui/sidepanel/quickmove/presetHelpers.js"
 
+const makeFrameResolution = (frameId: string | null) => ({
+  ok: true as const,
+  frameId,
+})
+
 const withPatchedGlobalPrompt = async (
   promptValue: unknown,
   run: () => void | Promise<void>,
@@ -39,6 +44,36 @@ const makeElementNode = (elementId: string, frameId: string | null): LayerNode =
   label: elementId,
 })
 
+const makeFrameNode = (frameId: string, childIds: readonly string[] = []): LayerNode => ({
+  id: `frame:${frameId}`,
+  type: "frame",
+  elementIds: [frameId, ...childIds],
+  primaryElementId: frameId,
+  children: [],
+  canExpand: childIds.length > 0,
+  isExpanded: true,
+  groupId: null,
+  frameId: null,
+  label: frameId,
+})
+
+const makeGroupNode = (
+  groupId: string,
+  elementIds: readonly string[],
+  frameId: string | null,
+): LayerNode => ({
+  id: `group:${groupId}`,
+  type: "group",
+  elementIds: [...elementIds],
+  primaryElementId: elementIds[0] ?? `group:${groupId}`,
+  children: [],
+  canExpand: true,
+  isExpanded: true,
+  groupId,
+  frameId,
+  label: groupId,
+})
+
 const makeHarness = () => {
   const notify = vi.fn<(message: string) => void>()
   const setLastQuickMoveDestination = vi.fn<(destination: unknown) => void>()
@@ -67,10 +102,12 @@ const makeHarness = () => {
   const createGroup = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
   const reorder = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
   const reparent = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
+  const reparentFromNodeIds = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
 
   const actions = {
     beginInteraction,
     endInteraction,
+    reparentFromNodeIds,
     commands: {
       createGroup,
       reorder,
@@ -91,6 +128,7 @@ const makeHarness = () => {
     createGroup,
     reorder,
     reparent,
+    reparentFromNodeIds,
   }
 }
 
@@ -133,6 +171,7 @@ describe("sidepanel selection action controller", () => {
       {
         elementIds: ["el:A"],
         nodes: [makeElementNode("el:A", "Frame-A")],
+        frameResolution: makeFrameResolution("Frame-A"),
       },
       {
         key: makePresetKey(["Outer", "Inner"], "Frame-A"),
@@ -160,6 +199,62 @@ describe("sidepanel selection action controller", () => {
     })
   })
 
+  it("uses structural node intent for group-row quick moves", async () => {
+    const harness = makeHarness()
+
+    await harness.controller.applyGroupPreset(
+      harness.actions,
+      {
+        elementIds: ["el:A", "el:B"],
+        nodes: [makeGroupNode("G", ["el:A", "el:B"], "Frame-A")],
+        frameResolution: makeFrameResolution("Frame-A"),
+        structuralMove: {
+          nodeIds: ["group:G"],
+          sourceGroupId: "G",
+        },
+      },
+      {
+        key: makePresetKey(["Outer"], "Frame-A"),
+        label: "Inside Outer",
+        targetParentPath: ["Outer"],
+        targetFrameId: "Frame-A",
+      },
+    )
+
+    expect(harness.reparentFromNodeIds).toHaveBeenCalledWith({
+      nodeIds: ["group:G"],
+      sourceGroupId: "G",
+      targetParentPath: ["Outer"],
+      targetFrameId: "Frame-A",
+    })
+    expect(harness.reparent).not.toHaveBeenCalled()
+  })
+
+  it("fails closed for applyGroupPreset when selection includes frame rows", async () => {
+    const harness = makeHarness()
+
+    await harness.controller.applyGroupPreset(
+      harness.actions,
+      {
+        elementIds: ["Frame-A"],
+        nodes: [makeFrameNode("Frame-A")],
+        frameResolution: makeFrameResolution("Frame-A"),
+      },
+      {
+        key: makePresetKey(["G"], "Frame-A"),
+        label: "Inside G",
+        targetParentPath: ["G"],
+        targetFrameId: "Frame-A",
+      },
+    )
+
+    expect(harness.notify).toHaveBeenCalledWith(
+      "Preset move failed: frame rows cannot be structurally moved.",
+    )
+    expect(harness.reparent).not.toHaveBeenCalled()
+    expect(harness.setLastQuickMoveDestination).not.toHaveBeenCalled()
+  })
+
   it("fails closed for applyGroupPreset when selection frame is incompatible", async () => {
     const harness = makeHarness()
 
@@ -168,6 +263,7 @@ describe("sidepanel selection action controller", () => {
       {
         elementIds: ["el:A"],
         nodes: [makeElementNode("el:A", "Frame-A")],
+        frameResolution: makeFrameResolution("Frame-A"),
       },
       {
         key: makePresetKey(["G"], "Frame-B"),
@@ -178,10 +274,42 @@ describe("sidepanel selection action controller", () => {
     )
 
     expect(harness.notify).toHaveBeenCalledWith(
-      "Preset move failed: selected elements are in a different frame.",
+      "Preset move failed: selected items are in a different frame.",
     )
     expect(harness.reparent).not.toHaveBeenCalled()
     expect(harness.setLastQuickMoveDestination).not.toHaveBeenCalled()
+  })
+
+  it("fails closed for moveSelectionToRoot when selection includes frame rows", async () => {
+    const harness = makeHarness()
+
+    await harness.controller.moveSelectionToRoot(harness.actions, {
+      elementIds: ["Frame-A"],
+      nodes: [makeFrameNode("Frame-A")],
+      frameResolution: makeFrameResolution("Frame-A"),
+    })
+
+    expect(harness.notify).toHaveBeenCalledWith(
+      "Move to root failed: frame rows cannot be structurally moved.",
+    )
+    expect(harness.reparent).not.toHaveBeenCalled()
+    expect(harness.setLastQuickMoveDestination).not.toHaveBeenCalled()
+  })
+
+  it("fails closed for ungroupLikeSelection when selection includes frame rows", async () => {
+    const harness = makeHarness()
+
+    await harness.controller.ungroupLikeSelection(harness.actions, {
+      elementIds: ["Frame-A"],
+      nodes: [makeFrameNode("Frame-A")],
+      frameResolution: makeFrameResolution("Frame-A"),
+    })
+
+    expect(harness.notify).toHaveBeenCalledWith(
+      "Ungroup-like failed: frame rows cannot be structurally moved.",
+    )
+    expect(harness.beginInteraction).not.toHaveBeenCalled()
+    expect(harness.reparent).not.toHaveBeenCalled()
   })
 
   it("executes ungroupLikeSelection confirmation and routes to move-to-root", async () => {
@@ -193,6 +321,7 @@ describe("sidepanel selection action controller", () => {
         await harness.controller.ungroupLikeSelection(harness.actions, {
           elementIds: ["el:A"],
           nodes: [makeElementNode("el:A", "Frame-A")],
+          frameResolution: makeFrameResolution("Frame-A"),
         })
       },
     )
@@ -206,6 +335,7 @@ describe("sidepanel selection action controller", () => {
 
     expect(harness.setLastQuickMoveDestination).toHaveBeenCalledWith({
       kind: "root",
+      targetFrameId: "Frame-A",
     })
   })
 })

@@ -29,6 +29,7 @@ const makeGroupNode = (
     readonly frameId?: string | null
     readonly isExpanded?: boolean
     readonly primaryElementId?: string
+    readonly label?: string
   },
 ): LayerNode => ({
   id: `group:${groupId}`,
@@ -41,7 +42,7 @@ const makeGroupNode = (
   isExpanded: options?.isExpanded ?? true,
   groupId,
   frameId: options?.frameId ?? null,
-  label: groupId,
+  label: options?.label ?? groupId,
 })
 
 const makeFrameNode = (frameId: string, children: readonly LayerNode[]): LayerNode => ({
@@ -58,7 +59,7 @@ const makeFrameNode = (frameId: string, children: readonly LayerNode[]): LayerNo
 })
 
 describe("sidepanel quick-move preset helpers", () => {
-  it("resolves shared frame correctly for homogeneous and mixed selections", () => {
+  it("resolves shared frame correctly for homogeneous, frame-row, and mixed selections", () => {
     expect(
       resolveSharedFrame([
         makeElementNode("A", "F1"),
@@ -66,6 +67,12 @@ describe("sidepanel quick-move preset helpers", () => {
         makeElementNode("C", "F1"),
       ]),
     ).toEqual({ ok: true, frameId: "F1" })
+
+    const frameChild = makeElementNode("frame-child", "F1")
+    expect(resolveSharedFrame([makeFrameNode("F1", [frameChild]), frameChild])).toEqual({
+      ok: true,
+      frameId: "F1",
+    })
 
     expect(resolveSharedFrame([makeElementNode("A", "F1"), makeElementNode("B", "F2")])).toEqual({
       ok: false,
@@ -114,6 +121,26 @@ describe("sidepanel quick-move preset helpers", () => {
 
     expect(presets.map((preset) => preset.key)).toEqual(["F1:G", "F2:G", "null:G"])
     expect(presets.some((preset) => preset.key.includes("Inner"))).toBe(false)
+  })
+
+  it("uses live group labels rather than raw group ids for preset labels", () => {
+    const tree = [
+      makeGroupNode("G", [makeElementNode("A")], {
+        primaryElementId: "group-primary:g",
+        label: "Renamed Group",
+      }),
+    ]
+
+    const presets = collectTopLevelGroupReparentPresets(tree, 10)
+
+    expect(presets).toEqual([
+      {
+        key: "null:G",
+        label: "Inside Renamed Group",
+        targetParentPath: ["G"],
+        targetFrameId: null,
+      },
+    ])
   })
 
   it("honors max preset count in traversal order", () => {

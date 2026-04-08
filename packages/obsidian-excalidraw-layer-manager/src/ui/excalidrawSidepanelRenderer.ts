@@ -24,7 +24,15 @@ import {
   type SidepanelMountTabLike,
 } from "./sidepanel/mount/sidepanelMountManager.js"
 import { SidepanelPromptInteractionService } from "./sidepanel/prompt/promptInteractionService.js"
-import { makePresetKey, makePresetLabel } from "./sidepanel/quickmove/presetHelpers.js"
+import {
+  buildSidepanelQuickMoveDestinationProjection,
+  resolveProjectedQuickMovePreset,
+} from "./sidepanel/quickmove/destinationProjection.js"
+import {
+  makePresetKey,
+  makePresetOptionLabel,
+  resolveSharedFrame,
+} from "./sidepanel/quickmove/presetHelpers.js"
 import {
   type LastQuickMoveDestination,
   SidepanelQuickMovePersistenceService,
@@ -49,8 +57,12 @@ import {
   collectVisibleNodeContext,
   resolveSelectedNodes,
 } from "./sidepanel/selection/nodeContext.js"
-import { haveSameIdsInSameOrder } from "./sidepanel/selection/selectionIds.js"
+import { haveSameIds, haveSameIdsInSameOrder } from "./sidepanel/selection/selectionIds.js"
 import { reconcileSelectedElementIds } from "./sidepanel/selection/selectionReconciler.js"
+import {
+  type StructuralMoveSelection,
+  resolveStructuralMoveSelection,
+} from "./sidepanel/selection/structuralMoveSelection.js"
 import {
   type ScriptSettingsLike,
   SidepanelSettingsWriteQueue,
@@ -118,6 +130,76 @@ const intersectsSelectedIds = (node: LayerNode, selectedIds: ReadonlySet<string>
   return false
 }
 
+type SidepanelSelectionNodeRef =
+  | {
+      readonly kind: "groupId"
+      readonly groupId: string
+    }
+  | {
+      readonly kind: "nodeId"
+      readonly nodeId: string
+    }
+
+interface SidepanelSelectionOverrideState {
+  readonly elementIds: readonly string[]
+  readonly nodeRefs: readonly SidepanelSelectionNodeRef[] | null
+}
+
+interface SidepanelSelectionResolution {
+  readonly selection: ResolvedSelection
+  readonly explicitSelectedNodes: readonly LayerNode[] | null
+}
+
+const makeSidepanelSelectionNodeRef = (node: LayerNode): SidepanelSelectionNodeRef => {
+  if (node.type === "group" && node.groupId) {
+    return {
+      kind: "groupId",
+      groupId: node.groupId,
+    }
+  }
+
+  return {
+    kind: "nodeId",
+    nodeId: node.id,
+  }
+}
+
+const buildLayerNodeLookup = (
+  tree: readonly LayerNode[],
+): {
+  readonly nodeById: ReadonlyMap<string, LayerNode>
+  readonly groupNodeByGroupId: ReadonlyMap<string, LayerNode>
+} => {
+  const nodeById = new Map<string, LayerNode>()
+  const groupNodeByGroupId = new Map<string, LayerNode>()
+  const stack = [...tree]
+
+  while (stack.length > 0) {
+    const node = stack.pop()
+    if (!node) {
+      continue
+    }
+
+    nodeById.set(node.id, node)
+
+    if (node.type === "group" && node.groupId && !groupNodeByGroupId.has(node.groupId)) {
+      groupNodeByGroupId.set(node.groupId, node)
+    }
+
+    for (let index = node.children.length - 1; index >= 0; index -= 1) {
+      const child = node.children[index]
+      if (child) {
+        stack.push(child)
+      }
+    }
+  }
+
+  return {
+    nodeById,
+    groupNodeByGroupId,
+  }
+}
+
 const runUiAction = (
   action: () => Promise<unknown>,
   onError: (message: string) => void,
@@ -171,10 +253,19 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   #didPersistTab = false
   #keyboardSuppressedUntilMs = 0
   #ownerDocumentWithKeyCapture: Document | null = null
-  #selectionOverrideElementIds: readonly string[] | null = null
+  #selectionOverrideState: SidepanelSelectionOverrideState | null = null
   #lastSnapshotSelectionIds: readonly string[] = []
   #rowFilterQuery = ""
   #shouldAutofocusRowFilterInput = false
+  #cachedRowFilterResult: {
+    readonly tree: readonly LayerNode[]
+    readonly query: string
+    readonly result: ReturnType<typeof buildSidepanelRowFilterResult>
+  } | null = null
+  #cachedQuickMoveDestinationProjection: {
+    readonly tree: readonly LayerNode[]
+    readonly projection: ReturnType<typeof buildSidepanelQuickMoveDestinationProjection>
+  } | null = null
 
   readonly #contentKeydownHandler = (event: KeyboardEvent): void => {
     this.#focusOwnership.activateKeyboardCapture()
@@ -369,11 +460,12 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       ...(this.#host.selectElementsInView
         ? { selectElementsInView: this.#host.selectElementsInView }
         : {}),
-      moveSelectionToRoot: (actions, selection) =>
-        this.#selectionActionController.moveSelectionToRoot(actions, selection),
-      setLastQuickMoveDestinationToRoot: () => {
+      moveSelectionToRoot: (actions, selection, targetFrameId) =>
+        this.#selectionActionController.moveSelectionToRoot(actions, selection, targetFrameId),
+      setLastQuickMoveDestinationToRoot: (targetFrameId) => {
         this.setLastQuickMoveDestination({
           kind: "root",
+          targetFrameId,
         })
       },
       isTextInputTarget,
@@ -414,13 +506,14 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
 
     const selectedElementIds = this.resolveSelectedElementIds(model.selectedIds)
     const selectedIdSet = new Set(selectedElementIds)
+    const selectionResolution = this.resolveSelection(model.tree, selectedElementIds)
+    const resolvedSelection = selectionResolution.selection
+    const explicitSelectedNodeIds = selectionResolution.explicitSelectedNodes
+      ? new Set(selectionResolution.explicitSelectedNodes.map((node) => node.id))
+      : null
 
-    const resolvedSelection: ResolvedSelection = {
-      elementIds: selectedElementIds,
-      nodes: resolveSelectedNodes(model.tree, selectedElementIds),
-    }
-
-    const rowFilter = buildSidepanelRowFilterResult(model.tree, this.#rowFilterQuery)
+    const rowFilter = this.getRowFilterResult(model.tree)
+    const destinationProjection = this.getQuickMoveDestinationProjection(model.tree)
     const renderTree = rowFilter.tree
     const { visibleNodes, parentById } = collectVisibleNodeContext(renderTree)
     const activeElement = ownerDocument.activeElement
@@ -578,22 +671,24 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       container: contentRoot,
       ownerDocument,
       hasActions: !!model.actions,
-      tree: model.tree,
       selection: resolvedSelection,
+      destinationProjection,
       lastQuickMoveDestination: this.#quickMovePersistenceService.lastQuickMoveDestination,
       recentQuickMoveDestinations: this.#quickMovePersistenceService.recentQuickMoveDestinations,
       quickPresetInlineMax: QUICK_PRESET_INLINE_MAX,
-      quickPresetTotalMax: QUICK_PRESET_TOTAL_MAX,
-      allDestinationTotalMax: ALL_DESTINATION_TOTAL_MAX,
       lastMoveLabelMax: LAST_MOVE_LABEL_MAX,
       createToolbarButton: (nextOwnerDocument, label, action) =>
         this.createToolbarButton(nextOwnerDocument, label, action),
-      onMoveSelectionToRoot: async () => {
+      onMoveSelectionToRoot: async (targetFrameId) => {
         if (!model.actions) {
           return
         }
 
-        await this.#selectionActionController.moveSelectionToRoot(model.actions, resolvedSelection)
+        await this.#selectionActionController.moveSelectionToRoot(
+          model.actions,
+          resolvedSelection,
+          targetFrameId,
+        )
       },
       onApplyGroupPreset: async (preset) => {
         if (!model.actions) {
@@ -638,6 +733,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
           groupPath: [],
         },
         rowFilter.matchKindByNodeId,
+        explicitSelectedNodeIds,
       )
     }
 
@@ -724,7 +820,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
 
   private resolveSelectedElementIds(snapshotSelectedIds: ReadonlySet<string>): readonly string[] {
     const snapshotSelection = [...snapshotSelectedIds]
-    const selectionOverride = this.#selectionOverrideElementIds
+    const selectionOverride = this.#selectionOverrideState?.elementIds ?? null
     const snapshotSelectionChanged = !haveSameIdsInSameOrder(
       snapshotSelection,
       this.#lastSnapshotSelectionIds,
@@ -734,9 +830,9 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       snapshotSelectionChanged &&
       selectionOverride &&
       snapshotSelection.length > 0 &&
-      !haveSameIdsInSameOrder(selectionOverride, snapshotSelection)
+      !haveSameIds(selectionOverride, snapshotSelection)
     ) {
-      this.#selectionOverrideElementIds = null
+      this.#selectionOverrideState = null
       this.#lastSnapshotSelectionIds = snapshotSelection
 
       this.debugInteraction("selection resolution", {
@@ -761,7 +857,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     })
 
     if (result.clearSelectionOverride) {
-      this.#selectionOverrideElementIds = null
+      this.#selectionOverrideState = null
     }
 
     if (result.readErrorMessage) {
@@ -880,7 +976,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.#contentRoot = null
     this.#keyboardContext = null
     this.#focusedNodeId = null
-    this.#selectionOverrideElementIds = null
+    this.#selectionOverrideState = null
     this.#lastSnapshotSelectionIds = []
     this.#focusOwnership.reset()
     this.#inlineRenameController.clear()
@@ -940,16 +1036,124 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     }
   }
 
-  private setSelectionOverride(elementIds: readonly string[] | null): void {
-    if (!elementIds || elementIds.length === 0) {
-      this.#selectionOverrideElementIds = null
+  private getRowFilterResult(
+    tree: readonly LayerNode[],
+  ): ReturnType<typeof buildSidepanelRowFilterResult> {
+    const cached = this.#cachedRowFilterResult
+    if (cached && cached.tree === tree && cached.query === this.#rowFilterQuery) {
+      return cached.result
+    }
+
+    const result = buildSidepanelRowFilterResult(tree, this.#rowFilterQuery)
+    this.#cachedRowFilterResult = {
+      tree,
+      query: this.#rowFilterQuery,
+      result,
+    }
+    return result
+  }
+
+  private getQuickMoveDestinationProjection(
+    tree: readonly LayerNode[],
+  ): ReturnType<typeof buildSidepanelQuickMoveDestinationProjection> {
+    const cached = this.#cachedQuickMoveDestinationProjection
+    if (cached && cached.tree === tree) {
+      return cached.projection
+    }
+
+    const projection = buildSidepanelQuickMoveDestinationProjection(
+      tree,
+      QUICK_PRESET_TOTAL_MAX,
+      ALL_DESTINATION_TOTAL_MAX,
+    )
+    this.#cachedQuickMoveDestinationProjection = {
+      tree,
+      projection,
+    }
+    return projection
+  }
+
+  private resolveSelection(
+    tree: readonly LayerNode[],
+    selectedElementIds: readonly string[],
+  ): SidepanelSelectionResolution {
+    const explicitSelectedNodes = this.resolveExplicitSelectedNodes(tree, selectedElementIds)
+    const resolvedSelectionNodes =
+      explicitSelectedNodes ?? resolveSelectedNodes(tree, selectedElementIds)
+
+    return {
+      explicitSelectedNodes,
+      selection: {
+        elementIds: selectedElementIds,
+        nodes: resolvedSelectionNodes,
+        frameResolution: resolveSharedFrame(resolvedSelectionNodes),
+        structuralMove: resolveStructuralMoveSelection(explicitSelectedNodes ?? []),
+      },
+    }
+  }
+
+  private resolveExplicitSelectedNodes(
+    tree: readonly LayerNode[],
+    selectedElementIds: readonly string[],
+  ): readonly LayerNode[] | null {
+    const selectionOverride = this.#selectionOverrideState
+    if (
+      !selectionOverride?.nodeRefs ||
+      !haveSameIds(selectionOverride.elementIds, selectedElementIds)
+    ) {
+      return null
+    }
+
+    const lookup = buildLayerNodeLookup(tree)
+    const resolvedNodes = selectionOverride.nodeRefs
+      .map((nodeRef) => {
+        if (nodeRef.kind === "groupId") {
+          return lookup.groupNodeByGroupId.get(nodeRef.groupId) ?? null
+        }
+
+        return lookup.nodeById.get(nodeRef.nodeId) ?? null
+      })
+      .filter((node): node is LayerNode => Boolean(node))
+
+    if (resolvedNodes.length !== selectionOverride.nodeRefs.length) {
+      return null
+    }
+
+    return resolvedNodes
+  }
+
+  private setSelectionOverrideState(
+    selectionOverride: SidepanelSelectionOverrideState | null,
+  ): void {
+    this.#selectionOverrideState = selectionOverride
+
+    if (!selectionOverride) {
       this.debugInteraction("selection override cleared")
       return
     }
 
-    this.#selectionOverrideElementIds = [...elementIds]
     this.debugInteraction("selection override updated", {
-      size: this.#selectionOverrideElementIds.length,
+      size: selectionOverride.elementIds.length,
+      nodeRefCount: selectionOverride.nodeRefs?.length ?? 0,
+    })
+  }
+
+  private setSelectionOverride(elementIds: readonly string[] | null): void {
+    if (!elementIds || elementIds.length === 0) {
+      this.setSelectionOverrideState(null)
+      return
+    }
+
+    this.setSelectionOverrideState({
+      elementIds: [...elementIds],
+      nodeRefs: null,
+    })
+  }
+
+  private setSelectionOverrideFromNode(node: LayerNode): void {
+    this.setSelectionOverrideState({
+      elementIds: [...node.elementIds],
+      nodeRefs: [makeSidepanelSelectionNodeRef(node)],
     })
   }
 
@@ -991,10 +1195,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
 
     return {
       ...context,
-      selection: {
-        elementIds: resolvedElementIds,
-        nodes: resolveSelectedNodes(latestModel.tree, resolvedElementIds),
-      },
+      selection: this.resolveSelection(latestModel.tree, resolvedElementIds).selection,
     }
   }
 
@@ -1077,15 +1278,24 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     if (destination.kind === "root") {
       this.setLastQuickMoveDestination({
         kind: "root",
+        targetFrameId: destination.targetFrameId,
       })
       return
     }
 
+    const latestTree = this.#latestModel?.tree ?? []
+    const destinationProjection = this.getQuickMoveDestinationProjection(latestTree)
+    const projectedPreset = resolveProjectedQuickMovePreset(
+      destination.targetParentPath,
+      destination.targetFrameId,
+      destinationProjection.destinationByKey,
+    )
+
     this.setLastQuickMoveDestination({
       kind: "preset",
-      preset: {
+      preset: projectedPreset ?? {
         key: makePresetKey(destination.targetParentPath, destination.targetFrameId),
-        label: makePresetLabel(destination.targetParentPath),
+        label: makePresetOptionLabel(destination.targetParentPath),
         targetParentPath: [...destination.targetParentPath],
         targetFrameId: destination.targetFrameId,
       },
@@ -1109,6 +1319,35 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.applyDragDropDestination(outcome.destination)
   }
 
+  private async handleRowDrop(
+    actions: LayerManagerUiActions,
+    targetNodeId: string,
+    dropTarget: NodeDropTarget,
+  ): Promise<void> {
+    if (!this.canDropDraggedNode(targetNodeId, dropTarget)) {
+      this.#dragDropController.resetDragState()
+      return
+    }
+
+    try {
+      await this.runDragDropReparent(actions, targetNodeId, dropTarget)
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        this.notify(`Drag and drop reparent failed: ${error.message}`)
+      } else {
+        this.notify("Drag and drop reparent failed")
+      }
+    } finally {
+      this.#dragDropController.resetDragState()
+
+      try {
+        this.#contentRoot?.focus()
+      } catch {
+        // no-op; best-effort focus restoration
+      }
+    }
+  }
+
   private renderNodes(
     container: HTMLElement,
     nodes: readonly LayerNode[],
@@ -1117,6 +1356,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     actions: LayerManagerUiActions | undefined,
     branchContext: DragDropBranchContext,
     matchKindByNodeId: ReadonlyMap<string, SidepanelFilterMatchKind>,
+    explicitSelectedNodeIds: ReadonlySet<string> | null,
   ): void {
     const ownerDocument = container.ownerDocument
 
@@ -1141,7 +1381,9 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
           ownerDocument,
           node,
           depth: nodeDepth,
-          selected: intersectsSelectedIds(node, selectedIds),
+          selected: explicitSelectedNodeIds
+            ? explicitSelectedNodeIds.has(node.id)
+            : intersectsSelectedIds(node, selectedIds),
           focused: this.#focusedNodeId === node.id,
           dropHinted: this.#dragDropController.dropHintNodeId === node.id,
           dropHintLabel:
@@ -1189,7 +1431,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
             onRowClick: () => {
               this.activateKeyboardCapture()
               this.#focusedNodeId = node.id
-              this.setSelectionOverride(node.elementIds)
+              this.setSelectionOverrideFromNode(node)
 
               // Architecture seam note:
               // This bridge mirrors UI selection intent to the host selection model.
@@ -1226,27 +1468,10 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
               )
             },
             onDrop: () => {
-              if (!this.canDropDraggedNode(node.id, nodeDropTarget)) {
-                this.#dragDropController.resetDragState()
-                return
-              }
-
-              runUiAction(
-                // Architecture seam note:
-                // Drag/drop emits a reparent intent through UI actions only.
-                // The actual mutation path remains command facade -> executeIntent -> adapter.
-                () => this.runDragDropReparent(actions, node.id, nodeDropTarget),
-                (message) => this.notify(message),
-                "Drag and drop reparent failed",
-              )
-
-              this.#dragDropController.resetDragState()
-
-              try {
-                this.#contentRoot?.focus()
-              } catch {
-                // no-op; best-effort focus restoration
-              }
+              // Architecture seam note:
+              // Drag/drop emits a reparent intent through UI actions only.
+              // The actual mutation path remains command facade -> executeIntent -> adapter.
+              void this.handleRowDrop(actions, node.id, nodeDropTarget)
             },
           })
         }

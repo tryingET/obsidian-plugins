@@ -10,7 +10,7 @@ export interface SidepanelRowVisualState {
   readonly lock: SidepanelLockState
 }
 
-export interface SidepanelRowFilterResult {
+interface SidepanelRowFilterResult {
   readonly tree: readonly LayerNode[]
   readonly active: boolean
   readonly query: string
@@ -55,9 +55,7 @@ const countSearchableRows = (nodes: readonly LayerNode[]): number => {
 }
 
 const makeNodeSearchText = (node: LayerNode): string => {
-  return [node.label, node.type, node.groupId ?? "", node.frameId ?? "", node.id]
-    .join(" ")
-    .toLowerCase()
+  return [node.label, node.type].join(" ").toLowerCase()
 }
 
 const filterNodesForQuery = (
@@ -79,7 +77,7 @@ const filterNodesForQuery = (
     filtered.push({
       ...node,
       children: filteredChildren,
-      canExpand: false,
+      canExpand: node.canExpand,
       isExpanded: filteredChildren.length > 0,
     })
   }

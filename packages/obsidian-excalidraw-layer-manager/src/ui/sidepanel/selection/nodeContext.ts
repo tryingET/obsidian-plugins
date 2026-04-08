@@ -30,7 +30,9 @@ export const resolveSelectedNodes = (
       }
     }
 
-    if (!node.isExpanded || node.children.length === 0) {
+    // Selection command authority must resolve against the full tree, not only the
+    // currently expanded/visible projection.
+    if (node.children.length === 0) {
       continue
     }
 

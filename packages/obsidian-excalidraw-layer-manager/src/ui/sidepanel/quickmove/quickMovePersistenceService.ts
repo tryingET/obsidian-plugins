@@ -2,11 +2,12 @@ import type {
   ScriptSettingsLike,
   SidepanelSettingsWriteQueue,
 } from "../settings/settingsWriteQueue.js"
-import { type GroupReparentPreset, makePresetKey, makePresetLabel } from "./presetHelpers.js"
+import { type GroupReparentPreset, makePresetKey, makePresetOptionLabel } from "./presetHelpers.js"
 
 export type LastQuickMoveDestination =
   | {
       readonly kind: "root"
+      readonly targetFrameId: string | null
     }
   | {
       readonly kind: "preset"
@@ -16,6 +17,7 @@ export type LastQuickMoveDestination =
 type PersistedLastMoveDestinationPayload =
   | {
       readonly kind: "root"
+      readonly targetFrameId?: string | null
     }
   | {
       readonly kind: "preset"
@@ -42,6 +44,7 @@ const toPersistedLastMovePayload = (
   if (destination.kind === "root") {
     return {
       kind: "root",
+      targetFrameId: destination.targetFrameId,
     }
   }
 
@@ -62,8 +65,10 @@ const fromPersistedLastMovePayload = (value: unknown): LastQuickMoveDestination 
   const kind = payload["kind"]
 
   if (kind === "root") {
+    const rawTargetFrameId = payload["targetFrameId"]
     return {
       kind: "root",
+      targetFrameId: typeof rawTargetFrameId === "string" ? rawTargetFrameId : null,
     }
   }
 
@@ -72,19 +77,22 @@ const fromPersistedLastMovePayload = (value: unknown): LastQuickMoveDestination 
   }
 
   const rawPath = payload["targetParentPath"]
-  if (!Array.isArray(rawPath)) {
+  if (!Array.isArray(rawPath) || rawPath.length === 0) {
     return null
   }
 
-  const targetParentPath = rawPath
-    .filter((segment): segment is string => typeof segment === "string")
-    .map((segment) => segment.trim())
-    .filter((segment) => segment.length > 0)
-
-  if (targetParentPath.length === 0) {
-    return {
-      kind: "root",
+  const targetParentPath: string[] = []
+  for (const segment of rawPath) {
+    if (typeof segment !== "string") {
+      return null
     }
+
+    const normalizedSegment = segment.trim()
+    if (normalizedSegment.length === 0 || normalizedSegment !== segment) {
+      return null
+    }
+
+    targetParentPath.push(segment)
   }
 
   const rawTargetFrameId = payload["targetFrameId"]
@@ -94,7 +102,7 @@ const fromPersistedLastMovePayload = (value: unknown): LastQuickMoveDestination 
   const label =
     typeof rawLabel === "string" && rawLabel.trim().length > 0
       ? rawLabel.trim()
-      : makePresetLabel(targetParentPath)
+      : makePresetOptionLabel(targetParentPath)
 
   const preset: GroupReparentPreset = {
     key: makePresetKey(targetParentPath, targetFrameId),
@@ -114,7 +122,9 @@ const isSameDestination = (
   right: LastQuickMoveDestination,
 ): boolean => {
   if (left.kind === "root" || right.kind === "root") {
-    return left.kind === right.kind
+    return (
+      left.kind === "root" && right.kind === "root" && left.targetFrameId === right.targetFrameId
+    )
   }
 
   return left.preset.key === right.preset.key

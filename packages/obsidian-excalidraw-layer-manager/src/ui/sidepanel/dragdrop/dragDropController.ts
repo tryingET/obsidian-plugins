@@ -10,6 +10,7 @@ interface DraggedNodeState {
   readonly nodeId: string
   readonly sourceGroupId: string | null
   readonly sourceFrameId: string | null
+  readonly sourceParentPath: readonly string[]
 }
 
 export interface NodeDropTarget {
@@ -20,6 +21,7 @@ export interface NodeDropTarget {
 export type DragDropDestination =
   | {
       readonly kind: "root"
+      readonly targetFrameId: string | null
     }
   | {
       readonly kind: "preset"
@@ -121,16 +123,24 @@ export class SidepanelDragDropController {
       return false
     }
 
+    if (
+      dragged.sourceParentPath.length === dropTarget.targetParentPath.length &&
+      dragged.sourceParentPath.every(
+        (segment, index) => segment === dropTarget.targetParentPath[index],
+      )
+    ) {
+      return false
+    }
+
     return true
   }
 
   startRowDrag(input: StartRowDragInput): void {
-    const nearestParentGroupId = input.branchGroupPath.at(-1) ?? null
-
     this.#draggedNodeState = {
       nodeId: input.node.id,
-      sourceGroupId: input.node.type === "group" ? input.node.groupId : nearestParentGroupId,
+      sourceGroupId: input.node.type === "group" ? input.node.groupId : null,
       sourceFrameId: input.nodeFrameId,
+      sourceParentPath: [...input.branchGroupPath],
     }
 
     if (input.dragEvent.dataTransfer) {
@@ -138,7 +148,7 @@ export class SidepanelDragDropController {
       input.dragEvent.dataTransfer.setData("text/plain", input.node.id)
     }
 
-    this.updateDropHint(input.node.id)
+    this.updateDropHint(null)
   }
 
   endRowDrag(): void {
@@ -191,6 +201,7 @@ export class SidepanelDragDropController {
   ): Promise<DragDropReparentOutcome> {
     const dragged = this.#draggedNodeState
     if (!dragged) {
+      this.#host.notify("Drag and drop move is no longer active.")
       return {
         status: "notReady",
       }
@@ -210,7 +221,15 @@ export class SidepanelDragDropController {
       targetFrameId: dropTarget.targetFrameId,
     })
 
+    if (outcome.status === "plannerError") {
+      this.#host.notify(`Drag and drop reparent failed: ${outcome.error}`)
+      return {
+        status: "notApplied",
+      }
+    }
+
     if (outcome.status !== "applied") {
+      this.#host.notify(`Drag and drop reparent failed: ${outcome.reason}`)
       return {
         status: "notApplied",
       }
@@ -221,6 +240,7 @@ export class SidepanelDragDropController {
         status: "applied",
         destination: {
           kind: "root",
+          targetFrameId: dropTarget.targetFrameId,
         },
       }
     }

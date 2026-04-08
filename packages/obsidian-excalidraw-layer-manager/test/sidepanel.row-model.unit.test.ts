@@ -86,12 +86,54 @@ describe("sidepanel row model helpers", () => {
     expect(result.searchableRowCount).toBe(4)
     expect(result.tree.map((node) => node.id)).toEqual(["group:G"])
     expect(filteredGroup?.isExpanded).toBe(true)
-    expect(filteredGroup?.canExpand).toBe(false)
+    expect(filteredGroup?.canExpand).toBe(true)
     expect(filteredGroup?.children.map((node) => node.id)).toEqual(["el:A"])
     expect(result.matchKindByNodeId.get("group:G")).toBe("descendant")
     expect(result.matchKindByNodeId.get("el:A")).toBe("self")
     expect(result.matchKindByNodeId.has("el:B")).toBe(false)
     expect(result.matchKindByNodeId.has("el:C")).toBe(false)
+  })
+
+  it("keeps self-matching containers expansion-invariant during filtering without dumping unrelated descendants", () => {
+    const alpha = makeElementNode("A", "Alpha")
+    const beta = makeElementNode("B", "Beta")
+    const collapsedGroup = makeGroupNode("G", [alpha, beta], {
+      isExpanded: false,
+      label: "Alpha Group",
+    })
+
+    const collapsedResult = buildSidepanelRowFilterResult([collapsedGroup], "alpha group")
+    const collapsedFilteredGroup = collapsedResult.tree[0]
+
+    expect(collapsedFilteredGroup?.canExpand).toBe(true)
+    expect(collapsedFilteredGroup?.isExpanded).toBe(false)
+    expect(collapsedFilteredGroup?.children).toEqual([])
+    expect(collapsedResult.renderedRowCount).toBe(1)
+
+    const expandedResult = buildSidepanelRowFilterResult(
+      [
+        makeGroupNode("G", [alpha, beta], {
+          isExpanded: true,
+          label: "Alpha Group",
+        }),
+      ],
+      "alpha group",
+    )
+
+    expect(expandedResult.tree[0]?.children).toEqual([])
+    expect(expandedResult.renderedRowCount).toBe(1)
+  })
+
+  it("does not match opaque internal ids when the visible label differs", () => {
+    const hiddenIdGroup = makeGroupNode("internal-group-id", [makeElementNode("A", "Alpha")], {
+      isExpanded: true,
+      label: "Readable label",
+    })
+
+    const result = buildSidepanelRowFilterResult([hiddenIdGroup], "internal-group-id")
+
+    expect(result.tree).toEqual([])
+    expect(result.renderedRowCount).toBe(0)
   })
 
   it("keeps existing visible tree when filter query is blank", () => {

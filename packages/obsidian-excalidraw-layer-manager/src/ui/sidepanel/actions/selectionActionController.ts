@@ -2,8 +2,34 @@ import type { ReorderMode } from "../../../commands/reorderNode.js"
 import type { LayerManagerUiActions } from "../../renderer.js"
 import type { ResolvedSelection } from "../keyboard/keyboardShortcutController.js"
 import type { SidepanelPromptInteractionService } from "../prompt/promptInteractionService.js"
-import { type GroupReparentPreset, resolveSharedFrame } from "../quickmove/presetHelpers.js"
+import type { GroupReparentPreset } from "../quickmove/presetHelpers.js"
 import type { LastQuickMoveDestination } from "../quickmove/quickMovePersistenceService.js"
+import { selectionIncludesFrameRows } from "../selection/structuralMoveSelection.js"
+
+const runSelectionReparent = async (
+  actions: LayerManagerUiActions,
+  selection: ResolvedSelection,
+  input: {
+    readonly targetParentPath: readonly string[]
+    readonly targetFrameId: string | null
+  },
+) => {
+  if (selection.structuralMove) {
+    return actions.reparentFromNodeIds({
+      nodeIds: selection.structuralMove.nodeIds,
+      sourceGroupId: selection.structuralMove.sourceGroupId,
+      targetParentPath: input.targetParentPath,
+      targetFrameId: input.targetFrameId,
+    })
+  }
+
+  return actions.commands.reparent({
+    elementIds: selection.elementIds,
+    sourceGroupId: null,
+    targetParentPath: input.targetParentPath,
+    targetFrameId: input.targetFrameId,
+  })
+}
 
 interface SidepanelSelectionActionControllerHost {
   readonly notify: (message: string) => void
@@ -79,20 +105,23 @@ export class SidepanelSelectionActionController {
       return
     }
 
-    const frameResolution = resolveSharedFrame(selection.nodes)
+    if (selectionIncludesFrameRows(selection)) {
+      this.#host.notify("Preset move failed: frame rows cannot be structurally moved.")
+      return
+    }
+
+    const frameResolution = selection.frameResolution
     if (!frameResolution.ok) {
-      this.#host.notify("Preset move failed: selected elements span multiple frames.")
+      this.#host.notify("Preset move failed: selected items span multiple frames.")
       return
     }
 
     if (frameResolution.frameId !== preset.targetFrameId) {
-      this.#host.notify("Preset move failed: selected elements are in a different frame.")
+      this.#host.notify("Preset move failed: selected items are in a different frame.")
       return
     }
 
-    const outcome = await actions.commands.reparent({
-      elementIds: selection.elementIds,
-      sourceGroupId: null,
+    const outcome = await runSelectionReparent(actions, selection, {
       targetParentPath: preset.targetParentPath,
       targetFrameId: preset.targetFrameId,
     })
@@ -108,28 +137,38 @@ export class SidepanelSelectionActionController {
   async moveSelectionToRoot(
     actions: LayerManagerUiActions,
     selection: ResolvedSelection,
+    targetFrameId = selection.frameResolution.frameId,
   ): Promise<void> {
     if (selection.elementIds.length === 0) {
       this.#host.notify("Move to root requires at least one selected element.")
       return
     }
 
-    const frameResolution = resolveSharedFrame(selection.nodes)
-    if (!frameResolution.ok) {
-      this.#host.notify("Move to root failed: selected elements span multiple frames.")
+    if (selectionIncludesFrameRows(selection)) {
+      this.#host.notify("Move to root failed: frame rows cannot be structurally moved.")
       return
     }
 
-    const outcome = await actions.commands.reparent({
-      elementIds: selection.elementIds,
-      sourceGroupId: null,
+    const frameResolution = selection.frameResolution
+    if (!frameResolution.ok) {
+      this.#host.notify("Move to root failed: selected items span multiple frames.")
+      return
+    }
+
+    if (frameResolution.frameId !== targetFrameId) {
+      this.#host.notify("Move to root failed: selected items are in a different frame.")
+      return
+    }
+
+    const outcome = await runSelectionReparent(actions, selection, {
       targetParentPath: [],
-      targetFrameId: frameResolution.frameId,
+      targetFrameId,
     })
 
     if (outcome.status === "applied") {
       this.#host.setLastQuickMoveDestination({
         kind: "root",
+        targetFrameId,
       })
     }
   }
@@ -140,6 +179,11 @@ export class SidepanelSelectionActionController {
   ): Promise<void> {
     if (selection.elementIds.length === 0) {
       this.#host.notify("Ungroup-like requires at least one selected element.")
+      return
+    }
+
+    if (selectionIncludesFrameRows(selection)) {
+      this.#host.notify("Ungroup-like failed: frame rows cannot be structurally moved.")
       return
     }
 

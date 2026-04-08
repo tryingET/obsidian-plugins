@@ -1,3 +1,4 @@
+import { withLmxGroupLabel } from "../model/lmxMetadata.js"
 import type { ScenePatch } from "../model/patch.js"
 import { err, ok } from "../model/result.js"
 import type { Result } from "../model/result.js"
@@ -14,8 +15,13 @@ export interface CreateGroupPlan {
   readonly patch: ScenePatch
 }
 
+const normalizeGroupLabel = (seed: string): string => {
+  const compact = seed.trim().replaceAll(/\s+/g, " ")
+  return compact.length > 0 ? compact : "Group"
+}
+
 const normalizeGroupSeed = (seed: string): string => {
-  const compact = seed.trim().replaceAll(/\s+/g, "-")
+  const compact = normalizeGroupLabel(seed).replaceAll(/\s+/g, "-")
   return compact.length > 0 ? compact : "Group"
 }
 
@@ -46,7 +52,8 @@ export const planCreateGroup = (
     return err("Need at least two elements to create a group.")
   }
 
-  const base = normalizeGroupSeed(input.nameSeed ?? "Group")
+  const groupLabel = normalizeGroupLabel(input.nameSeed ?? "Group")
+  const base = normalizeGroupSeed(groupLabel)
   const groupId = makeUniqueGroupId(context, base)
 
   const patch: ScenePatch = {
@@ -61,6 +68,7 @@ export const planCreateGroup = (
         id,
         set: {
           groupIds: nextGroupIds,
+          customData: withLmxGroupLabel(current?.customData ?? {}, groupId, groupLabel),
         },
       }
     }),

@@ -1,11 +1,18 @@
 import type { ReorderMode } from "../../../commands/reorderNode.js"
 import type { LayerNode } from "../../../model/tree.js"
 import type { LayerManagerUiActions } from "../../renderer.js"
+import type { SharedFrameResolution } from "../quickmove/presetHelpers.js"
 import { appendUniqueIds } from "../selection/selectionIds.js"
+import {
+  type StructuralMoveSelection,
+  resolveFocusedNodeStructuralMove,
+} from "../selection/structuralMoveSelection.js"
 
 export interface ResolvedSelection {
   readonly elementIds: readonly string[]
   readonly nodes: readonly LayerNode[]
+  readonly frameResolution: SharedFrameResolution
+  readonly structuralMove?: StructuralMoveSelection | null
 }
 
 export interface KeyboardShortcutContext {
@@ -39,8 +46,9 @@ interface SidepanelKeyboardShortcutControllerHost {
   moveSelectionToRoot: (
     actions: LayerManagerUiActions,
     selection: ResolvedSelection,
+    targetFrameId?: string | null,
   ) => Promise<void>
-  setLastQuickMoveDestinationToRoot: () => void
+  setLastQuickMoveDestinationToRoot: (targetFrameId: string | null) => void
 
   isTextInputTarget: (target: EventTarget | null) => boolean
   isKeyboardSuppressed: () => boolean
@@ -467,15 +475,23 @@ export class SidepanelKeyboardShortcutController {
       return
     }
 
+    const structuralMove = resolveFocusedNodeStructuralMove(focusedNode)
+    if (!structuralMove) {
+      this.#host.notify("Keyboard ungroup-like failed: frame rows cannot be structurally moved.")
+      return
+    }
+
+    const targetFrameId = focusedNode.frameId ?? null
+
     const outcome = await context.actions.reparentFromNodeIds({
-      nodeIds: [focusedNode.id],
-      sourceGroupId: null,
+      nodeIds: structuralMove.nodeIds,
+      sourceGroupId: structuralMove.sourceGroupId,
       targetParentPath: [],
-      targetFrameId: focusedNode.frameId ?? null,
+      targetFrameId,
     })
 
     if (outcome.status === "applied") {
-      this.#host.setLastQuickMoveDestinationToRoot()
+      this.#host.setLastQuickMoveDestinationToRoot(targetFrameId)
     }
   }
 }

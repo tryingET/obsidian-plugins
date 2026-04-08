@@ -406,7 +406,7 @@ describe("sidepanel quick-move + persistence integration", () => {
     }
 
     const model: RenderViewModel = {
-      tree: [makeElementNode("A")],
+      tree: [makeElementNode("A"), makeGroupNode("G", [makeElementNode("B")])],
       selectedIds: new Set(["A"]),
       sceneVersion: 10,
       actions,

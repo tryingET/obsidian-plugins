@@ -81,6 +81,48 @@ describe("sidepanel quick-move persistence service", () => {
     ])
   })
 
+  it("ignores malformed persisted preset payloads that sanitize to an empty path", () => {
+    const harness = createHarness({
+      lmx_persist_last_move_destination: {
+        value: true,
+      },
+      lmx_last_move_destination: {
+        value: {
+          kind: "preset",
+          targetParentPath: ["   ", ""],
+          targetFrameId: null,
+        },
+      },
+    })
+
+    harness.service.loadFromSettingsOnce()
+
+    expect(harness.service.persistLastMoveAcrossRestarts).toBe(true)
+    expect(harness.service.lastQuickMoveDestination).toBeNull()
+    expect(harness.service.recentQuickMoveDestinations).toEqual([])
+  })
+
+  it("fails closed when persisted preset payload would need path sanitization", () => {
+    const harness = createHarness({
+      lmx_persist_last_move_destination: {
+        value: true,
+      },
+      lmx_last_move_destination: {
+        value: {
+          kind: "preset",
+          targetParentPath: [" ", "Finance"],
+          targetFrameId: null,
+        },
+      },
+    })
+
+    harness.service.loadFromSettingsOnce()
+
+    expect(harness.service.persistLastMoveAcrossRestarts).toBe(true)
+    expect(harness.service.lastQuickMoveDestination).toBeNull()
+    expect(harness.service.recentQuickMoveDestinations).toEqual([])
+  })
+
   it("ignores subsequent loads after first settings bootstrap", () => {
     const harness = createHarness({
       lmx_persist_last_move_destination: {
@@ -96,6 +138,7 @@ describe("sidepanel quick-move persistence service", () => {
     harness.service.loadFromSettingsOnce()
     expect(harness.service.lastQuickMoveDestination).toEqual({
       kind: "root",
+      targetFrameId: null,
     })
 
     const settings = harness.getSettings()
@@ -111,6 +154,7 @@ describe("sidepanel quick-move persistence service", () => {
 
     expect(harness.service.lastQuickMoveDestination).toEqual({
       kind: "root",
+      targetFrameId: null,
     })
   })
 
@@ -137,7 +181,7 @@ describe("sidepanel quick-move persistence service", () => {
       },
     }
 
-    harness.service.setLastQuickMoveDestination({ kind: "root" })
+    harness.service.setLastQuickMoveDestination({ kind: "root", targetFrameId: null })
     harness.service.setLastQuickMoveDestination(firstPreset)
     harness.service.setLastQuickMoveDestination(secondPreset)
     harness.service.setLastQuickMoveDestination(firstPreset)
@@ -145,7 +189,19 @@ describe("sidepanel quick-move persistence service", () => {
     expect(harness.service.recentQuickMoveDestinations).toEqual([
       firstPreset,
       secondPreset,
-      { kind: "root" },
+      { kind: "root", targetFrameId: null },
+    ])
+  })
+
+  it("keeps frame-root destinations distinct from canvas root in recent history", () => {
+    const harness = createHarness()
+
+    harness.service.setLastQuickMoveDestination({ kind: "root", targetFrameId: null })
+    harness.service.setLastQuickMoveDestination({ kind: "root", targetFrameId: "Frame-A" })
+
+    expect(harness.service.recentQuickMoveDestinations).toEqual([
+      { kind: "root", targetFrameId: "Frame-A" },
+      { kind: "root", targetFrameId: null },
     ])
   })
 
@@ -159,6 +215,7 @@ describe("sidepanel quick-move persistence service", () => {
 
     harness.service.setLastQuickMoveDestination({
       kind: "root",
+      targetFrameId: "Frame-A",
     })
 
     await flushAsync()
@@ -167,9 +224,10 @@ describe("sidepanel quick-move persistence service", () => {
     const written = harness.setScriptSettings.mock.calls[0]?.[0] as ScriptSettingsLike
 
     expect(written["lmx_persist_last_move_destination"]?.value).toBe(true)
-    expect((written["lmx_last_move_destination"]?.value as { readonly kind?: string })?.kind).toBe(
-      "root",
-    )
+    expect(written["lmx_last_move_destination"]?.value).toEqual({
+      kind: "root",
+      targetFrameId: "Frame-A",
+    })
   })
 
   it("does not write destination updates while preference is disabled", async () => {
@@ -179,6 +237,7 @@ describe("sidepanel quick-move persistence service", () => {
 
     harness.service.setLastQuickMoveDestination({
       kind: "root",
+      targetFrameId: null,
     })
 
     await flushAsync()

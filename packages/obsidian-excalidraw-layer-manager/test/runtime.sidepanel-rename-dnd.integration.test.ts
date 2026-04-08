@@ -218,6 +218,11 @@ const findButtonByTitle = (root: FakeDomElement, title: string): FakeDomElement 
   return elements.find((element) => element.tagName === "BUTTON" && element.title === title)
 }
 
+const findButtonByExactText = (root: FakeDomElement, label: string): FakeDomElement | undefined => {
+  const elements = flattenElements(root)
+  return elements.find((element) => element.tagName === "BUTTON" && element.textContent === label)
+}
+
 const isRowFilterInput = (element: FakeDomElement): boolean => {
   return (element as FakeDomElement & { placeholder?: string }).placeholder === "Search layer rows"
 }
@@ -633,6 +638,48 @@ describe("sidepanel rename + drag-drop integration", () => {
     })
   })
 
+  it("preserves group structure when quick-move starts from a clicked group row", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      [
+        { id: "A", type: "rectangle", groupIds: ["G", "Outer"] },
+        { id: "B", type: "rectangle", groupIds: ["G", "Outer"] },
+        { id: "C", type: "rectangle", groupIds: ["Outer"] },
+      ],
+      [],
+    )
+
+    const app = createLayerManagerRuntime(runtime.ea)
+    app.toggleExpanded("group:Outer")
+    await flushAsync()
+
+    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const groupRow = findInteractiveRowByLabel(contentRoot, "[group] G")
+    const rootButton = findButtonByExactText(contentRoot, "Root")
+
+    if (!groupRow || !rootButton) {
+      throw new Error("Expected group-row quick-move controls to exist.")
+    }
+
+    groupRow.click()
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const refreshedRootButton = findButtonByExactText(contentRoot, "Root")
+    if (!refreshedRootButton) {
+      throw new Error("Expected root quick-move button after row selection.")
+    }
+
+    refreshedRootButton.click()
+    await flushAsync()
+
+    expect(runtime.elements.find((element) => element.id === "A")?.groupIds ?? []).toEqual(["G"])
+    expect(runtime.elements.find((element) => element.id === "B")?.groupIds ?? []).toEqual(["G"])
+    expect(runtime.elements.find((element) => element.id === "C")?.groupIds ?? []).toEqual([
+      "Outer",
+    ])
+  })
+
   it("reparents rows through drag and drop using the command seam", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
@@ -659,5 +706,37 @@ describe("sidepanel rename + drag-drop integration", () => {
     await flushAsync()
 
     expect(runtime.elements.find((element) => element.id === "A")?.groupIds ?? []).toEqual(["G"])
+  })
+
+  it("moves grouped leaf rows out to root without preserving the old parent group", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      [
+        { id: "A", type: "rectangle", name: "Source", groupIds: ["G"] },
+        { id: "B", type: "rectangle", groupIds: ["G"] },
+        { id: "C", type: "rectangle", name: "Canvas", groupIds: [] },
+      ],
+      [],
+    )
+
+    const app = createLayerManagerRuntime(runtime.ea)
+    app.toggleExpanded("group:G")
+    await flushAsync()
+
+    const contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const sourceRow = findInteractiveRowByLabel(contentRoot, "[element] Source")
+    const targetRow = findInteractiveRowByLabel(contentRoot, "[element] Canvas")
+
+    if (!sourceRow || !targetRow) {
+      throw new Error("Expected grouped leaf drag source and root drop target rows.")
+    }
+
+    sourceRow.dispatchEvent(new FakeDomEvent("dragstart"))
+    targetRow.dispatchEvent(new FakeDomEvent("dragover"))
+    targetRow.dispatchEvent(new FakeDomEvent("drop"))
+    await flushAsync()
+
+    expect(runtime.elements.find((element) => element.id === "A")?.groupIds ?? []).toEqual([])
+    expect(runtime.elements.find((element) => element.id === "B")?.groupIds ?? []).toEqual(["G"])
   })
 })

@@ -33,6 +33,19 @@ export const haveSameIdsInSameOrder = (
   return true
 }
 
+export const haveSameIds = (left: readonly string[], right: readonly string[]): boolean => {
+  if (left.length !== right.length) {
+    return false
+  }
+
+  const leftIds = new Set(left)
+  if (leftIds.size !== left.length) {
+    return false
+  }
+
+  return right.every((id) => leftIds.has(id))
+}
+
 export const appendUniqueIds = (
   target: string[],
   seen: Set<string>,

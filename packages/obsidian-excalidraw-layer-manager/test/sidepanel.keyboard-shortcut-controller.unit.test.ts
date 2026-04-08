@@ -7,6 +7,11 @@ import {
   SidepanelKeyboardShortcutController,
 } from "../src/ui/sidepanel/keyboard/keyboardShortcutController.js"
 
+const makeFrameResolution = (frameId: string | null) => ({
+  ok: true as const,
+  frameId,
+})
+
 const makeNode = (id: string, label = id): LayerNode => ({
   id,
   type: "element",
@@ -18,6 +23,19 @@ const makeNode = (id: string, label = id): LayerNode => ({
   groupId: null,
   frameId: null,
   label,
+})
+
+const makeGroupNode = (groupId: string, frameId: string | null = null): LayerNode => ({
+  id: `group:${groupId}`,
+  type: "group",
+  elementIds: ["A", "B"],
+  primaryElementId: "A",
+  children: [],
+  canExpand: true,
+  isExpanded: true,
+  groupId,
+  frameId,
+  label: groupId,
 })
 
 const makeKeyboardEvent = (key: string): KeyboardEvent => {
@@ -113,6 +131,136 @@ describe("sidepanel keyboard shortcut controller", () => {
     expect(releaseKeyboardCapture).not.toHaveBeenCalled()
   })
 
+  it("fails closed for keyboard ungroup-like on focused frame rows", async () => {
+    const reparentFromNodeIds = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
+    const setLastQuickMoveDestinationToRoot = vi.fn<(targetFrameId: string | null) => void>()
+    const notify = vi.fn<(message: string) => void>()
+    const runUiAction = vi.fn<(action: () => Promise<unknown>, fallbackMessage: string) => void>(
+      (action) => {
+        void action()
+      },
+    )
+
+    const frameNode: LayerNode = {
+      id: "frame:F1",
+      type: "frame",
+      elementIds: ["F1", "A"],
+      primaryElementId: "F1",
+      children: [],
+      canExpand: false,
+      isExpanded: false,
+      groupId: null,
+      frameId: null,
+      label: "Frame 1",
+    }
+
+    const context: KeyboardShortcutContext = {
+      actions: {
+        reparentFromNodeIds,
+      } as unknown as LayerManagerUiActions,
+      selection: {
+        elementIds: [],
+        nodes: [],
+        frameResolution: makeFrameResolution(null),
+      },
+      visibleNodes: [frameNode],
+      nodeById: new Map([[frameNode.id, frameNode]]),
+      parentById: new Map([[frameNode.id, null]]),
+    }
+
+    const controller = new SidepanelKeyboardShortcutController({
+      getKeyboardContext: () => context,
+      resolveKeyboardContext: (resolvedContext) => resolvedContext,
+      getFocusedNodeId: () => frameNode.id,
+      setFocusedNodeIdSilently: () => {},
+      setFocusedNode: () => {},
+      getInlineRenameNodeId: () => null,
+      beginInlineRename: () => {},
+      commitInlineRename: vi.fn(async () => {}),
+      setSelectionOverride: () => {},
+      ensureHostViewContext: () => true,
+      moveSelectionToRoot: vi.fn(async () => {}),
+      setLastQuickMoveDestinationToRoot,
+      isTextInputTarget: () => false,
+      isKeyboardSuppressed: () => false,
+      releaseKeyboardCapture: () => {},
+      suppressTransientFocusOut: () => {},
+      notify,
+      runUiAction,
+      requestRenderFromLatestModel: () => {},
+    })
+
+    const event = makeKeyboardEvent("u")
+    controller.handleContentKeydown(event)
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(reparentFromNodeIds).not.toHaveBeenCalled()
+    expect(setLastQuickMoveDestinationToRoot).not.toHaveBeenCalled()
+    expect(notify).toHaveBeenCalledWith(
+      "Keyboard ungroup-like failed: frame rows cannot be structurally moved.",
+    )
+  })
+
+  it("preserves group structural intent for keyboard ungroup-like on focused group rows", async () => {
+    const reparentFromNodeIds = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
+    const setLastQuickMoveDestinationToRoot = vi.fn<(targetFrameId: string | null) => void>()
+    const runUiAction = vi.fn<(action: () => Promise<unknown>, fallbackMessage: string) => void>(
+      (action) => {
+        void action()
+      },
+    )
+
+    const groupNode = makeGroupNode("G", "Frame-A")
+    const context: KeyboardShortcutContext = {
+      actions: {
+        reparentFromNodeIds,
+      } as unknown as LayerManagerUiActions,
+      selection: {
+        elementIds: [],
+        nodes: [],
+        frameResolution: makeFrameResolution("Frame-A"),
+      },
+      visibleNodes: [groupNode],
+      nodeById: new Map([[groupNode.id, groupNode]]),
+      parentById: new Map([[groupNode.id, null]]),
+    }
+
+    const controller = new SidepanelKeyboardShortcutController({
+      getKeyboardContext: () => context,
+      resolveKeyboardContext: (resolvedContext) => resolvedContext,
+      getFocusedNodeId: () => groupNode.id,
+      setFocusedNodeIdSilently: () => {},
+      setFocusedNode: () => {},
+      getInlineRenameNodeId: () => null,
+      beginInlineRename: () => {},
+      commitInlineRename: vi.fn(async () => {}),
+      setSelectionOverride: () => {},
+      ensureHostViewContext: () => true,
+      moveSelectionToRoot: vi.fn(async () => {}),
+      setLastQuickMoveDestinationToRoot,
+      isTextInputTarget: () => false,
+      isKeyboardSuppressed: () => false,
+      releaseKeyboardCapture: () => {},
+      suppressTransientFocusOut: () => {},
+      notify: () => {},
+      runUiAction,
+      requestRenderFromLatestModel: () => {},
+    })
+
+    controller.handleContentKeydown(makeKeyboardEvent("u"))
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(reparentFromNodeIds).toHaveBeenCalledWith({
+      nodeIds: ["group:G"],
+      sourceGroupId: "G",
+      targetParentPath: [],
+      targetFrameId: "Frame-A",
+    })
+    expect(setLastQuickMoveDestinationToRoot).toHaveBeenCalledWith("Frame-A")
+  })
+
   it("suppresses transient blur before handling Enter rename shortcut", () => {
     const suppressTransientFocusOut = vi.fn<() => void>()
     const beginInlineRename = vi.fn<(nodeId: string, initialValue: string) => void>()
@@ -128,6 +276,7 @@ describe("sidepanel keyboard shortcut controller", () => {
       selection: {
         elementIds: [],
         nodes: [],
+        frameResolution: makeFrameResolution(null),
       },
       visibleNodes: [focusedNode],
       nodeById: new Map([[focusedNode.id, focusedNode]]),

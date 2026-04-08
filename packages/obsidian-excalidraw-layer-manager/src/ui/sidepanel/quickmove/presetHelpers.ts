@@ -12,11 +12,15 @@ export interface GroupReparentPreset {
   readonly targetFrameId: string | null
 }
 
+export const resolveNodeFrameId = (node: LayerNode): string | null => {
+  return node.type === "frame" ? node.primaryElementId : (node.frameId ?? null)
+}
+
 export const resolveSharedFrame = (nodes: readonly LayerNode[]): SharedFrameResolution => {
   let frameId: string | null | undefined
 
   for (const node of nodes) {
-    const nodeFrameId = node.frameId ?? null
+    const nodeFrameId = resolveNodeFrameId(node)
     if (frameId === undefined) {
       frameId = nodeFrameId
       continue
@@ -83,7 +87,11 @@ const collectGroupReparentPresets = (
   const presets: GroupReparentPreset[] = []
   const seenKeys = new Set<string>()
 
-  const appendPreset = (path: readonly string[], targetFrameId: string | null): boolean => {
+  const appendPreset = (
+    path: readonly string[],
+    labelPath: readonly string[],
+    targetFrameId: string | null,
+  ): boolean => {
     const key = makePresetKey(path, targetFrameId)
     if (seenKeys.has(key)) {
       return false
@@ -92,7 +100,7 @@ const collectGroupReparentPresets = (
     seenKeys.add(key)
     presets.push({
       key,
-      label: makePresetLabel(path),
+      label: makePresetOptionLabel(labelPath),
       targetParentPath: path,
       targetFrameId,
     })
@@ -103,6 +111,7 @@ const collectGroupReparentPresets = (
   const walk = (
     nodes: readonly LayerNode[],
     parentPath: readonly string[],
+    parentLabelPath: readonly string[],
     groupAncestorDepth: number,
   ): boolean => {
     for (const node of nodes) {
@@ -111,13 +120,15 @@ const collectGroupReparentPresets = (
       }
 
       let nextPath = parentPath
+      let nextLabelPath = parentLabelPath
       let nextGroupAncestorDepth = groupAncestorDepth
 
       if (node.type === "group" && node.groupId) {
         nextPath = [...parentPath, node.groupId]
+        nextLabelPath = [...parentLabelPath, node.label]
 
         if (includeNestedGroups || groupAncestorDepth === 0) {
-          appendPreset(nextPath, node.frameId ?? null)
+          appendPreset(nextPath, nextLabelPath, node.frameId ?? null)
           if (presets.length >= maxCount) {
             return true
           }
@@ -127,7 +138,7 @@ const collectGroupReparentPresets = (
       }
 
       if (node.children.length > 0) {
-        const finished = walk(node.children, nextPath, nextGroupAncestorDepth)
+        const finished = walk(node.children, nextPath, nextLabelPath, nextGroupAncestorDepth)
         if (finished) {
           return true
         }
@@ -137,20 +148,20 @@ const collectGroupReparentPresets = (
     return false
   }
 
-  walk(tree, [], 0)
+  walk(tree, [], [], 0)
   return presets
 }
 
 export const collectTopLevelGroupReparentPresets = (
   tree: readonly LayerNode[],
-  maxCount: number,
+  maxCount = Number.MAX_SAFE_INTEGER,
 ): readonly GroupReparentPreset[] => {
   return collectGroupReparentPresets(tree, maxCount, false)
 }
 
 export const collectAllGroupReparentPresets = (
   tree: readonly LayerNode[],
-  maxCount: number,
+  maxCount = Number.MAX_SAFE_INTEGER,
 ): readonly GroupReparentPreset[] => {
   return collectGroupReparentPresets(tree, maxCount, true)
 }

@@ -1,5 +1,5 @@
 import { validateReparentInvariants } from "../domain/invariants.js"
-import type { ScenePatch } from "../model/patch.js"
+import { type ScenePatch, emptyPatch } from "../model/patch.js"
 import { err, ok } from "../model/result.js"
 import type { Result } from "../model/result.js"
 import type { CommandContext } from "./context.js"
@@ -63,6 +63,10 @@ export const planReparentNode = (
     return err("No targets to reparent.")
   }
 
+  if (targets.some((target) => target.type === "frame")) {
+    return err("Frame elements cannot be structurally reparented.")
+  }
+
   if (input.sourceGroupId) {
     const sourceGroupId = input.sourceGroupId
     const everyTargetContainsSourceGroup = targets.every((target) =>
@@ -93,13 +97,33 @@ export const planReparentNode = (
 
   const targetSuffix = unique([...input.targetParentPath].filter((groupId) => !!groupId).reverse())
 
-  return ok({
-    elementPatches: targets.map((target) => ({
-      id: target.id,
-      set: {
-        frameId: input.targetFrameId,
-        groupIds: buildReparentedGroupIds(target.groupIds, input.sourceGroupId, targetSuffix),
+  const elementPatches = targets.flatMap((target) => {
+    const nextGroupIds = buildReparentedGroupIds(target.groupIds, input.sourceGroupId, targetSuffix)
+    const frameChanged = target.frameId !== input.targetFrameId
+    const groupIdsChanged =
+      target.groupIds.length !== nextGroupIds.length ||
+      target.groupIds.some((groupId, index) => groupId !== nextGroupIds[index])
+
+    if (!frameChanged && !groupIdsChanged) {
+      return []
+    }
+
+    return [
+      {
+        id: target.id,
+        set: {
+          frameId: input.targetFrameId,
+          groupIds: nextGroupIds,
+        },
       },
-    })),
+    ]
+  })
+
+  if (elementPatches.length === 0) {
+    return ok(emptyPatch())
+  }
+
+  return ok({
+    elementPatches,
   })
 }

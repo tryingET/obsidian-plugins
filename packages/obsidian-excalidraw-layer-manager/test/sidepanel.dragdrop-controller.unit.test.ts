@@ -77,8 +77,16 @@ const makeDragEvent = () => {
   }
 }
 
-const makeActions = () => {
-  const reparentFromNodeIds = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
+const makeActions = (
+  outcome:
+    | { readonly status: "applied"; readonly attempts: 1 }
+    | { readonly status: "plannerError"; readonly error: string; readonly attempts: 1 }
+    | { readonly status: "preflightFailed"; readonly reason: string; readonly attempts: 1 } = {
+    status: "applied",
+    attempts: 1,
+  },
+) => {
+  const reparentFromNodeIds = vi.fn(async () => outcome)
 
   return {
     actions: {
@@ -166,6 +174,34 @@ describe("sidepanel drag-drop controller", () => {
         targetFrameId: "frame:A",
       }),
     ).toBe(true)
+
+    controller.startRowDrag({
+      node: makeElementNode("el:root", { frameId: "frame:A" }),
+      nodeFrameId: "frame:A",
+      branchGroupPath: [],
+      dragEvent: makeDragEvent().event,
+    })
+
+    expect(
+      controller.canDropDraggedNode("el:sibling", {
+        targetParentPath: [],
+        targetFrameId: "frame:A",
+      }),
+    ).toBe(false)
+
+    controller.startRowDrag({
+      node: makeElementNode("el:nested", { frameId: "frame:A" }),
+      nodeFrameId: "frame:A",
+      branchGroupPath: ["Outer", "Inner"],
+      dragEvent: makeDragEvent().event,
+    })
+
+    expect(
+      controller.canDropDraggedNode("el:other", {
+        targetParentPath: ["Outer", "Inner"],
+        targetFrameId: "frame:A",
+      }),
+    ).toBe(false)
   })
 
   it("tracks drop hints across drag lifecycle events", () => {
@@ -189,7 +225,7 @@ describe("sidepanel drag-drop controller", () => {
       dragEvent: drag.event,
     })
 
-    expect(controller.dropHintNodeId).toBe("el:A")
+    expect(controller.dropHintNodeId).toBeNull()
 
     const dragEnter = makeDragEvent()
     controller.handleDragEnter("el:target", targetDrop, dragEnter.event)
@@ -227,7 +263,7 @@ describe("sidepanel drag-drop controller", () => {
 
     expect(reparentFromNodeIds).toHaveBeenCalledWith({
       nodeIds: ["el:A"],
-      sourceGroupId: "Source",
+      sourceGroupId: null,
       targetParentPath: [],
       targetFrameId: "frame:A",
     })
@@ -235,8 +271,41 @@ describe("sidepanel drag-drop controller", () => {
       status: "applied",
       destination: {
         kind: "root",
+        targetFrameId: "frame:A",
       },
     })
+  })
+
+  it("fails closed on non-applied command outcomes and reports via notify", async () => {
+    const notify = vi.fn<(message: string) => void>()
+    const requestRenderFromLatestModel = vi.fn<() => void>()
+    const controller = new SidepanelDragDropController({
+      notify,
+      requestRenderFromLatestModel,
+    })
+    const { actions, reparentFromNodeIds } = makeActions({
+      status: "preflightFailed",
+      reason: "selection drift",
+      attempts: 1,
+    })
+
+    controller.startRowDrag({
+      node: makeElementNode("el:A", { frameId: "frame:A" }),
+      nodeFrameId: "frame:A",
+      branchGroupPath: [],
+      dragEvent: makeDragEvent().event,
+    })
+
+    const outcome = await controller.runDragDropReparent(actions, "el:target", {
+      targetParentPath: ["G"],
+      targetFrameId: "frame:A",
+    })
+
+    expect(outcome).toEqual({
+      status: "notApplied",
+    })
+    expect(reparentFromNodeIds).toHaveBeenCalledTimes(1)
+    expect(notify).toHaveBeenCalledWith("Drag and drop reparent failed: selection drift")
   })
 
   it("fails closed on incompatible drop and reports via notify", async () => {

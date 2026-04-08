@@ -87,7 +87,7 @@ describe("sidepanel selection helpers", () => {
     expect(resolved.map((node) => node.id)).toEqual(["el:A", "el:B"])
   })
 
-  it("resolves selections against visible rows when descendants are collapsed", () => {
+  it("resolves selections against the full tree even when descendants are collapsed", () => {
     const hiddenChild = makeElementNode("A")
     const collapsedGroup = makeGroupNode("G", [hiddenChild], {
       isExpanded: false,
@@ -96,7 +96,7 @@ describe("sidepanel selection helpers", () => {
 
     const resolved = resolveSelectedNodes([collapsedGroup], ["A"])
 
-    expect(resolved.map((node) => node.id)).toEqual(["group:G"])
+    expect(resolved.map((node) => node.id)).toEqual(["el:A"])
   })
 
   it("collects visible node context with correct parent mapping", () => {

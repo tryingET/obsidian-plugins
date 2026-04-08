@@ -100,6 +100,25 @@ describe("commands acceptance matrix", () => {
     }
   })
 
+  it("C04b — reparent rejects frame elements as structural targets", () => {
+    const context = makeCommandContext([
+      makeElement({ id: "F", type: "frame" }),
+      makeElement({ id: "A", frameId: "F" }),
+    ])
+
+    const plan = planReparentNode(context, {
+      elementIds: ["F", "A"],
+      sourceGroupId: null,
+      targetParentPath: [],
+      targetFrameId: null,
+    })
+
+    expect(plan.ok).toBe(false)
+    if (!plan.ok) {
+      expect(plan.error).toContain("Frame elements")
+    }
+  })
+
   it("C05 — reparent rejects self-cycle", () => {
     const context = makeCommandContext([
       makeElement({ id: "A", groupIds: ["child", "G"] }),
@@ -180,6 +199,27 @@ describe("commands acceptance matrix", () => {
     if (!plan.ok) {
       expect(plan.error).toContain("sourceGroupId")
     }
+  })
+
+  it("C08b — reparent emits an empty patch for an already-root selection", () => {
+    const context = makeCommandContext([
+      makeElement({ id: "A", groupIds: [] }),
+      makeElement({ id: "B", groupIds: [] }),
+    ])
+
+    const plan = planReparentNode(context, {
+      elementIds: ["A"],
+      sourceGroupId: null,
+      targetParentPath: [],
+      targetFrameId: null,
+    })
+
+    expect(plan.ok).toBe(true)
+    if (!plan.ok) {
+      return
+    }
+
+    expect(plan.value.elementPatches).toEqual([])
   })
 
   it("C09 — reorder moves selection to front while preserving current scene-relative order", () => {
@@ -546,6 +586,20 @@ describe("commands acceptance matrix", () => {
     expect(plan.value.groupId).toBe("Team-1")
     expect(patchById(plan.value.patch, "A")?.set.groupIds).toEqual(["Team-1"])
     expect(patchById(plan.value.patch, "B")?.set.groupIds).toEqual(["legacy", "Team-1"])
+    expect(patchById(plan.value.patch, "A")?.set.customData).toEqual({
+      lmx: {
+        groupLabels: {
+          "Team-1": "Team 1",
+        },
+      },
+    })
+    expect(patchById(plan.value.patch, "B")?.set.customData).toEqual({
+      lmx: {
+        groupLabels: {
+          "Team-1": "Team 1",
+        },
+      },
+    })
     expect(plan.value.patch.selectIds).toEqual(["A", "B"])
   })
 
