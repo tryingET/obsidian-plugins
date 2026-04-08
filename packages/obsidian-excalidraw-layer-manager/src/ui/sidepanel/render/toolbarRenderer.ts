@@ -1,3 +1,5 @@
+import type { ReorderMode } from "../../../commands/reorderNode.js"
+
 interface SidepanelToolbarRenderInput {
   readonly container: HTMLElement
   readonly ownerDocument: Document
@@ -14,7 +16,7 @@ interface SidepanelToolbarRenderInput {
     action: () => Promise<unknown>,
   ) => HTMLButtonElement
   readonly onGroupSelected: () => Promise<void>
-  readonly onBringSelectedToFront: () => Promise<void>
+  readonly onReorderSelected: (mode: ReorderMode) => Promise<void>
   readonly onUngroupLikeSelection: () => Promise<void>
   readonly onTogglePersistLastMoveAcrossRestarts: (nextPreference: boolean) => void
   readonly onNotify: (message: string) => void
@@ -44,15 +46,7 @@ export const renderSidepanelToolbar = (input: SidepanelToolbarRenderInput): HTML
   groupButton.disabled = input.selectedElementCount < 2
   toolbar.appendChild(groupButton)
 
-  const reorderButton = input.createToolbarButton(
-    input.ownerDocument,
-    "Bring selected to front",
-    async () => {
-      await input.onBringSelectedToFront()
-    },
-  )
-  reorderButton.disabled = input.selectedElementCount === 0
-  toolbar.appendChild(reorderButton)
+  appendReorderControls(input, toolbar)
 
   const ungroupLikeButton = input.createToolbarButton(
     input.ownerDocument,
@@ -65,6 +59,38 @@ export const renderSidepanelToolbar = (input: SidepanelToolbarRenderInput): HTML
   toolbar.appendChild(ungroupLikeButton)
 
   return toolbar
+}
+
+const appendReorderControls = (input: SidepanelToolbarRenderInput, toolbar: HTMLElement): void => {
+  const controls: ReadonlyArray<{
+    readonly label: string
+    readonly mode: ReorderMode
+  }> = [
+    {
+      label: "Send to back",
+      mode: "back",
+    },
+    {
+      label: "Send backward",
+      mode: "backward",
+    },
+    {
+      label: "Bring forward",
+      mode: "forward",
+    },
+    {
+      label: "Bring to front",
+      mode: "front",
+    },
+  ]
+
+  for (const control of controls) {
+    const button = input.createToolbarButton(input.ownerDocument, control.label, async () => {
+      await input.onReorderSelected(control.mode)
+    })
+    button.disabled = input.selectedElementCount === 0
+    toolbar.appendChild(button)
+  }
 }
 
 const appendLastMovePersistenceControl = (

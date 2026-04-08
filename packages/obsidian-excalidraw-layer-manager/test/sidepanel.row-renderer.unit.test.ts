@@ -192,6 +192,7 @@ describe("sidepanel row renderer", () => {
       selected: true,
       focused: true,
       dropHinted: true,
+      dropHintLabel: "drop to root",
       actions,
       styleConfig: rowStyleConfig,
       nodeVisualState: {
@@ -211,6 +212,9 @@ describe("sidepanel row renderer", () => {
 
     const renderedRow = row as unknown as FakeDomElement
     const expandButton = renderedRow.children[0]
+    const textFragments = flattenElements(renderedRow)
+      .map((child) => child.textContent ?? "")
+      .filter((text) => text.length > 0)
 
     expect(renderedRow.style["paddingLeft"]).toBe("24px")
     expect(renderedRow.style["cursor"]).toBe("pointer")
@@ -218,6 +222,7 @@ describe("sidepanel row renderer", () => {
     expect(renderedRow.style["outline"]).toContain("1px solid")
     expect(renderedRow.style["boxShadow"]).toContain("inset")
     expect(expandButton?.textContent).toBe("▸")
+    expect(textFragments).toContain("drop to root")
 
     expandButton?.dispatchEvent(new FakeDomEvent("click"))
     expect(toggleExpanded).toHaveBeenCalledWith("A")
@@ -237,6 +242,7 @@ describe("sidepanel row renderer", () => {
       selected: false,
       focused: false,
       dropHinted: false,
+      dropHintLabel: null,
       actions,
       styleConfig: rowStyleConfig,
       nodeVisualState: {
@@ -306,6 +312,7 @@ describe("sidepanel row renderer", () => {
       selected: false,
       focused: false,
       dropHinted: false,
+      dropHintLabel: null,
       actions,
       styleConfig: rowStyleConfig,
       nodeVisualState: {
@@ -365,6 +372,7 @@ describe("sidepanel row renderer", () => {
       selected: false,
       focused: false,
       dropHinted: false,
+      dropHintLabel: null,
       actions,
       styleConfig: rowStyleConfig,
       nodeVisualState: {

@@ -458,7 +458,11 @@ describe("sidepanel focus + keyboard integration", () => {
     dispatchKeydown(contentRoot, "f")
     await flushAsync()
 
-    expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(["el:B"])
+    dispatchKeydown(contentRoot, "b", { shiftKey: true })
+    await flushAsync()
+
+    expect(actions.reorderFromNodeIds).toHaveBeenNthCalledWith(1, ["el:B"], "forward")
+    expect(actions.reorderFromNodeIds).toHaveBeenNthCalledWith(2, ["el:B"], "back")
 
     dispatchKeydown(contentRoot, "Enter")
     await flushAsync()
@@ -511,8 +515,8 @@ describe("sidepanel focus + keyboard integration", () => {
     dispatchKeydown(contentRoot, "f")
     await flushAsync()
 
-    expect(actions.reorderFromNodeIds).toHaveBeenNthCalledWith(1, ["el:Child"])
-    expect(actions.reorderFromNodeIds).toHaveBeenNthCalledWith(2, ["group:Outer"])
+    expect(actions.reorderFromNodeIds).toHaveBeenNthCalledWith(1, ["el:Child"], "forward")
+    expect(actions.reorderFromNodeIds).toHaveBeenNthCalledWith(2, ["group:Outer"], "forward")
   })
 
   it("ignores modified shortcuts and text-input event targets", async () => {

@@ -29,6 +29,7 @@ interface SidepanelRowRenderInput {
   readonly selected: boolean
   readonly focused: boolean
   readonly dropHinted: boolean
+  readonly dropHintLabel: string | null
   readonly actions: LayerManagerUiActions | undefined
   readonly styleConfig: SidepanelRowStyleConfig
   readonly nodeVisualState: SidepanelRowVisualState
@@ -305,6 +306,12 @@ const appendMetaBadges = (input: SidepanelRowRenderInput, row: HTMLDivElement): 
   const countBadgeLabel = resolveCountBadgeLabel(input.node)
   if (countBadgeLabel) {
     metaHost.appendChild(createMetaBadge(input.ownerDocument, countBadgeLabel))
+  }
+
+  if (input.dropHinted) {
+    metaHost.appendChild(
+      createMetaBadge(input.ownerDocument, input.dropHintLabel ?? "drop target", "match"),
+    )
   }
 
   if (input.filterMatchKind === "self") {

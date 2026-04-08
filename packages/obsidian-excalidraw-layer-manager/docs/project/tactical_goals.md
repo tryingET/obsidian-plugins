@@ -19,7 +19,7 @@ proposal_status: "active package direction"
   Definition of done: destination picking, recent targets, pinned targets, and quick-move behavior are primarily panel-native rather than prompt-native for common structural moves.
 
 - Goal: Expand ordering behavior beyond “bring selected to front.”
-  Definition of done: the package exposes clearer ordering semantics such as forward/backward/front/back and sibling-aware structural feedback that stays honest about how Excalidraw ordering actually works.
+  Definition of done: the package exposes sibling-aware forward/backward/front/back ordering through toolbar + keyboard flows and pairs that with drag/drop feedback that stays honest about how Excalidraw structure actually works.
 
 - Goal: Leave semantic/adaptive assistance as a bounded follow-up after the core panel becomes trustworthy.
   Definition of done: only after the panel foundation is strong do we add adaptive surfacing, cleanup suggestions, or more alienlike interaction modes.

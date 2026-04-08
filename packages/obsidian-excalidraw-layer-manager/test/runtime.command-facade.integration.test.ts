@@ -342,7 +342,7 @@ describe("runtime command facade + controller action seam", () => {
       status: "applied",
       attempts: 1,
     })
-    expect(runtime.elements.map((element) => element.id)).toEqual(["B", "C", "A"])
+    expect(runtime.elements.map((element) => element.id)).toEqual(["B", "A", "C"])
     expect(runtime.updateScene).toHaveBeenCalledTimes(1)
     expect(runtime.copyForEditing).not.toHaveBeenCalled()
     expect(runtime.addToView).not.toHaveBeenCalled()

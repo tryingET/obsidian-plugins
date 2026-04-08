@@ -182,7 +182,7 @@ describe("commands acceptance matrix", () => {
     }
   })
 
-  it("C09 — reorder keeps untouched relative order and appends requested subset", () => {
+  it("C09 — reorder moves selection to front while preserving current scene-relative order", () => {
     const context = makeCommandContext([
       makeElement({ id: "A" }),
       makeElement({ id: "B" }),
@@ -199,11 +199,11 @@ describe("commands acceptance matrix", () => {
       return
     }
 
-    expect(plan.value.reorder?.orderedElementIds).toEqual(["B", "D", "C", "A"])
+    expect(plan.value.reorder?.orderedElementIds).toEqual(["B", "D", "A", "C"])
     expect(plan.value.elementPatches).toEqual([])
   })
 
-  it("C10 — reorder drops unknown IDs and de-dupes while preserving first-seen order", () => {
+  it("C10 — reorder drops unknown IDs and de-dupes while preserving scene-relative order", () => {
     const context = makeCommandContext([
       makeElement({ id: "A" }),
       makeElement({ id: "B" }),
@@ -219,7 +219,7 @@ describe("commands acceptance matrix", () => {
       return
     }
 
-    expect(plan.value.reorder?.orderedElementIds).toEqual(["B", "C", "A"])
+    expect(plan.value.reorder?.orderedElementIds).toEqual(["B", "A", "C"])
   })
 
   it("C11 — reorder errors when no valid IDs remain", () => {
@@ -235,7 +235,7 @@ describe("commands acceptance matrix", () => {
     }
   })
 
-  it("C12 — reorder emits full-scene permutation in mixed frame/group scene", () => {
+  it("C12 — reorder preserves stable scene order in mixed frame/group scenes", () => {
     const context = makeCommandContext([
       makeElement({ id: "F1", type: "frame" }),
       makeElement({ id: "F2", type: "frame" }),
@@ -253,10 +253,10 @@ describe("commands acceptance matrix", () => {
       return
     }
 
-    expect(plan.value.reorder?.orderedElementIds).toEqual(["F1", "F2", "C", "B", "A"])
+    expect(plan.value.reorder?.orderedElementIds).toEqual(["F1", "F2", "C", "A", "B"])
   })
 
-  it("C13 — reorder normalization includes bound text closure", () => {
+  it("C13 — reorder normalization keeps bound-text closures and returns no-op patch when already frontmost", () => {
     const context = makeCommandContext([
       makeElement({ id: "S", type: "rectangle" }),
       makeElement({ id: "T", type: "text", containerId: "S" }),
@@ -272,7 +272,83 @@ describe("commands acceptance matrix", () => {
       return
     }
 
-    expect(plan.value.reorder?.orderedElementIds).toEqual(["A", "S", "T"])
+    expect(plan.value.reorder).toBeUndefined()
+    expect(plan.value.elementPatches).toEqual([])
+  })
+
+  it("C13b — reorder backward steps a block one sibling slot", () => {
+    const context = makeCommandContext([
+      makeElement({ id: "A" }),
+      makeElement({ id: "B" }),
+      makeElement({ id: "C" }),
+      makeElement({ id: "D" }),
+    ])
+
+    const plan = planReorder(context, {
+      orderedElementIds: ["C"],
+      mode: "backward",
+    })
+
+    expect(plan.ok).toBe(true)
+    if (!plan.ok) {
+      return
+    }
+
+    expect(plan.value.reorder?.orderedElementIds).toEqual(["A", "C", "B", "D"])
+  })
+
+  it("C13c — reorder forward preserves group block internals", () => {
+    const context = makeCommandContext([
+      makeElement({ id: "A", groupIds: ["G"] }),
+      makeElement({ id: "B", groupIds: ["G"] }),
+      makeElement({ id: "C" }),
+    ])
+
+    const plan = planReorder(context, {
+      orderedElementIds: ["A", "B"],
+      mode: "forward",
+    })
+
+    expect(plan.ok).toBe(true)
+    if (!plan.ok) {
+      return
+    }
+
+    expect(plan.value.reorder?.orderedElementIds).toEqual(["C", "A", "B"])
+  })
+
+  it("C13d — reorder partial grouped selection stays scoped to sibling leaves", () => {
+    const context = makeCommandContext([
+      makeElement({ id: "A", groupIds: ["G"] }),
+      makeElement({ id: "B", groupIds: ["G"] }),
+      makeElement({ id: "C" }),
+    ])
+
+    const plan = planReorder(context, {
+      orderedElementIds: ["A"],
+      mode: "forward",
+    })
+
+    expect(plan.ok).toBe(true)
+    if (!plan.ok) {
+      return
+    }
+
+    expect(plan.value.reorder?.orderedElementIds).toEqual(["B", "A", "C"])
+  })
+
+  it("C13e — reorder rejects unknown runtime modes", () => {
+    const context = makeCommandContext([makeElement({ id: "A" }), makeElement({ id: "B" })])
+
+    const plan = planReorder(context, {
+      orderedElementIds: ["A"],
+      mode: "sideways" as never,
+    })
+
+    expect(plan.ok).toBe(false)
+    if (!plan.ok) {
+      expect(plan.error).toContain("Unknown reorder mode")
+    }
   })
 
   it("C14 — element rename trims, mirrors label metadata, and preserves unrelated customData", () => {

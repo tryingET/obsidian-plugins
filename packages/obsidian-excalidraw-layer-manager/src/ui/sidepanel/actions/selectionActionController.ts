@@ -1,3 +1,4 @@
+import type { ReorderMode } from "../../../commands/reorderNode.js"
 import type { LayerManagerUiActions } from "../../renderer.js"
 import type { ResolvedSelection } from "../keyboard/keyboardShortcutController.js"
 import type { SidepanelPromptInteractionService } from "../prompt/promptInteractionService.js"
@@ -55,6 +56,7 @@ export class SidepanelSelectionActionController {
   async reorderSelected(
     actions: LayerManagerUiActions,
     selectedElementIds: readonly string[],
+    mode: ReorderMode,
   ): Promise<void> {
     if (selectedElementIds.length === 0) {
       this.#host.notify("Reorder requires at least one selected element.")
@@ -63,6 +65,7 @@ export class SidepanelSelectionActionController {
 
     await actions.commands.reorder({
       orderedElementIds: selectedElementIds,
+      mode,
     })
   }
 

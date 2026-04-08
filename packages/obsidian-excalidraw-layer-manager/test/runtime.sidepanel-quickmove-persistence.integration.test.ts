@@ -489,7 +489,7 @@ describe("sidepanel quick-move + persistence integration", () => {
       throw new Error("Expected quick-move root/dropdown controls to exist.")
     }
 
-    const reorderButton = findButtonByExactText(contentRoot, "Bring selected to front")
+    const reorderButton = findButtonByExactText(contentRoot, "Bring to front")
     if (!reorderButton) {
       throw new Error("Expected toolbar reorder button to exist.")
     }
@@ -499,6 +499,7 @@ describe("sidepanel quick-move + persistence integration", () => {
 
     expect(commandSpies.reorder).toHaveBeenCalledWith({
       orderedElementIds: ["A"],
+      mode: "front",
     })
 
     rootButton.click()

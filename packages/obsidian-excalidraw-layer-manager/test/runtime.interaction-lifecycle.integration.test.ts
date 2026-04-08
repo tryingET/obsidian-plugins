@@ -120,7 +120,7 @@ describe("runtime interaction lifecycle gating", () => {
       attempts: 1,
     })
     expect(runtime.updateScene).toHaveBeenCalledTimes(1)
-    expect(runtime.elements.map((element) => element.id)).toEqual(["B", "C", "A"])
+    expect(runtime.elements.map((element) => element.id)).toEqual(["B", "A", "C"])
   })
 
   it("keeps bounded stale recovery under interaction gate (preflight fail then retry success)", async () => {

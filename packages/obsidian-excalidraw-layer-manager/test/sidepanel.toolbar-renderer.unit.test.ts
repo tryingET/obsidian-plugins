@@ -125,7 +125,7 @@ describe("sidepanel toolbar renderer", () => {
     const container = document.createElement("div")
 
     const onGroupSelected = vi.fn(async () => {})
-    const onBringSelectedToFront = vi.fn(async () => {})
+    const onReorderSelected = vi.fn(async (_mode: string) => {})
     const onUngroupLikeSelection = vi.fn(async () => {})
     const onTogglePersistLastMoveAcrossRestarts = vi.fn<(nextPreference: boolean) => void>()
     const onNotify = vi.fn<(message: string) => void>()
@@ -151,7 +151,7 @@ describe("sidepanel toolbar renderer", () => {
         return button as unknown as HTMLButtonElement
       },
       onGroupSelected,
-      onBringSelectedToFront,
+      onReorderSelected,
       onUngroupLikeSelection,
       onTogglePersistLastMoveAcrossRestarts,
       onNotify,
@@ -165,14 +165,20 @@ describe("sidepanel toolbar renderer", () => {
     const closeButton = findButtonByText(renderedContainer, "Close tab")
     const rememberButton = findButtonByText(renderedContainer, "Remember last move: off")
     const groupButton = findButtonByText(renderedContainer, "Group selected")
-    const reorderButton = findButtonByText(renderedContainer, "Bring selected to front")
+    const sendToBackButton = findButtonByText(renderedContainer, "Send to back")
+    const sendBackwardButton = findButtonByText(renderedContainer, "Send backward")
+    const bringForwardButton = findButtonByText(renderedContainer, "Bring forward")
+    const bringToFrontButton = findButtonByText(renderedContainer, "Bring to front")
     const ungroupButton = findButtonByText(renderedContainer, "Ungroup-like")
 
     persistButton?.click()
     closeButton?.click()
     rememberButton?.click()
     groupButton?.click()
-    reorderButton?.click()
+    sendToBackButton?.click()
+    sendBackwardButton?.click()
+    bringForwardButton?.click()
+    bringToFrontButton?.click()
     ungroupButton?.click()
 
     await flushAsync()
@@ -184,11 +190,17 @@ describe("sidepanel toolbar renderer", () => {
     expect(onNotify).toHaveBeenCalledWith("Last move destination will persist across restarts.")
     expect(rememberButton?.textContent).toBe("Remember last move: on")
     expect(groupButton?.disabled).toBe(false)
-    expect(reorderButton?.disabled).toBe(false)
+    expect(sendToBackButton?.disabled).toBe(false)
+    expect(sendBackwardButton?.disabled).toBe(false)
+    expect(bringForwardButton?.disabled).toBe(false)
+    expect(bringToFrontButton?.disabled).toBe(false)
     expect(ungroupButton?.disabled).toBe(false)
     expect(findButtonByText(renderedContainer, "Reparent selected")).toBeUndefined()
     expect(onGroupSelected).toHaveBeenCalledTimes(1)
-    expect(onBringSelectedToFront).toHaveBeenCalledTimes(1)
+    expect(onReorderSelected).toHaveBeenNthCalledWith(1, "back")
+    expect(onReorderSelected).toHaveBeenNthCalledWith(2, "backward")
+    expect(onReorderSelected).toHaveBeenNthCalledWith(3, "forward")
+    expect(onReorderSelected).toHaveBeenNthCalledWith(4, "front")
     expect(onUngroupLikeSelection).toHaveBeenCalledTimes(1)
   })
 
@@ -212,7 +224,7 @@ describe("sidepanel toolbar renderer", () => {
         return button as unknown as HTMLButtonElement
       },
       onGroupSelected: async () => {},
-      onBringSelectedToFront: async () => {},
+      onReorderSelected: async () => {},
       onUngroupLikeSelection: async () => {},
       onTogglePersistLastMoveAcrossRestarts: () => {},
       onNotify: () => {},
@@ -228,7 +240,10 @@ describe("sidepanel toolbar renderer", () => {
     )
 
     const groupButton = findButtonByText(renderedContainer, "Group selected")
-    const reorderButton = findButtonByText(renderedContainer, "Bring selected to front")
+    const sendToBackButton = findButtonByText(renderedContainer, "Send to back")
+    const sendBackwardButton = findButtonByText(renderedContainer, "Send backward")
+    const bringForwardButton = findButtonByText(renderedContainer, "Bring forward")
+    const bringToFrontButton = findButtonByText(renderedContainer, "Bring to front")
     const ungroupButton = findButtonByText(renderedContainer, "Ungroup-like")
 
     expect(persistedBadge).toBeDefined()
@@ -237,7 +252,10 @@ describe("sidepanel toolbar renderer", () => {
     expect(findButtonByText(renderedContainer, "Remember last move: off")).toBeUndefined()
     expect(findButtonByText(renderedContainer, "Reparent selected")).toBeUndefined()
     expect(groupButton?.disabled).toBe(true)
-    expect(reorderButton?.disabled).toBe(true)
+    expect(sendToBackButton?.disabled).toBe(true)
+    expect(sendBackwardButton?.disabled).toBe(true)
+    expect(bringForwardButton?.disabled).toBe(true)
+    expect(bringToFrontButton?.disabled).toBe(true)
     expect(ungroupButton?.disabled).toBe(true)
   })
 })

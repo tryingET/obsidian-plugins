@@ -498,7 +498,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     keyboardHint.style.fontSize = "11px"
     keyboardHint.style.marginBottom = "8px"
     keyboardHint.textContent =
-      "Shortcuts: ↑/↓ focus · Shift+↑/↓ extend selection · ←/→ collapse/expand · Enter rename · Del delete · F/G/U structural"
+      "Shortcuts: ↑/↓ focus · Shift+↑/↓ extend selection · ←/→ collapse/expand · Enter rename · Del delete · F/B reorder · Shift+F/B front/back · G/U structural"
     contentRoot.appendChild(keyboardHint)
 
     this.renderRowFilterControls(contentRoot, ownerDocument, rowFilter)
@@ -528,7 +528,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
           resolvedSelection.elementIds,
         )
       },
-      onBringSelectedToFront: async () => {
+      onReorderSelected: async (mode) => {
         if (!model.actions) {
           return
         }
@@ -536,6 +536,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         await this.#selectionActionController.reorderSelected(
           model.actions,
           resolvedSelection.elementIds,
+          mode,
         )
       },
       onUngroupLikeSelection: async () => {
@@ -1052,6 +1053,26 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     return this.#dragDropController.canDropDraggedNode(targetNodeId, dropTarget)
   }
 
+  private describeDropHint(node: LayerNode, dropTarget: NodeDropTarget): string {
+    if (node.type === "group") {
+      return "drop into group"
+    }
+
+    if (node.type === "frame") {
+      return "drop into frame"
+    }
+
+    if (dropTarget.targetParentPath.length > 0) {
+      return "drop into parent group"
+    }
+
+    if (dropTarget.targetFrameId) {
+      return "drop to frame root"
+    }
+
+    return "drop to root"
+  }
+
   private applyDragDropDestination(destination: DragDropDestination): void {
     if (destination.kind === "root") {
       this.setLastQuickMoveDestination({
@@ -1123,6 +1144,10 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
           selected: intersectsSelectedIds(node, selectedIds),
           focused: this.#focusedNodeId === node.id,
           dropHinted: this.#dragDropController.dropHintNodeId === node.id,
+          dropHintLabel:
+            this.#dragDropController.dropHintNodeId === node.id
+              ? this.describeDropHint(node, nodeDropTarget)
+              : null,
           actions,
           styleConfig: ROW_STYLE_CONFIG,
           nodeVisualState,

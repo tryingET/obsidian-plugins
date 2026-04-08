@@ -1,3 +1,4 @@
+import type { ReorderMode } from "../commands/reorderNode.js"
 import type { LayerNode } from "../model/tree.js"
 import type { LayerManagerCommandFacade } from "../runtime/commandFacade.js"
 import type { ExecuteIntentOutcome } from "../runtime/intentExecution.js"
@@ -25,7 +26,10 @@ export interface LayerManagerUiActions {
   readonly createGroupFromNodeIds: (
     input: CreateGroupFromNodeIdsInput,
   ) => Promise<ExecuteIntentOutcome>
-  readonly reorderFromNodeIds: (nodeIds: readonly string[]) => Promise<ExecuteIntentOutcome>
+  readonly reorderFromNodeIds: (
+    nodeIds: readonly string[],
+    mode?: ReorderMode,
+  ) => Promise<ExecuteIntentOutcome>
   readonly reparentFromNodeIds: (input: ReparentFromNodeIdsInput) => Promise<ExecuteIntentOutcome>
   readonly commands: LayerManagerCommandFacade
 }

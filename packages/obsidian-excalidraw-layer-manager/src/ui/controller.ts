@@ -1,3 +1,4 @@
+import type { ReorderMode } from "../commands/reorderNode.js"
 import type { LayerNode } from "../model/tree.js"
 import type { LayerManagerCommandFacade } from "../runtime/commandFacade.js"
 import type { ExecuteIntentOutcome } from "../runtime/intentExecution.js"
@@ -171,6 +172,7 @@ export class LayerManagerController {
 
   readonly #reorderFromNodeIdsAction = async (
     nodeIds: readonly string[],
+    mode: ReorderMode = "front",
   ): Promise<ExecuteIntentOutcome> => {
     await this.#interactionLifecycle.waitForIdle()
 
@@ -181,6 +183,7 @@ export class LayerManagerController {
 
     return resolved.commandFacade.reorder({
       orderedElementIds: resolved.elementIds,
+      mode,
     })
   }
 

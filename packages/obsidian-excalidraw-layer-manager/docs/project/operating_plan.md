@@ -47,9 +47,9 @@ to:
    - keep movement semantics honest about frames/groups/root placement
 
 4. **Better ordering semantics**
-   - extend beyond current bring-to-front behavior
-   - add clearer forward/backward/front/back concepts where supported
-   - improve drag/drop and ordering feedback so the panel feels more like a pro structure tool
+   - keep ordering actions sibling-aware so selected rows move as structural blocks instead of raw input-order fragments
+   - expose forward/backward/front/back through the panel toolbar plus keyboard shortcuts (`F/B` for one-step reorder, `Shift+F/B` for front/back)
+   - keep drag/drop honest by surfacing explicit reparent destination feedback instead of pretending drag/drop is an order move
 
 ## Later slices
 

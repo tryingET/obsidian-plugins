@@ -1,3 +1,4 @@
+import type { ReorderMode } from "../../../commands/reorderNode.js"
 import type { LayerNode } from "../../../model/tree.js"
 import type { LayerManagerUiActions } from "../../renderer.js"
 import { appendUniqueIds } from "../selection/selectionIds.js"
@@ -155,7 +156,17 @@ export class SidepanelKeyboardShortcutController {
       this.#host.suppressTransientFocusOut()
       event.preventDefault()
       this.#host.runUiAction(
-        () => this.runKeyboardBringSelectionToFront(context),
+        () => this.runKeyboardReorder(context, event.shiftKey ? "front" : "forward"),
+        "Keyboard reorder failed",
+      )
+      return
+    }
+
+    if (normalizedKey === "b") {
+      this.#host.suppressTransientFocusOut()
+      event.preventDefault()
+      this.#host.runUiAction(
+        () => this.runKeyboardReorder(context, event.shiftKey ? "back" : "backward"),
         "Keyboard reorder failed",
       )
       return
@@ -407,10 +418,14 @@ export class SidepanelKeyboardShortcutController {
     })
   }
 
-  private async runKeyboardBringSelectionToFront(context: KeyboardShortcutContext): Promise<void> {
+  private async runKeyboardReorder(
+    context: KeyboardShortcutContext,
+    mode: ReorderMode,
+  ): Promise<void> {
     if (context.selection.elementIds.length > 0) {
       await context.actions.commands.reorder({
         orderedElementIds: context.selection.elementIds,
+        mode,
       })
       return
     }
@@ -426,7 +441,7 @@ export class SidepanelKeyboardShortcutController {
       return
     }
 
-    await context.actions.reorderFromNodeIds([focusedNodeId])
+    await context.actions.reorderFromNodeIds([focusedNodeId], mode)
   }
 
   private async runKeyboardUngroupLike(context: KeyboardShortcutContext): Promise<void> {

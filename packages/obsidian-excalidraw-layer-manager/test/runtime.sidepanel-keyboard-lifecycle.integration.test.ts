@@ -1581,7 +1581,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     await flushAsync()
 
     expect(runtime.updateScene).toHaveBeenCalledTimes(1)
-    expect(runtime.elements.map((element) => element.id)).toEqual(["B", "C", "A"])
+    expect(runtime.elements.map((element) => element.id)).toEqual(["B", "A", "C"])
   })
 
   it("falls back to updateScene when keyboard delete legacy edit lookup fails under interaction gating", async () => {
@@ -1659,7 +1659,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect(runtime.copyForEditing).not.toHaveBeenCalled()
     expect(runtime.addToView).not.toHaveBeenCalled()
     expect(runtime.updateScene).toHaveBeenCalledTimes(1)
-    expect(runtime.elements.map((element) => element.id)).toEqual(["B", "C", "D", "A"])
+    expect(runtime.elements.map((element) => element.id)).toEqual(["B", "A", "C", "D"])
   })
 
   it("covers supported shortcut behavior with a compact keyboard matrix", async () => {
@@ -1684,7 +1684,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
           dispatchKeydown(contentRoot, "f")
         },
         assert: ({ actions }) => {
-          expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(["el:B"])
+          expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(["el:B"], "forward")
         },
       },
       {
@@ -1697,7 +1697,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
           dispatchKeydown(contentRoot, "f")
         },
         assert: ({ actions }) => {
-          expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(["el:A"])
+          expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(["el:A"], "forward")
         },
       },
       {
@@ -1757,7 +1757,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
         },
       },
       {
-        name: "F brings selected elements to the front",
+        name: "F brings selected elements forward by one step",
         selectedIds: ["A"],
         buildTree: () => [makeElementNode("A"), makeElementNode("B")],
         dispatch: (contentRoot) => {
@@ -1766,6 +1766,49 @@ describe("sidepanel keyboard + lifecycle parity", () => {
         assert: ({ commandSpies }) => {
           expect(commandSpies.reorder).toHaveBeenCalledWith({
             orderedElementIds: ["A"],
+            mode: "forward",
+          })
+        },
+      },
+      {
+        name: "B sends selected elements backward by one step",
+        selectedIds: ["A"],
+        buildTree: () => [makeElementNode("A"), makeElementNode("B")],
+        dispatch: (contentRoot) => {
+          dispatchKeydown(contentRoot, "b")
+        },
+        assert: ({ commandSpies }) => {
+          expect(commandSpies.reorder).toHaveBeenCalledWith({
+            orderedElementIds: ["A"],
+            mode: "backward",
+          })
+        },
+      },
+      {
+        name: "Shift+F brings selected elements to the front",
+        selectedIds: ["A"],
+        buildTree: () => [makeElementNode("A"), makeElementNode("B")],
+        dispatch: (contentRoot) => {
+          dispatchKeydown(contentRoot, "f", { shiftKey: true })
+        },
+        assert: ({ commandSpies }) => {
+          expect(commandSpies.reorder).toHaveBeenCalledWith({
+            orderedElementIds: ["A"],
+            mode: "front",
+          })
+        },
+      },
+      {
+        name: "Shift+B sends selected elements to the back",
+        selectedIds: ["A"],
+        buildTree: () => [makeElementNode("A"), makeElementNode("B")],
+        dispatch: (contentRoot) => {
+          dispatchKeydown(contentRoot, "b", { shiftKey: true })
+        },
+        assert: ({ commandSpies }) => {
+          expect(commandSpies.reorder).toHaveBeenCalledWith({
+            orderedElementIds: ["A"],
+            mode: "back",
           })
         },
       },
@@ -1960,7 +2003,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
       dispatchKeydown(contentRoot, "f")
       await flushAsync()
 
-      expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(["el:A"])
+      expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(["el:A"], "forward")
     } finally {
       logSpy.mockRestore()
     }
@@ -2029,7 +2072,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
 
       expect(createSidepanelTab).toHaveBeenCalledTimes(2)
       expect(actions.reorderFromNodeIds).toHaveBeenCalledTimes(1)
-      expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(["el:A"])
+      expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(["el:A"], "forward")
     })
   }
 
@@ -2112,7 +2155,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
 
       expect(createSidepanelTab).toHaveBeenCalledTimes(2)
       expect(actions.reorderFromNodeIds).toHaveBeenCalledTimes(1)
-      expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(["el:A"])
+      expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(["el:A"], "forward")
     })
   }
 
@@ -2186,7 +2229,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
       await flushAsync()
 
       expect(actions.reorderFromNodeIds).toHaveBeenCalledTimes(1)
-      expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(["el:A"])
+      expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(["el:A"], "forward")
     })
   }
 
@@ -2255,7 +2298,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
       throw new Error("Expected quick-move root/dropdown controls to exist.")
     }
 
-    const reorderButton = findButtonByExactText(contentRoot, "Bring selected to front")
+    const reorderButton = findButtonByExactText(contentRoot, "Bring to front")
     if (!reorderButton) {
       throw new Error("Expected toolbar reorder button to exist.")
     }
@@ -2265,6 +2308,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
 
     expect(commandSpies.reorder).toHaveBeenCalledWith({
       orderedElementIds: ["A"],
+      mode: "front",
     })
 
     rootButton.click()
