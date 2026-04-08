@@ -411,9 +411,18 @@ const findButtonByTitle = (root: FakeDomElement, title: string): FakeDomElement 
   return elements.find((element) => element.tagName === "BUTTON" && element.title === title)
 }
 
+const isRowFilterInput = (element: FakeDomElement): boolean => {
+  return (element as FakeDomElement & { placeholder?: string }).placeholder === "Search layer rows"
+}
+
+const findRowFilterInput = (root: FakeDomElement): FakeDomElement | undefined => {
+  const elements = flattenElements(root)
+  return elements.find((element) => element.tagName === "INPUT" && isRowFilterInput(element))
+}
+
 const findFirstInput = (root: FakeDomElement): FakeDomElement | undefined => {
   const elements = flattenElements(root)
-  return elements.find((element) => element.tagName === "INPUT")
+  return elements.find((element) => element.tagName === "INPUT" && !isRowFilterInput(element))
 }
 
 const findFirstSelect = (root: FakeDomElement): FakeDomElement | undefined => {
@@ -1045,6 +1054,45 @@ describe("sidepanel keyboard + lifecycle parity", () => {
 
     contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
     expect(findButtonByTitle(contentRoot, "Show layer")).toBeDefined()
+  })
+
+  it("filters rows and surfaces descendant matches from collapsed groups", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      [
+        { id: "A", type: "text", text: "Alpha", groupIds: ["G"], isDeleted: false },
+        { id: "B", type: "text", text: "Beta", groupIds: ["G"], isDeleted: false },
+        { id: "C", type: "rectangle", name: "Gamma", isDeleted: false },
+      ],
+      [],
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+
+    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const searchInput = findRowFilterInput(contentRoot)
+
+    if (!searchInput) {
+      throw new Error("Expected row filter input to exist.")
+    }
+
+    searchInput.value = "Alpha"
+    searchInput.dispatchEvent(new FakeDomEvent("input"))
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+
+    expect(findButtonByExactText(contentRoot, "Clear filter")).toBeDefined()
+    expect(findInteractiveRowByLabel(contentRoot, "[group] G")).toBeDefined()
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Alpha")).toBeDefined()
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Beta")).toBeUndefined()
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Gamma")).toBeUndefined()
+
+    const filteredRows = flattenElements(contentRoot).filter(
+      (element) => element.tagName === "DIV" && element.style["cursor"] === "pointer",
+    )
+
+    expect(filteredRows).toHaveLength(2)
   })
 
   it("routes Delete shortcut through command seam for selected elements", async () => {

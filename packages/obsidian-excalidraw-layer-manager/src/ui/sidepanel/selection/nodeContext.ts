@@ -30,6 +30,10 @@ export const resolveSelectedNodes = (
       }
     }
 
+    if (!node.isExpanded || node.children.length === 0) {
+      continue
+    }
+
     for (let index = node.children.length - 1; index >= 0; index -= 1) {
       const child = node.children[index]
       if (child) {

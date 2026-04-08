@@ -308,9 +308,13 @@ const findButtonByTitle = (root: FakeDomElement, title: string): FakeDomElement 
   return elements.find((element) => element.tagName === "BUTTON" && element.title === title)
 }
 
+const isRowFilterInput = (element: FakeDomElement): boolean => {
+  return (element as FakeDomElement & { placeholder?: string }).placeholder === "Search layer rows"
+}
+
 const findFirstInput = (root: FakeDomElement): FakeDomElement | undefined => {
   const elements = flattenElements(root)
-  return elements.find((element) => element.tagName === "INPUT")
+  return elements.find((element) => element.tagName === "INPUT" && !isRowFilterInput(element))
 }
 
 const getContentRoot = (contentEl: FakeDomElement): FakeDomElement => {

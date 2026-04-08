@@ -1,7 +1,6 @@
 import type { LayerNode } from "../model/tree.js"
 import {
   ConsoleRenderer,
-  type ElementVisualState,
   type LayerManagerRenderer,
   type LayerManagerUiActions,
   type RenderViewModel,
@@ -34,8 +33,12 @@ import { SidepanelInlineRenameController } from "./sidepanel/rename/inlineRename
 import { renderSidepanelQuickMove } from "./sidepanel/render/quickMoveRenderer.js"
 import { bindSidepanelRowInteractions } from "./sidepanel/render/rowInteractionBinder.js"
 import {
+  type SidepanelFilterMatchKind,
+  buildSidepanelRowFilterResult,
+  resolveSidepanelRowVisualState,
+} from "./sidepanel/render/rowModel.js"
+import {
   type SidepanelInlineRenameRenderState,
-  type SidepanelRowVisualState,
   renderSidepanelRow,
 } from "./sidepanel/render/rowRenderer.js"
 import { renderSidepanelRowTree } from "./sidepanel/render/rowTreeRenderer.js"
@@ -75,8 +78,6 @@ export interface ExcalidrawSidepanelHost extends SidepanelMountHostLike {
   setScriptSettings?: (settings: ScriptSettingsLike) => Promise<void> | void
   obsidian?: ObsidianLike
 }
-
-type NodeVisualState = SidepanelRowVisualState
 
 const SIDEPANEL_TITLE = "Layer Manager"
 const INDENT_STEP_PX = 12
@@ -171,6 +172,8 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   #ownerDocumentWithKeyCapture: Document | null = null
   #selectionOverrideElementIds: readonly string[] | null = null
   #lastSnapshotSelectionIds: readonly string[] = []
+  #rowFilterQuery = ""
+  #shouldAutofocusRowFilterInput = false
 
   readonly #contentKeydownHandler = (event: KeyboardEvent): void => {
     this.#focusOwnership.activateKeyboardCapture()
@@ -416,7 +419,9 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       nodes: resolveSelectedNodes(model.tree, selectedElementIds),
     }
 
-    const { visibleNodes, parentById } = collectVisibleNodeContext(model.tree)
+    const rowFilter = buildSidepanelRowFilterResult(model.tree, this.#rowFilterQuery)
+    const renderTree = rowFilter.tree
+    const { visibleNodes, parentById } = collectVisibleNodeContext(renderTree)
     const activeElement = ownerDocument.activeElement
     const hasKeyboardOwnership =
       this.#focusOwnership.shouldAutofocusContentRoot ||
@@ -451,6 +456,8 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       activeTagName,
       visibleNodeCount: visibleNodes.length,
       selectedElementCount: selectedElementIds.length,
+      filterActive: rowFilter.active,
+      filterQuery: rowFilter.query,
     })
 
     if (model.actions) {
@@ -480,7 +487,9 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     info.style.opacity = "0.75"
     info.style.fontSize = "12px"
     info.style.marginBottom = "4px"
-    info.textContent = `Rows: ${model.tree.length} · Selected elements: ${selectedElementIds.length}`
+    info.textContent = rowFilter.active
+      ? `Filtered rows: ${rowFilter.renderedRowCount} of ${rowFilter.searchableRowCount} searchable · Selected elements: ${selectedElementIds.length}`
+      : `Visible rows: ${rowFilter.renderedRowCount} of ${rowFilter.searchableRowCount} searchable · Selected elements: ${selectedElementIds.length}`
     contentRoot.appendChild(info)
 
     const keyboardHint = ownerDocument.createElement("div")
@@ -490,6 +499,8 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     keyboardHint.textContent =
       "Shortcuts: ↑/↓ focus · Shift+↑/↓ extend selection · ←/→ collapse/expand · Enter rename · Del delete · F/G/U structural"
     contentRoot.appendChild(keyboardHint)
+
+    this.renderRowFilterControls(contentRoot, ownerDocument, rowFilter)
 
     renderSidepanelToolbar({
       container: contentRoot,
@@ -609,11 +620,99 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     rows.style.gap = "4px"
     contentRoot.appendChild(rows)
 
-    this.renderNodes(rows, model.tree, 0, selectedIdSet, model.actions, {
-      frameId: null,
-      groupPath: [],
-    })
+    if (renderTree.length === 0) {
+      const emptyState = ownerDocument.createElement("div")
+      emptyState.style.opacity = "0.75"
+      emptyState.style.fontSize = "11px"
+      emptyState.style.padding = "6px 0"
+      emptyState.textContent = rowFilter.active
+        ? `No rows match “${this.#rowFilterQuery.trim()}”.`
+        : "No layer rows available."
+      rows.appendChild(emptyState)
+    } else {
+      this.renderNodes(
+        rows,
+        renderTree,
+        0,
+        selectedIdSet,
+        model.actions,
+        {
+          frameId: null,
+          groupPath: [],
+        },
+        rowFilter.matchKindByNodeId,
+      )
+    }
+
     this.autofocusContentRootIfNeeded(contentRoot)
+  }
+
+  private renderRowFilterControls(
+    container: HTMLElement,
+    ownerDocument: Document,
+    rowFilter: ReturnType<typeof buildSidepanelRowFilterResult>,
+  ): void {
+    const controls = ownerDocument.createElement("div")
+    controls.style.display = "flex"
+    controls.style.alignItems = "center"
+    controls.style.gap = "6px"
+    controls.style.marginBottom = "6px"
+
+    const searchInput = ownerDocument.createElement("input")
+    searchInput.type = "text"
+    searchInput.value = this.#rowFilterQuery
+    searchInput.placeholder = "Search layer rows"
+    searchInput.ariaLabel = "Search layer rows"
+    searchInput.spellcheck = false
+    searchInput.style.flex = "1"
+    searchInput.style.minWidth = "0"
+    searchInput.style.fontSize = "12px"
+    searchInput.style.padding = "3px 6px"
+
+    searchInput.addEventListener("click", (event) => {
+      event.stopPropagation()
+    })
+
+    searchInput.addEventListener("input", () => {
+      this.updateRowFilterQuery(searchInput.value, true)
+    })
+
+    searchInput.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") {
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+      this.updateRowFilterQuery("", true)
+    })
+
+    controls.appendChild(searchInput)
+
+    if (rowFilter.active) {
+      const clearButton = this.createToolbarButton(ownerDocument, "Clear filter", async () => {
+        this.updateRowFilterQuery("", true)
+      })
+      controls.appendChild(clearButton)
+    }
+
+    container.appendChild(controls)
+
+    if (this.#shouldAutofocusRowFilterInput) {
+      try {
+        searchInput.focus()
+      } catch {
+        // no-op; best-effort focus restoration for live filtering
+      }
+
+      this.#shouldAutofocusRowFilterInput = false
+    }
+  }
+
+  private updateRowFilterQuery(nextQuery: string, shouldAutofocusInput = false): void {
+    this.#rowFilterQuery = nextQuery
+    this.#shouldAutofocusRowFilterInput = shouldAutofocusInput
+    this.requestRenderFromLatestModel()
   }
 
   notify(message: string): void {
@@ -1000,6 +1099,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     selectedIds: ReadonlySet<string>,
     actions: LayerManagerUiActions | undefined,
     branchContext: DragDropBranchContext,
+    matchKindByNodeId: ReadonlyMap<string, SidepanelFilterMatchKind>,
   ): void {
     const ownerDocument = container.ownerDocument
 
@@ -1016,7 +1116,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         const inlineRenameState: SidepanelInlineRenameRenderState | null =
           currentInlineRenameState?.nodeId === node.id ? currentInlineRenameState : null
 
-        const nodeVisualState = this.resolveNodeVisualState(
+        const nodeVisualState = resolveSidepanelRowVisualState(
           node,
           this.#latestModel?.elementStateById,
         )
@@ -1030,6 +1130,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
           actions,
           styleConfig: ROW_STYLE_CONFIG,
           nodeVisualState,
+          filterMatchKind: matchKindByNodeId.get(node.id) ?? "none",
           inlineRenameState,
           onToggleExpanded: (targetNodeId) => {
             actions?.toggleExpanded(targetNodeId)
@@ -1142,45 +1243,6 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         }
       },
     })
-  }
-
-  private resolveNodeVisualState(
-    node: LayerNode,
-    elementStateById?: ReadonlyMap<string, ElementVisualState>,
-  ): NodeVisualState {
-    if (!elementStateById || node.elementIds.length === 0) {
-      return {
-        hidden: false,
-        locked: false,
-      }
-    }
-
-    let knownElements = 0
-    let allHidden = true
-    let allLocked = true
-
-    for (const elementId of node.elementIds) {
-      const state = elementStateById.get(elementId)
-      if (!state) {
-        continue
-      }
-
-      knownElements += 1
-      allHidden = allHidden && state.opacity <= 0
-      allLocked = allLocked && state.locked
-    }
-
-    if (knownElements === 0) {
-      return {
-        hidden: false,
-        locked: false,
-      }
-    }
-
-    return {
-      hidden: allHidden,
-      locked: allLocked,
-    }
   }
 
   private createIconNode(ownerDocument: Document, iconName: string, fallbackLabel: string): Node {

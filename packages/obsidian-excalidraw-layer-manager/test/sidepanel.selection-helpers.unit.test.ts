@@ -87,6 +87,18 @@ describe("sidepanel selection helpers", () => {
     expect(resolved.map((node) => node.id)).toEqual(["el:A", "el:B"])
   })
 
+  it("resolves selections against visible rows when descendants are collapsed", () => {
+    const hiddenChild = makeElementNode("A")
+    const collapsedGroup = makeGroupNode("G", [hiddenChild], {
+      isExpanded: false,
+      primaryElementId: "group-primary:G",
+    })
+
+    const resolved = resolveSelectedNodes([collapsedGroup], ["A"])
+
+    expect(resolved.map((node) => node.id)).toEqual(["group:G"])
+  })
+
   it("collects visible node context with correct parent mapping", () => {
     const nodeA = makeElementNode("A")
     const nodeHiddenChild = makeElementNode("H")

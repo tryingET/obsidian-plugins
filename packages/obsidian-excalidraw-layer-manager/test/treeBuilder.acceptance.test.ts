@@ -358,7 +358,7 @@ describe("buildLayerTree acceptance matrix", () => {
     expect(tree[0]?.id).toBe(groupNodeId("G"))
     expect(tree[0]?.isExpanded).toBe(false)
     expect(tree[0]?.canExpand).toBe(true)
-    expect(tree[0]?.children).toHaveLength(0)
+    expect(tree[0]?.children).toHaveLength(2)
   })
 
   it("A13 — deterministic rebuild", () => {

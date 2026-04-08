@@ -94,6 +94,21 @@ class FakeDocument {
   }
 }
 
+const flattenElements = (root: FakeDomElement): FakeDomElement[] => {
+  const all: FakeDomElement[] = []
+
+  const walk = (element: FakeDomElement): void => {
+    all.push(element)
+
+    for (const child of element.children) {
+      walk(child)
+    }
+  }
+
+  walk(root)
+  return all
+}
+
 const makeNode = (id: string, overrides: Partial<LayerNode> = {}): LayerNode => ({
   id,
   type: "element",
@@ -180,9 +195,10 @@ describe("sidepanel row renderer", () => {
       actions,
       styleConfig: rowStyleConfig,
       nodeVisualState: {
-        hidden: false,
-        locked: false,
+        visibility: "visible",
+        lock: "unlocked",
       },
+      filterMatchKind: "none",
       inlineRenameState: null,
       onToggleExpanded: toggleExpanded,
       onInlineRenameDraftChange: () => {},
@@ -224,9 +240,10 @@ describe("sidepanel row renderer", () => {
       actions,
       styleConfig: rowStyleConfig,
       nodeVisualState: {
-        hidden: false,
-        locked: false,
+        visibility: "visible",
+        lock: "unlocked",
       },
+      filterMatchKind: "none",
       inlineRenameState: {
         nodeId: "A",
         draft: "Draft",
@@ -274,6 +291,53 @@ describe("sidepanel row renderer", () => {
     expect(escapeEvent.defaultPrevented).toBe(true)
   })
 
+  it("renders mixed-state badges and search-match metadata", () => {
+    const document = new FakeDocument()
+    const actions = makeActions()
+
+    const { row } = renderSidepanelRow({
+      ownerDocument: document as unknown as Document,
+      node: makeNode("G", {
+        type: "group",
+        elementIds: ["A", "B", "C"],
+        label: "Group Alpha",
+      }),
+      depth: 0,
+      selected: false,
+      focused: false,
+      dropHinted: false,
+      actions,
+      styleConfig: rowStyleConfig,
+      nodeVisualState: {
+        visibility: "mixed",
+        lock: "mixed",
+      },
+      filterMatchKind: "descendant",
+      inlineRenameState: null,
+      onToggleExpanded: () => {},
+      onInlineRenameDraftChange: () => {},
+      onInlineRenameCommit: () => {},
+      onInlineRenameCancel: () => {},
+      isInlineRenameActiveForNode: () => false,
+      onRenameNodeFromAction: () => {},
+      createIconActionButton: (ownerDocument: Document, _icon, _action): HTMLButtonElement => {
+        return (ownerDocument as unknown as FakeDocument).createElement(
+          "button",
+        ) as unknown as HTMLButtonElement
+      },
+    })
+
+    const renderedRow = row as unknown as FakeDomElement
+    const textFragments = flattenElements(renderedRow)
+      .map((child) => child.textContent ?? "")
+      .filter((text) => text.length > 0)
+
+    expect(textFragments).toContain("contains match")
+    expect(textFragments).toContain("3 items")
+    expect(textFragments).toContain("mixed hidden")
+    expect(textFragments).toContain("mixed lock")
+  })
+
   it("renders row action buttons and routes callbacks", () => {
     const document = new FakeDocument()
     const actions = makeActions()
@@ -304,9 +368,10 @@ describe("sidepanel row renderer", () => {
       actions,
       styleConfig: rowStyleConfig,
       nodeVisualState: {
-        hidden: true,
-        locked: true,
+        visibility: "hidden",
+        lock: "locked",
       },
+      filterMatchKind: "none",
       inlineRenameState: null,
       onToggleExpanded: () => {},
       onInlineRenameDraftChange: () => {},
