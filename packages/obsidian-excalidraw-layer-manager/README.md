@@ -36,6 +36,9 @@ Provide an architecture-first Layer Manager for Obsidian Excalidraw scripts, wit
 
 - `docs/project/import-origin.md`
 - `docs/project/purpose.md`
+- `docs/project/vision.md`
+- `docs/project/strategic_goals.md`
+- `docs/project/tactical_goals.md`
 - `docs/project/operating_plan.md`
 - `docs/project/script-style-package-boundary.md`
 
