@@ -5,10 +5,5 @@ export default defineConfig({
     include: ["test/**/*.test.ts"],
     globals: false,
     environment: "node",
-    coverage: {
-      enabled: false,
-      provider: "v8",
-      reporter: ["text", "html"],
-    },
   },
 })

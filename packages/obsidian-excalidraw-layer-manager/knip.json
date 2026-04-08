@@ -1,0 +1,7 @@
+{
+  "$schema": "../../node_modules/knip/schema.json",
+  "entry": ["src/index.ts", "build/build.mjs"],
+  "project": ["src/**/*.ts", "test/**/*.ts"],
+  "ignoreBinaries": ["tsc", "biome", "vitest", "depcruise", "knip"],
+  "ignoreDependencies": ["@biomejs/biome"]
+}
