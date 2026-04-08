@@ -41,9 +41,9 @@ to:
    - add search/filter seams that remain compatible with keyboard navigation
 
 3. **Panel-native movement model**
-   - reduce prompt-based reparent flows
-   - expand quick-move into a more complete destination workflow
-   - support recent/pinned destinations where truthful
+   - replace prompt-based reparent flows with panel-native destination picking
+   - keep quick-move for root/top-level groups while exposing a full destination picker in-panel
+   - support recent destinations now and leave pinned destinations as a bounded follow-up
    - keep movement semantics honest about frames/groups/root placement
 
 4. **Better ordering semantics**

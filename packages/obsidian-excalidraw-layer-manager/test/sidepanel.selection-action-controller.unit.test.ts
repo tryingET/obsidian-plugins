@@ -4,7 +4,7 @@ import type { LayerNode } from "../src/model/tree.js"
 import type { LayerManagerUiActions } from "../src/ui/renderer.js"
 import { SidepanelSelectionActionController } from "../src/ui/sidepanel/actions/selectionActionController.js"
 import { SidepanelPromptInteractionService } from "../src/ui/sidepanel/prompt/promptInteractionService.js"
-import { makePresetKey, makePresetLabel } from "../src/ui/sidepanel/quickmove/presetHelpers.js"
+import { makePresetKey } from "../src/ui/sidepanel/quickmove/presetHelpers.js"
 
 const withPatchedGlobalPrompt = async (
   promptValue: unknown,
@@ -125,39 +125,39 @@ describe("sidepanel selection action controller", () => {
     expect(harness.suppressKeyboardAfterPrompt).toHaveBeenCalledTimes(1)
   })
 
-  it("reparents selected elements via prompt sequence and stores preset destination", async () => {
+  it("applies a preset move and stores the destination", async () => {
     const harness = makeHarness()
-    const promptQueue = ["Outer > Inner", "SourceGroup", "Frame-X"]
 
-    await withPatchedGlobalPrompt(
-      vi.fn(() => promptQueue.shift() ?? null),
-      async () => {
-        await harness.controller.reparentSelected(harness.actions, {
-          elementIds: ["el:A"],
-          nodes: [makeElementNode("el:A", "Frame-A")],
-        })
+    await harness.controller.applyGroupPreset(
+      harness.actions,
+      {
+        elementIds: ["el:A"],
+        nodes: [makeElementNode("el:A", "Frame-A")],
+      },
+      {
+        key: makePresetKey(["Outer", "Inner"], "Frame-A"),
+        label: "Inside Outer › Inner",
+        targetParentPath: ["Outer", "Inner"],
+        targetFrameId: "Frame-A",
       },
     )
 
     expect(harness.reparent).toHaveBeenCalledWith({
       elementIds: ["el:A"],
-      sourceGroupId: "SourceGroup",
+      sourceGroupId: null,
       targetParentPath: ["Outer", "Inner"],
-      targetFrameId: "Frame-X",
+      targetFrameId: "Frame-A",
     })
 
     expect(harness.setLastQuickMoveDestination).toHaveBeenCalledWith({
       kind: "preset",
       preset: {
-        key: makePresetKey(["Outer", "Inner"], "Frame-X"),
-        label: makePresetLabel(["Outer", "Inner"]),
+        key: makePresetKey(["Outer", "Inner"], "Frame-A"),
+        label: "Inside Outer › Inner",
         targetParentPath: ["Outer", "Inner"],
-        targetFrameId: "Frame-X",
+        targetFrameId: "Frame-A",
       },
     })
-
-    expect(harness.beginInteraction).toHaveBeenCalledTimes(1)
-    expect(harness.endInteraction).toHaveBeenCalledTimes(1)
   })
 
   it("fails closed for applyGroupPreset when selection frame is incompatible", async () => {

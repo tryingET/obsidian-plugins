@@ -1524,20 +1524,16 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     let now = 10_000
 
     nowSpy.mockImplementation(() => now)
-    globalRecord["prompt"] = vi
-      .fn()
-      .mockReturnValueOnce("")
-      .mockReturnValueOnce("")
-      .mockReturnValueOnce("")
+    globalRecord["prompt"] = vi.fn().mockReturnValueOnce("")
 
     try {
       const contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-      const reparentButton = findButtonByExactText(contentRoot, "Reparent selected")
-      if (!reparentButton) {
-        throw new Error("Expected reparent toolbar button to exist.")
+      const ungroupButton = findButtonByExactText(contentRoot, "Ungroup-like")
+      if (!ungroupButton) {
+        throw new Error("Expected ungroup-like toolbar button to exist.")
       }
 
-      reparentButton.click()
+      ungroupButton.click()
       await flushAsync()
 
       dispatchKeydown(contentRoot, "Delete")

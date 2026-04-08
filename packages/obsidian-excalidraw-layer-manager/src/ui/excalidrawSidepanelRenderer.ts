@@ -83,6 +83,7 @@ const SIDEPANEL_TITLE = "Layer Manager"
 const INDENT_STEP_PX = 12
 const QUICK_PRESET_INLINE_MAX = 4
 const QUICK_PRESET_TOTAL_MAX = 24
+const ALL_DESTINATION_TOTAL_MAX = 64
 const LAST_MOVE_LABEL_MAX = 26
 const KEYBOARD_PROMPT_SUPPRESSION_MS = 160
 const FOCUSOUT_SUPPRESSION_WINDOW_MS = 420
@@ -537,13 +538,6 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
           resolvedSelection.elementIds,
         )
       },
-      onReparentSelected: async () => {
-        if (!model.actions) {
-          return
-        }
-
-        await this.#selectionActionController.reparentSelected(model.actions, resolvedSelection)
-      },
       onUngroupLikeSelection: async () => {
         if (!model.actions) {
           return
@@ -586,8 +580,10 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       tree: model.tree,
       selection: resolvedSelection,
       lastQuickMoveDestination: this.#quickMovePersistenceService.lastQuickMoveDestination,
+      recentQuickMoveDestinations: this.#quickMovePersistenceService.recentQuickMoveDestinations,
       quickPresetInlineMax: QUICK_PRESET_INLINE_MAX,
       quickPresetTotalMax: QUICK_PRESET_TOTAL_MAX,
+      allDestinationTotalMax: ALL_DESTINATION_TOTAL_MAX,
       lastMoveLabelMax: LAST_MOVE_LABEL_MAX,
       createToolbarButton: (nextOwnerDocument, label, action) =>
         this.createToolbarButton(nextOwnerDocument, label, action),

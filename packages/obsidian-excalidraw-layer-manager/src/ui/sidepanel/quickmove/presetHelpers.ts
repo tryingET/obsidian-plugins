@@ -44,8 +44,16 @@ export const truncateLabel = (label: string, maxLength: number): string => {
   return `${label.slice(0, maxLength - 1)}…`
 }
 
+export const makePresetOptionLabel = (path: readonly string[]): string => {
+  if (path.length === 0) {
+    return "Root"
+  }
+
+  return `Inside ${path.join(" › ")}`
+}
+
 export const makePresetLabel = (path: readonly string[]): string => {
-  const full = `Inside ${path.join(" › ")}`
+  const full = makePresetOptionLabel(path)
   if (full.length <= 28) {
     return full
   }
@@ -67,9 +75,10 @@ export const makePresetKey = (path: readonly string[], targetFrameId: string | n
   return `${targetFrameId ?? "null"}:${path.join("/")}`
 }
 
-export const collectTopLevelGroupReparentPresets = (
+const collectGroupReparentPresets = (
   tree: readonly LayerNode[],
   maxCount: number,
+  includeNestedGroups: boolean,
 ): readonly GroupReparentPreset[] => {
   const presets: GroupReparentPreset[] = []
   const seenKeys = new Set<string>()
@@ -107,7 +116,7 @@ export const collectTopLevelGroupReparentPresets = (
       if (node.type === "group" && node.groupId) {
         nextPath = [...parentPath, node.groupId]
 
-        if (groupAncestorDepth === 0) {
+        if (includeNestedGroups || groupAncestorDepth === 0) {
           appendPreset(nextPath, node.frameId ?? null)
           if (presets.length >= maxCount) {
             return true
@@ -130,4 +139,18 @@ export const collectTopLevelGroupReparentPresets = (
 
   walk(tree, [], 0)
   return presets
+}
+
+export const collectTopLevelGroupReparentPresets = (
+  tree: readonly LayerNode[],
+  maxCount: number,
+): readonly GroupReparentPreset[] => {
+  return collectGroupReparentPresets(tree, maxCount, false)
+}
+
+export const collectAllGroupReparentPresets = (
+  tree: readonly LayerNode[],
+  maxCount: number,
+): readonly GroupReparentPreset[] => {
+  return collectGroupReparentPresets(tree, maxCount, true)
 }

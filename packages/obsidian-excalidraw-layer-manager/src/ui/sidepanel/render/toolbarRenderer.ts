@@ -15,7 +15,6 @@ interface SidepanelToolbarRenderInput {
   ) => HTMLButtonElement
   readonly onGroupSelected: () => Promise<void>
   readonly onBringSelectedToFront: () => Promise<void>
-  readonly onReparentSelected: () => Promise<void>
   readonly onUngroupLikeSelection: () => Promise<void>
   readonly onTogglePersistLastMoveAcrossRestarts: (nextPreference: boolean) => void
   readonly onNotify: (message: string) => void
@@ -54,16 +53,6 @@ export const renderSidepanelToolbar = (input: SidepanelToolbarRenderInput): HTML
   )
   reorderButton.disabled = input.selectedElementCount === 0
   toolbar.appendChild(reorderButton)
-
-  const reparentButton = input.createToolbarButton(
-    input.ownerDocument,
-    "Reparent selected",
-    async () => {
-      await input.onReparentSelected()
-    },
-  )
-  reparentButton.disabled = input.selectedElementCount === 0
-  toolbar.appendChild(reparentButton)
 
   const ungroupLikeButton = input.createToolbarButton(
     input.ownerDocument,

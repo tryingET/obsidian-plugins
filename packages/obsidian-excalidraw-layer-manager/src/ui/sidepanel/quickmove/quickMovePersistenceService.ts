@@ -34,6 +34,7 @@ const SETTING_KEY_LAST_MOVE_DESTINATION = "lmx_last_move_destination"
 const SETTING_DESC_PERSIST_LAST_MOVE =
   "Persist LayerManager quick-move destination across Obsidian restarts"
 const SETTING_DESC_LAST_MOVE_DESTINATION = "LayerManager quick-move destination payload"
+const RECENT_DESTINATION_LIMIT = 4
 
 const toPersistedLastMovePayload = (
   destination: LastQuickMoveDestination,
@@ -108,11 +109,23 @@ const fromPersistedLastMovePayload = (value: unknown): LastQuickMoveDestination 
   }
 }
 
+const isSameDestination = (
+  left: LastQuickMoveDestination,
+  right: LastQuickMoveDestination,
+): boolean => {
+  if (left.kind === "root" || right.kind === "root") {
+    return left.kind === right.kind
+  }
+
+  return left.preset.key === right.preset.key
+}
+
 export class SidepanelQuickMovePersistenceService {
   readonly #getScriptSettings: (() => ScriptSettingsLike) | undefined
   readonly #settingsWriteQueue: SidepanelSettingsWriteQueue
 
   #lastQuickMoveDestination: LastQuickMoveDestination | null = null
+  #recentQuickMoveDestinations: LastQuickMoveDestination[] = []
   #persistLastMoveAcrossRestarts = false
   #didLoadLastMovePersistenceSettings = false
 
@@ -127,6 +140,10 @@ export class SidepanelQuickMovePersistenceService {
 
   get lastQuickMoveDestination(): LastQuickMoveDestination | null {
     return this.#lastQuickMoveDestination
+  }
+
+  get recentQuickMoveDestinations(): readonly LastQuickMoveDestination[] {
+    return this.#recentQuickMoveDestinations
   }
 
   get persistLastMoveAcrossRestarts(): boolean {
@@ -158,6 +175,7 @@ export class SidepanelQuickMovePersistenceService {
     }
 
     this.#lastQuickMoveDestination = persistedDestination
+    this.rememberRecentDestination(persistedDestination)
   }
 
   setPersistLastMoveAcrossRestarts(nextValue: boolean): void {
@@ -167,7 +185,23 @@ export class SidepanelQuickMovePersistenceService {
 
   setLastQuickMoveDestination(destination: LastQuickMoveDestination | null): void {
     this.#lastQuickMoveDestination = destination
+
+    if (destination) {
+      this.rememberRecentDestination(destination)
+    }
+
     this.persistLastMoveDestinationIfEnabled()
+  }
+
+  private rememberRecentDestination(destination: LastQuickMoveDestination): void {
+    const withoutDuplicate = this.#recentQuickMoveDestinations.filter(
+      (existing) => !isSameDestination(existing, destination),
+    )
+
+    this.#recentQuickMoveDestinations = [destination, ...withoutDuplicate].slice(
+      0,
+      RECENT_DESTINATION_LIMIT,
+    )
   }
 
   private persistLastMovePersistencePreference(): void {

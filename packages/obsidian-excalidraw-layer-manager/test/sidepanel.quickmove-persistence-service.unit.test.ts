@@ -68,6 +68,17 @@ describe("sidepanel quick-move persistence service", () => {
         targetFrameId: null,
       },
     })
+    expect(harness.service.recentQuickMoveDestinations).toEqual([
+      {
+        kind: "preset",
+        preset: {
+          key: makePresetKey(path, null),
+          label: makePresetLabel(path),
+          targetParentPath: path,
+          targetFrameId: null,
+        },
+      },
+    ])
   })
 
   it("ignores subsequent loads after first settings bootstrap", () => {
@@ -101,6 +112,41 @@ describe("sidepanel quick-move persistence service", () => {
     expect(harness.service.lastQuickMoveDestination).toEqual({
       kind: "root",
     })
+  })
+
+  it("tracks recent destinations with latest-first dedupe", () => {
+    const harness = createHarness()
+
+    const firstPreset: LastQuickMoveDestination = {
+      kind: "preset",
+      preset: {
+        key: makePresetKey(["G1"], null),
+        label: "Inside G1",
+        targetParentPath: ["G1"],
+        targetFrameId: null,
+      },
+    }
+
+    const secondPreset: LastQuickMoveDestination = {
+      kind: "preset",
+      preset: {
+        key: makePresetKey(["G2"], null),
+        label: "Inside G2",
+        targetParentPath: ["G2"],
+        targetFrameId: null,
+      },
+    }
+
+    harness.service.setLastQuickMoveDestination({ kind: "root" })
+    harness.service.setLastQuickMoveDestination(firstPreset)
+    harness.service.setLastQuickMoveDestination(secondPreset)
+    harness.service.setLastQuickMoveDestination(firstPreset)
+
+    expect(harness.service.recentQuickMoveDestinations).toEqual([
+      firstPreset,
+      secondPreset,
+      { kind: "root" },
+    ])
   })
 
   it("persists root destination when preference is enabled", async () => {

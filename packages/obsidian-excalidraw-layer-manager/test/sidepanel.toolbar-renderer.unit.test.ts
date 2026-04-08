@@ -126,7 +126,6 @@ describe("sidepanel toolbar renderer", () => {
 
     const onGroupSelected = vi.fn(async () => {})
     const onBringSelectedToFront = vi.fn(async () => {})
-    const onReparentSelected = vi.fn(async () => {})
     const onUngroupLikeSelection = vi.fn(async () => {})
     const onTogglePersistLastMoveAcrossRestarts = vi.fn<(nextPreference: boolean) => void>()
     const onNotify = vi.fn<(message: string) => void>()
@@ -153,7 +152,6 @@ describe("sidepanel toolbar renderer", () => {
       },
       onGroupSelected,
       onBringSelectedToFront,
-      onReparentSelected,
       onUngroupLikeSelection,
       onTogglePersistLastMoveAcrossRestarts,
       onNotify,
@@ -168,7 +166,6 @@ describe("sidepanel toolbar renderer", () => {
     const rememberButton = findButtonByText(renderedContainer, "Remember last move: off")
     const groupButton = findButtonByText(renderedContainer, "Group selected")
     const reorderButton = findButtonByText(renderedContainer, "Bring selected to front")
-    const reparentButton = findButtonByText(renderedContainer, "Reparent selected")
     const ungroupButton = findButtonByText(renderedContainer, "Ungroup-like")
 
     persistButton?.click()
@@ -176,7 +173,6 @@ describe("sidepanel toolbar renderer", () => {
     rememberButton?.click()
     groupButton?.click()
     reorderButton?.click()
-    reparentButton?.click()
     ungroupButton?.click()
 
     await flushAsync()
@@ -189,11 +185,10 @@ describe("sidepanel toolbar renderer", () => {
     expect(rememberButton?.textContent).toBe("Remember last move: on")
     expect(groupButton?.disabled).toBe(false)
     expect(reorderButton?.disabled).toBe(false)
-    expect(reparentButton?.disabled).toBe(false)
     expect(ungroupButton?.disabled).toBe(false)
+    expect(findButtonByText(renderedContainer, "Reparent selected")).toBeUndefined()
     expect(onGroupSelected).toHaveBeenCalledTimes(1)
     expect(onBringSelectedToFront).toHaveBeenCalledTimes(1)
-    expect(onReparentSelected).toHaveBeenCalledTimes(1)
     expect(onUngroupLikeSelection).toHaveBeenCalledTimes(1)
   })
 
@@ -218,7 +213,6 @@ describe("sidepanel toolbar renderer", () => {
       },
       onGroupSelected: async () => {},
       onBringSelectedToFront: async () => {},
-      onReparentSelected: async () => {},
       onUngroupLikeSelection: async () => {},
       onTogglePersistLastMoveAcrossRestarts: () => {},
       onNotify: () => {},
@@ -235,16 +229,15 @@ describe("sidepanel toolbar renderer", () => {
 
     const groupButton = findButtonByText(renderedContainer, "Group selected")
     const reorderButton = findButtonByText(renderedContainer, "Bring selected to front")
-    const reparentButton = findButtonByText(renderedContainer, "Reparent selected")
     const ungroupButton = findButtonByText(renderedContainer, "Ungroup-like")
 
     expect(persistedBadge).toBeDefined()
     expect(findButtonByText(renderedContainer, "Persist tab")).toBeUndefined()
     expect(findButtonByText(renderedContainer, "Close tab")).toBeUndefined()
     expect(findButtonByText(renderedContainer, "Remember last move: off")).toBeUndefined()
+    expect(findButtonByText(renderedContainer, "Reparent selected")).toBeUndefined()
     expect(groupButton?.disabled).toBe(true)
     expect(reorderButton?.disabled).toBe(true)
-    expect(reparentButton?.disabled).toBe(true)
     expect(ungroupButton?.disabled).toBe(true)
   })
 })
