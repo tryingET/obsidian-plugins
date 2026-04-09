@@ -256,7 +256,7 @@ Practical implication:
 | `992` | quick-move and persisted recents are rebound onto the live destination registry | `src/ui/sidepanel/actions/selectionActionController.ts`, `src/ui/sidepanel/quickmove/*`, `src/ui/sidepanel/render/quickMoveRenderer.ts`, `src/ui/excalidrawSidepanelRenderer.ts` | `test/sidepanel.selection-action-controller.unit.test.ts`, `test/sidepanel.quickmove-helpers.unit.test.ts`, `test/sidepanel.destination-projection.unit.test.ts`, `test/sidepanel.quickmove-persistence-service.unit.test.ts`, `test/sidepanel.quick-move-renderer.unit.test.ts`, `test/runtime.sidepanel-quickmove-persistence.integration.test.ts` | add collision-ranking and stale-remembered-destination drop coverage |
 | `994` | reparent fails closed on drifted ancestry and malformed structural intent | `src/commands/reparentNode.ts`, `src/domain/invariants.ts`, `src/ui/sidepanel/dragdrop/dragDropController.ts`, `src/ui/sidepanel/selection/structuralMoveSelection.ts` | `test/commands.acceptance.test.ts`, `test/sidepanel.dragdrop-controller.unit.test.ts`, `test/runtime.command-facade.integration.test.ts`, `test/runtime.sidepanel-rename-dnd.integration.test.ts`, `test/commands.performance.test.ts`, `test/performance.complexity-sentinel.test.ts` | add ancestry-drift and malformed-intent cases beyond current source-group/frame guards |
 | `993` | reorder and drag/drop resolve canonical structural targets after the kernel split | `src/commands/reorderNode.ts`, `src/ui/sidepanel/dragdrop/dragDropController.ts`, `src/ui/sidepanel/selection/structuralMoveSelection.ts`, `src/ui/sidepanel/render/rowInteractionBinder.ts`, `src/ui/controller.ts` | `test/commands.acceptance.test.ts`, `test/sidepanel.dragdrop-controller.unit.test.ts`, `test/runtime.sidepanel-rename-dnd.integration.test.ts`, `test/runtime.command-facade.integration.test.ts`, `test/commands.performance.test.ts`, `test/performance.complexity-sentinel.test.ts` | add collapsed/filtered/grouped canonical-target resolution and frame-aware drag/drop integration cases |
-| `995` | no recovery slice ships without the kernel tests and full package checks | `package.json`, `.dependency-cruiser.cjs`, `test/**`, recovery docs | `npm run check:fast`, `npm test`, `npm run arch` | make the above commands mandatory, then require `npm run check:full` before calling the wave ship-ready |
+| `995` | no recovery slice ships without the kernel tests and full package checks | `package.json`, `.dependency-cruiser.cjs`, `test/**`, recovery docs | `npm run check:fast`, `npm test`, `npm run arch` | encode the baseline as `npm run verify:recovery`, then require `npm run check:full` before calling the wave ship-ready |
 
 ## Known gaps explicitly recorded by this freeze
 
@@ -308,13 +308,14 @@ These gaps are now part of the recovery contract and should not be rediscovered 
 
 ### Phase C — verification gate
 10. **`995` — encode the recovery verification gate**
-    - minimum mandatory commands before ship:
-      - `npm run check:fast`
-      - `npm test`
-      - `npm run arch`
-      - `npm run check:full`
-    - when docs are touched in this package, also run:
-      - `node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs packages/obsidian-excalidraw-layer-manager/docs --strict`
+    - baseline mandatory gate: `npm run verify:recovery`
+      - runs `npm run check:fast`
+      - runs `npm test`
+      - runs `npm run arch`
+      - when docs are touched in this package, also runs `node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs packages/obsidian-excalidraw-layer-manager/docs --strict`
+    - ship-ready gate: `npm run check:full`
+      - routes through `npm run verify:recovery`
+      - then runs `npm run deadcode`
 
 ## Dependency map after task 985
 

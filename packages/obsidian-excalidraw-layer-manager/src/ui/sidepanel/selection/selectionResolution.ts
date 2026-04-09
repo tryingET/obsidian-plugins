@@ -95,7 +95,7 @@ export const makeSidepanelSelectionNodeRef = (
   }
 }
 
-export const resolveExplicitSelectedNodes = (
+const resolveExplicitSelectedNodes = (
   tree: readonly StructuralLayerNode[],
   selectionOverride: SidepanelSelectionOverrideState | null,
   selectedElementIds: readonly string[],

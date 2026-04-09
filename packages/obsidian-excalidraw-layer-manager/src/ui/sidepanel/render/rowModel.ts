@@ -10,7 +10,7 @@ export interface SidepanelRowVisualState {
   readonly lock: SidepanelLockState
 }
 
-export interface SidepanelRowFilterResult {
+interface SidepanelRowFilterResult {
   readonly visibleTree: readonly VisibleRowNode[]
   /** Compatibility alias for visibleTree. */
   readonly tree: readonly VisibleRowNode[]
@@ -134,8 +134,6 @@ export const buildSidepanelVisibleRowTreeResult = (
     matchKindByNodeId,
   }
 }
-
-export const buildSidepanelRowFilterResult = buildSidepanelVisibleRowTreeResult
 
 export const resolveSidepanelRowVisualState = (
   node: StructuralLayerNode,

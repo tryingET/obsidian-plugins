@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import type { LayerNode } from "../src/model/tree.js"
-import {
-  buildSidepanelRowFilterResult,
-  buildSidepanelVisibleRowTreeResult,
-} from "../src/ui/sidepanel/render/rowModel.js"
+import { buildSidepanelVisibleRowTreeResult } from "../src/ui/sidepanel/render/rowModel.js"
 import {
   makeSidepanelSelectionNodeRef,
   resolveSidepanelSelection,
@@ -130,7 +127,10 @@ describe("sidepanel selection resolution", () => {
       primaryElementId: "A",
     })
 
-    const filteredVisibleTree = buildSidepanelRowFilterResult([collapsedGroup], "group alpha").tree
+    const filteredVisibleTree = buildSidepanelVisibleRowTreeResult(
+      [collapsedGroup],
+      "group alpha",
+    ).tree
 
     expect(filteredVisibleTree.map((node) => node.id)).toEqual(["group:G"])
     expect(filteredVisibleTree[0]?.children).toEqual([])

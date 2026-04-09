@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest"
 
 import type { LayerNode } from "../src/model/tree.js"
 import {
-  buildSidepanelRowFilterResult,
   buildSidepanelVisibleRowTreeResult,
   resolveSidepanelRowVisualState,
 } from "../src/ui/sidepanel/render/rowModel.js"
@@ -79,7 +78,7 @@ describe("sidepanel row model helpers", () => {
     })
     const gamma = makeElementNode("C", "Gamma")
 
-    const result = buildSidepanelRowFilterResult([collapsedGroup, gamma], "alpha")
+    const result = buildSidepanelVisibleRowTreeResult([collapsedGroup, gamma], "alpha")
     const filteredGroup = result.tree[0]
 
     expect(result.active).toBe(true)
@@ -103,7 +102,7 @@ describe("sidepanel row model helpers", () => {
       label: "Alpha Group",
     })
 
-    const collapsedResult = buildSidepanelRowFilterResult([collapsedGroup], "alpha group")
+    const collapsedResult = buildSidepanelVisibleRowTreeResult([collapsedGroup], "alpha group")
     const collapsedFilteredGroup = collapsedResult.tree[0]
 
     expect(collapsedFilteredGroup?.canExpand).toBe(false)
@@ -111,7 +110,7 @@ describe("sidepanel row model helpers", () => {
     expect(collapsedFilteredGroup?.children).toEqual([])
     expect(collapsedResult.renderedRowCount).toBe(1)
 
-    const expandedResult = buildSidepanelRowFilterResult(
+    const expandedResult = buildSidepanelVisibleRowTreeResult(
       [
         makeGroupNode("G", [alpha, beta], {
           isExpanded: true,
@@ -132,7 +131,7 @@ describe("sidepanel row model helpers", () => {
       label: "Readable label",
     })
 
-    const result = buildSidepanelRowFilterResult([hiddenIdGroup], "internal-group-id")
+    const result = buildSidepanelVisibleRowTreeResult([hiddenIdGroup], "internal-group-id")
 
     expect(result.tree).toEqual([])
     expect(result.renderedRowCount).toBe(0)
