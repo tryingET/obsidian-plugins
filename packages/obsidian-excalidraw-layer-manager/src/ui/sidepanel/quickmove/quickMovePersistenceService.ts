@@ -207,7 +207,7 @@ const buildReboundRecentDestinations = (
   return reboundDestinations
 }
 
-type RememberedDestinationRebindOutcome =
+export type RememberedDestinationRebindOutcome =
   | {
       readonly status: "unchanged"
     }
@@ -316,10 +316,14 @@ export class SidepanelQuickMovePersistenceService {
     return true
   }
 
-  async rebindRememberedDestinations(input: {
+  previewReboundRememberedDestinations(input: {
     readonly lastQuickMoveDestination: LastQuickMoveDestination | null
     readonly recentQuickMoveDestinations: readonly LastQuickMoveDestination[]
-  }): Promise<RememberedDestinationRebindOutcome> {
+  }): {
+    readonly nextLastQuickMoveDestination: LastQuickMoveDestination | null
+    readonly nextRecentQuickMoveDestinations: readonly LastQuickMoveDestination[]
+    readonly changed: boolean
+  } {
     const nextRecentQuickMoveDestinations = buildReboundRecentDestinations(
       input.lastQuickMoveDestination,
       input.recentQuickMoveDestinations,
@@ -332,7 +336,20 @@ export class SidepanelQuickMovePersistenceService {
         nextRecentQuickMoveDestinations,
       )
 
-    if (!changed) {
+    return {
+      nextLastQuickMoveDestination: input.lastQuickMoveDestination,
+      nextRecentQuickMoveDestinations,
+      changed,
+    }
+  }
+
+  async rebindRememberedDestinations(input: {
+    readonly lastQuickMoveDestination: LastQuickMoveDestination | null
+    readonly recentQuickMoveDestinations: readonly LastQuickMoveDestination[]
+  }): Promise<RememberedDestinationRebindOutcome> {
+    const preview = this.previewReboundRememberedDestinations(input)
+
+    if (!preview.changed) {
       return {
         status: "unchanged",
       }
@@ -341,8 +358,8 @@ export class SidepanelQuickMovePersistenceService {
     const previousLastQuickMoveDestination = this.#lastQuickMoveDestination
     const previousRecentQuickMoveDestinations = [...this.#recentQuickMoveDestinations]
 
-    this.#lastQuickMoveDestination = input.lastQuickMoveDestination
-    this.#recentQuickMoveDestinations = [...nextRecentQuickMoveDestinations]
+    this.#lastQuickMoveDestination = preview.nextLastQuickMoveDestination
+    this.#recentQuickMoveDestinations = [...preview.nextRecentQuickMoveDestinations]
 
     const persisted = await this.persistLastMoveDestinationIfEnabled()
     if (persisted) {

@@ -836,6 +836,23 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   private scheduleRememberedDestinationReconciliation(
     destinationProjection: ReturnType<typeof buildSidepanelQuickMoveDestinationProjection>,
   ): void {
+    const preview = this.#quickMovePersistenceService.previewReboundRememberedDestinations({
+      lastQuickMoveDestination: projectQuickMoveDestination(
+        this.#quickMovePersistenceService.lastQuickMoveDestination,
+        destinationProjection.destinationByKey,
+        destinationProjection.liveFrameIds,
+      ),
+      recentQuickMoveDestinations: projectQuickMoveDestinations(
+        this.#quickMovePersistenceService.recentQuickMoveDestinations,
+        destinationProjection.destinationByKey,
+        destinationProjection.liveFrameIds,
+      ),
+    })
+
+    if (!preview.changed) {
+      return
+    }
+
     const nextEpoch = this.#rememberedDestinationReconcileEpoch + 1
     this.#rememberedDestinationReconcileEpoch = nextEpoch
     this.#rememberedDestinationReconcileDirtyEpoch = nextEpoch

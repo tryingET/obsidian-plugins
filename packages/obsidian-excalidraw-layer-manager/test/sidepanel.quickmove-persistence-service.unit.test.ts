@@ -237,6 +237,76 @@ describe("sidepanel quick-move persistence service", () => {
     ])
   })
 
+  it("previews unchanged remembered-destination rebounds without mutating runtime state", async () => {
+    const harness = createHarness()
+
+    await harness.service.setLastQuickMoveDestination({
+      kind: "preset",
+      preset: {
+        key: makePresetKey(["G"], null),
+        label: "Inside G",
+        targetParentPath: ["G"],
+        targetFrameId: null,
+      },
+    })
+
+    const preview = harness.service.previewReboundRememberedDestinations({
+      lastQuickMoveDestination: {
+        kind: "preset",
+        preset: {
+          key: makePresetKey(["G"], null),
+          label: "Inside G",
+          targetParentPath: ["G"],
+          targetFrameId: null,
+        },
+      },
+      recentQuickMoveDestinations: [
+        {
+          kind: "preset",
+          preset: {
+            key: makePresetKey(["G"], null),
+            label: "Inside G",
+            targetParentPath: ["G"],
+            targetFrameId: null,
+          },
+        },
+      ],
+    })
+
+    expect(preview).toEqual({
+      nextLastQuickMoveDestination: {
+        kind: "preset",
+        preset: {
+          key: makePresetKey(["G"], null),
+          label: "Inside G",
+          targetParentPath: ["G"],
+          targetFrameId: null,
+        },
+      },
+      nextRecentQuickMoveDestinations: [
+        {
+          kind: "preset",
+          preset: {
+            key: makePresetKey(["G"], null),
+            label: "Inside G",
+            targetParentPath: ["G"],
+            targetFrameId: null,
+          },
+        },
+      ],
+      changed: false,
+    })
+    expect(harness.service.lastQuickMoveDestination).toEqual({
+      kind: "preset",
+      preset: {
+        key: makePresetKey(["G"], null),
+        label: "Inside G",
+        targetParentPath: ["G"],
+        targetFrameId: null,
+      },
+    })
+  })
+
   it("rebinds remembered destinations onto live registry labels and drops stale recents", async () => {
     const harness = createHarness()
 
