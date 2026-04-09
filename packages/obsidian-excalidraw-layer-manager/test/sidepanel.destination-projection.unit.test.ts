@@ -5,6 +5,7 @@ import {
   buildSidepanelQuickMoveDestinationProjection,
   projectQuickMoveDestination,
   projectQuickMoveDestinations,
+  rankQuickMoveDestinationsByCompatibility,
 } from "../src/ui/sidepanel/quickmove/destinationProjection.js"
 import { makePresetKey } from "../src/ui/sidepanel/quickmove/presetHelpers.js"
 import type { LastQuickMoveDestination } from "../src/ui/sidepanel/quickmove/quickMovePersistenceService.js"
@@ -137,6 +138,97 @@ describe("sidepanel quick-move destination projection", () => {
     ).toEqual([
       { kind: "root", targetFrameId: null },
       { kind: "root", targetFrameId: "Frame-A" },
+    ])
+  })
+
+  it("disambiguates duplicate live destination labels instead of rendering ambiguous options", () => {
+    const tree = [
+      makeFrameNode("F1", [makeGroupNode("G1", [makeElementNode("A", "F1")], "F1", "Archive")]),
+      makeFrameNode("F2", [makeGroupNode("G2", [makeElementNode("B", "F2")], "F2", "Archive")]),
+      makeGroupNode("G3", [makeElementNode("C")], null, "Archive"),
+      makeGroupNode("G4", [makeElementNode("D")], null, "Archive"),
+    ]
+
+    const projection = buildSidepanelQuickMoveDestinationProjection(tree, 24, 64)
+    const archiveLabels = projection.allDestinations
+      .filter((preset) => preset.label.startsWith("Inside Archive"))
+      .map((preset) => preset.label)
+
+    expect(archiveLabels).toHaveLength(4)
+    expect(new Set(archiveLabels).size).toBe(4)
+  })
+
+  it("drops ancestry-drifted remembered destinations even when a live destination reuses the same label", () => {
+    const tree = [makeGroupNode("live", [makeElementNode("A")], null, "Shared Label")]
+    const projection = buildSidepanelQuickMoveDestinationProjection(tree, 24, 64)
+
+    expect(
+      projectQuickMoveDestination(
+        {
+          kind: "preset",
+          preset: {
+            key: makePresetKey(["stale"], null),
+            label: "Inside Shared Label",
+            targetParentPath: ["stale"],
+            targetFrameId: null,
+          },
+        },
+        projection.destinationByKey,
+        projection.liveFrameIds,
+      ),
+    ).toBeNull()
+  })
+
+  it("ranks compatible recent destinations ahead of incompatible ones while preserving relative order", () => {
+    const destinations: readonly LastQuickMoveDestination[] = [
+      { kind: "root", targetFrameId: "F2" },
+      {
+        kind: "preset",
+        preset: {
+          key: makePresetKey(["G2"], "F2"),
+          label: "Inside F2",
+          targetParentPath: ["G2"],
+          targetFrameId: "F2",
+        },
+      },
+      {
+        kind: "preset",
+        preset: {
+          key: makePresetKey(["G1"], "F1"),
+          label: "Inside F1",
+          targetParentPath: ["G1"],
+          targetFrameId: "F1",
+        },
+      },
+      { kind: "root", targetFrameId: "F1" },
+    ]
+
+    const ranked = rankQuickMoveDestinationsByCompatibility(destinations, {
+      ok: true,
+      frameId: "F1",
+    })
+
+    expect(ranked).toEqual([
+      {
+        kind: "preset",
+        preset: {
+          key: makePresetKey(["G1"], "F1"),
+          label: "Inside F1",
+          targetParentPath: ["G1"],
+          targetFrameId: "F1",
+        },
+      },
+      { kind: "root", targetFrameId: "F1" },
+      { kind: "root", targetFrameId: "F2" },
+      {
+        kind: "preset",
+        preset: {
+          key: makePresetKey(["G2"], "F2"),
+          label: "Inside F2",
+          targetParentPath: ["G2"],
+          targetFrameId: "F2",
+        },
+      },
     ])
   })
 })

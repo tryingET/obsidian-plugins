@@ -1,8 +1,13 @@
 import type { LayerNode } from "../../../model/tree.js"
 import {
   type SidepanelQuickMoveDestinationProjection,
+  isDestinationFrameCompatible,
+  isPresetFrameCompatible,
+  isRootFrameCompatible,
   projectQuickMoveDestination,
   projectQuickMoveDestinations,
+  rankGroupReparentPresetsByCompatibility,
+  rankQuickMoveDestinationsByCompatibility,
 } from "../quickmove/destinationProjection.js"
 import {
   type GroupReparentPreset,
@@ -55,31 +60,6 @@ const resolveSelectionIssue = (
   _frameResolution: SharedFrameResolution,
 ): string | null => {
   return resolveStructuralSelectionIssue(selection)
-}
-
-const isPresetFrameCompatible = (
-  frameResolution: SharedFrameResolution,
-  preset: GroupReparentPreset,
-): boolean => {
-  return frameResolution.ok && frameResolution.frameId === preset.targetFrameId
-}
-
-const isRootFrameCompatible = (
-  frameResolution: SharedFrameResolution,
-  destination: Extract<LastQuickMoveDestination, { readonly kind: "root" }>,
-): boolean => {
-  return frameResolution.ok && frameResolution.frameId === destination.targetFrameId
-}
-
-const isDestinationFrameCompatible = (
-  frameResolution: SharedFrameResolution,
-  destination: LastQuickMoveDestination,
-): boolean => {
-  if (destination.kind === "root") {
-    return isRootFrameCompatible(frameResolution, destination)
-  }
-
-  return isPresetFrameCompatible(frameResolution, destination.preset)
 }
 
 const describeRootDestination = (
@@ -177,26 +157,24 @@ export const renderSidepanelQuickMove = (
   appendRecentDestinationControls(projectedInput, presetRow, renderState)
   appendRootMoveControl(projectedInput, presetRow, renderState)
 
-  if (input.destinationProjection.topLevelPresets.length <= projectedInput.quickPresetInlineMax) {
-    appendInlinePresetButtons(
-      projectedInput,
-      presetRow,
-      input.destinationProjection.topLevelPresets,
-      renderState,
-    )
+  const rankedTopLevelPresets = rankGroupReparentPresetsByCompatibility(
+    projectedInput.destinationProjection.topLevelPresets,
+    renderState.frameResolution,
+  )
+
+  if (rankedTopLevelPresets.length <= projectedInput.quickPresetInlineMax) {
+    appendInlinePresetButtons(projectedInput, presetRow, rankedTopLevelPresets, renderState)
   } else {
-    appendPresetDropdown(
-      projectedInput,
-      presetRow,
-      input.destinationProjection.topLevelPresets,
-      renderState,
-    )
+    appendPresetDropdown(projectedInput, presetRow, rankedTopLevelPresets, renderState)
   }
 
-  const pickerPresets = buildPickerPresets(
-    input.destinationProjection.allDestinations,
-    projectedInput.lastQuickMoveDestination,
-    projectedInput.recentQuickMoveDestinations,
+  const pickerPresets = rankGroupReparentPresetsByCompatibility(
+    buildPickerPresets(
+      projectedInput.destinationProjection.allDestinations,
+      projectedInput.lastQuickMoveDestination,
+      projectedInput.recentQuickMoveDestinations,
+    ),
+    renderState.frameResolution,
   )
 
   if (pickerPresets.length > 0) {
@@ -325,16 +303,17 @@ const appendRecentDestinationControls = (
   presetRow: HTMLElement,
   renderState: SidepanelQuickMoveRenderState,
 ): void => {
-  const recentDestinations = input.recentQuickMoveDestinations
-    .filter((destination) => {
+  const recentDestinations = rankQuickMoveDestinationsByCompatibility(
+    input.recentQuickMoveDestinations.filter((destination) => {
       const lastDestination = input.lastQuickMoveDestination
       if (!lastDestination) {
         return true
       }
 
       return !isSameDestination(destination, lastDestination)
-    })
-    .slice(0, RECENT_TARGET_BUTTON_MAX)
+    }),
+    renderState.frameResolution,
+  ).slice(0, RECENT_TARGET_BUTTON_MAX)
 
   if (recentDestinations.length === 0) {
     return

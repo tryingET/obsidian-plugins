@@ -130,7 +130,7 @@ const collectGroupReparentPresets = (
         nextLabelPath = [...parentLabelPath, node.label]
 
         if (includeNestedGroups || groupAncestorDepth === 0) {
-          appendPreset(nextPath, nextLabelPath, node.frameId ?? null)
+          appendPreset(nextPath, nextLabelPath, resolveNodeFrameId(node))
           if (presets.length >= maxCount) {
             return true
           }

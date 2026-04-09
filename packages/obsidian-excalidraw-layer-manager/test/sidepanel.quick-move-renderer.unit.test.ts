@@ -614,6 +614,52 @@ describe("sidepanel quick-move renderer", () => {
     expect(onMoveSelectionToRoot).toHaveBeenCalledWith("F1")
   })
 
+  it("prioritizes compatible recent destinations so they are not hidden behind incompatible recents", () => {
+    const document = new FakeDocument()
+    const container = document.createElement("div")
+
+    renderSidepanelQuickMove(
+      makeBaseInput(document, container, {
+        tree: [
+          makeFrameNode("F1", [makeGroupNode("G1", [makeElementNode("A", "F1")], "F1", "Keep")]),
+          makeFrameNode("F2", [
+            makeGroupNode("G2", [makeElementNode("B", "F2")], "F2", "Elsewhere"),
+          ]),
+        ],
+        selection: {
+          elementIds: ["A"],
+          nodes: [makeElementNode("A", "F1")],
+          frameResolution: makeFrameResolution("F1"),
+        },
+        recentQuickMoveDestinations: [
+          { kind: "root", targetFrameId: "F2" },
+          {
+            kind: "preset",
+            preset: {
+              key: makePresetKey(["G2"], "F2"),
+              label: "Inside Elsewhere",
+              targetParentPath: ["G2"],
+              targetFrameId: "F2",
+            },
+          },
+          {
+            kind: "preset",
+            preset: {
+              key: makePresetKey(["G1"], "F1"),
+              label: "Inside Keep",
+              targetParentPath: ["G1"],
+              targetFrameId: "F1",
+            },
+          },
+        ],
+      }),
+    )
+
+    const renderedContainer = container as unknown as FakeDomElement
+
+    expect(findButtonByText(renderedContainer, "Inside Keep")).toBeDefined()
+  })
+
   it("keeps remembered destinations available in the picker when the base list is capped", () => {
     const document = new FakeDocument()
     const container = document.createElement("div")
