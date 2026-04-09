@@ -52,24 +52,16 @@ The exact module ownership, contract-test matrix, and AK task sequencing for thi
 
 - `task:978` **Projection-kernel contract** codified the authority split between scene truth, metadata truth, structural truth, visible truth, and convenience truth in the package docs.
 - `task:979` **Identity + selection stabilization** closed through `task:986`, `task:987`, `task:988`, and `task:995`, so row identity, representative identity, selection precedence, and full-tree-versus-visible-tree authority now route through the shared kernel and mandatory verification gate.
+- `task:980` **Destination registry hardening** closed through `task:989`, `task:992`, and `task:995`, so quick-move destinations now stay live-derived, canonical-keyed, frame-aware, and compatibility-ranked instead of trusting remembered labels as structural truth.
+- `task:983` **Fail-closed structural reparenting** closed through `task:994` and `task:995`, so drifted ancestry and malformed structural intent now reject explicitly instead of being silently normalized into a different meaning.
+- `task:982` **Reorder + drag/drop requalification** closed through `task:983`, `task:993`, `task:994`, `task:1019`, and `task:995`, so reorder and drag/drop now re-resolve against the live structural tree, same-parent row drops qualify as relative reorder against the target sibling slot, and incompatible or drifted targets fail closed with explicit user-visible outcomes.
 
-## Active slices
+## Active slice
 
-1. **Destination registry hardening**
-   - keep quick-move destinations live-derived, frame-aware, and compatibility-ranked
-   - preserve canonical destination keys while re-projecting labels against the live tree
-   - disambiguate destinations when human-readable labels collide
-
-2. **Affordance honesty pass**
+1. **Affordance honesty pass**
    - ensure filtered containers only present expand/collapse affordances that remain truthful in filtered mode
    - keep mixed visibility/lock actions semantically honest
    - preserve inline rename intent until the command outcome is known
-
-3. **Reorder + drag/drop requalification**
-   - rebind reorder and drag/drop behavior to canonical structural targets after identity stabilization
-   - keep reorder semantics honest about scope, especially for collapsed/grouped/frame-aware selections
-   - treat same-parent draggable row drops as relative reorder against the target sibling slot instead of silently reparenting into a sibling container alias
-   - fail closed on malformed ancestry or drift instead of silently normalizing meaning away
 
 ## Verification gate for this wave
 
