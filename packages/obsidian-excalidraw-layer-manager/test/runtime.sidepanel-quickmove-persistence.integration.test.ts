@@ -636,7 +636,11 @@ describe("sidepanel quick-move + persistence integration", () => {
     }
 
     rememberButton.click()
+    expect(rememberButton.disabled).toBe(true)
+    expect(rememberButton.textContent).toBe("Remember last move: off")
+
     rememberButton.click()
+    expect(setScriptSettings).toHaveBeenCalledTimes(1)
 
     while (pendingWriteResolvers.length > 0) {
       const resolveNext = pendingWriteResolvers.shift()
@@ -646,12 +650,75 @@ describe("sidepanel quick-move + persistence integration", () => {
 
     await flushAsync()
 
-    expect(setScriptSettings).toHaveBeenCalled()
+    expect(setScriptSettings).toHaveBeenCalledTimes(1)
+    expect(rememberButton.disabled).toBe(false)
+    expect(rememberButton.textContent).toBe("Remember last move: on")
 
     const lastWrittenSettings = setScriptSettings.mock.calls.at(-1)?.[0] as
       | ScriptSettings
       | undefined
-    expect(lastWrittenSettings?.["lmx_persist_last_move_destination"]?.value).toBe(false)
+    expect(lastWrittenSettings?.["lmx_persist_last_move_destination"]?.value).toBe(true)
+    expect(settings["lmx_persist_last_move_destination"]?.value).toBe(true)
+  })
+
+  it("keeps remember-last-move toggle honest when async persistence fails", async () => {
+    const settings: ScriptSettings = {
+      lmx_persist_last_move_destination: {
+        value: false,
+      },
+      lmx_last_move_destination: {
+        value: null,
+      },
+    }
+
+    const notices: string[] = []
+    const setScriptSettings = vi.fn(async () => {
+      throw new Error("disk full")
+    })
+
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => settings,
+      setScriptSettings,
+      obsidian: {
+        Notice: class {
+          constructor(message: string) {
+            notices.push(message)
+          }
+        },
+      },
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [makeElementNode("A")],
+      selectedIds: new Set(),
+      sceneVersion: 5,
+    })
+
+    const contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const rememberButton = findButtonByExactText(contentRoot, "Remember last move: off")
+    if (!rememberButton) {
+      throw new Error("Expected remember-last-move toggle button to exist.")
+    }
+
+    rememberButton.click()
+    expect(rememberButton.disabled).toBe(true)
+    expect(rememberButton.textContent).toBe("Remember last move: off")
+
+    await flushAsync()
+
+    expect(rememberButton.disabled).toBe(false)
+    expect(rememberButton.textContent).toBe("Remember last move: off")
+    expect(setScriptSettings).toHaveBeenCalledTimes(1)
     expect(settings["lmx_persist_last_move_destination"]?.value).toBe(false)
+    expect(notices).toContain("Failed to persist last-move preference.")
+    expect(notices).toContain("Remember-last-move preference did not persist.")
+    expect(notices).not.toContain("Last move destination will persist across restarts.")
   })
 })

@@ -8,6 +8,7 @@ export type ScriptSettingsLike = Record<string, ScriptSettingsEntryLike>
 interface PendingSettingsWrite {
   readonly mutator: (settings: ScriptSettingsLike) => void
   readonly onErrorMessage: string
+  readonly resolve: (result: boolean) => void
 }
 
 interface SidepanelSettingsWriteQueueInput {
@@ -38,19 +39,25 @@ export class SidepanelSettingsWriteQueue {
     return !!this.#getScriptSettings && !!this.#setScriptSettings
   }
 
-  enqueue(mutator: (settings: ScriptSettingsLike) => void, onErrorMessage: string): void {
+  enqueue(
+    mutator: (settings: ScriptSettingsLike) => void,
+    onErrorMessage: string,
+  ): Promise<boolean> {
     if (!this.canWrite) {
-      return
+      return Promise.resolve(false)
     }
 
-    this.#pendingSettingsWrites.push({
-      mutator,
-      onErrorMessage,
+    return new Promise<boolean>((resolve) => {
+      this.#pendingSettingsWrites.push({
+        mutator,
+        onErrorMessage,
+        resolve,
+      })
+
+      if (!this.#isFlushingSettingsWrites) {
+        void this.flush()
+      }
     })
-
-    if (!this.#isFlushingSettingsWrites) {
-      void this.flush()
-    }
   }
 
   private readScriptSettingsSnapshot(): ScriptSettingsLike {
@@ -100,10 +107,17 @@ export class SidepanelSettingsWriteQueue {
           if (isPromiseLike<void>(result)) {
             await result
           }
+
+          for (const entry of batch) {
+            entry.resolve(true)
+          }
         } catch {
           const message =
             batch.at(-1)?.onErrorMessage ?? "Failed to persist LayerManager script settings."
           this.#notify(message)
+          for (const entry of batch) {
+            entry.resolve(false)
+          }
         }
       }
     } finally {

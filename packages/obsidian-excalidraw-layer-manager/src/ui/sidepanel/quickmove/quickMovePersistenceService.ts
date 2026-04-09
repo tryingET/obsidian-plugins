@@ -265,9 +265,16 @@ export class SidepanelQuickMovePersistenceService {
     this.rememberRecentDestination(persistedDestination)
   }
 
-  setPersistLastMoveAcrossRestarts(nextValue: boolean): void {
+  async setPersistLastMoveAcrossRestarts(nextValue: boolean): Promise<boolean> {
+    const previousValue = this.#persistLastMoveAcrossRestarts
     this.#persistLastMoveAcrossRestarts = nextValue
-    this.persistLastMovePersistencePreference()
+
+    const persisted = await this.persistLastMovePersistencePreference()
+    if (!persisted) {
+      this.#persistLastMoveAcrossRestarts = previousValue
+    }
+
+    return persisted
   }
 
   setLastQuickMoveDestination(destination: LastQuickMoveDestination | null): void {
@@ -316,8 +323,8 @@ export class SidepanelQuickMovePersistenceService {
     )
   }
 
-  private persistLastMovePersistencePreference(): void {
-    this.#settingsWriteQueue.enqueue((settings) => {
+  private persistLastMovePersistencePreference(): Promise<boolean> {
+    return this.#settingsWriteQueue.enqueue((settings) => {
       settings[SETTING_KEY_PERSIST_LAST_MOVE] = {
         value: this.#persistLastMoveAcrossRestarts,
         description: SETTING_DESC_PERSIST_LAST_MOVE,

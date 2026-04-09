@@ -127,7 +127,9 @@ describe("sidepanel toolbar renderer", () => {
     const onGroupSelected = vi.fn(async () => {})
     const onReorderSelected = vi.fn(async (_mode: string) => {})
     const onUngroupLikeSelection = vi.fn(async () => {})
-    const onTogglePersistLastMoveAcrossRestarts = vi.fn<(nextPreference: boolean) => void>()
+    const onTogglePersistLastMoveAcrossRestarts = vi.fn<
+      (nextPreference: boolean) => Promise<boolean>
+    >(async () => true)
     const onNotify = vi.fn<(message: string) => void>()
     const onPersistTab = vi.fn(() => true)
     const onCloseTab = vi.fn<() => void>()
@@ -226,7 +228,7 @@ describe("sidepanel toolbar renderer", () => {
       onGroupSelected: async () => {},
       onReorderSelected: async () => {},
       onUngroupLikeSelection: async () => {},
-      onTogglePersistLastMoveAcrossRestarts: () => {},
+      onTogglePersistLastMoveAcrossRestarts: async () => true,
       onNotify: () => {},
       onPersistTab: () => true,
       onCloseTab: () => {},

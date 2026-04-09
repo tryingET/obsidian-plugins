@@ -29,13 +29,15 @@ describe("sidepanel settings write queue", () => {
       notify: vi.fn(),
     })
 
-    queue.enqueue((nextSettings) => {
+    const writeResult = queue.enqueue((nextSettings) => {
       nextSettings["added"] = {
         value: 123,
       }
     }, "write failed")
 
     await flushAsync()
+
+    await expect(writeResult).resolves.toBe(true)
 
     expect(setScriptSettings).toHaveBeenCalledTimes(1)
     const written = setScriptSettings.mock.calls[0]?.[0] as ScriptSettingsLike
@@ -57,8 +59,8 @@ describe("sidepanel settings write queue", () => {
       notify,
     })
 
-    queueMissingGetter.enqueue(() => {}, "missing getter")
-    queueMissingSetter.enqueue(() => {}, "missing setter")
+    await expect(queueMissingGetter.enqueue(() => {}, "missing getter")).resolves.toBe(false)
+    await expect(queueMissingSetter.enqueue(() => {}, "missing setter")).resolves.toBe(false)
 
     await flushAsync()
 
@@ -86,11 +88,11 @@ describe("sidepanel settings write queue", () => {
       notify: vi.fn(),
     })
 
-    queue.enqueue((nextSettings) => {
+    const firstWrite = queue.enqueue((nextSettings) => {
       nextSettings["flag"] = { value: true }
     }, "write-1 failed")
 
-    queue.enqueue((nextSettings) => {
+    const secondWrite = queue.enqueue((nextSettings) => {
       nextSettings["flag"] = { value: false }
     }, "write-2 failed")
 
@@ -104,6 +106,8 @@ describe("sidepanel settings write queue", () => {
     pendingResolvers.shift()?.()
     await flushAsync()
 
+    await expect(firstWrite).resolves.toBe(true)
+    await expect(secondWrite).resolves.toBe(true)
     expect(settings["flag"]?.value).toBe(false)
   })
 
@@ -120,10 +124,11 @@ describe("sidepanel settings write queue", () => {
       notify,
     })
 
-    queue.enqueue(() => {}, "custom write failure")
+    const writeResult = queue.enqueue(() => {}, "custom write failure")
 
     await flushAsync()
 
+    await expect(writeResult).resolves.toBe(false)
     expect(notify).toHaveBeenCalledWith("custom write failure")
   })
 })

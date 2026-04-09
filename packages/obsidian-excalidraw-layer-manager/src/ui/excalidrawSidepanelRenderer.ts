@@ -579,8 +579,10 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
 
         await this.#selectionActionController.ungroupLikeSelection(model.actions, resolvedSelection)
       },
-      onTogglePersistLastMoveAcrossRestarts: (nextPreference) => {
-        this.#quickMovePersistenceService.setPersistLastMoveAcrossRestarts(nextPreference)
+      onTogglePersistLastMoveAcrossRestarts: async (nextPreference) => {
+        return await this.#quickMovePersistenceService.setPersistLastMoveAcrossRestarts(
+          nextPreference,
+        )
       },
       onNotify: (message) => {
         this.notify(message)

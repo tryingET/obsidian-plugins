@@ -18,7 +18,7 @@ interface SidepanelToolbarRenderInput {
   readonly onGroupSelected: () => Promise<void>
   readonly onReorderSelected: (mode: ReorderMode) => Promise<void>
   readonly onUngroupLikeSelection: () => Promise<void>
-  readonly onTogglePersistLastMoveAcrossRestarts: (nextPreference: boolean) => void
+  readonly onTogglePersistLastMoveAcrossRestarts: (nextPreference: boolean) => Promise<boolean>
   readonly onNotify: (message: string) => void
   readonly onPersistTab: () => boolean
   readonly onCloseTab: () => void
@@ -105,11 +105,31 @@ const appendLastMovePersistenceControl = (
 
   const label = persistAcrossRestarts ? "Remember last move: on" : "Remember last move: off"
 
-  const toggleButton = input.createToolbarButton(input.ownerDocument, label, async () => {
-    const nextPreference = !persistAcrossRestarts
-    input.onTogglePersistLastMoveAcrossRestarts(nextPreference)
-    persistAcrossRestarts = nextPreference
+  let toggleInFlight = false
 
+  const toggleButton = input.createToolbarButton(input.ownerDocument, label, async () => {
+    if (toggleInFlight) {
+      return
+    }
+
+    const nextPreference = !persistAcrossRestarts
+    toggleInFlight = true
+    toggleButton.disabled = true
+
+    const persisted = await input.onTogglePersistLastMoveAcrossRestarts(nextPreference)
+
+    toggleInFlight = false
+    toggleButton.disabled = false
+
+    if (!persisted) {
+      input.onNotify("Remember-last-move preference did not persist.")
+      toggleButton.textContent = persistAcrossRestarts
+        ? "Remember last move: on"
+        : "Remember last move: off"
+      return
+    }
+
+    persistAcrossRestarts = nextPreference
     toggleButton.textContent = nextPreference ? "Remember last move: on" : "Remember last move: off"
 
     if (nextPreference) {
