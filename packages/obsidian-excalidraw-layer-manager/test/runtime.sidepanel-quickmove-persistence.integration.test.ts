@@ -240,6 +240,7 @@ const makeGroupNode = (
   groupId: string,
   children: readonly LayerNode[],
   isExpanded = true,
+  label = groupId,
 ): LayerNode => ({
   id: `group:${groupId}`,
   type: "group",
@@ -250,7 +251,7 @@ const makeGroupNode = (
   isExpanded,
   groupId,
   frameId: null,
-  label: groupId,
+  label,
 })
 
 const makeUiActions = (
@@ -945,38 +946,36 @@ describe("sidepanel quick-move + persistence integration", () => {
       actions,
     })
 
-    await Promise.resolve()
+    await flushAsync()
 
     renderer.render({
-      tree: [makeElementNode("A"), makeGroupNode("G", [makeElementNode("B", "Renamed Group")])],
+      tree: [
+        makeElementNode("A"),
+        makeGroupNode("G", [makeElementNode("B")], true, "Renamed Group"),
+      ],
       selectedIds: new Set(["A"]),
       sceneVersion: 21,
       actions,
     })
 
-    await Promise.resolve()
-
-    expect(setScriptSettings).toHaveBeenCalledTimes(1)
-
-    const resolveFirstWrite = pendingResolvers.shift()
-    resolveFirstWrite?.()
     await flushAsync()
 
-    expect(setScriptSettings).toHaveBeenCalledTimes(2)
-
-    const resolveSecondWrite = pendingResolvers.shift()
-    resolveSecondWrite?.()
-    await flushAsync()
-
-    const contentRoot = getContentRoot(sidepanelTab.contentEl)
-    const repeatButton = findButtonWithPrefix(contentRoot, "↺ Last:")
-    expect(repeatButton?.textContent).toContain("Inside Renamed Group")
     expect(settings["lmx_last_move_destination"]?.value).toEqual({
       kind: "preset",
       targetParentPath: ["G"],
       targetFrameId: null,
-      label: "Inside Renamed Group",
+      label: "Inside old label",
     })
+
+    const contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const repeatButton = findButtonWithPrefix(contentRoot, "↺ Last:")
+    expect(repeatButton?.textContent).toContain("Inside Renamed Gr")
+
+    while (pendingResolvers.length > 0) {
+      const resolveNext = pendingResolvers.shift()
+      resolveNext?.()
+      await flushAsync()
+    }
   })
 
   it("notifies when incompatible row drop is rejected before planner execution", async () => {

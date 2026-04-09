@@ -33,6 +33,8 @@ import { makePresetKey, makePresetOptionLabel } from "./sidepanel/quickmove/pres
 import {
   type LastQuickMoveDestination,
   SidepanelQuickMovePersistenceService,
+  areEquivalentDestinationLists,
+  areEquivalentDestinations,
 } from "./sidepanel/quickmove/quickMovePersistenceService.js"
 import { SidepanelInlineRenameController } from "./sidepanel/rename/inlineRenameController.js"
 import { renderSidepanelQuickMove } from "./sidepanel/render/quickMoveRenderer.js"
@@ -893,6 +895,31 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     }
 
     const latestProjection = this.getQuickMoveDestinationProjection(latestModel.tree)
+    const projectedLastDestination = projectQuickMoveDestination(
+      this.#quickMovePersistenceService.lastQuickMoveDestination,
+      latestProjection.destinationByKey,
+      latestProjection.liveFrameIds,
+    )
+    const projectedRecentDestinations = projectQuickMoveDestinations(
+      this.#quickMovePersistenceService.recentQuickMoveDestinations,
+      latestProjection.destinationByKey,
+      latestProjection.liveFrameIds,
+    )
+
+    const replayNeeded =
+      !areEquivalentDestinations(
+        this.#quickMovePersistenceService.lastQuickMoveDestination,
+        projectedLastDestination,
+      ) ||
+      !areEquivalentDestinationLists(
+        this.#quickMovePersistenceService.recentQuickMoveDestinations,
+        projectedRecentDestinations,
+      )
+
+    if (!replayNeeded) {
+      return
+    }
+
     this.scheduleRememberedDestinationReconciliation(latestProjection)
   }
 
