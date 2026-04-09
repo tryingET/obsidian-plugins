@@ -527,6 +527,58 @@ describe("sidepanel drag-drop controller", () => {
     })
   })
 
+  it("applies drag-drop reorder for the active structural row selection when the dragged row is included", async () => {
+    const notify = vi.fn<(message: string) => void>()
+    const requestRenderFromLatestModel = vi.fn<() => void>()
+    const controller = new SidepanelDragDropController({
+      notify,
+      requestRenderFromLatestModel,
+      getActiveStructuralMoveSelection: (draggedNodeId) => {
+        return draggedNodeId === "el:A"
+          ? {
+              nodeIds: ["el:A", "el:B"],
+              sourceGroupId: null,
+            }
+          : null
+      },
+    })
+    const { actions, reorderRelativeToNodeIds, reparentFromNodeIds } = makeActions()
+
+    controller.startRowDrag({
+      node: makeElementNode("el:A", { frameId: "frame:A" }),
+      nodeFrameId: "frame:A",
+      branchGroupPath: [],
+      rowScope: makeScope("frame:A"),
+      siblingIndex: 0,
+      dragEvent: makeDragEvent().event,
+    })
+
+    const outcome = await controller.runDragDropMove(
+      actions,
+      "el:C",
+      makeDropTarget({
+        targetParentPath: [],
+        targetFrameId: "frame:A",
+        rowScope: makeScope("frame:A"),
+        siblingIndex: 2,
+      }),
+    )
+
+    expect(reorderRelativeToNodeIds).toHaveBeenCalledWith({
+      nodeIds: ["el:A", "el:B"],
+      anchorNodeId: "el:C",
+      placement: "after",
+      notifyOnFailure: false,
+    })
+    expect(reparentFromNodeIds).not.toHaveBeenCalled()
+    expect(outcome).toEqual({
+      status: "applied",
+      effect: {
+        kind: "reorder",
+      },
+    })
+  })
+
   it("applies drag-drop reparent and reports root destination", async () => {
     const notify = vi.fn<(message: string) => void>()
     const requestRenderFromLatestModel = vi.fn<() => void>()

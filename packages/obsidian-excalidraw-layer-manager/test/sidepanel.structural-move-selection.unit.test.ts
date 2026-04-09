@@ -52,7 +52,7 @@ describe("sidepanel structural move selection helpers", () => {
     })
   })
 
-  it("falls back to null for mixed group-plus-leaf structural selections", () => {
+  it("fails closed for mixed group-plus-leaf structural selections", () => {
     const selection = {
       elementIds: ["A", "B"],
       nodes: [makeGroupNode("G"), makeElementNode("el:B")],
@@ -60,6 +60,9 @@ describe("sidepanel structural move selection helpers", () => {
     }
 
     expect(resolveSelectionStructuralMove(selection)).toBeNull()
+    expect(resolveStructuralSelectionIssue(selection)).toBe(
+      "Selection includes mixed or multiple group rows.",
+    )
   })
 
   it("resolves focused group rows as structural moves and improves empty-selection messaging", () => {

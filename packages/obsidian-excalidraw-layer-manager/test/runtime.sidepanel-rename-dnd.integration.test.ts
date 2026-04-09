@@ -270,10 +270,17 @@ const getContentRoot = (contentEl: FakeDomElement): FakeDomElement => {
   return root
 }
 
-const dispatchKeydown = (receiver: FakeDomElement, key: string): void => {
+const dispatchKeydown = (
+  receiver: FakeDomElement,
+  key: string,
+  options?: {
+    readonly shiftKey?: boolean
+  },
+): void => {
   receiver.dispatchEvent(
     new FakeDomEvent("keydown", {
       key,
+      shiftKey: options?.shiftKey ?? false,
     }),
   )
 }

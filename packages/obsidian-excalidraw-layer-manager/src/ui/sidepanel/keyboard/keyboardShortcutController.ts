@@ -9,6 +9,7 @@ import { resolveFocusedNodeStructuralMove } from "../selection/structuralMoveSel
 export interface KeyboardShortcutContext {
   readonly actions: LayerManagerUiActions
   readonly selection: ResolvedSelection
+  readonly explicitSelectedNodes?: readonly LayerNode[] | null
   readonly visibleNodes: readonly LayerNode[]
   readonly nodeById: ReadonlyMap<string, LayerNode>
   readonly parentById: ReadonlyMap<string, string | null>
@@ -31,6 +32,10 @@ interface SidepanelKeyboardShortcutControllerHost {
   commitInlineRename: (actions: LayerManagerUiActions, nodeId: string) => Promise<void>
 
   setSelectionOverride: (elementIds: readonly string[] | null) => void
+  setSelectionOverrideWithNodes?: (
+    elementIds: readonly string[],
+    nodes: readonly LayerNode[],
+  ) => void
   ensureHostViewContext: () => boolean
   selectElementsInView?: (ids: string[]) => void
 
@@ -254,15 +259,23 @@ export class SidepanelKeyboardShortcutController {
 
     appendUniqueIds(nextSelectedElementIds, seenElementIds, context.selection.elementIds)
 
-    if (currentIndex !== -1) {
-      const currentNode = context.visibleNodes[currentIndex]
-      if (currentNode) {
-        appendUniqueIds(nextSelectedElementIds, seenElementIds, currentNode.elementIds)
-      }
+    const currentNode = currentIndex !== -1 ? (context.visibleNodes[currentIndex] ?? null) : null
+    if (currentNode) {
+      appendUniqueIds(nextSelectedElementIds, seenElementIds, currentNode.elementIds)
     }
 
     appendUniqueIds(nextSelectedElementIds, seenElementIds, nextNode.elementIds)
-    this.#host.setSelectionOverride(nextSelectedElementIds)
+
+    const explicitSelectionNodes = this.collectExplicitSelectionNodes(
+      context,
+      currentNode,
+      nextNode,
+    )
+    if (explicitSelectionNodes.length > 0 && this.#host.setSelectionOverrideWithNodes) {
+      this.#host.setSelectionOverrideWithNodes(nextSelectedElementIds, explicitSelectionNodes)
+    } else {
+      this.#host.setSelectionOverride(nextSelectedElementIds)
+    }
 
     if (nextSelectedElementIds.length > 0 && this.#host.selectElementsInView) {
       this.#host.ensureHostViewContext()
@@ -275,6 +288,33 @@ export class SidepanelKeyboardShortcutController {
     }
 
     this.#host.setFocusedNode(nextNode.id)
+  }
+
+  private collectExplicitSelectionNodes(
+    context: KeyboardShortcutContext,
+    currentNode: LayerNode | null,
+    nextNode: LayerNode,
+  ): readonly LayerNode[] {
+    const explicitNodes: LayerNode[] = []
+    const seenNodeIds = new Set<string>()
+
+    const appendNode = (node: LayerNode | null | undefined): void => {
+      if (!node || seenNodeIds.has(node.id)) {
+        return
+      }
+
+      seenNodeIds.add(node.id)
+      explicitNodes.push(node)
+    }
+
+    for (const node of context.explicitSelectedNodes ?? []) {
+      appendNode(node)
+    }
+
+    appendNode(currentNode)
+    appendNode(nextNode)
+
+    return explicitNodes
   }
 
   private handleArrowRight(context: KeyboardShortcutContext): void {

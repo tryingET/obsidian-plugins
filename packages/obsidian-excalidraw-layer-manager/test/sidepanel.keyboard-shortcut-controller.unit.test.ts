@@ -38,10 +38,15 @@ const makeGroupNode = (groupId: string, frameId: string | null = null): LayerNod
   label: groupId,
 })
 
-const makeKeyboardEvent = (key: string): KeyboardEvent => {
+const makeKeyboardEvent = (
+  key: string,
+  options?: {
+    readonly shiftKey?: boolean
+  },
+): KeyboardEvent => {
   return {
     key,
-    shiftKey: false,
+    shiftKey: options?.shiftKey ?? false,
     ctrlKey: false,
     metaKey: false,
     altKey: false,
@@ -259,6 +264,69 @@ describe("sidepanel keyboard shortcut controller", () => {
       targetFrameId: "Frame-A",
     })
     expect(setLastQuickMoveDestinationToRoot).toHaveBeenCalledWith("Frame-A")
+  })
+
+  it("preserves explicit row node refs when Shift+Arrow extends keyboard selection", () => {
+    const setSelectionOverrideWithNodes =
+      vi.fn<(elementIds: readonly string[], nodes: readonly LayerNode[]) => void>()
+    const selectElementsInView = vi.fn<(ids: string[]) => void>()
+    const groupNode = makeGroupNode("G", "Frame-A")
+    const leafNode = makeNode("el:C", "Gamma")
+
+    const context: KeyboardShortcutContext = {
+      actions: {} as LayerManagerUiActions,
+      selection: {
+        elementIds: ["A", "B"],
+        nodes: [groupNode],
+        frameResolution: makeFrameResolution("Frame-A"),
+        structuralMove: {
+          nodeIds: [groupNode.id],
+          sourceGroupId: "G",
+        },
+      },
+      explicitSelectedNodes: [groupNode],
+      visibleNodes: [groupNode, leafNode],
+      nodeById: new Map([
+        [groupNode.id, groupNode],
+        [leafNode.id, leafNode],
+      ]),
+      parentById: new Map([
+        [groupNode.id, null],
+        [leafNode.id, null],
+      ]),
+    }
+
+    const controller = new SidepanelKeyboardShortcutController({
+      getKeyboardContext: () => context,
+      resolveKeyboardContext: (resolvedContext) => resolvedContext,
+      getFocusedNodeId: () => groupNode.id,
+      setFocusedNodeIdSilently: () => {},
+      setFocusedNode: () => {},
+      getInlineRenameNodeId: () => null,
+      beginInlineRename: () => {},
+      commitInlineRename: vi.fn(async () => {}),
+      setSelectionOverride: () => {},
+      setSelectionOverrideWithNodes,
+      ensureHostViewContext: () => true,
+      selectElementsInView,
+      moveSelectionToRoot: vi.fn(async () => {}),
+      setLastQuickMoveDestinationToRoot: () => {},
+      isTextInputTarget: () => false,
+      isKeyboardSuppressed: () => false,
+      releaseKeyboardCapture: () => {},
+      suppressTransientFocusOut: () => {},
+      notify: () => {},
+      runUiAction: () => {},
+      requestRenderFromLatestModel: () => {},
+    })
+
+    controller.handleContentKeydown(makeKeyboardEvent("ArrowDown", { shiftKey: true }))
+
+    expect(setSelectionOverrideWithNodes).toHaveBeenCalledWith(
+      ["A", "B", "el:C"],
+      [groupNode, leafNode],
+    )
+    expect(selectElementsInView).toHaveBeenCalledWith(["A", "B", "el:C"])
   })
 
   it("suppresses transient blur before handling Enter rename shortcut", () => {

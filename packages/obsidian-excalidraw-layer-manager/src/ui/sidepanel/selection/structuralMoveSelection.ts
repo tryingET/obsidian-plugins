@@ -19,6 +19,12 @@ export const selectionIncludesFrameRows = (
   return selection.nodes.some((node) => node.type === "frame")
 }
 
+export const selectionIncludesGroupRows = (
+  selection: Pick<StructuralSelectionLike, "nodes">,
+): boolean => {
+  return selection.nodes.some((node) => node.type === "group")
+}
+
 export const resolveStructuralMoveSelection = (
   nodes: readonly LayerNode[],
 ): StructuralMoveSelection | null => {
@@ -60,10 +66,9 @@ export const resolveStructuralSelectionIssue = (
   selection: StructuralSelectionLike,
   emptySelectionMessage = "Select rows or elements first.",
 ): string | null => {
+  const structuralMove = resolveSelectionStructuralMove(selection)
   const hasSelection =
-    selection.elementIds.length > 0 ||
-    selection.nodes.length > 0 ||
-    !!resolveSelectionStructuralMove(selection)
+    selection.elementIds.length > 0 || selection.nodes.length > 0 || !!structuralMove
 
   if (!hasSelection) {
     return emptySelectionMessage
@@ -75,6 +80,10 @@ export const resolveStructuralSelectionIssue = (
 
   if (!selection.frameResolution.ok) {
     return "Selection spans multiple frames."
+  }
+
+  if (selectionIncludesGroupRows(selection) && !structuralMove) {
+    return "Selection includes mixed or multiple group rows."
   }
 
   return null

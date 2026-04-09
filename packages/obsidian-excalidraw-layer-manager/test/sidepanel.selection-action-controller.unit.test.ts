@@ -270,6 +270,35 @@ describe("sidepanel selection action controller", () => {
     expect(harness.reparent).not.toHaveBeenCalled()
   })
 
+  it("fails closed for preset moves when mixed group rows lose structural intent", async () => {
+    const harness = makeHarness()
+
+    await harness.controller.applyGroupPreset(
+      harness.actions,
+      {
+        elementIds: ["el:A", "el:B", "el:C"],
+        nodes: [
+          makeGroupNode("G", ["el:A", "el:B"], "Frame-A"),
+          makeElementNode("el:C", "Frame-A"),
+        ],
+        frameResolution: makeFrameResolution("Frame-A"),
+      },
+      {
+        key: makePresetKey(["Outer"], "Frame-A"),
+        label: "Inside Outer",
+        targetParentPath: ["Outer"],
+        targetFrameId: "Frame-A",
+      },
+    )
+
+    expect(harness.notify).toHaveBeenCalledWith(
+      "Preset move failed: mixed or multiple group rows are not supported.",
+    )
+    expect(harness.reparent).not.toHaveBeenCalled()
+    expect(harness.reparentFromNodeIds).not.toHaveBeenCalled()
+    expect(harness.setLastQuickMoveDestination).not.toHaveBeenCalled()
+  })
+
   it("does not store a quick-move destination when the reparent outcome is not applied", async () => {
     const harness = makeHarness()
     harness.reparent.mockImplementation(async () => ({
@@ -363,6 +392,23 @@ describe("sidepanel selection action controller", () => {
     expect(harness.setLastQuickMoveDestination).not.toHaveBeenCalled()
   })
 
+  it("fails closed for moveSelectionToRoot when mixed group rows lose structural intent", async () => {
+    const harness = makeHarness()
+
+    await harness.controller.moveSelectionToRoot(harness.actions, {
+      elementIds: ["el:A", "el:B", "el:C"],
+      nodes: [makeGroupNode("G", ["el:A", "el:B"], "Frame-A"), makeElementNode("el:C", "Frame-A")],
+      frameResolution: makeFrameResolution("Frame-A"),
+    })
+
+    expect(harness.notify).toHaveBeenCalledWith(
+      "Move to root failed: mixed or multiple group rows are not supported.",
+    )
+    expect(harness.reparent).not.toHaveBeenCalled()
+    expect(harness.reparentFromNodeIds).not.toHaveBeenCalled()
+    expect(harness.setLastQuickMoveDestination).not.toHaveBeenCalled()
+  })
+
   it("fails closed for ungroupLikeSelection when selection includes frame rows", async () => {
     const harness = makeHarness()
 
@@ -377,6 +423,23 @@ describe("sidepanel selection action controller", () => {
     )
     expect(harness.beginInteraction).not.toHaveBeenCalled()
     expect(harness.reparent).not.toHaveBeenCalled()
+  })
+
+  it("fails closed for ungroupLikeSelection when mixed group rows lose structural intent", async () => {
+    const harness = makeHarness()
+
+    await harness.controller.ungroupLikeSelection(harness.actions, {
+      elementIds: ["el:A", "el:B", "el:C"],
+      nodes: [makeGroupNode("G", ["el:A", "el:B"], "Frame-A"), makeElementNode("el:C", "Frame-A")],
+      frameResolution: makeFrameResolution("Frame-A"),
+    })
+
+    expect(harness.notify).toHaveBeenCalledWith(
+      "Ungroup-like failed: mixed or multiple group rows are not supported.",
+    )
+    expect(harness.beginInteraction).not.toHaveBeenCalled()
+    expect(harness.reparent).not.toHaveBeenCalled()
+    expect(harness.reparentFromNodeIds).not.toHaveBeenCalled()
   })
 
   it("executes ungroupLikeSelection confirmation and routes to move-to-root", async () => {

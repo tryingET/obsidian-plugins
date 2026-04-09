@@ -62,6 +62,7 @@ import {
   makeSidepanelSelectionNodeRef,
   resolveSidepanelSelection,
 } from "./sidepanel/selection/selectionResolution.js"
+import { resolveStructuralSelectionIssue } from "./sidepanel/selection/structuralMoveSelection.js"
 import {
   type ScriptSettingsLike,
   SidepanelSettingsWriteQueue,
@@ -183,6 +184,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   #keyboardSuppressedUntilMs = 0
   #ownerDocumentWithKeyCapture: Document | null = null
   #selectionOverrideState: SidepanelSelectionOverrideState | null = null
+  #latestSelectionResolution: SidepanelSelectionResolution | null = null
   #lastSnapshotSelectionIds: readonly string[] = []
   #rowFilterQuery = ""
   #shouldAutofocusRowFilterInput = false
@@ -370,6 +372,16 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       getLatestStructuralTree: () => {
         return this.#latestModel?.tree ?? null
       },
+      getActiveStructuralMoveSelection: (draggedNodeId) => {
+        const selection = this.#latestSelectionResolution?.selection
+        if (!selection?.structuralMove || resolveStructuralSelectionIssue(selection)) {
+          return null
+        }
+
+        return selection.structuralMove.nodeIds.includes(draggedNodeId)
+          ? selection.structuralMove
+          : null
+      },
     })
 
     this.#keyboardController = new SidepanelKeyboardShortcutController({
@@ -390,6 +402,9 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         this.#inlineRenameController.commitInlineRename(actions, nodeId),
       setSelectionOverride: (elementIds) => {
         this.setSelectionOverride(elementIds)
+      },
+      setSelectionOverrideWithNodes: (elementIds, nodes) => {
+        this.setSelectionOverrideFromNodes(elementIds, nodes)
       },
       ensureHostViewContext: () => ensureHostViewContext(this.#host),
       ...(this.#host.selectElementsInView
@@ -443,6 +458,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     const selectedElementIds = this.resolveSelectedElementIds(model.selectedIds)
     const selectedIdSet = new Set(selectedElementIds)
     const selectionResolution = this.resolveSelection(structuralTree, selectedElementIds)
+    this.#latestSelectionResolution = selectionResolution
     const resolvedSelection = selectionResolution.selection
     const explicitSelectedNodeIds = selectionResolution.explicitSelectedNodes
       ? new Set(selectionResolution.explicitSelectedNodes.map((node) => node.id))
@@ -500,6 +516,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       this.#keyboardContext = {
         actions: model.actions,
         selection: resolvedSelection,
+        explicitSelectedNodes: selectionResolution.explicitSelectedNodes,
         visibleNodes,
         nodeById,
         parentById,
@@ -1032,6 +1049,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.#keyboardContext = null
     this.#focusedNodeId = null
     this.#selectionOverrideState = null
+    this.#latestSelectionResolution = null
     this.#lastSnapshotSelectionIds = []
     this.#focusOwnership.reset()
     this.#inlineRenameController.clear()
@@ -1172,6 +1190,22 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.setSelectionOverrideState({
       elementIds: [...elementIds],
       nodeRefs: null,
+    })
+  }
+
+  private setSelectionOverrideFromNodes(
+    elementIds: readonly string[],
+    nodes: readonly LayerNode[],
+  ): void {
+    if (elementIds.length === 0 || nodes.length === 0) {
+      this.setSelectionOverride(elementIds)
+      return
+    }
+
+    const nodeRefs = nodes.map((node) => makeSidepanelSelectionNodeRef(node))
+    this.setSelectionOverrideState({
+      elementIds: [...elementIds],
+      nodeRefs,
     })
   }
 

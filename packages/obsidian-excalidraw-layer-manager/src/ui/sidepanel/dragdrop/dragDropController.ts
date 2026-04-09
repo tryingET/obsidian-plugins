@@ -2,6 +2,7 @@ import type { ReorderPlacement } from "../../../commands/reorderNode.js"
 import { type LayerNode, resolveFrameRowElementId } from "../../../model/tree.js"
 import { didInteractionApply } from "../../interactionOutcome.js"
 import type { LayerManagerUiActions } from "../../renderer.js"
+import type { StructuralMoveSelection } from "../selection/structuralMoveSelection.js"
 
 export interface DragDropBranchContext {
   readonly frameId: string | null
@@ -10,11 +11,17 @@ export interface DragDropBranchContext {
 
 interface DraggedNodeState {
   readonly nodeId: string
+  readonly nodeIds: readonly string[]
   readonly sourceGroupId: string | null
   readonly sourceFrameId: string | null
   readonly sourceParentPath: readonly string[]
   readonly sourceRowScope: DragDropBranchContext
   readonly sourceSiblingIndex: number
+  readonly sourceSiblingRange: {
+    readonly min: number
+    readonly max: number
+  }
+  readonly sharesSingleScope: boolean
 }
 
 export interface NodeDropTarget {
@@ -71,6 +78,7 @@ interface SidepanelDragDropControllerHost {
   notify: (message: string) => void
   requestRenderFromLatestModel: () => void
   getLatestStructuralTree?: () => readonly LayerNode[] | null
+  getActiveStructuralMoveSelection?: (draggedNodeId: string) => StructuralMoveSelection | null
 }
 
 interface StartRowDragInput {
@@ -239,9 +247,16 @@ export class SidepanelDragDropController {
   }
 
   startRowDrag(input: StartRowDragInput): void {
+    const structuralMove = this.#host.getActiveStructuralMoveSelection?.(input.node.id) ?? null
+    const draggedNodeIds = structuralMove?.nodeIds.includes(input.node.id)
+      ? structuralMove.nodeIds
+      : [input.node.id]
+
     this.#draggedNodeState = {
       nodeId: input.node.id,
-      sourceGroupId: input.node.type === "group" ? input.node.groupId : null,
+      nodeIds: [...draggedNodeIds],
+      sourceGroupId:
+        structuralMove?.sourceGroupId ?? (input.node.type === "group" ? input.node.groupId : null),
       sourceFrameId: input.nodeFrameId,
       sourceParentPath: [...input.branchGroupPath],
       sourceRowScope: {
@@ -249,6 +264,11 @@ export class SidepanelDragDropController {
         groupPath: [...input.rowScope.groupPath],
       },
       sourceSiblingIndex: input.siblingIndex,
+      sourceSiblingRange: {
+        min: input.siblingIndex,
+        max: input.siblingIndex,
+      },
+      sharesSingleScope: true,
     }
 
     if (input.dragEvent.dataTransfer) {
@@ -323,7 +343,7 @@ export class SidepanelDragDropController {
 
     if (intent.kind === "reorder") {
       const outcome = await actions.reorderRelativeToNodeIds({
-        nodeIds: [dragged.nodeId],
+        nodeIds: dragged.nodeIds,
         anchorNodeId: targetNodeId,
         placement: intent.placement,
         notifyOnFailure: false,
@@ -352,7 +372,7 @@ export class SidepanelDragDropController {
     }
 
     const outcome = await actions.reparentFromNodeIds({
-      nodeIds: [dragged.nodeId],
+      nodeIds: dragged.nodeIds,
       sourceGroupId: dragged.sourceGroupId,
       targetParentPath: resolvedDropTarget.targetParentPath,
       targetFrameId: resolvedDropTarget.targetFrameId,
@@ -417,7 +437,7 @@ export class SidepanelDragDropController {
       }
     }
 
-    if (dragged.nodeId === targetNodeId) {
+    if (dragged.nodeIds.includes(targetNodeId)) {
       return {
         status: "incompatible",
       }
@@ -425,6 +445,7 @@ export class SidepanelDragDropController {
 
     if (
       resolvedDropTarget.rowReorderEligible &&
+      dragged.sharesSingleScope &&
       haveSameScope(dragged.sourceRowScope, resolvedDropTarget.rowScope)
     ) {
       return {
@@ -434,7 +455,7 @@ export class SidepanelDragDropController {
         intent: {
           kind: "reorder",
           placement:
-            resolvedDropTarget.siblingIndex < dragged.sourceSiblingIndex ? "before" : "after",
+            resolvedDropTarget.siblingIndex < dragged.sourceSiblingRange.min ? "before" : "after",
         },
       }
     }
@@ -481,29 +502,67 @@ export class SidepanelDragDropController {
       return dragged
     }
 
-    const position = resolveStructuralNodePosition(
-      structuralTree,
-      dragged.nodeId,
-      {
-        frameId: null,
-        groupPath: [],
-      },
-      (node, branchContext) => this.resolveNodeFrameId(node, branchContext),
-    )
-    if (!position) {
+    const positions: StructuralNodePosition[] = []
+    for (const nodeId of dragged.nodeIds) {
+      const position = resolveStructuralNodePosition(
+        structuralTree,
+        nodeId,
+        {
+          frameId: null,
+          groupPath: [],
+        },
+        (node, branchContext) => this.resolveNodeFrameId(node, branchContext),
+      )
+
+      if (!position) {
+        return null
+      }
+
+      positions.push(position)
+    }
+
+    const primaryPosition =
+      positions.find((position) => position.node.id === dragged.nodeId) ?? positions[0] ?? null
+    if (!primaryPosition) {
       return null
     }
 
+    const sourceRowScope: DragDropBranchContext = {
+      frameId: primaryPosition.branchContext.frameId,
+      groupPath: [...primaryPosition.branchContext.groupPath],
+    }
+    const sharesSingleScope = positions.every(
+      (position) =>
+        position.nodeFrameId === primaryPosition.nodeFrameId &&
+        haveSameScope(
+          {
+            frameId: position.branchContext.frameId,
+            groupPath: position.branchContext.groupPath,
+          },
+          sourceRowScope,
+        ),
+    )
+
+    const sourceSiblingRange = sharesSingleScope
+      ? {
+          min: Math.min(...positions.map((position) => position.siblingIndex)),
+          max: Math.max(...positions.map((position) => position.siblingIndex)),
+        }
+      : {
+          min: primaryPosition.siblingIndex,
+          max: primaryPosition.siblingIndex,
+        }
+
     return {
-      nodeId: position.node.id,
-      sourceGroupId: position.node.type === "group" ? position.node.groupId : null,
-      sourceFrameId: position.nodeFrameId,
-      sourceParentPath: [...position.branchContext.groupPath],
-      sourceRowScope: {
-        frameId: position.branchContext.frameId,
-        groupPath: [...position.branchContext.groupPath],
-      },
-      sourceSiblingIndex: position.siblingIndex,
+      nodeId: primaryPosition.node.id,
+      nodeIds: [...dragged.nodeIds],
+      sourceGroupId: dragged.sourceGroupId,
+      sourceFrameId: primaryPosition.nodeFrameId,
+      sourceParentPath: [...primaryPosition.branchContext.groupPath],
+      sourceRowScope,
+      sourceSiblingIndex: primaryPosition.siblingIndex,
+      sourceSiblingRange,
+      sharesSingleScope,
     }
   }
 

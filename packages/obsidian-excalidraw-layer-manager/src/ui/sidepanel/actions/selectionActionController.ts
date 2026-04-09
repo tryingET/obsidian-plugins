@@ -5,7 +5,10 @@ import type { SidepanelPromptInteractionService } from "../prompt/promptInteract
 import type { GroupReparentPreset } from "../quickmove/presetHelpers.js"
 import type { LastQuickMoveDestination } from "../quickmove/quickMovePersistenceService.js"
 import type { ResolvedSelection } from "../selection/selectionResolution.js"
-import { selectionIncludesFrameRows } from "../selection/structuralMoveSelection.js"
+import {
+  selectionIncludesFrameRows,
+  selectionIncludesGroupRows,
+} from "../selection/structuralMoveSelection.js"
 
 const runSelectionReparent = async (
   actions: LayerManagerUiActions,
@@ -30,6 +33,29 @@ const runSelectionReparent = async (
     targetParentPath: input.targetParentPath,
     targetFrameId: input.targetFrameId,
   })
+}
+
+const resolveStructuralReparentIssue = (
+  selection: ResolvedSelection,
+  actionLabel: string,
+): string | null => {
+  if (selection.elementIds.length === 0) {
+    return `${actionLabel} requires at least one selected element.`
+  }
+
+  if (selectionIncludesFrameRows(selection)) {
+    return `${actionLabel} failed: frame rows cannot be structurally moved.`
+  }
+
+  if (!selection.frameResolution.ok) {
+    return `${actionLabel} failed: selected items span multiple frames.`
+  }
+
+  if (selectionIncludesGroupRows(selection) && !selection.structuralMove) {
+    return `${actionLabel} failed: mixed or multiple group rows are not supported.`
+  }
+
+  return null
 }
 
 interface SidepanelSelectionActionControllerHost {
@@ -107,21 +133,13 @@ export class SidepanelSelectionActionController {
     selection: ResolvedSelection,
     preset: GroupReparentPreset,
   ): Promise<void> {
-    if (selection.elementIds.length === 0) {
-      this.#host.notify("Preset move requires at least one selected element.")
-      return
-    }
-
-    if (selectionIncludesFrameRows(selection)) {
-      this.#host.notify("Preset move failed: frame rows cannot be structurally moved.")
+    const selectionIssue = resolveStructuralReparentIssue(selection, "Preset move")
+    if (selectionIssue) {
+      this.#host.notify(selectionIssue)
       return
     }
 
     const frameResolution = selection.frameResolution
-    if (!frameResolution.ok) {
-      this.#host.notify("Preset move failed: selected items span multiple frames.")
-      return
-    }
 
     if (frameResolution.frameId !== preset.targetFrameId) {
       this.#host.notify("Preset move failed: selected items are in a different frame.")
@@ -146,21 +164,13 @@ export class SidepanelSelectionActionController {
     selection: ResolvedSelection,
     targetFrameId = selection.frameResolution.frameId,
   ): Promise<void> {
-    if (selection.elementIds.length === 0) {
-      this.#host.notify("Move to root requires at least one selected element.")
-      return
-    }
-
-    if (selectionIncludesFrameRows(selection)) {
-      this.#host.notify("Move to root failed: frame rows cannot be structurally moved.")
+    const selectionIssue = resolveStructuralReparentIssue(selection, "Move to root")
+    if (selectionIssue) {
+      this.#host.notify(selectionIssue)
       return
     }
 
     const frameResolution = selection.frameResolution
-    if (!frameResolution.ok) {
-      this.#host.notify("Move to root failed: selected items span multiple frames.")
-      return
-    }
 
     if (frameResolution.frameId !== targetFrameId) {
       this.#host.notify("Move to root failed: selected items are in a different frame.")
@@ -184,13 +194,9 @@ export class SidepanelSelectionActionController {
     actions: LayerManagerUiActions,
     selection: ResolvedSelection,
   ): Promise<void> {
-    if (selection.elementIds.length === 0) {
-      this.#host.notify("Ungroup-like requires at least one selected element.")
-      return
-    }
-
-    if (selectionIncludesFrameRows(selection)) {
-      this.#host.notify("Ungroup-like failed: frame rows cannot be structurally moved.")
+    const selectionIssue = resolveStructuralReparentIssue(selection, "Ungroup-like")
+    if (selectionIssue) {
+      this.#host.notify(selectionIssue)
       return
     }
 
