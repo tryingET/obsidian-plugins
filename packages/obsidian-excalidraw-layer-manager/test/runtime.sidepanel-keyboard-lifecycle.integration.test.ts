@@ -1213,6 +1213,65 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(["el:Alpha"], "front")
   })
 
+  it("routes drag-drop reorder through the active multi-row structural selection", async () => {
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    const { actions } = makeUiActions()
+    let selectedElementIds: string[] = []
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => ({}),
+      getViewSelectedElements: () => selectedElementIds.map((id) => ({ id })),
+      selectElementsInView: (ids) => {
+        selectedElementIds = [...ids]
+      },
+      setView: vi.fn(() => ({ id: "fake-view" })),
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [makeElementNode("A"), makeElementNode("B"), makeElementNode("C")],
+      selectedIds: new Set(),
+      sceneVersion: 12.5,
+      actions,
+    })
+
+    let contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const sourceRow = findInteractiveRowByLabel(contentRoot, "[element] A")
+    if (!sourceRow) {
+      throw new Error("Expected source row for keyboard-extended drag-drop selection.")
+    }
+
+    sourceRow.click()
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowDown", { shiftKey: true })
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const refreshedSourceRow = findInteractiveRowByLabel(contentRoot, "[element] A")
+    const targetRow = findInteractiveRowByLabel(contentRoot, "[element] C")
+    if (!refreshedSourceRow || !targetRow) {
+      throw new Error("Expected drag source and target rows after keyboard selection extension.")
+    }
+
+    refreshedSourceRow.dispatchEvent(new FakeDomEvent("dragstart"))
+    targetRow.dispatchEvent(new FakeDomEvent("dragover"))
+    targetRow.dispatchEvent(new FakeDomEvent("drop"))
+    await flushAsync()
+
+    expect(actions.reorderRelativeToNodeIds).toHaveBeenCalledWith({
+      nodeIds: ["el:A", "el:B"],
+      anchorNodeId: "el:C",
+      placement: "after",
+      notifyOnFailure: false,
+    })
+  })
+
   it("routes Delete shortcut through command seam for selected elements", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,

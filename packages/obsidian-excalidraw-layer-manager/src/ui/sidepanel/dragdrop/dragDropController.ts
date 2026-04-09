@@ -16,7 +16,6 @@ interface DraggedNodeState {
   readonly sourceFrameId: string | null
   readonly sourceParentPath: readonly string[]
   readonly sourceRowScope: DragDropBranchContext
-  readonly sourceSiblingIndex: number
   readonly sourceSiblingRange: {
     readonly min: number
     readonly max: number
@@ -263,7 +262,6 @@ export class SidepanelDragDropController {
         frameId: input.rowScope.frameId,
         groupPath: [...input.rowScope.groupPath],
       },
-      sourceSiblingIndex: input.siblingIndex,
       sourceSiblingRange: {
         min: input.siblingIndex,
         max: input.siblingIndex,
@@ -560,7 +558,6 @@ export class SidepanelDragDropController {
       sourceFrameId: primaryPosition.nodeFrameId,
       sourceParentPath: [...primaryPosition.branchContext.groupPath],
       sourceRowScope,
-      sourceSiblingIndex: primaryPosition.siblingIndex,
       sourceSiblingRange,
       sharesSingleScope,
     }
