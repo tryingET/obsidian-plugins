@@ -152,6 +152,10 @@ export type ApplyPatchOutcome =
       readonly reason: string
     }
   | {
+      readonly status: "partialApply"
+      readonly reason: string
+    }
+  | {
       readonly status: "capabilityMissing"
       readonly reason: string
     }
@@ -395,27 +399,53 @@ const applyElementPatchesViaUpdateScene = (ea: EaLike, patch: ScenePatch): boole
     return false
   }
 
-  api.updateScene({ elements: nextElements })
-  return true
+  try {
+    api.updateScene({ elements: nextElements })
+    return true
+  } catch {
+    return false
+  }
 }
 
-const applyElementPatches = async (ea: EaLike, patch: ScenePatch): Promise<boolean> => {
+type ElementPatchApplyMode = "none" | "legacy" | "updateScene"
+
+interface ElementPatchApplyResult {
+  readonly ok: boolean
+  readonly mode: ElementPatchApplyMode
+}
+
+const applyElementPatches = async (
+  ea: EaLike,
+  patch: ScenePatch,
+): Promise<ElementPatchApplyResult> => {
   if (patch.elementPatches.length === 0) {
-    return true
+    return {
+      ok: true,
+      mode: "none",
+    }
   }
 
   if (hasLegacyElementMutationCapabilities(ea)) {
     const legacyApplied = await applyElementPatchesViaLegacyEditing(ea, patch)
     if (legacyApplied) {
-      return true
+      return {
+        ok: true,
+        mode: "legacy",
+      }
     }
   }
 
   if (hasUpdateSceneCapability(ea)) {
-    return applyElementPatchesViaUpdateScene(ea, patch)
+    return {
+      ok: applyElementPatchesViaUpdateScene(ea, patch),
+      mode: "updateScene",
+    }
   }
 
-  return false
+  return {
+    ok: false,
+    mode: "none",
+  }
 }
 
 const applyReorderPatch = (ea: EaLike, patch: ScenePatch): boolean => {
@@ -441,8 +471,12 @@ const applyReorderPatch = (ea: EaLike, patch: ScenePatch): boolean => {
     return false
   }
 
-  api.updateScene({ elements: desired })
-  return true
+  try {
+    api.updateScene({ elements: desired })
+    return true
+  } catch {
+    return false
+  }
 }
 
 export const applyPatch = async (ea: EaLike, patch: ScenePatch): Promise<ApplyPatchOutcome> => {
@@ -456,8 +490,8 @@ export const applyPatch = async (ea: EaLike, patch: ScenePatch): Promise<ApplyPa
     )
   }
 
-  const elementsApplied = await applyElementPatches(ea, patch)
-  if (!elementsApplied) {
+  const elementApply = await applyElementPatches(ea, patch)
+  if (!elementApply.ok) {
     return {
       status: "preflightFailed",
       reason: "Element patch apply failed due to scene mismatch.",
@@ -467,8 +501,11 @@ export const applyPatch = async (ea: EaLike, patch: ScenePatch): Promise<ApplyPa
   const reorderApplied = applyReorderPatch(ea, patch)
   if (!reorderApplied) {
     return {
-      status: "preflightFailed",
-      reason: "Reorder apply failed due to scene mismatch.",
+      status: elementApply.mode === "updateScene" ? "partialApply" : "preflightFailed",
+      reason:
+        elementApply.mode === "updateScene"
+          ? "Element patches applied, but reorder apply failed due to scene mismatch."
+          : "Reorder apply failed due to scene mismatch.",
     }
   }
 

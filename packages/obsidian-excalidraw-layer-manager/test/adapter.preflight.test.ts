@@ -20,6 +20,7 @@ const makeMockEa = (
     readonly withElementEditCapabilities?: boolean
     readonly requireSetViewForReads?: boolean
     readonly failLegacyGetElement?: boolean
+    readonly failUpdateSceneAfterCall?: number
   } = {},
 ): MockEaRuntime => {
   const elements: RawExcalidrawElement[] = initialElements.map((element) => ({
@@ -28,7 +29,13 @@ const makeMockEa = (
     customData: { ...(element.customData ?? {}) },
   }))
 
+  let updateSceneCalls = 0
   const updateScene = vi.fn((scene: { elements: RawExcalidrawElement[] }) => {
+    updateSceneCalls += 1
+    if (options.failUpdateSceneAfterCall && updateSceneCalls >= options.failUpdateSceneAfterCall) {
+      throw new Error("updateScene failed")
+    }
+
     elements.splice(0, elements.length, ...scene.elements)
   })
 
@@ -353,5 +360,40 @@ describe("applyPatch adapter preflight", () => {
     expect(runtime.updateScene).not.toHaveBeenCalled()
     expect(runtime.copyForEditing).not.toHaveBeenCalled()
     expect(runtime.addToView).not.toHaveBeenCalled()
+  })
+
+  it("surfaces partialApply when updateScene applies element patches before reorder fails", async () => {
+    const runtime = makeMockEa(
+      [
+        { id: "A", type: "rectangle", locked: false },
+        { id: "B", type: "rectangle", locked: false },
+      ],
+      {
+        withElementEditCapabilities: false,
+        failUpdateSceneAfterCall: 2,
+      },
+    )
+
+    const outcome = await applyPatch(runtime.ea, {
+      elementPatches: [
+        {
+          id: "A",
+          set: {
+            locked: true,
+          },
+        },
+      ],
+      reorder: {
+        orderedElementIds: ["B", "A"],
+      },
+    })
+
+    expect(outcome.status).toBe("partialApply")
+    if (outcome.status === "partialApply") {
+      expect(outcome.reason).toContain("Element patches applied")
+    }
+    expect(runtime.updateScene).toHaveBeenCalledTimes(2)
+    expect(runtime.elements.find((element) => element.id === "A")?.locked).toBe(true)
+    expect(runtime.elements.map((element) => element.id)).toEqual(["A", "B"])
   })
 })
