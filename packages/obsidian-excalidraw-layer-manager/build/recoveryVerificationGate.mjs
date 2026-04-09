@@ -48,8 +48,8 @@ export const createRecoveryVerificationPlan = ({
   return plan
 }
 
-export const detectPackageDocsTouched = ({ repoRootOverride = repoRoot } = {}) => {
-  const result = spawnSync("git", ["status", "--short", "--", RECOVERY_PACKAGE_DOCS_PATH], {
+const runGitText = ({ repoRootOverride = repoRoot, args, label }) => {
+  const result = spawnSync("git", args, {
     cwd: repoRootOverride,
     encoding: "utf8",
   })
@@ -60,11 +60,43 @@ export const detectPackageDocsTouched = ({ repoRootOverride = repoRoot } = {}) =
 
   if (result.status !== 0) {
     throw new Error(
-      `git status failed for ${RECOVERY_PACKAGE_DOCS_PATH} (exit ${result.status ?? "unknown"}).`,
+      `${label} failed for ${RECOVERY_PACKAGE_DOCS_PATH} (exit ${result.status ?? "unknown"}).`,
     )
   }
 
-  return result.stdout.trim().length > 0
+  return result.stdout.trim()
+}
+
+export const detectPackageDocsTouched = ({ repoRootOverride = repoRoot } = {}) => {
+  const hasWorktreeDocsChanges =
+    runGitText({
+      repoRootOverride,
+      args: ["status", "--short", "--", RECOVERY_PACKAGE_DOCS_PATH],
+      label: "git status",
+    }).length > 0
+
+  if (hasWorktreeDocsChanges) {
+    return true
+  }
+
+  const headExists =
+    spawnSync("git", ["rev-parse", "--verify", "HEAD"], {
+      cwd: repoRootOverride,
+      stdio: "ignore",
+    }).status === 0
+
+  if (!headExists) {
+    return false
+  }
+
+  const changedSinceHead =
+    runGitText({
+      repoRootOverride,
+      args: ["diff", "--name-only", "HEAD", "--", RECOVERY_PACKAGE_DOCS_PATH],
+      label: "git diff HEAD",
+    }).length > 0
+
+  return changedSinceHead
 }
 
 export const runRecoveryVerificationPlan = (plan) => {

@@ -312,7 +312,7 @@ These gaps are now part of the recovery contract and should not be rediscovered 
       - runs `npm run check:fast`
       - runs `npm test`
       - runs `npm run arch`
-      - when docs are touched in this package, also runs `node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs packages/obsidian-excalidraw-layer-manager/docs --strict`
+      - when docs in this package differ from `HEAD` (including working-tree changes), also runs `node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs packages/obsidian-excalidraw-layer-manager/docs --strict`
     - ship-ready gate: `npm run check:full`
       - routes through `npm run verify:recovery`
       - then runs `npm run deadcode`

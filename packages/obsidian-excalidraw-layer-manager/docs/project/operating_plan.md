@@ -73,7 +73,7 @@ The exact module ownership, contract-test matrix, and AK task sequencing for thi
 ## Verification gate for this wave
 
 - `npm run verify:recovery` is the mandatory pre-ship kernel gate for the recovery packet. It runs `npm run check:fast`, `npm test`, and `npm run arch` in that fixed order.
-- When package docs are touched in the working tree, the same gate also runs `node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs packages/obsidian-excalidraw-layer-manager/docs --strict`.
+- When package docs differ from `HEAD` (including working-tree changes), the same gate also runs `node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs packages/obsidian-excalidraw-layer-manager/docs --strict`.
 - `npm run check:full` is the recovery-wave ship-ready gate. Do not call the current wave ship-ready unless it passes green after routing through `verify:recovery`.
 
 ## Completed slices informing this wave

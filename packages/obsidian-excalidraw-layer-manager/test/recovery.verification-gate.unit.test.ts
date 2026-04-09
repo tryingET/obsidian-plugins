@@ -1,6 +1,9 @@
-import { readFileSync } from "node:fs"
+import { spawnSync } from "node:child_process"
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 
-import { describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it } from "vitest"
 
 type RecoveryVerificationStep = {
   readonly name: string
@@ -17,6 +20,9 @@ type RecoveryGateModule = {
     readonly packageRootOverride?: string
     readonly repoRootOverride?: string
   }) => RecoveryVerificationStep[]
+  readonly detectPackageDocsTouched: (options?: {
+    readonly repoRootOverride?: string
+  }) => boolean
 }
 
 const loadRecoveryGateModule = async (): Promise<RecoveryGateModule> => {
@@ -29,6 +35,38 @@ const packageJson = JSON.parse(
 ) as {
   scripts?: Record<string, string>
 }
+
+const tempDirs: string[] = []
+
+const makeTempGitRepo = (): string => {
+  const dir = mkdtempSync(join(tmpdir(), "lmx-recovery-gate-"))
+  tempDirs.push(dir)
+
+  spawnSync("git", ["init"], { cwd: dir, stdio: "ignore" })
+  spawnSync("git", ["config", "user.name", "Pi Test"], { cwd: dir, stdio: "ignore" })
+  spawnSync("git", ["config", "user.email", "pi@example.com"], { cwd: dir, stdio: "ignore" })
+
+  mkdirSync(join(dir, "packages/obsidian-excalidraw-layer-manager/docs"), { recursive: true })
+  writeFileSync(
+    join(dir, "packages/obsidian-excalidraw-layer-manager/docs/test.md"),
+    "# Test\n",
+    "utf8",
+  )
+
+  spawnSync("git", ["add", "."], { cwd: dir, stdio: "ignore" })
+  spawnSync("git", ["commit", "-m", "init"], { cwd: dir, stdio: "ignore" })
+
+  return dir
+}
+
+afterEach(() => {
+  while (tempDirs.length > 0) {
+    const dir = tempDirs.pop()
+    if (dir) {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  }
+})
 
 describe("recovery verification gate", () => {
   it("keeps the recovery baseline locked to fast checks, tests, then architecture", async () => {
@@ -76,6 +114,48 @@ describe("recovery verification gate", () => {
       args: [DOCS_LIST_SCRIPT, "--docs", RECOVERY_PACKAGE_DOCS_PATH, "--strict"],
       cwd: "/repo-root",
     })
+  })
+
+  it("detects docs changes from the working tree", async () => {
+    const { detectPackageDocsTouched } = await loadRecoveryGateModule()
+    const repoRoot = makeTempGitRepo()
+
+    writeFileSync(
+      join(repoRoot, "packages/obsidian-excalidraw-layer-manager/docs/test.md"),
+      "# Test\nupdated\n",
+      "utf8",
+    )
+
+    expect(detectPackageDocsTouched({ repoRootOverride: repoRoot })).toBe(true)
+  })
+
+  it("stays false on clean checkouts with no doc changes", async () => {
+    const { detectPackageDocsTouched } = await loadRecoveryGateModule()
+    const repoRoot = makeTempGitRepo()
+
+    expect(detectPackageDocsTouched({ repoRootOverride: repoRoot })).toBe(false)
+  })
+
+  it("detects docs changes relative to HEAD after a clean checkout baseline", async () => {
+    const { detectPackageDocsTouched } = await loadRecoveryGateModule()
+    const repoRoot = makeTempGitRepo()
+
+    spawnSync(
+      "git",
+      ["checkout", "--", "packages/obsidian-excalidraw-layer-manager/docs/test.md"],
+      {
+        cwd: repoRoot,
+        stdio: "ignore",
+      },
+    )
+
+    writeFileSync(
+      join(repoRoot, "packages/obsidian-excalidraw-layer-manager/docs/test.md"),
+      "# Test\nupdated-again\n",
+      "utf8",
+    )
+
+    expect(detectPackageDocsTouched({ repoRootOverride: repoRoot })).toBe(true)
   })
 
   it("routes full checks through the recovery gate before deadcode", () => {
