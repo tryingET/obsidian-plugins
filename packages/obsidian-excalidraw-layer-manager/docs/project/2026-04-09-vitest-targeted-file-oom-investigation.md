@@ -65,7 +65,12 @@ These were explored and intentionally not kept as the final fix:
 Those experiments did not solve the failure cleanly and were reverted from the final working tree.
 
 ## Current repo state after investigation
-The durable repo change from this task attempt is this investigation note only.
+Durable repo changes now include:
+- this investigation note
+- an explicit helper runner for targeted single-file execution: `scripts/run-vitest-single-file.mjs`
+- a dedicated package script for that helper: `npm run test:file -- <vitest args...>`
+
+The canonical package test contract was restored so `npm test` again runs the default Vitest suite.
 
 ## Recommended next step
 Continue from the smallest failing surface:
