@@ -207,6 +207,23 @@ const buildReboundRecentDestinations = (
   return reboundDestinations
 }
 
+export type RememberedDestinationRebindOutcome =
+  | {
+      readonly status: "unchanged"
+    }
+  | {
+      readonly status: "reconciled"
+      readonly persisted: true
+    }
+  | {
+      readonly status: "reconciled"
+      readonly persisted: false
+      readonly revertedTo: {
+        readonly lastQuickMoveDestination: LastQuickMoveDestination | null
+        readonly recentQuickMoveDestinations: readonly LastQuickMoveDestination[]
+      }
+    }
+
 export class SidepanelQuickMovePersistenceService {
   readonly #getScriptSettings: (() => ScriptSettingsLike) | undefined
   readonly #settingsWriteQueue: SidepanelSettingsWriteQueue
@@ -277,20 +294,32 @@ export class SidepanelQuickMovePersistenceService {
     return persisted
   }
 
-  setLastQuickMoveDestination(destination: LastQuickMoveDestination | null): void {
+  async setLastQuickMoveDestination(
+    destination: LastQuickMoveDestination | null,
+  ): Promise<boolean> {
+    const previousDestination = this.#lastQuickMoveDestination
+    const previousRecentDestinations = [...this.#recentQuickMoveDestinations]
+
     this.#lastQuickMoveDestination = destination
 
     if (destination) {
       this.rememberRecentDestination(destination)
     }
 
-    this.persistLastMoveDestinationIfEnabled()
+    const persisted = await this.persistLastMoveDestinationIfEnabled()
+    if (!persisted) {
+      this.#lastQuickMoveDestination = previousDestination
+      this.#recentQuickMoveDestinations = previousRecentDestinations
+      return false
+    }
+
+    return true
   }
 
-  rebindRememberedDestinations(input: {
+  async rebindRememberedDestinations(input: {
     readonly lastQuickMoveDestination: LastQuickMoveDestination | null
     readonly recentQuickMoveDestinations: readonly LastQuickMoveDestination[]
-  }): void {
+  }): Promise<RememberedDestinationRebindOutcome> {
     const nextRecentQuickMoveDestinations = buildReboundRecentDestinations(
       input.lastQuickMoveDestination,
       input.recentQuickMoveDestinations,
@@ -304,12 +333,36 @@ export class SidepanelQuickMovePersistenceService {
       )
 
     if (!changed) {
-      return
+      return {
+        status: "unchanged",
+      }
     }
+
+    const previousLastQuickMoveDestination = this.#lastQuickMoveDestination
+    const previousRecentQuickMoveDestinations = [...this.#recentQuickMoveDestinations]
 
     this.#lastQuickMoveDestination = input.lastQuickMoveDestination
     this.#recentQuickMoveDestinations = [...nextRecentQuickMoveDestinations]
-    this.persistLastMoveDestinationIfEnabled()
+
+    const persisted = await this.persistLastMoveDestinationIfEnabled()
+    if (persisted) {
+      return {
+        status: "reconciled",
+        persisted: true,
+      }
+    }
+
+    this.#lastQuickMoveDestination = previousLastQuickMoveDestination
+    this.#recentQuickMoveDestinations = previousRecentQuickMoveDestinations
+
+    return {
+      status: "reconciled",
+      persisted: false,
+      revertedTo: {
+        lastQuickMoveDestination: previousLastQuickMoveDestination,
+        recentQuickMoveDestinations: previousRecentQuickMoveDestinations,
+      },
+    }
   }
 
   private rememberRecentDestination(destination: LastQuickMoveDestination): void {
@@ -345,12 +398,12 @@ export class SidepanelQuickMovePersistenceService {
     }, "Failed to persist last-move preference.")
   }
 
-  private persistLastMoveDestinationIfEnabled(): void {
+  private persistLastMoveDestinationIfEnabled(): Promise<boolean> {
     if (!this.#persistLastMoveAcrossRestarts) {
-      return
+      return Promise.resolve(true)
     }
 
-    this.#settingsWriteQueue.enqueue((settings) => {
+    return this.#settingsWriteQueue.enqueue((settings) => {
       settings[SETTING_KEY_PERSIST_LAST_MOVE] = {
         value: true,
         description: SETTING_DESC_PERSIST_LAST_MOVE,

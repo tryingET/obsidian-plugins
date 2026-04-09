@@ -317,6 +317,35 @@ const findButtonByExactText = (root: FakeDomElement, label: string): FakeDomElem
   return elements.find((element) => element.tagName === "BUTTON" && element.textContent === label)
 }
 
+const findInteractiveRowByLabel = (
+  root: FakeDomElement,
+  labelPrefix: string,
+): FakeDomElement | undefined => {
+  const elements = flattenElements(root)
+
+  const label = elements.find(
+    (element) =>
+      element.tagName === "SPAN" &&
+      typeof element.textContent === "string" &&
+      element.textContent.startsWith(labelPrefix),
+  )
+
+  if (!label) {
+    return undefined
+  }
+
+  const parent = label.parentElement
+  if (!parent) {
+    return undefined
+  }
+
+  if (parent.tagName !== "DIV" || parent.style["cursor"] !== "pointer") {
+    return undefined
+  }
+
+  return parent
+}
+
 const findFirstSelect = (root: FakeDomElement): FakeDomElement | undefined => {
   const elements = flattenElements(root)
   return elements.find((element) => element.tagName === "SELECT")
@@ -720,5 +749,194 @@ describe("sidepanel quick-move + persistence integration", () => {
     expect(notices).toContain("Failed to persist last-move preference.")
     expect(notices).toContain("Remember-last-move preference did not persist.")
     expect(notices).not.toContain("Last move destination will persist across restarts.")
+  })
+
+  it("reverts last-move destination runtime state when persisted destination write fails", async () => {
+    let settings: ScriptSettings = {
+      lmx_persist_last_move_destination: {
+        value: true,
+      },
+      lmx_last_move_destination: {
+        value: {
+          kind: "root",
+          targetFrameId: null,
+        },
+      },
+    }
+
+    const notices: string[] = []
+    const setScriptSettings = vi.fn<(nextSettings: ScriptSettings) => Promise<void>>()
+    setScriptSettings.mockResolvedValue(undefined)
+    setScriptSettings.mockImplementationOnce((nextSettings: ScriptSettings) => {
+      settings = cloneSettings(nextSettings)
+      return Promise.resolve()
+    })
+    setScriptSettings.mockImplementation(async (_nextSettings: ScriptSettings) => {
+      throw new Error("disk full")
+    })
+
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    const { actions, commandSpies } = makeUiActions()
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => settings,
+      setScriptSettings,
+      obsidian: {
+        Notice: class {
+          constructor(message: string) {
+            notices.push(message)
+          }
+        },
+      },
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [makeElementNode("A"), makeGroupNode("G", [makeElementNode("B")])],
+      selectedIds: new Set(["A"]),
+      sceneVersion: 6,
+      actions,
+    })
+
+    await flushAsync()
+
+    const contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const repeatButtonBefore = findButtonWithPrefix(contentRoot, "↺ Last:")
+    if (!repeatButtonBefore) {
+      throw new Error("Expected repeat-last-move button to exist.")
+    }
+
+    dispatchKeydown(contentRoot, "u")
+    await flushAsync()
+
+    expect(commandSpies.reparent).toHaveBeenCalledWith({
+      elementIds: ["A"],
+      sourceGroupId: null,
+      targetParentPath: [],
+      targetFrameId: null,
+    })
+
+    expect(settings["lmx_last_move_destination"]?.value).toEqual({
+      kind: "root",
+      targetFrameId: null,
+    })
+
+    renderer.render({
+      tree: [makeElementNode("A"), makeGroupNode("G", [makeElementNode("B")])],
+      selectedIds: new Set(["A"]),
+      sceneVersion: 7,
+      actions,
+    })
+
+    const rerenderedRoot = getContentRoot(sidepanelTab.contentEl)
+    const repeatButton = findButtonWithPrefix(rerenderedRoot, "↺ Last:")
+    expect(repeatButton?.textContent).toContain("Canvas root")
+  })
+
+  it("reverts remembered-destination reconciliation in the UI when persistence fails", async () => {
+    const settings: ScriptSettings = {
+      lmx_persist_last_move_destination: {
+        value: true,
+      },
+      lmx_last_move_destination: {
+        value: {
+          kind: "preset",
+          targetParentPath: ["G"],
+          targetFrameId: null,
+          label: "Inside old label",
+        },
+      },
+    }
+
+    const notices: string[] = []
+    const setScriptSettings = vi.fn(async () => {
+      throw new Error("disk full")
+    })
+
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    const { actions } = makeUiActions()
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => settings,
+      setScriptSettings,
+      obsidian: {
+        Notice: class {
+          constructor(message: string) {
+            notices.push(message)
+          }
+        },
+      },
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [makeElementNode("A"), makeGroupNode("G", [makeElementNode("B")])],
+      selectedIds: new Set(["A"]),
+      sceneVersion: 9,
+      actions,
+    })
+
+    await flushAsync()
+    await flushAsync()
+
+    const contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const repeatButton = findButtonWithPrefix(contentRoot, "↺ Last:")
+    expect(repeatButton?.textContent).toContain("Inside G")
+    expect(repeatButton?.textContent).not.toContain("Renamed Group")
+    expect(notices).toContain("Failed to persist last move destination.")
+    expect(notices).toContain(
+      "Remembered last-move destination reverted because reconciliation could not persist.",
+    )
+  })
+
+  it("notifies when incompatible row drop is rejected before planner execution", async () => {
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    const notices: string[] = []
+    const { actions } = makeUiActions()
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      obsidian: {
+        Notice: class {
+          constructor(message: string) {
+            notices.push(message)
+          }
+        },
+      },
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [makeElementNode("A"), makeElementNode("B")],
+      selectedIds: new Set(),
+      sceneVersion: 8,
+      actions,
+    })
+
+    const contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const sourceRow = findInteractiveRowByLabel(contentRoot, "[element] A")
+    const targetRow = findInteractiveRowByLabel(contentRoot, "[element] B")
+
+    if (!sourceRow || !targetRow) {
+      throw new Error("Expected source and target rows.")
+    }
+
+    sourceRow.dispatchEvent(new FakeDomEvent("dragstart"))
+    targetRow.dispatchEvent(new FakeDomEvent("drop"))
+    await flushAsync()
+
+    expect(notices).toContain("Drop target is not compatible for this move.")
+    expect(actions.reparentFromNodeIds).not.toHaveBeenCalled()
   })
 })

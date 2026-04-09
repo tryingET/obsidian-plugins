@@ -193,6 +193,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     readonly tree: readonly LayerNode[]
     readonly projection: ReturnType<typeof buildSidepanelQuickMoveDestinationProjection>
   } | null = null
+  #rememberedDestinationReconcileInFlight = false
 
   readonly #contentKeydownHandler = (event: KeyboardEvent): void => {
     this.#focusOwnership.activateKeyboardCapture()
@@ -299,7 +300,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       },
       promptService: this.#promptInteractionService,
       setLastQuickMoveDestination: (destination) => {
-        this.setLastQuickMoveDestination(destination)
+        void this.setLastQuickMoveDestination(destination)
       },
     })
 
@@ -390,7 +391,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       moveSelectionToRoot: (actions, selection, targetFrameId) =>
         this.#selectionActionController.moveSelectionToRoot(actions, selection, targetFrameId),
       setLastQuickMoveDestinationToRoot: (targetFrameId) => {
-        this.setLastQuickMoveDestination({
+        void this.setLastQuickMoveDestination({
           kind: "root",
           targetFrameId,
         })
@@ -442,18 +443,12 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
 
     const rowFilter = this.getRowFilterResult(structuralTree)
     const destinationProjection = this.getQuickMoveDestinationProjection(structuralTree)
-    this.#quickMovePersistenceService.rebindRememberedDestinations({
-      lastQuickMoveDestination: projectQuickMoveDestination(
-        this.#quickMovePersistenceService.lastQuickMoveDestination,
-        destinationProjection.destinationByKey,
-        destinationProjection.liveFrameIds,
-      ),
-      recentQuickMoveDestinations: projectQuickMoveDestinations(
-        this.#quickMovePersistenceService.recentQuickMoveDestinations,
-        destinationProjection.destinationByKey,
-        destinationProjection.liveFrameIds,
-      ),
-    })
+    if (!this.#rememberedDestinationReconcileInFlight) {
+      this.#rememberedDestinationReconcileInFlight = true
+      queueMicrotask(() => {
+        void this.reconcileRememberedDestinations(destinationProjection)
+      })
+    }
     const visibleRowTree = rowFilter.visibleTree
     const { visibleNodes, parentById } = collectVisibleNodeContext(visibleRowTree)
     const activeElement = ownerDocument.activeElement
@@ -826,8 +821,52 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.#focusOwnership.autofocusContentRootIfNeeded(contentRoot, isTextInputTarget)
   }
 
-  private setLastQuickMoveDestination(destination: LastQuickMoveDestination | null): void {
-    this.#quickMovePersistenceService.setLastQuickMoveDestination(destination)
+  private async setLastQuickMoveDestination(
+    destination: LastQuickMoveDestination | null,
+  ): Promise<boolean> {
+    const persisted =
+      await this.#quickMovePersistenceService.setLastQuickMoveDestination(destination)
+
+    if (!persisted) {
+      this.notify("Last move destination reverted because persistence failed.")
+    }
+
+    return persisted
+  }
+
+  private async reconcileRememberedDestinations(
+    destinationProjection: ReturnType<typeof buildSidepanelQuickMoveDestinationProjection>,
+  ): Promise<void> {
+    try {
+      const outcome = await this.#quickMovePersistenceService.rebindRememberedDestinations({
+        lastQuickMoveDestination: projectQuickMoveDestination(
+          this.#quickMovePersistenceService.lastQuickMoveDestination,
+          destinationProjection.destinationByKey,
+          destinationProjection.liveFrameIds,
+        ),
+        recentQuickMoveDestinations: projectQuickMoveDestinations(
+          this.#quickMovePersistenceService.recentQuickMoveDestinations,
+          destinationProjection.destinationByKey,
+          destinationProjection.liveFrameIds,
+        ),
+      })
+
+      if (outcome.status !== "reconciled") {
+        return
+      }
+
+      if (outcome.persisted) {
+        this.requestRenderFromLatestModel()
+        return
+      }
+
+      this.notify(
+        "Remembered last-move destination reverted because reconciliation could not persist.",
+      )
+      this.requestRenderFromLatestModel()
+    } finally {
+      this.#rememberedDestinationReconcileInFlight = false
+    }
   }
 
   private isLifecycleDebugEnabled(): boolean {
@@ -1190,7 +1229,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
 
   private applyDragDropDestination(destination: DragDropDestination): void {
     if (destination.kind === "root") {
-      this.setLastQuickMoveDestination({
+      void this.setLastQuickMoveDestination({
         kind: "root",
         targetFrameId: destination.targetFrameId,
       })
@@ -1205,7 +1244,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       destinationProjection.destinationByKey,
     )
 
-    this.setLastQuickMoveDestination({
+    void this.setLastQuickMoveDestination({
       kind: "preset",
       preset: projectedPreset ?? {
         key: makePresetKey(destination.targetParentPath, destination.targetFrameId),
@@ -1239,6 +1278,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     dropTarget: NodeDropTarget,
   ): Promise<void> {
     if (!this.canDropDraggedNode(targetNodeId, dropTarget)) {
+      this.notify("Drop target is not compatible for this move.")
       this.#dragDropController.resetDragState()
       return
     }

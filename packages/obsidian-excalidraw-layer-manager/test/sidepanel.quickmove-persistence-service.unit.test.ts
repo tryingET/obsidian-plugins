@@ -190,7 +190,7 @@ describe("sidepanel quick-move persistence service", () => {
     })
   })
 
-  it("tracks recent destinations with latest-first dedupe", () => {
+  it("tracks recent destinations with latest-first dedupe", async () => {
     const harness = createHarness()
 
     const firstPreset: LastQuickMoveDestination = {
@@ -213,10 +213,10 @@ describe("sidepanel quick-move persistence service", () => {
       },
     }
 
-    harness.service.setLastQuickMoveDestination({ kind: "root", targetFrameId: null })
-    harness.service.setLastQuickMoveDestination(firstPreset)
-    harness.service.setLastQuickMoveDestination(secondPreset)
-    harness.service.setLastQuickMoveDestination(firstPreset)
+    await harness.service.setLastQuickMoveDestination({ kind: "root", targetFrameId: null })
+    await harness.service.setLastQuickMoveDestination(firstPreset)
+    await harness.service.setLastQuickMoveDestination(secondPreset)
+    await harness.service.setLastQuickMoveDestination(firstPreset)
 
     expect(harness.service.recentQuickMoveDestinations).toEqual([
       firstPreset,
@@ -225,11 +225,11 @@ describe("sidepanel quick-move persistence service", () => {
     ])
   })
 
-  it("keeps frame-root destinations distinct from canvas root in recent history", () => {
+  it("keeps frame-root destinations distinct from canvas root in recent history", async () => {
     const harness = createHarness()
 
-    harness.service.setLastQuickMoveDestination({ kind: "root", targetFrameId: null })
-    harness.service.setLastQuickMoveDestination({ kind: "root", targetFrameId: "Frame-A" })
+    await harness.service.setLastQuickMoveDestination({ kind: "root", targetFrameId: null })
+    await harness.service.setLastQuickMoveDestination({ kind: "root", targetFrameId: "Frame-A" })
 
     expect(harness.service.recentQuickMoveDestinations).toEqual([
       { kind: "root", targetFrameId: "Frame-A" },
@@ -237,11 +237,11 @@ describe("sidepanel quick-move persistence service", () => {
     ])
   })
 
-  it("rebinds remembered destinations onto live registry labels and drops stale recents", () => {
+  it("rebinds remembered destinations onto live registry labels and drops stale recents", async () => {
     const harness = createHarness()
 
-    harness.service.setLastQuickMoveDestination({ kind: "root", targetFrameId: null })
-    harness.service.setLastQuickMoveDestination({
+    await harness.service.setLastQuickMoveDestination({ kind: "root", targetFrameId: null })
+    await harness.service.setLastQuickMoveDestination({
       kind: "preset",
       preset: {
         key: makePresetKey(["missing"], null),
@@ -250,7 +250,7 @@ describe("sidepanel quick-move persistence service", () => {
         targetFrameId: null,
       },
     })
-    harness.service.setLastQuickMoveDestination({
+    await harness.service.setLastQuickMoveDestination({
       kind: "preset",
       preset: {
         key: makePresetKey(["G"], null),
@@ -266,7 +266,7 @@ describe("sidepanel quick-move persistence service", () => {
       64,
     )
 
-    harness.service.rebindRememberedDestinations({
+    const outcome = await harness.service.rebindRememberedDestinations({
       lastQuickMoveDestination: projectQuickMoveDestination(
         harness.service.lastQuickMoveDestination,
         projection.destinationByKey,
@@ -279,6 +279,10 @@ describe("sidepanel quick-move persistence service", () => {
       ),
     })
 
+    expect(outcome).toEqual({
+      status: "reconciled",
+      persisted: true,
+    })
     expect(harness.service.lastQuickMoveDestination).toEqual({
       kind: "preset",
       preset: {
@@ -310,7 +314,7 @@ describe("sidepanel quick-move persistence service", () => {
 
     harness.setScriptSettings.mockClear()
 
-    harness.service.setLastQuickMoveDestination({
+    await harness.service.setLastQuickMoveDestination({
       kind: "root",
       targetFrameId: "Frame-A",
     })
@@ -332,7 +336,7 @@ describe("sidepanel quick-move persistence service", () => {
 
     harness.setScriptSettings.mockClear()
 
-    harness.service.setLastQuickMoveDestination({
+    await harness.service.setLastQuickMoveDestination({
       kind: "root",
       targetFrameId: null,
     })
@@ -355,7 +359,7 @@ describe("sidepanel quick-move persistence service", () => {
       },
     }
 
-    harness.service.setLastQuickMoveDestination(runtimeDestination)
+    await harness.service.setLastQuickMoveDestination(runtimeDestination)
     harness.service.setPersistLastMoveAcrossRestarts(true)
     await flushAsync()
 
@@ -368,5 +372,151 @@ describe("sidepanel quick-move persistence service", () => {
     expect(written["lmx_persist_last_move_destination"]?.value).toBe(false)
     expect(written["lmx_last_move_destination"]?.value).toBeNull()
     expect(harness.service.lastQuickMoveDestination).toEqual(runtimeDestination)
+  })
+
+  it("reverts runtime last-move destination when persisted write fails", async () => {
+    const settings: ScriptSettingsLike = {
+      lmx_persist_last_move_destination: {
+        value: true,
+      },
+      lmx_last_move_destination: {
+        value: {
+          kind: "root",
+          targetFrameId: null,
+        },
+      },
+    }
+
+    const notify = vi.fn<(message: string) => void>()
+    const setScriptSettings = vi.fn(async () => {
+      throw new Error("disk full")
+    })
+
+    const queue = new SidepanelSettingsWriteQueue({
+      getScriptSettings: () => settings,
+      setScriptSettings,
+      notify,
+    })
+
+    const service = new SidepanelQuickMovePersistenceService({
+      getScriptSettings: () => settings,
+      settingsWriteQueue: queue,
+    })
+
+    service.loadFromSettingsOnce()
+
+    const persisted = await service.setLastQuickMoveDestination({
+      kind: "root",
+      targetFrameId: "Frame-A",
+    })
+
+    expect(persisted).toBe(false)
+    expect(service.lastQuickMoveDestination).toEqual({
+      kind: "root",
+      targetFrameId: null,
+    })
+    expect(service.recentQuickMoveDestinations).toEqual([{ kind: "root", targetFrameId: null }])
+    expect(notify).toHaveBeenCalledWith("Failed to persist last move destination.")
+  })
+
+  it("reverts remembered-destination reconciliation when persistence fails", async () => {
+    const settings: ScriptSettingsLike = {
+      lmx_persist_last_move_destination: {
+        value: true,
+      },
+      lmx_last_move_destination: {
+        value: {
+          kind: "preset",
+          targetParentPath: ["G"],
+          targetFrameId: null,
+          label: "Inside old label",
+        },
+      },
+    }
+
+    const notify = vi.fn<(message: string) => void>()
+    const setScriptSettings = vi.fn(async () => {
+      throw new Error("disk full")
+    })
+
+    const queue = new SidepanelSettingsWriteQueue({
+      getScriptSettings: () => settings,
+      setScriptSettings,
+      notify,
+    })
+
+    const service = new SidepanelQuickMovePersistenceService({
+      getScriptSettings: () => settings,
+      settingsWriteQueue: queue,
+    })
+
+    service.loadFromSettingsOnce()
+
+    const projection = buildSidepanelQuickMoveDestinationProjection(
+      [makeGroupNode("G", "Renamed Group")],
+      24,
+      64,
+    )
+
+    const outcome = await service.rebindRememberedDestinations({
+      lastQuickMoveDestination: projectQuickMoveDestination(
+        service.lastQuickMoveDestination,
+        projection.destinationByKey,
+        projection.liveFrameIds,
+      ),
+      recentQuickMoveDestinations: projectQuickMoveDestinations(
+        service.recentQuickMoveDestinations,
+        projection.destinationByKey,
+        projection.liveFrameIds,
+      ),
+    })
+
+    expect(outcome).toEqual({
+      status: "reconciled",
+      persisted: false,
+      revertedTo: {
+        lastQuickMoveDestination: {
+          kind: "preset",
+          preset: {
+            key: makePresetKey(["G"], null),
+            label: "Inside old label",
+            targetParentPath: ["G"],
+            targetFrameId: null,
+          },
+        },
+        recentQuickMoveDestinations: [
+          {
+            kind: "preset",
+            preset: {
+              key: makePresetKey(["G"], null),
+              label: "Inside old label",
+              targetParentPath: ["G"],
+              targetFrameId: null,
+            },
+          },
+        ],
+      },
+    })
+    expect(service.lastQuickMoveDestination).toEqual({
+      kind: "preset",
+      preset: {
+        key: makePresetKey(["G"], null),
+        label: "Inside old label",
+        targetParentPath: ["G"],
+        targetFrameId: null,
+      },
+    })
+    expect(service.recentQuickMoveDestinations).toEqual([
+      {
+        kind: "preset",
+        preset: {
+          key: makePresetKey(["G"], null),
+          label: "Inside old label",
+          targetParentPath: ["G"],
+          targetFrameId: null,
+        },
+      },
+    ])
+    expect(notify).toHaveBeenCalledWith("Failed to persist last move destination.")
   })
 })
