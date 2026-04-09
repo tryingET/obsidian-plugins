@@ -48,29 +48,24 @@ The exact module ownership, contract-test matrix, and AK task sequencing for thi
 - preserve deterministic mutation flow: UI -> controller -> command facade -> planner -> adapter
 - keep strong test/performance coverage as the UI gets richer
 
+## Completed recovery epics
+
+- `task:978` **Projection-kernel contract** codified the authority split between scene truth, metadata truth, structural truth, visible truth, and convenience truth in the package docs.
+- `task:979` **Identity + selection stabilization** closed through `task:986`, `task:987`, `task:988`, and `task:995`, so row identity, representative identity, selection precedence, and full-tree-versus-visible-tree authority now route through the shared kernel and mandatory verification gate.
+
 ## Active slices
 
-1. **Projection-kernel contract**
-   - codify the authority split between scene truth, metadata truth, structural truth, visible truth, and convenience truth
-   - document what may be persisted vs what must be re-derived live
-   - make the recovery wave explicit in package docs before more UX expansion
-
-2. **Identity + selection stabilization**
-   - separate row identity from representative element identity
-   - keep explicit row selection, structural selection, and raw element selection distinct
-   - ensure full-tree derivation and visible-row derivation are consumed intentionally, not accidentally
-
-3. **Destination registry hardening**
+1. **Destination registry hardening**
    - keep quick-move destinations live-derived, frame-aware, and compatibility-ranked
    - preserve canonical destination keys while re-projecting labels against the live tree
    - disambiguate destinations when human-readable labels collide
 
-4. **Affordance honesty pass**
+2. **Affordance honesty pass**
    - ensure filtered containers only present expand/collapse affordances that remain truthful in filtered mode
    - keep mixed visibility/lock actions semantically honest
    - preserve inline rename intent until the command outcome is known
 
-5. **Reorder + drag/drop requalification**
+3. **Reorder + drag/drop requalification**
    - rebind reorder and drag/drop behavior to canonical structural targets after identity stabilization
    - keep reorder semantics honest about scope, especially for collapsed/grouped/frame-aware selections
    - fail closed on malformed ancestry or drift instead of silently normalizing meaning away
