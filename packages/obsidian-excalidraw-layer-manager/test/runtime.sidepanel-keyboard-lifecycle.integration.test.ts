@@ -1043,7 +1043,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     createLayerManagerRuntime(runtime.ea)
 
     let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    const hideButton = findButtonByTitle(contentRoot, "Hide layer")
+    const hideButton = findButtonByTitle(contentRoot, "Hide all items")
 
     if (!hideButton) {
       throw new Error("Expected row visibility action button to exist.")
@@ -1053,7 +1053,36 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     await flushAsync()
 
     contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    expect(findButtonByTitle(contentRoot, "Show layer")).toBeDefined()
+    expect(findButtonByTitle(contentRoot, "Show all items")).toBeDefined()
+  })
+
+  it("uses outcome-honest mixed visibility and lock action copy", async () => {
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    const { actions } = makeUiActions()
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => ({}),
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [makeGroupNode("G", [makeElementNode("A"), makeElementNode("B")])],
+      selectedIds: new Set(),
+      sceneVersion: 10,
+      actions,
+      elementStateById: new Map([
+        ["A", { opacity: 0, locked: true }],
+        ["B", { opacity: 100, locked: false }],
+      ]),
+    })
+
+    const contentRoot = getContentRoot(sidepanelTab.contentEl)
+    expect(findButtonByTitle(contentRoot, "Show hidden items")).toBeDefined()
+    expect(findButtonByTitle(contentRoot, "Lock unlocked items")).toBeDefined()
   })
 
   it("filters rows and surfaces descendant matches from collapsed groups", async () => {

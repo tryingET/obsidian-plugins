@@ -350,8 +350,8 @@ describe("sidepanel row renderer", () => {
     expect(textFragments).toContain("3 items")
     expect(textFragments).toContain("mixed hidden")
     expect(textFragments).toContain("mixed lock")
-    expect(actionTitles).toContain("Show all items")
-    expect(actionTitles).toContain("Lock all items")
+    expect(actionTitles).toContain("Show hidden items")
+    expect(actionTitles).toContain("Lock unlocked items")
   })
 
   it("renders row action buttons and routes callbacks", () => {
@@ -401,8 +401,8 @@ describe("sidepanel row renderer", () => {
 
     const renderedRow = row as unknown as FakeDomElement
     const buttons = renderedRow.children.filter((child) => child.tagName === "BUTTON")
-    const showButton = buttons.find((button) => button.title === "Show layer")
-    const unlockButton = buttons.find((button) => button.title === "Unlock layer")
+    const showButton = buttons.find((button) => button.title === "Show all items")
+    const unlockButton = buttons.find((button) => button.title === "Unlock all items")
     const renameButton = buttons.find((button) => button.title === "Rename layer")
     const deleteButton = buttons.find((button) => button.title === "Delete layer")
 

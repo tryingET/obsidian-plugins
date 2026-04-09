@@ -99,7 +99,7 @@ const resolveVisibilityActionIcon = (state: SidepanelRowVisualState): SidepanelR
     return {
       iconName: "eye-off",
       fallbackLabel: "🙈",
-      title: "Show layer",
+      title: "Show all items",
     }
   }
 
@@ -107,14 +107,14 @@ const resolveVisibilityActionIcon = (state: SidepanelRowVisualState): SidepanelR
     return {
       iconName: "eye",
       fallbackLabel: "◐",
-      title: "Show all items",
+      title: "Show hidden items",
     }
   }
 
   return {
     iconName: "eye",
     fallbackLabel: "👁",
-    title: "Hide layer",
+    title: "Hide all items",
   }
 }
 
@@ -123,7 +123,7 @@ const resolveLockActionIcon = (state: SidepanelRowVisualState): SidepanelRowActi
     return {
       iconName: "lock",
       fallbackLabel: "🔒",
-      title: "Unlock layer",
+      title: "Unlock all items",
     }
   }
 
@@ -131,14 +131,14 @@ const resolveLockActionIcon = (state: SidepanelRowVisualState): SidepanelRowActi
     return {
       iconName: "lock",
       fallbackLabel: "◪",
-      title: "Lock all items",
+      title: "Lock unlocked items",
     }
   }
 
   return {
     iconName: "unlock",
     fallbackLabel: "🔓",
-    title: "Lock layer",
+    title: "Lock all items",
   }
 }
 
