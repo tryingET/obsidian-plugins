@@ -1,9 +1,9 @@
 import type { ReorderMode } from "../../../commands/reorderNode.js"
 import type { LayerManagerUiActions } from "../../renderer.js"
-import type { ResolvedSelection } from "../keyboard/keyboardShortcutController.js"
 import type { SidepanelPromptInteractionService } from "../prompt/promptInteractionService.js"
 import type { GroupReparentPreset } from "../quickmove/presetHelpers.js"
 import type { LastQuickMoveDestination } from "../quickmove/quickMovePersistenceService.js"
+import type { ResolvedSelection } from "../selection/selectionResolution.js"
 import { selectionIncludesFrameRows } from "../selection/structuralMoveSelection.js"
 
 const runSelectionReparent = async (

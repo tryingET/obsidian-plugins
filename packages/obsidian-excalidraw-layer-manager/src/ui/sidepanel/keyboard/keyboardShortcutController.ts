@@ -1,19 +1,9 @@
 import type { ReorderMode } from "../../../commands/reorderNode.js"
 import type { LayerNode } from "../../../model/tree.js"
 import type { LayerManagerUiActions } from "../../renderer.js"
-import type { SharedFrameResolution } from "../quickmove/presetHelpers.js"
 import { appendUniqueIds } from "../selection/selectionIds.js"
-import {
-  type StructuralMoveSelection,
-  resolveFocusedNodeStructuralMove,
-} from "../selection/structuralMoveSelection.js"
-
-export interface ResolvedSelection {
-  readonly elementIds: readonly string[]
-  readonly nodes: readonly LayerNode[]
-  readonly frameResolution: SharedFrameResolution
-  readonly structuralMove?: StructuralMoveSelection | null
-}
+import type { ResolvedSelection } from "../selection/selectionResolution.js"
+import { resolveFocusedNodeStructuralMove } from "../selection/structuralMoveSelection.js"
 
 export interface KeyboardShortcutContext {
   readonly actions: LayerManagerUiActions

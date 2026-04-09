@@ -169,10 +169,12 @@ Files:
 - `src/ui/sidepanel/selection/nodeContext.ts`
 - `src/ui/sidepanel/selection/selectionIds.ts`
 - `src/ui/sidepanel/selection/selectionReconciler.ts`
+- `src/ui/sidepanel/selection/selectionResolution.ts`
 - `src/ui/sidepanel/selection/structuralMoveSelection.ts`
 
 Owns:
 - precedence between live host selection, snapshot selection, row intent, and structural move intent
+- the shared resolution contract binding canonical element ids, explicit row intent, and structural move intent
 - resolution of selected rows against the **full** tree
 - structural move eligibility and frame compatibility
 
@@ -246,7 +248,7 @@ Practical implication:
 | Task | Contract that must hold | Primary module owners | Current proving coverage | Must-add coverage before the slice is truly hardened |
 |---|---|---|---|---|
 | `986` | row identity, structural target identity, and representative element identity stay distinct | `src/model/tree.ts`, `src/domain/treeBuilder.ts`, `src/ui/controller.ts`, `src/ui/sidepanel/selection/nodeContext.ts`, `src/ui/sidepanel/dragdrop/dragDropController.ts` | `test/treeBuilder.acceptance.test.ts`, `test/runtime.state-stability.integration.test.ts`, `test/runtime.command-facade.integration.test.ts` | add an explicit ambiguous-representative case proving one `primaryElementId` cannot stand in for row identity |
-| `987` | selection resolution has one explicit precedence kernel across element, row, and structural intent | `src/ui/sidepanel/selection/*`, `src/ui/sidepanel/actions/selectionActionController.ts`, `src/ui/sidepanel/keyboard/keyboardShortcutController.ts` | `test/sidepanel.selection-reconciler.unit.test.ts`, `test/sidepanel.selection-helpers.unit.test.ts`, `test/sidepanel.structural-move-selection.unit.test.ts`, `test/sidepanel.host-selection-bridge.unit.test.ts`, `test/runtime.sidepanel-selection-sync.integration.test.ts`, `test/runtime.sidepanel-keyboard-lifecycle.integration.test.ts` | add a filtered/collapsed case proving visible rows do not become structural authority |
+| `987` | selection resolution has one explicit precedence kernel across element, row, and structural intent | `src/ui/sidepanel/selection/*`, `src/ui/sidepanel/actions/selectionActionController.ts`, `src/ui/sidepanel/keyboard/keyboardShortcutController.ts` | `test/sidepanel.selection-reconciler.unit.test.ts`, `test/sidepanel.selection-helpers.unit.test.ts`, `test/sidepanel.selection-resolution.unit.test.ts`, `test/sidepanel.structural-move-selection.unit.test.ts`, `test/sidepanel.host-selection-bridge.unit.test.ts`, `test/runtime.sidepanel-selection-sync.integration.test.ts`, `test/runtime.sidepanel-keyboard-lifecycle.integration.test.ts` | keep the filtered/collapsed authority contract in `test/sidepanel.selection-resolution.unit.test.ts` and extend integration coverage if visible-row consumers ever start feeding selection authority |
 | `988` | full structural tree and visible row tree are separate derivations with separate consumers | `src/domain/treeBuilder.ts`, `src/ui/sidepanel/render/rowModel.ts`, `src/ui/sidepanel/render/rowTreeRenderer.ts`, `src/ui/excalidrawSidepanelRenderer.ts`, `src/ui/sidepanel/selection/nodeContext.ts` | `test/treeBuilder.acceptance.test.ts`, `test/treeBuilder.performance.test.ts`, `test/sidepanel.row-model.unit.test.ts`, `test/runtime.sidepanel-keyboard-lifecycle.integration.test.ts`, `test/runtime.state-stability.integration.test.ts` | add a direct contract test showing filter/collapse changes visible truth only, not structural target resolution |
 | `989` | quick-move destinations are live-derived, frame-aware, and keyed canonically | `src/ui/sidepanel/quickmove/*`, `src/ui/sidepanel/render/quickMoveRenderer.ts`, `src/ui/sidepanel/settings/settingsWriteQueue.ts` | `test/sidepanel.quickmove-helpers.unit.test.ts`, `test/sidepanel.destination-projection.unit.test.ts`, `test/sidepanel.quickmove-persistence-service.unit.test.ts`, `test/sidepanel.quick-move-renderer.unit.test.ts`, `test/runtime.sidepanel-quickmove-persistence.integration.test.ts` | add duplicate-label disambiguation and ancestry-drift invalidation coverage |
 | `990` | UI state clears only on known outcomes; planner/preflight failures stay fail-closed | `src/runtime/intentExecution.ts`, `src/runtime/commandFacade.ts`, `src/main.ts`, `src/ui/controller.ts`, `src/ui/sidepanel/rename/inlineRenameController.ts`, `src/ui/sidepanel/prompt/promptInteractionService.ts` | `test/runtime.interaction-lifecycle.integration.test.ts`, `test/runtime.controller-retry.test.ts`, `test/runtime.command-facade.integration.test.ts`, `test/runtime.moe.integration.test.ts`, `test/runtime.sidepanel-keyboard-lifecycle.integration.test.ts`, `test/runtime.sidepanel-focus-keyboard.integration.test.ts` | add rename-failure draft preservation and similar non-applied outcome cases |
@@ -261,7 +263,7 @@ Practical implication:
 These gaps are now part of the recovery contract and should not be rediscovered ad hoc later:
 
 - explicit row-identity vs representative-element ambiguity coverage
-- explicit full-tree-vs-visible-tree authority coverage under filter/collapse
+- broader full-tree-vs-visible-tree authority coverage for later reorder/destination consumers under filter/collapse
 - duplicate destination label disambiguation coverage
 - destination ancestry-drift invalidation coverage
 - rename failure preserves draft / does not clear intent optimistically

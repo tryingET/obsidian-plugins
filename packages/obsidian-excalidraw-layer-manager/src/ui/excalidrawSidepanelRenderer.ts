@@ -15,7 +15,6 @@ import {
 import { SidepanelFocusOwnershipCoordinator } from "./sidepanel/focus/focusOwnershipCoordinator.js"
 import {
   type KeyboardShortcutContext,
-  type ResolvedSelection,
   SidepanelKeyboardShortcutController,
 } from "./sidepanel/keyboard/keyboardShortcutController.js"
 import {
@@ -28,11 +27,7 @@ import {
   buildSidepanelQuickMoveDestinationProjection,
   resolveProjectedQuickMovePreset,
 } from "./sidepanel/quickmove/destinationProjection.js"
-import {
-  makePresetKey,
-  makePresetOptionLabel,
-  resolveSharedFrame,
-} from "./sidepanel/quickmove/presetHelpers.js"
+import { makePresetKey, makePresetOptionLabel } from "./sidepanel/quickmove/presetHelpers.js"
 import {
   type LastQuickMoveDestination,
   SidepanelQuickMovePersistenceService,
@@ -53,16 +48,16 @@ import { renderSidepanelRowTree } from "./sidepanel/render/rowTreeRenderer.js"
 import { renderSidepanelToolbar } from "./sidepanel/render/toolbarRenderer.js"
 import { SidepanelHostSelectionBridge } from "./sidepanel/selection/hostSelectionBridge.js"
 import { ensureHostViewContext } from "./sidepanel/selection/hostViewContext.js"
-import {
-  collectVisibleNodeContext,
-  resolveSelectedNodes,
-} from "./sidepanel/selection/nodeContext.js"
+import { collectVisibleNodeContext } from "./sidepanel/selection/nodeContext.js"
 import { haveSameIds, haveSameIdsInSameOrder } from "./sidepanel/selection/selectionIds.js"
 import { reconcileSelectedElementIds } from "./sidepanel/selection/selectionReconciler.js"
 import {
-  type StructuralMoveSelection,
-  resolveStructuralMoveSelection,
-} from "./sidepanel/selection/structuralMoveSelection.js"
+  type ResolvedSelection,
+  type SidepanelSelectionOverrideState,
+  type SidepanelSelectionResolution,
+  makeSidepanelSelectionNodeRef,
+  resolveSidepanelSelection,
+} from "./sidepanel/selection/selectionResolution.js"
 import {
   type ScriptSettingsLike,
   SidepanelSettingsWriteQueue,
@@ -128,76 +123,6 @@ const intersectsSelectedIds = (node: LayerNode, selectedIds: ReadonlySet<string>
   }
 
   return false
-}
-
-type SidepanelSelectionNodeRef =
-  | {
-      readonly kind: "groupId"
-      readonly groupId: string
-    }
-  | {
-      readonly kind: "nodeId"
-      readonly nodeId: string
-    }
-
-interface SidepanelSelectionOverrideState {
-  readonly elementIds: readonly string[]
-  readonly nodeRefs: readonly SidepanelSelectionNodeRef[] | null
-}
-
-interface SidepanelSelectionResolution {
-  readonly selection: ResolvedSelection
-  readonly explicitSelectedNodes: readonly LayerNode[] | null
-}
-
-const makeSidepanelSelectionNodeRef = (node: LayerNode): SidepanelSelectionNodeRef => {
-  if (node.type === "group" && node.groupId) {
-    return {
-      kind: "groupId",
-      groupId: node.groupId,
-    }
-  }
-
-  return {
-    kind: "nodeId",
-    nodeId: node.id,
-  }
-}
-
-const buildLayerNodeLookup = (
-  tree: readonly LayerNode[],
-): {
-  readonly nodeById: ReadonlyMap<string, LayerNode>
-  readonly groupNodeByGroupId: ReadonlyMap<string, LayerNode>
-} => {
-  const nodeById = new Map<string, LayerNode>()
-  const groupNodeByGroupId = new Map<string, LayerNode>()
-  const stack = [...tree]
-
-  while (stack.length > 0) {
-    const node = stack.pop()
-    if (!node) {
-      continue
-    }
-
-    nodeById.set(node.id, node)
-
-    if (node.type === "group" && node.groupId && !groupNodeByGroupId.has(node.groupId)) {
-      groupNodeByGroupId.set(node.groupId, node)
-    }
-
-    for (let index = node.children.length - 1; index >= 0; index -= 1) {
-      const child = node.children[index]
-      if (child) {
-        stack.push(child)
-      }
-    }
-  }
-
-  return {
-    nodeById,
-    groupNodeByGroupId,
-  }
 }
 
 const runUiAction = (
@@ -1077,49 +1002,11 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     tree: readonly LayerNode[],
     selectedElementIds: readonly string[],
   ): SidepanelSelectionResolution {
-    const explicitSelectedNodes = this.resolveExplicitSelectedNodes(tree, selectedElementIds)
-    const resolvedSelectionNodes =
-      explicitSelectedNodes ?? resolveSelectedNodes(tree, selectedElementIds)
-
-    return {
-      explicitSelectedNodes,
-      selection: {
-        elementIds: selectedElementIds,
-        nodes: resolvedSelectionNodes,
-        frameResolution: resolveSharedFrame(resolvedSelectionNodes),
-        structuralMove: resolveStructuralMoveSelection(explicitSelectedNodes ?? []),
-      },
-    }
-  }
-
-  private resolveExplicitSelectedNodes(
-    tree: readonly LayerNode[],
-    selectedElementIds: readonly string[],
-  ): readonly LayerNode[] | null {
-    const selectionOverride = this.#selectionOverrideState
-    if (
-      !selectionOverride?.nodeRefs ||
-      !haveSameIds(selectionOverride.elementIds, selectedElementIds)
-    ) {
-      return null
-    }
-
-    const lookup = buildLayerNodeLookup(tree)
-    const resolvedNodes = selectionOverride.nodeRefs
-      .map((nodeRef) => {
-        if (nodeRef.kind === "groupId") {
-          return lookup.groupNodeByGroupId.get(nodeRef.groupId) ?? null
-        }
-
-        return lookup.nodeById.get(nodeRef.nodeId) ?? null
-      })
-      .filter((node): node is LayerNode => Boolean(node))
-
-    if (resolvedNodes.length !== selectionOverride.nodeRefs.length) {
-      return null
-    }
-
-    return resolvedNodes
+    return resolveSidepanelSelection({
+      tree,
+      selectedElementIds,
+      selectionOverride: this.#selectionOverrideState,
+    })
   }
 
   private setSelectionOverrideState(
