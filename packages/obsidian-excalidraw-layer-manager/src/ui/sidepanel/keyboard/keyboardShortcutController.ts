@@ -1,5 +1,6 @@
 import type { ReorderMode } from "../../../commands/reorderNode.js"
 import type { LayerNode } from "../../../model/tree.js"
+import { didInteractionApply } from "../../interactionOutcome.js"
 import type { LayerManagerUiActions } from "../../renderer.js"
 import { appendUniqueIds } from "../selection/selectionIds.js"
 import type { ResolvedSelection } from "../selection/selectionResolution.js"
@@ -480,7 +481,7 @@ export class SidepanelKeyboardShortcutController {
       targetFrameId,
     })
 
-    if (outcome.status === "applied") {
+    if (didInteractionApply(outcome)) {
       this.#host.setLastQuickMoveDestinationToRoot(targetFrameId)
     }
   }

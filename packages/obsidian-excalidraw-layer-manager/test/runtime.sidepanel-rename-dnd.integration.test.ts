@@ -612,7 +612,9 @@ describe("sidepanel rename + drag-drop integration", () => {
     input.value = "Renamed Group"
     input.dispatchEvent(new FakeDomEvent("input"))
     dispatchKeydown(input, "Enter")
-    await flushAsync()
+    for (let index = 0; index < 5; index += 1) {
+      await flushAsync()
+    }
 
     contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
     expect(findInteractiveRowByLabel(contentRoot, "[group] Renamed Group")).toBeDefined()

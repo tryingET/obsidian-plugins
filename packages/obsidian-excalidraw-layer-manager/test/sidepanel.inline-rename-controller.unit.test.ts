@@ -110,6 +110,33 @@ describe("sidepanel inline rename controller", () => {
     expect(harness.controller.nodeId).toBe("el:A")
   })
 
+  it("preserves inline rename draft until a known applied outcome exists", async () => {
+    const harness = makeHostHarness()
+    const renameNode = vi.fn(async () => ({
+      status: "plannerError" as const,
+      error: "rename drifted",
+      attempts: 1 as const,
+    }))
+
+    harness.controller.beginInlineRename("el:A", "Initial")
+    harness.controller.updateInlineRenameDraft("  Keep me  ")
+    await harness.controller.commitInlineRename(
+      {
+        renameNode,
+      } as unknown as LayerManagerUiActions,
+      "el:A",
+    )
+
+    expect(renameNode).toHaveBeenCalledWith("el:A", "Keep me")
+    expect(harness.controller.state).toEqual({
+      nodeId: "el:A",
+      draft: "  Keep me  ",
+      shouldAutofocusInput: false,
+    })
+    expect(harness.suppressNextContentFocusOut).not.toHaveBeenCalled()
+    expect(harness.focusContentRoot).not.toHaveBeenCalled()
+  })
+
   it("commits valid rename, trims value, and restores focus", async () => {
     const harness = makeHostHarness()
     const { actions, renameNode } = makeActions()
@@ -123,10 +150,10 @@ describe("sidepanel inline rename controller", () => {
 
     expect(renameNode).toHaveBeenCalledWith("el:A", "Renamed")
     expect(harness.controller.state).toBeNull()
-    expect(harness.suppressNextContentFocusOut).toHaveBeenCalledTimes(2)
+    expect(harness.suppressNextContentFocusOut).toHaveBeenCalledTimes(1)
     expect(harness.setShouldAutofocusContentRoot).toHaveBeenCalledWith(true)
     expect(harness.focusContentRoot).toHaveBeenCalledTimes(1)
-    expect(harness.requestRenderFromLatestModel.mock.calls.length).toBeGreaterThanOrEqual(3)
+    expect(harness.requestRenderFromLatestModel.mock.calls.length).toBeGreaterThanOrEqual(2)
     expect(harness.debugInteraction).toHaveBeenCalled()
   })
 })

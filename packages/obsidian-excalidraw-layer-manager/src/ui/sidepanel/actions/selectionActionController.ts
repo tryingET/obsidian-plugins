@@ -1,4 +1,5 @@
 import type { ReorderMode } from "../../../commands/reorderNode.js"
+import { didInteractionApply } from "../../interactionOutcome.js"
 import type { LayerManagerUiActions } from "../../renderer.js"
 import type { SidepanelPromptInteractionService } from "../prompt/promptInteractionService.js"
 import type { GroupReparentPreset } from "../quickmove/presetHelpers.js"
@@ -126,7 +127,7 @@ export class SidepanelSelectionActionController {
       targetFrameId: preset.targetFrameId,
     })
 
-    if (outcome.status === "applied") {
+    if (didInteractionApply(outcome)) {
       this.#host.setLastQuickMoveDestination({
         kind: "preset",
         preset,
@@ -165,7 +166,7 @@ export class SidepanelSelectionActionController {
       targetFrameId,
     })
 
-    if (outcome.status === "applied") {
+    if (didInteractionApply(outcome)) {
       this.#host.setLastQuickMoveDestination({
         kind: "root",
         targetFrameId,

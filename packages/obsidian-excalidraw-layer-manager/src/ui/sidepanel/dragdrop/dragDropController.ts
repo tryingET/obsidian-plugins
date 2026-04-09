@@ -1,4 +1,5 @@
 import { type LayerNode, resolveFrameRowElementId } from "../../../model/tree.js"
+import { didInteractionApply } from "../../interactionOutcome.js"
 import type { LayerManagerUiActions } from "../../renderer.js"
 
 export interface DragDropBranchContext {
@@ -224,7 +225,7 @@ export class SidepanelDragDropController {
       }
     }
 
-    if (outcome.status !== "applied") {
+    if (!didInteractionApply(outcome)) {
       this.#host.notify(`Drag and drop reparent failed: ${outcome.reason}`)
       return {
         status: "notApplied",

@@ -1,3 +1,4 @@
+import { didInteractionApply } from "../../interactionOutcome.js"
 import type { LayerManagerUiActions } from "../../renderer.js"
 
 interface InlineRenameState {
@@ -24,6 +25,7 @@ interface SidepanelInlineRenameControllerHost {
 export class SidepanelInlineRenameController {
   readonly #host: SidepanelInlineRenameControllerHost
   #state: InlineRenameState | null = null
+  #commitInFlightNodeId: string | null = null
 
   constructor(host: SidepanelInlineRenameControllerHost) {
     this.#host = host
@@ -39,6 +41,7 @@ export class SidepanelInlineRenameController {
 
   clear(): void {
     this.#state = null
+    this.#commitInFlightNodeId = null
   }
 
   beginInlineRename(nodeId: string, initialValue: string): void {
@@ -76,7 +79,7 @@ export class SidepanelInlineRenameController {
   }
 
   cancelInlineRename(): void {
-    if (!this.#state) {
+    if (!this.#state || this.#commitInFlightNodeId === this.#state.nodeId) {
       return
     }
 
@@ -88,7 +91,7 @@ export class SidepanelInlineRenameController {
 
   async commitInlineRename(actions: LayerManagerUiActions, nodeId: string): Promise<void> {
     const current = this.#state
-    if (!current || current.nodeId !== nodeId) {
+    if (!current || current.nodeId !== nodeId || this.#commitInFlightNodeId === nodeId) {
       return
     }
 
@@ -98,9 +101,6 @@ export class SidepanelInlineRenameController {
       return
     }
 
-    this.#host.suppressNextContentFocusOut()
-    this.#host.setShouldAutofocusContentRoot(true)
-
     this.#host.debugInteraction?.("inline rename commit requested", {
       nodeId,
       nextName,
@@ -108,21 +108,44 @@ export class SidepanelInlineRenameController {
       keyboardCaptureActive: this.#host.getKeyboardCaptureActive(),
     })
 
-    this.#state = null
-    this.#host.requestRenderFromLatestModel()
+    this.#commitInFlightNodeId = nodeId
 
-    await actions.renameNode(nodeId, nextName)
+    try {
+      const outcome = await actions.renameNode(nodeId, nextName)
 
-    this.#host.suppressNextContentFocusOut()
-    this.#host.setShouldAutofocusContentRoot(true)
-    this.#host.focusContentRoot()
-    this.#host.requestRenderFromLatestModel()
+      if (!didInteractionApply(outcome)) {
+        this.#host.debugInteraction?.("inline rename commit finished", {
+          nodeId,
+          outcomeStatus: outcome.status,
+          preservedDraft: current.draft,
+          focusedNodeId: this.#host.getFocusedNodeId(),
+          keyboardCaptureActive: this.#host.getKeyboardCaptureActive(),
+        })
+        return
+      }
 
-    this.#host.debugInteraction?.("inline rename commit finished", {
-      nodeId,
-      focusedNodeId: this.#host.getFocusedNodeId(),
-      keyboardCaptureActive: this.#host.getKeyboardCaptureActive(),
-    })
+      this.#state = null
+      this.#host.requestRenderFromLatestModel()
+      this.#host.suppressNextContentFocusOut()
+      this.#host.setShouldAutofocusContentRoot(true)
+      this.#host.focusContentRoot()
+      Promise.resolve().then(() => {
+        if (!this.#state) {
+          this.#host.requestRenderFromLatestModel()
+        }
+      })
+
+      this.#host.debugInteraction?.("inline rename commit finished", {
+        nodeId,
+        outcomeStatus: outcome.status,
+        focusedNodeId: this.#host.getFocusedNodeId(),
+        keyboardCaptureActive: this.#host.getKeyboardCaptureActive(),
+      })
+    } finally {
+      if (this.#commitInFlightNodeId === nodeId) {
+        this.#commitInFlightNodeId = null
+      }
+    }
   }
 
   markAutofocusHandled(nodeId: string): void {

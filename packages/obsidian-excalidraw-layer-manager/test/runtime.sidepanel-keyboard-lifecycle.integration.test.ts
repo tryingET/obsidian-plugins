@@ -1211,6 +1211,56 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     )
   })
 
+  it("preserves inline rename draft when the rename outcome is not applied", async () => {
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    const renameNode = vi.fn(async () => ({
+      status: "preflightFailed" as const,
+      reason: "scene drifted",
+      attempts: 2 as const,
+    }))
+    const { actions } = makeUiActions({
+      renameNode,
+    })
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => ({}),
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [makeElementNode("A", "Old name")],
+      selectedIds: new Set(),
+      sceneVersion: 14,
+      actions,
+    })
+
+    let contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "Enter")
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const input = findFirstInput(contentRoot)
+    if (!input) {
+      throw new Error("Expected inline rename input to exist after pressing Enter.")
+    }
+
+    input.value = "Draft survives"
+    input.dispatchEvent(new FakeDomEvent("input"))
+    dispatchKeydown(input, "Enter")
+    await flushAsync()
+
+    expect(renameNode).toHaveBeenCalledWith("el:A", "Draft survives")
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const inputAfterFailure = findFirstInput(contentRoot)
+    expect(inputAfterFailure).toBeDefined()
+    expect(inputAfterFailure?.value).toBe("Draft survives")
+  })
+
   it("keeps focused-row keyboard navigation usable after inline rename commit", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,

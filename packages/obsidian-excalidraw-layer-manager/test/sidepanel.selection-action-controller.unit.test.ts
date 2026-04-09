@@ -230,6 +230,33 @@ describe("sidepanel selection action controller", () => {
     expect(harness.reparent).not.toHaveBeenCalled()
   })
 
+  it("does not store a quick-move destination when the reparent outcome is not applied", async () => {
+    const harness = makeHarness()
+    harness.reparent.mockImplementation(async () => ({
+      status: "preflightFailed",
+      reason: "scene drifted",
+      attempts: 1 as const,
+    }))
+
+    await harness.controller.applyGroupPreset(
+      harness.actions,
+      {
+        elementIds: ["el:A"],
+        nodes: [makeElementNode("el:A", "Frame-A")],
+        frameResolution: makeFrameResolution("Frame-A"),
+      },
+      {
+        key: makePresetKey(["Outer"], "Frame-A"),
+        label: "Inside Outer",
+        targetParentPath: ["Outer"],
+        targetFrameId: "Frame-A",
+      },
+    )
+
+    expect(harness.reparent).toHaveBeenCalledTimes(1)
+    expect(harness.setLastQuickMoveDestination).not.toHaveBeenCalled()
+  })
+
   it("fails closed for applyGroupPreset when selection includes frame rows", async () => {
     const harness = makeHarness()
 
