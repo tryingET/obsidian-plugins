@@ -1,3 +1,4 @@
+import type { ReorderPlacement } from "../../../commands/reorderNode.js"
 import { type LayerNode, resolveFrameRowElementId } from "../../../model/tree.js"
 import { didInteractionApply } from "../../interactionOutcome.js"
 import type { LayerManagerUiActions } from "../../renderer.js"
@@ -12,11 +13,16 @@ interface DraggedNodeState {
   readonly sourceGroupId: string | null
   readonly sourceFrameId: string | null
   readonly sourceParentPath: readonly string[]
+  readonly sourceRowScope: DragDropBranchContext
+  readonly sourceSiblingIndex: number
 }
 
 export interface NodeDropTarget {
   readonly targetParentPath: readonly string[]
   readonly targetFrameId: string | null
+  readonly rowScope: DragDropBranchContext
+  readonly siblingIndex: number
+  readonly rowReorderEligible: boolean
 }
 
 export type DragDropDestination =
@@ -30,7 +36,16 @@ export type DragDropDestination =
       readonly targetFrameId: string | null
     }
 
-type DragDropReparentOutcome =
+type QualifiedDropIntent =
+  | {
+      readonly kind: "reparent"
+    }
+  | {
+      readonly kind: "reorder"
+      readonly placement: ReorderPlacement
+    }
+
+type DragDropMoveOutcome =
   | {
       readonly status: "notReady"
     }
@@ -42,7 +57,14 @@ type DragDropReparentOutcome =
     }
   | {
       readonly status: "applied"
-      readonly destination: DragDropDestination
+      readonly effect:
+        | {
+            readonly kind: "reorder"
+          }
+        | {
+            readonly kind: "reparent"
+            readonly destination: DragDropDestination
+          }
     }
 
 interface SidepanelDragDropControllerHost {
@@ -54,7 +76,21 @@ interface StartRowDragInput {
   readonly node: LayerNode
   readonly nodeFrameId: string | null
   readonly branchGroupPath: readonly string[]
+  readonly rowScope: DragDropBranchContext
+  readonly siblingIndex: number
   readonly dragEvent: DragEvent
+}
+
+const haveSamePath = (left: readonly string[], right: readonly string[]): boolean => {
+  if (left.length !== right.length) {
+    return false
+  }
+
+  return left.every((segment, index) => segment === right[index])
+}
+
+const haveSameScope = (left: DragDropBranchContext, right: DragDropBranchContext): boolean => {
+  return left.frameId === right.frameId && haveSamePath(left.groupPath, right.groupPath)
 }
 
 export class SidepanelDragDropController {
@@ -79,13 +115,23 @@ export class SidepanelDragDropController {
     return resolveFrameRowElementId(node) ?? node.frameId ?? branchContext.frameId
   }
 
-  resolveDropTargetForNode(node: LayerNode, branchContext: DragDropBranchContext): NodeDropTarget {
+  resolveDropTargetForNode(
+    node: LayerNode,
+    branchContext: DragDropBranchContext,
+    siblingIndex: number,
+  ): NodeDropTarget {
     const nodeFrameId = this.resolveNodeFrameId(node, branchContext)
 
     if (node.type === "group" && node.groupId) {
       return {
         targetParentPath: [...branchContext.groupPath, node.groupId],
         targetFrameId: nodeFrameId,
+        rowScope: {
+          frameId: branchContext.frameId,
+          groupPath: [...branchContext.groupPath],
+        },
+        siblingIndex,
+        rowReorderEligible: true,
       }
     }
 
@@ -93,43 +139,66 @@ export class SidepanelDragDropController {
       return {
         targetParentPath: [],
         targetFrameId: resolveFrameRowElementId(node),
+        rowScope: {
+          frameId: branchContext.frameId,
+          groupPath: [...branchContext.groupPath],
+        },
+        siblingIndex,
+        rowReorderEligible: false,
       }
     }
 
     return {
       targetParentPath: [...branchContext.groupPath],
       targetFrameId: nodeFrameId,
+      rowScope: {
+        frameId: branchContext.frameId,
+        groupPath: [...branchContext.groupPath],
+      },
+      siblingIndex,
+      rowReorderEligible: true,
     }
   }
 
   canDropDraggedNode(targetNodeId: string, dropTarget: NodeDropTarget): boolean {
+    return this.previewDropIntent(targetNodeId, dropTarget) !== null
+  }
+
+  previewDropIntent(targetNodeId: string, dropTarget: NodeDropTarget): QualifiedDropIntent | null {
     const dragged = this.#draggedNodeState
     if (!dragged) {
-      return false
+      return null
     }
 
     if (dragged.nodeId === targetNodeId) {
-      return false
-    }
-
-    if (dragged.sourceFrameId !== dropTarget.targetFrameId) {
-      return false
-    }
-
-    if (dragged.sourceGroupId && dropTarget.targetParentPath.includes(dragged.sourceGroupId)) {
-      return false
+      return null
     }
 
     if (
-      dragged.sourceParentPath.length === dropTarget.targetParentPath.length &&
-      dragged.sourceParentPath.every(
-        (segment, index) => segment === dropTarget.targetParentPath[index],
-      )
+      dropTarget.rowReorderEligible &&
+      haveSameScope(dragged.sourceRowScope, dropTarget.rowScope)
     ) {
-      return false
+      return {
+        kind: "reorder",
+        placement: dropTarget.siblingIndex < dragged.sourceSiblingIndex ? "before" : "after",
+      }
     }
 
-    return true
+    if (dragged.sourceFrameId !== dropTarget.targetFrameId) {
+      return null
+    }
+
+    if (dragged.sourceGroupId && dropTarget.targetParentPath.includes(dragged.sourceGroupId)) {
+      return null
+    }
+
+    if (haveSamePath(dragged.sourceParentPath, dropTarget.targetParentPath)) {
+      return null
+    }
+
+    return {
+      kind: "reparent",
+    }
   }
 
   startRowDrag(input: StartRowDragInput): void {
@@ -138,6 +207,11 @@ export class SidepanelDragDropController {
       sourceGroupId: input.node.type === "group" ? input.node.groupId : null,
       sourceFrameId: input.nodeFrameId,
       sourceParentPath: [...input.branchGroupPath],
+      sourceRowScope: {
+        frameId: input.rowScope.frameId,
+        groupPath: [...input.rowScope.groupPath],
+      },
+      sourceSiblingIndex: input.siblingIndex,
     }
 
     if (input.dragEvent.dataTransfer) {
@@ -191,11 +265,11 @@ export class SidepanelDragDropController {
     this.updateDropHint(null)
   }
 
-  async runDragDropReparent(
+  async runDragDropMove(
     actions: LayerManagerUiActions,
     targetNodeId: string,
     dropTarget: NodeDropTarget,
-  ): Promise<DragDropReparentOutcome> {
+  ): Promise<DragDropMoveOutcome> {
     const dragged = this.#draggedNodeState
     if (!dragged) {
       this.#host.notify("Drag and drop move is no longer active.")
@@ -204,10 +278,40 @@ export class SidepanelDragDropController {
       }
     }
 
-    if (!this.canDropDraggedNode(targetNodeId, dropTarget)) {
+    const intent = this.previewDropIntent(targetNodeId, dropTarget)
+    if (!intent) {
       this.#host.notify("Drop target is not compatible for this move.")
       return {
         status: "incompatible",
+      }
+    }
+
+    if (intent.kind === "reorder") {
+      const outcome = await actions.reorderRelativeToNodeIds({
+        nodeIds: [dragged.nodeId],
+        anchorNodeId: targetNodeId,
+        placement: intent.placement,
+      })
+
+      if (outcome.status === "plannerError") {
+        this.#host.notify(`Drag and drop reorder failed: ${outcome.error}`)
+        return {
+          status: "notApplied",
+        }
+      }
+
+      if (!didInteractionApply(outcome)) {
+        this.#host.notify(`Drag and drop reorder failed: ${outcome.reason}`)
+        return {
+          status: "notApplied",
+        }
+      }
+
+      return {
+        status: "applied",
+        effect: {
+          kind: "reorder",
+        },
       }
     }
 
@@ -235,19 +339,25 @@ export class SidepanelDragDropController {
     if (dropTarget.targetParentPath.length === 0) {
       return {
         status: "applied",
-        destination: {
-          kind: "root",
-          targetFrameId: dropTarget.targetFrameId,
+        effect: {
+          kind: "reparent",
+          destination: {
+            kind: "root",
+            targetFrameId: dropTarget.targetFrameId,
+          },
         },
       }
     }
 
     return {
       status: "applied",
-      destination: {
-        kind: "preset",
-        targetParentPath: [...dropTarget.targetParentPath],
-        targetFrameId: dropTarget.targetFrameId,
+      effect: {
+        kind: "reparent",
+        destination: {
+          kind: "preset",
+          targetParentPath: [...dropTarget.targetParentPath],
+          targetFrameId: dropTarget.targetFrameId,
+        },
       },
     }
   }

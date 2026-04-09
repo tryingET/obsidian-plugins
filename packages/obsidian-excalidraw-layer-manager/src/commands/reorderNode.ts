@@ -7,10 +7,13 @@ import type { CommandContext } from "./context.js"
 import { normalizeTargetIds } from "./helpers.js"
 
 export type ReorderMode = "forward" | "backward" | "front" | "back"
+export type ReorderPlacement = "before" | "after"
 
 export interface ReorderInput {
   readonly orderedElementIds: readonly string[]
   readonly mode?: ReorderMode
+  readonly anchorNodeId?: string
+  readonly placement?: ReorderPlacement
 }
 
 interface SelectionBlock {
@@ -20,9 +23,14 @@ interface SelectionBlock {
 
 const ROOT_SCOPE_KEY = "__root__"
 const REORDER_MODES = ["forward", "backward", "front", "back"] as const
+const REORDER_PLACEMENTS = ["before", "after"] as const
 
 const isReorderMode = (value: string): value is ReorderMode => {
   return REORDER_MODES.includes(value as ReorderMode)
+}
+
+const isReorderPlacement = (value: string): value is ReorderPlacement => {
+  return REORDER_PLACEMENTS.includes(value as ReorderPlacement)
 }
 
 const haveSameIdsInSameOrder = (left: readonly string[], right: readonly string[]): boolean => {
@@ -87,6 +95,22 @@ const buildScopeChildrenMap = (
     }
 
     buildScopeChildrenMap(node.children, node.id, scopeChildrenByKey)
+  }
+}
+
+const buildNodeScopeIndex = (
+  nodes: readonly LayerNode[],
+  scopeKey: string,
+  nodeScopeById: Map<string, string>,
+): void => {
+  for (const node of nodes) {
+    nodeScopeById.set(node.id, scopeKey)
+
+    if (node.children.length === 0) {
+      continue
+    }
+
+    buildNodeScopeIndex(node.children, node.id, nodeScopeById)
   }
 }
 
@@ -211,6 +235,36 @@ const reorderScopeChildren = (
   return moveSelectedTowardBack(children, selectedNodeIds)
 }
 
+const reorderScopeChildrenRelativeToAnchor = (
+  children: readonly LayerNode[],
+  selectedNodeIds: ReadonlySet<string>,
+  anchorNodeId: string,
+  placement: ReorderPlacement,
+): Result<readonly LayerNode[], string> => {
+  if (selectedNodeIds.has(anchorNodeId)) {
+    return err("Relative reorder target must not be one of the dragged rows.")
+  }
+
+  const selectedChildren = children.filter((child) => selectedNodeIds.has(child.id))
+  if (selectedChildren.length === 0) {
+    return err("Relative reorder could not resolve the dragged rows inside the target scope.")
+  }
+
+  const remainingChildren = children.filter((child) => !selectedNodeIds.has(child.id))
+  const anchorIndex = remainingChildren.findIndex((child) => child.id === anchorNodeId)
+  if (anchorIndex < 0) {
+    return err("Relative reorder target is no longer a sibling in the dragged row scope.")
+  }
+
+  const insertIndex = placement === "before" ? anchorIndex : anchorIndex + 1
+
+  return ok([
+    ...remainingChildren.slice(0, insertIndex),
+    ...selectedChildren,
+    ...remainingChildren.slice(insertIndex),
+  ])
+}
+
 const flattenScopeToSceneOrder = (
   scopeKey: string,
   scopeChildrenByKey: ReadonlyMap<string, readonly LayerNode[]>,
@@ -291,12 +345,17 @@ export const planReorder = (
     return err("No valid element IDs for reorder.")
   }
 
+  const hasAnchorTarget = typeof input.anchorNodeId === "string" && input.anchorNodeId.length > 0
   const requestedMode = input.mode ?? "front"
-  if (!isReorderMode(requestedMode)) {
+  if (!hasAnchorTarget && !isReorderMode(requestedMode)) {
     return err(`Unknown reorder mode: ${requestedMode}.`)
   }
 
-  const mode = requestedMode
+  const requestedPlacement = input.placement ?? "before"
+  if (hasAnchorTarget && !isReorderPlacement(requestedPlacement)) {
+    return err(`Unknown reorder placement: ${requestedPlacement}.`)
+  }
+
   const selectedIds = new Set(targetIds)
   const sceneIndexById = buildSceneIndexById(context)
   const currentSceneOrder = context.snapshot.elements.map((element) => element.id)
@@ -311,6 +370,9 @@ export const planReorder = (
 
   const scopeChildrenByKey = new Map<string, readonly LayerNode[]>()
   buildScopeChildrenMap(tree, ROOT_SCOPE_KEY, scopeChildrenByKey)
+
+  const nodeScopeById = new Map<string, string>()
+  buildNodeScopeIndex(tree, ROOT_SCOPE_KEY, nodeScopeById)
 
   const selectedBlocks = collectSelectedBlocks(tree, selectedIds, ROOT_SCOPE_KEY)
   if (selectedBlocks.length === 0) {
@@ -329,15 +391,52 @@ export const planReorder = (
   }
 
   const reorderedChildrenByScope = new Map<string, readonly LayerNode[]>()
-  for (const [scopeKey, selectedNodeIds] of selectedNodeIdsByScope) {
-    const children = scopeChildrenByKey.get(scopeKey)
-    if (!children || children.length === 0) {
-      continue
+
+  if (hasAnchorTarget) {
+    const anchorNodeId = input.anchorNodeId ?? ""
+    const anchorScopeKey = nodeScopeById.get(anchorNodeId)
+    if (!anchorScopeKey) {
+      return err(`Relative reorder anchor not found: ${anchorNodeId}.`)
     }
 
-    const reordered = reorderScopeChildren(children, selectedNodeIds, mode)
-    if (!haveSameNodeOrder(children, reordered)) {
-      reorderedChildrenByScope.set(scopeKey, reordered)
+    const selectedNodeIds = selectedNodeIdsByScope.get(anchorScopeKey)
+    if (!selectedNodeIds || selectedNodeIdsByScope.size !== 1) {
+      return err(
+        "Relative reorder requires the dragged rows and target row to share one canonical parent scope.",
+      )
+    }
+
+    const children = scopeChildrenByKey.get(anchorScopeKey)
+    if (!children || children.length === 0) {
+      return err("Relative reorder scope is empty or no longer available.")
+    }
+
+    const reordered = reorderScopeChildrenRelativeToAnchor(
+      children,
+      selectedNodeIds,
+      anchorNodeId,
+      requestedPlacement,
+    )
+    if (!reordered.ok) {
+      return reordered
+    }
+
+    if (!haveSameNodeOrder(children, reordered.value)) {
+      reorderedChildrenByScope.set(anchorScopeKey, reordered.value)
+    }
+  } else {
+    const mode = requestedMode
+
+    for (const [scopeKey, selectedNodeIds] of selectedNodeIdsByScope) {
+      const children = scopeChildrenByKey.get(scopeKey)
+      if (!children || children.length === 0) {
+        continue
+      }
+
+      const reordered = reorderScopeChildren(children, selectedNodeIds, mode)
+      if (!haveSameNodeOrder(children, reordered)) {
+        reorderedChildrenByScope.set(scopeKey, reordered)
+      }
     }
   }
 

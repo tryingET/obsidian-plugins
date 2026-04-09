@@ -9,6 +9,7 @@ interface SidepanelRowTreeVisitInput {
   readonly node: VisibleRowNode
   readonly depth: number
   readonly branchContext: SidepanelRowTreeBranchContext
+  readonly siblingIndex: number
   readonly nodeFrameId: string | null
   readonly childBranchContext: SidepanelRowTreeBranchContext
 }
@@ -29,7 +30,7 @@ const hasVisibleChildren = (node: VisibleRowNode): boolean => {
 }
 
 export const renderSidepanelRowTree = (input: SidepanelRowTreeRenderInput): void => {
-  for (const node of input.nodes) {
+  for (const [siblingIndex, node] of input.nodes.entries()) {
     const nodeFrameId = input.resolveNodeFrameId(node, input.branchContext)
 
     const childBranchContext: SidepanelRowTreeBranchContext = {
@@ -44,6 +45,7 @@ export const renderSidepanelRowTree = (input: SidepanelRowTreeRenderInput): void
       node,
       depth: input.depth,
       branchContext: input.branchContext,
+      siblingIndex,
       nodeFrameId,
       childBranchContext,
     })

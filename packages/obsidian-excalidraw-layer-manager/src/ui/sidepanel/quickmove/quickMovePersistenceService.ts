@@ -216,7 +216,7 @@ interface RememberedDestinationRebindPreview extends RememberedDestinationStateS
   readonly changed: boolean
 }
 
-export type RememberedDestinationRebindOutcome =
+type RememberedDestinationRebindOutcome =
   | {
       readonly status: "unchanged"
     }

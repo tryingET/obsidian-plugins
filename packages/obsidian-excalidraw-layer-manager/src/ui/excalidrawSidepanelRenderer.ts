@@ -1268,15 +1268,25 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   private resolveDropTargetForNode(
     node: LayerNode,
     branchContext: DragDropBranchContext,
+    siblingIndex: number,
   ): NodeDropTarget {
-    return this.#dragDropController.resolveDropTargetForNode(node, branchContext)
+    return this.#dragDropController.resolveDropTargetForNode(node, branchContext, siblingIndex)
   }
 
   private canDropDraggedNode(targetNodeId: string, dropTarget: NodeDropTarget): boolean {
     return this.#dragDropController.canDropDraggedNode(targetNodeId, dropTarget)
   }
 
-  private describeDropHint(node: LayerNode, dropTarget: NodeDropTarget): string {
+  private describeDropHint(
+    targetNodeId: string,
+    node: LayerNode,
+    dropTarget: NodeDropTarget,
+  ): string {
+    const preview = this.#dragDropController.previewDropIntent(targetNodeId, dropTarget)
+    if (preview?.kind === "reorder") {
+      return preview.placement === "before" ? "reorder before row" : "reorder after row"
+    }
+
     if (node.type === "group") {
       return "drop into group"
     }
@@ -1324,12 +1334,12 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     })
   }
 
-  private async runDragDropReparent(
+  private async runDragDropMove(
     actions: LayerManagerUiActions,
     targetNodeId: string,
     dropTarget: NodeDropTarget,
   ): Promise<void> {
-    const outcome = await this.#dragDropController.runDragDropReparent(
+    const outcome = await this.#dragDropController.runDragDropMove(
       actions,
       targetNodeId,
       dropTarget,
@@ -1338,7 +1348,9 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       return
     }
 
-    this.applyDragDropDestination(outcome.destination)
+    if (outcome.effect.kind === "reparent") {
+      this.applyDragDropDestination(outcome.effect.destination)
+    }
   }
 
   private async handleRowDrop(
@@ -1353,12 +1365,12 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     }
 
     try {
-      await this.runDragDropReparent(actions, targetNodeId, dropTarget)
+      await this.runDragDropMove(actions, targetNodeId, dropTarget)
     } catch (error: unknown) {
       if (error instanceof Error) {
-        this.notify(`Drag and drop reparent failed: ${error.message}`)
+        this.notify(`Drag and drop move failed: ${error.message}`)
       } else {
-        this.notify("Drag and drop reparent failed")
+        this.notify("Drag and drop move failed")
       }
     } finally {
       this.#dragDropController.resetDragState()
@@ -1389,8 +1401,14 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       branchContext,
       resolveNodeFrameId: (node, nodeBranchContext) =>
         this.resolveNodeFrameId(node, nodeBranchContext),
-      visitNode: ({ node, depth: nodeDepth, branchContext: nodeBranchContext, nodeFrameId }) => {
-        const nodeDropTarget = this.resolveDropTargetForNode(node, nodeBranchContext)
+      visitNode: ({
+        node,
+        depth: nodeDepth,
+        branchContext: nodeBranchContext,
+        siblingIndex,
+        nodeFrameId,
+      }) => {
+        const nodeDropTarget = this.resolveDropTargetForNode(node, nodeBranchContext, siblingIndex)
 
         const currentInlineRenameState = this.#inlineRenameController.state
         const inlineRenameState: SidepanelInlineRenameRenderState | null =
@@ -1411,7 +1429,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
           dropHinted: this.#dragDropController.dropHintNodeId === node.id,
           dropHintLabel:
             this.#dragDropController.dropHintNodeId === node.id
-              ? this.describeDropHint(node, nodeDropTarget)
+              ? this.describeDropHint(node.id, node, nodeDropTarget)
               : null,
           actions,
           styleConfig: ROW_STYLE_CONFIG,
@@ -1472,6 +1490,8 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
                 node,
                 nodeFrameId,
                 branchGroupPath: nodeBranchContext.groupPath,
+                rowScope: nodeBranchContext,
+                siblingIndex,
                 dragEvent: event,
               })
             },
@@ -1492,7 +1512,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
             },
             onDrop: () => {
               // Architecture seam note:
-              // Drag/drop emits a reparent intent through UI actions only.
+              // Drag/drop emits reorder-or-reparent intent through UI actions only.
               // The actual mutation path remains command facade -> executeIntent -> adapter.
               void this.handleRowDrop(actions, node.id, nodeDropTarget)
             },

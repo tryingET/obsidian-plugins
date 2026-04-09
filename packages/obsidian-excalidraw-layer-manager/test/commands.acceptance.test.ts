@@ -417,7 +417,70 @@ describe("commands acceptance matrix", () => {
     expect(plan.value.reorder?.orderedElementIds).toEqual(["B", "A", "C"])
   })
 
-  it("C13e — reorder rejects unknown runtime modes", () => {
+  it("C13e — relative reorder inserts the dragged row before the target sibling slot", () => {
+    const context = makeCommandContext([
+      makeElement({ id: "A" }),
+      makeElement({ id: "B" }),
+      makeElement({ id: "C" }),
+      makeElement({ id: "D" }),
+    ])
+
+    const plan = planReorder(context, {
+      orderedElementIds: ["A"],
+      anchorNodeId: "el:B",
+      placement: "before",
+    })
+
+    expect(plan.ok).toBe(true)
+    if (!plan.ok) {
+      return
+    }
+
+    expect(plan.value.reorder?.orderedElementIds).toEqual(["B", "A", "C", "D"])
+  })
+
+  it("C13f — relative reorder inserts the dragged row after the target sibling slot", () => {
+    const context = makeCommandContext([
+      makeElement({ id: "A" }),
+      makeElement({ id: "B" }),
+      makeElement({ id: "C" }),
+      makeElement({ id: "D" }),
+    ])
+
+    const plan = planReorder(context, {
+      orderedElementIds: ["D"],
+      anchorNodeId: "el:B",
+      placement: "after",
+    })
+
+    expect(plan.ok).toBe(true)
+    if (!plan.ok) {
+      return
+    }
+
+    expect(plan.value.reorder?.orderedElementIds).toEqual(["A", "D", "B", "C"])
+  })
+
+  it("C13g — relative reorder rejects anchors outside the dragged row scope", () => {
+    const context = makeCommandContext([
+      makeElement({ id: "A", groupIds: ["G"] }),
+      makeElement({ id: "B", groupIds: ["G"] }),
+      makeElement({ id: "C" }),
+    ])
+
+    const plan = planReorder(context, {
+      orderedElementIds: ["A"],
+      anchorNodeId: "el:C",
+      placement: "before",
+    })
+
+    expect(plan.ok).toBe(false)
+    if (!plan.ok) {
+      expect(plan.error).toContain("share one canonical parent scope")
+    }
+  })
+
+  it("C13h — reorder rejects unknown runtime modes", () => {
     const context = makeCommandContext([makeElement({ id: "A" }), makeElement({ id: "B" })])
 
     const plan = planReorder(context, {

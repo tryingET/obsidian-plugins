@@ -12,7 +12,6 @@ const makeElementNode = (
   id: string,
   options?: {
     readonly frameId?: string | null
-    readonly groupIds?: readonly string[]
   },
 ): LayerNode => ({
   id,
@@ -79,6 +78,23 @@ const makeDragEvent = () => {
   }
 }
 
+const makeScope = (
+  frameId: string | null,
+  groupPath: readonly string[] = [],
+): DragDropBranchContext => ({
+  frameId,
+  groupPath: [...groupPath],
+})
+
+const makeDropTarget = (overrides: Partial<NodeDropTarget> = {}): NodeDropTarget => ({
+  targetParentPath: [],
+  targetFrameId: null,
+  rowScope: makeScope(null),
+  siblingIndex: 0,
+  rowReorderEligible: true,
+  ...overrides,
+})
+
 const makeActions = (
   outcome:
     | { readonly status: "applied"; readonly attempts: 1 }
@@ -88,12 +104,15 @@ const makeActions = (
     attempts: 1,
   },
 ) => {
+  const reorderRelativeToNodeIds = vi.fn(async () => outcome)
   const reparentFromNodeIds = vi.fn(async () => outcome)
 
   return {
     actions: {
+      reorderRelativeToNodeIds,
       reparentFromNodeIds,
     } as unknown as LayerManagerUiActions,
+    reorderRelativeToNodeIds,
     reparentFromNodeIds,
   }
 }
@@ -107,10 +126,7 @@ describe("sidepanel drag-drop controller", () => {
       requestRenderFromLatestModel,
     })
 
-    const branch: DragDropBranchContext = {
-      frameId: "frame:A",
-      groupPath: ["Outer"],
-    }
+    const branch = makeScope("frame:A", ["Outer"])
 
     const group = makeGroupNode("G")
     const frame = makeFrameNode("frame:B")
@@ -119,17 +135,91 @@ describe("sidepanel drag-drop controller", () => {
     expect(controller.resolveNodeFrameId(group, branch)).toBe("frame:A")
     expect(controller.resolveNodeFrameId(frame, branch)).toBe("frame:B")
 
-    expect(controller.resolveDropTargetForNode(group, branch)).toEqual({
+    expect(controller.resolveDropTargetForNode(group, branch, 1)).toEqual({
       targetParentPath: ["Outer", "G"],
       targetFrameId: "frame:A",
+      rowScope: makeScope("frame:A", ["Outer"]),
+      siblingIndex: 1,
+      rowReorderEligible: true,
     })
-    expect(controller.resolveDropTargetForNode(frame, branch)).toEqual({
+    expect(controller.resolveDropTargetForNode(frame, branch, 0)).toEqual({
       targetParentPath: [],
       targetFrameId: "frame:B",
+      rowScope: makeScope("frame:A", ["Outer"]),
+      siblingIndex: 0,
+      rowReorderEligible: false,
     })
-    expect(controller.resolveDropTargetForNode(element, branch)).toEqual({
+    expect(controller.resolveDropTargetForNode(element, branch, 2)).toEqual({
       targetParentPath: ["Outer"],
       targetFrameId: "frame:A",
+      rowScope: makeScope("frame:A", ["Outer"]),
+      siblingIndex: 2,
+      rowReorderEligible: true,
+    })
+  })
+
+  it("requalifies same-scope draggable rows as reorder and preserves frame-row reparent semantics", () => {
+    const notify = vi.fn<(message: string) => void>()
+    const requestRenderFromLatestModel = vi.fn<() => void>()
+    const controller = new SidepanelDragDropController({
+      notify,
+      requestRenderFromLatestModel,
+    })
+
+    controller.startRowDrag({
+      node: makeElementNode("el:A", { frameId: "frame:A" }),
+      nodeFrameId: "frame:A",
+      branchGroupPath: ["Inner"],
+      rowScope: makeScope("frame:A", ["Inner"]),
+      siblingIndex: 2,
+      dragEvent: makeDragEvent().event,
+    })
+
+    expect(
+      controller.previewDropIntent(
+        "group:Dest",
+        makeDropTarget({
+          targetParentPath: ["Inner", "Dest"],
+          targetFrameId: "frame:A",
+          rowScope: makeScope("frame:A", ["Inner"]),
+          siblingIndex: 0,
+          rowReorderEligible: true,
+        }),
+      ),
+    ).toEqual({
+      kind: "reorder",
+      placement: "before",
+    })
+
+    expect(
+      controller.previewDropIntent(
+        "el:Tail",
+        makeDropTarget({
+          targetParentPath: ["Inner"],
+          targetFrameId: "frame:A",
+          rowScope: makeScope("frame:A", ["Inner"]),
+          siblingIndex: 4,
+          rowReorderEligible: true,
+        }),
+      ),
+    ).toEqual({
+      kind: "reorder",
+      placement: "after",
+    })
+
+    expect(
+      controller.previewDropIntent(
+        "frame:frame:A",
+        makeDropTarget({
+          targetParentPath: [],
+          targetFrameId: "frame:A",
+          rowScope: makeScope(null),
+          siblingIndex: 0,
+          rowReorderEligible: false,
+        }),
+      ),
+    ).toEqual({
+      kind: "reparent",
     })
   })
 
@@ -141,69 +231,63 @@ describe("sidepanel drag-drop controller", () => {
       requestRenderFromLatestModel,
     })
 
-    const drag = makeDragEvent()
     controller.startRowDrag({
       node: makeGroupNode("G", { frameId: "frame:A" }),
       nodeFrameId: "frame:A",
       branchGroupPath: [],
-      dragEvent: drag.event,
+      rowScope: makeScope("frame:A"),
+      siblingIndex: 1,
+      dragEvent: makeDragEvent().event,
     })
 
     expect(
-      controller.canDropDraggedNode("group:G", {
-        targetParentPath: [],
-        targetFrameId: "frame:A",
-      }),
+      controller.canDropDraggedNode(
+        "group:G",
+        makeDropTarget({
+          targetParentPath: [],
+          targetFrameId: "frame:A",
+          rowScope: makeScope("frame:A"),
+          siblingIndex: 0,
+        }),
+      ),
     ).toBe(false)
 
     expect(
-      controller.canDropDraggedNode("el:target", {
-        targetParentPath: [],
-        targetFrameId: "frame:B",
-      }),
+      controller.canDropDraggedNode(
+        "el:target",
+        makeDropTarget({
+          targetParentPath: [],
+          targetFrameId: "frame:B",
+          rowScope: makeScope("frame:B"),
+          siblingIndex: 0,
+        }),
+      ),
     ).toBe(false)
 
     expect(
-      controller.canDropDraggedNode("el:target", {
-        targetParentPath: ["Root", "G"],
-        targetFrameId: "frame:A",
-      }),
+      controller.canDropDraggedNode(
+        "el:target",
+        makeDropTarget({
+          targetParentPath: ["Root", "G"],
+          targetFrameId: "frame:A",
+          rowScope: makeScope("frame:A", ["Root"]),
+          siblingIndex: 0,
+          rowReorderEligible: false,
+        }),
+      ),
     ).toBe(false)
 
     expect(
-      controller.canDropDraggedNode("el:target", {
-        targetParentPath: ["Root"],
-        targetFrameId: "frame:A",
-      }),
+      controller.canDropDraggedNode(
+        "el:target",
+        makeDropTarget({
+          targetParentPath: ["Root"],
+          targetFrameId: "frame:A",
+          rowScope: makeScope("frame:A", ["Root"]),
+          siblingIndex: 0,
+        }),
+      ),
     ).toBe(true)
-
-    controller.startRowDrag({
-      node: makeElementNode("el:root", { frameId: "frame:A" }),
-      nodeFrameId: "frame:A",
-      branchGroupPath: [],
-      dragEvent: makeDragEvent().event,
-    })
-
-    expect(
-      controller.canDropDraggedNode("el:sibling", {
-        targetParentPath: [],
-        targetFrameId: "frame:A",
-      }),
-    ).toBe(false)
-
-    controller.startRowDrag({
-      node: makeElementNode("el:nested", { frameId: "frame:A" }),
-      nodeFrameId: "frame:A",
-      branchGroupPath: ["Outer", "Inner"],
-      dragEvent: makeDragEvent().event,
-    })
-
-    expect(
-      controller.canDropDraggedNode("el:other", {
-        targetParentPath: ["Outer", "Inner"],
-        targetFrameId: "frame:A",
-      }),
-    ).toBe(false)
   })
 
   it("tracks drop hints across drag lifecycle events", () => {
@@ -215,15 +299,19 @@ describe("sidepanel drag-drop controller", () => {
     })
 
     const drag = makeDragEvent()
-    const targetDrop: NodeDropTarget = {
+    const targetDrop = makeDropTarget({
       targetParentPath: ["Root"],
       targetFrameId: "frame:A",
-    }
+      rowScope: makeScope("frame:A", ["Root"]),
+      siblingIndex: 0,
+    })
 
     controller.startRowDrag({
       node: makeElementNode("el:A", { frameId: "frame:A" }),
       nodeFrameId: "frame:A",
       branchGroupPath: [],
+      rowScope: makeScope("frame:A"),
+      siblingIndex: 1,
       dragEvent: drag.event,
     })
 
@@ -242,6 +330,49 @@ describe("sidepanel drag-drop controller", () => {
     expect(requestRenderFromLatestModel).toHaveBeenCalled()
   })
 
+  it("applies same-scope drag-drop as reorder relative to the target row", async () => {
+    const notify = vi.fn<(message: string) => void>()
+    const requestRenderFromLatestModel = vi.fn<() => void>()
+    const controller = new SidepanelDragDropController({
+      notify,
+      requestRenderFromLatestModel,
+    })
+    const { actions, reorderRelativeToNodeIds, reparentFromNodeIds } = makeActions()
+
+    controller.startRowDrag({
+      node: makeElementNode("el:A", { frameId: "frame:A" }),
+      nodeFrameId: "frame:A",
+      branchGroupPath: [],
+      rowScope: makeScope("frame:A"),
+      siblingIndex: 2,
+      dragEvent: makeDragEvent().event,
+    })
+
+    const outcome = await controller.runDragDropMove(
+      actions,
+      "group:Dest",
+      makeDropTarget({
+        targetParentPath: ["Dest"],
+        targetFrameId: "frame:A",
+        rowScope: makeScope("frame:A"),
+        siblingIndex: 0,
+      }),
+    )
+
+    expect(reorderRelativeToNodeIds).toHaveBeenCalledWith({
+      nodeIds: ["el:A"],
+      anchorNodeId: "group:Dest",
+      placement: "before",
+    })
+    expect(reparentFromNodeIds).not.toHaveBeenCalled()
+    expect(outcome).toEqual({
+      status: "applied",
+      effect: {
+        kind: "reorder",
+      },
+    })
+  })
+
   it("applies drag-drop reparent and reports root destination", async () => {
     const notify = vi.fn<(message: string) => void>()
     const requestRenderFromLatestModel = vi.fn<() => void>()
@@ -255,13 +386,22 @@ describe("sidepanel drag-drop controller", () => {
       node: makeElementNode("el:A", { frameId: "frame:A" }),
       nodeFrameId: "frame:A",
       branchGroupPath: ["Source"],
+      rowScope: makeScope("frame:A", ["Source"]),
+      siblingIndex: 1,
       dragEvent: makeDragEvent().event,
     })
 
-    const outcome = await controller.runDragDropReparent(actions, "el:target", {
-      targetParentPath: [],
-      targetFrameId: "frame:A",
-    })
+    const outcome = await controller.runDragDropMove(
+      actions,
+      "frame:frame:A",
+      makeDropTarget({
+        targetParentPath: [],
+        targetFrameId: "frame:A",
+        rowScope: makeScope(null),
+        siblingIndex: 0,
+        rowReorderEligible: false,
+      }),
+    )
 
     expect(reparentFromNodeIds).toHaveBeenCalledWith({
       nodeIds: ["el:A"],
@@ -271,9 +411,12 @@ describe("sidepanel drag-drop controller", () => {
     })
     expect(outcome).toEqual({
       status: "applied",
-      destination: {
-        kind: "root",
-        targetFrameId: "frame:A",
+      effect: {
+        kind: "reparent",
+        destination: {
+          kind: "root",
+          targetFrameId: "frame:A",
+        },
       },
     })
   })
@@ -297,13 +440,22 @@ describe("sidepanel drag-drop controller", () => {
       node: group,
       nodeFrameId: "frame:A",
       branchGroupPath: [],
+      rowScope: makeScope("frame:A"),
+      siblingIndex: 1,
       dragEvent: drag.event,
     })
 
-    const outcome = await controller.runDragDropReparent(actions, "el:target", {
-      targetParentPath: ["Dest"],
-      targetFrameId: "frame:A",
-    })
+    const outcome = await controller.runDragDropMove(
+      actions,
+      "frame:frame:A",
+      makeDropTarget({
+        targetParentPath: ["Dest"],
+        targetFrameId: "frame:A",
+        rowScope: makeScope("frame:A", ["Other"]),
+        siblingIndex: 0,
+        rowReorderEligible: false,
+      }),
+    )
 
     expect(drag.setData).toHaveBeenCalledWith("text/plain", "group:G")
     expect(reparentFromNodeIds).toHaveBeenCalledWith({
@@ -314,22 +466,25 @@ describe("sidepanel drag-drop controller", () => {
     })
     expect(outcome).toEqual({
       status: "applied",
-      destination: {
-        kind: "preset",
-        targetParentPath: ["Dest"],
-        targetFrameId: "frame:A",
+      effect: {
+        kind: "reparent",
+        destination: {
+          kind: "preset",
+          targetParentPath: ["Dest"],
+          targetFrameId: "frame:A",
+        },
       },
     })
   })
 
-  it("fails closed on non-applied command outcomes and reports via notify", async () => {
+  it("fails closed on non-applied reorder outcomes and reports via notify", async () => {
     const notify = vi.fn<(message: string) => void>()
     const requestRenderFromLatestModel = vi.fn<() => void>()
     const controller = new SidepanelDragDropController({
       notify,
       requestRenderFromLatestModel,
     })
-    const { actions, reparentFromNodeIds } = makeActions({
+    const { actions, reorderRelativeToNodeIds } = makeActions({
       status: "preflightFailed",
       reason: "selection drift",
       attempts: 1,
@@ -339,19 +494,27 @@ describe("sidepanel drag-drop controller", () => {
       node: makeElementNode("el:A", { frameId: "frame:A" }),
       nodeFrameId: "frame:A",
       branchGroupPath: [],
+      rowScope: makeScope("frame:A"),
+      siblingIndex: 2,
       dragEvent: makeDragEvent().event,
     })
 
-    const outcome = await controller.runDragDropReparent(actions, "el:target", {
-      targetParentPath: ["G"],
-      targetFrameId: "frame:A",
-    })
+    const outcome = await controller.runDragDropMove(
+      actions,
+      "el:target",
+      makeDropTarget({
+        targetParentPath: [],
+        targetFrameId: "frame:A",
+        rowScope: makeScope("frame:A"),
+        siblingIndex: 0,
+      }),
+    )
 
     expect(outcome).toEqual({
       status: "notApplied",
     })
-    expect(reparentFromNodeIds).toHaveBeenCalledTimes(1)
-    expect(notify).toHaveBeenCalledWith("Drag and drop reparent failed: selection drift")
+    expect(reorderRelativeToNodeIds).toHaveBeenCalledTimes(1)
+    expect(notify).toHaveBeenCalledWith("Drag and drop reorder failed: selection drift")
   })
 
   it("fails closed on incompatible drop and reports via notify", async () => {
@@ -361,23 +524,32 @@ describe("sidepanel drag-drop controller", () => {
       notify,
       requestRenderFromLatestModel,
     })
-    const { actions, reparentFromNodeIds } = makeActions()
+    const { actions, reorderRelativeToNodeIds, reparentFromNodeIds } = makeActions()
 
     controller.startRowDrag({
       node: makeElementNode("el:A", { frameId: "frame:A" }),
       nodeFrameId: "frame:A",
       branchGroupPath: [],
+      rowScope: makeScope("frame:A"),
+      siblingIndex: 0,
       dragEvent: makeDragEvent().event,
     })
 
-    const outcome = await controller.runDragDropReparent(actions, "el:target", {
-      targetParentPath: [],
-      targetFrameId: "frame:B",
-    })
+    const outcome = await controller.runDragDropMove(
+      actions,
+      "el:target",
+      makeDropTarget({
+        targetParentPath: [],
+        targetFrameId: "frame:B",
+        rowScope: makeScope("frame:B"),
+        siblingIndex: 0,
+      }),
+    )
 
     expect(outcome).toEqual({
       status: "incompatible",
     })
+    expect(reorderRelativeToNodeIds).not.toHaveBeenCalled()
     expect(reparentFromNodeIds).not.toHaveBeenCalled()
     expect(notify).toHaveBeenCalledWith("Drop target is not compatible for this move.")
   })

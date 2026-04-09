@@ -686,13 +686,16 @@ describe("sidepanel rename + drag-drop integration", () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
       [
-        { id: "A", type: "rectangle", name: "Source", groupIds: [] },
+        { id: "A", type: "rectangle", name: "Source", groupIds: ["H"] },
+        { id: "H-anchor", type: "rectangle", groupIds: ["H"] },
         { id: "B", type: "rectangle", groupIds: ["G"] },
       ],
       [],
     )
 
-    createLayerManagerRuntime(runtime.ea)
+    const app = createLayerManagerRuntime(runtime.ea)
+    app.toggleExpanded("group:H")
+    await flushAsync()
 
     const contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
     const sourceRow = findInteractiveRowByLabel(contentRoot, "[element] Source")
@@ -708,6 +711,37 @@ describe("sidepanel rename + drag-drop integration", () => {
     await flushAsync()
 
     expect(runtime.elements.find((element) => element.id === "A")?.groupIds ?? []).toEqual(["G"])
+  })
+
+  it("reorders same-parent rows through drag and drop instead of silently reparenting them", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      [
+        { id: "A", type: "rectangle", name: "Alpha" },
+        { id: "B", type: "rectangle", name: "Beta" },
+        { id: "C", type: "rectangle", name: "Gamma" },
+      ],
+      [],
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+
+    const contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const sourceRow = findInteractiveRowByLabel(contentRoot, "[element] Alpha")
+    const targetRow = findInteractiveRowByLabel(contentRoot, "[element] Beta")
+
+    if (!sourceRow || !targetRow) {
+      throw new Error("Expected same-parent drag source and target rows.")
+    }
+
+    sourceRow.dispatchEvent(new FakeDomEvent("dragstart"))
+    targetRow.dispatchEvent(new FakeDomEvent("dragover"))
+    targetRow.dispatchEvent(new FakeDomEvent("drop"))
+    await flushAsync()
+
+    expect(runtime.elements.map((element) => element.id)).toEqual(["B", "A", "C"])
+    expect(runtime.elements.find((element) => element.id === "A")?.groupIds ?? []).toEqual([])
+    expect(runtime.elements.find((element) => element.id === "B")?.groupIds ?? []).toEqual([])
   })
 
   it("drops grouped frame children onto the frame row to move them to the frame root", async () => {

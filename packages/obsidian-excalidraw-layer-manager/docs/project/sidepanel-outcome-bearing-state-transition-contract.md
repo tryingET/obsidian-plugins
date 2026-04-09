@@ -93,6 +93,7 @@ Reusable pattern for the remaining tasks (`982`, `983`, `1019`):
 - any qualification or reconciliation step that can change user-visible outcome state must return an explicit outcome object
 - the caller must decide the visible state from that outcome, not infer success from attempted mutation
 - planner rejection and post-qualification incompatibility must notify explicitly
+- same-parent draggable row drops must qualify as relative reorder against the target sibling slot instead of silently falling through to sibling-container reparent semantics
 - persistence or remembered-state repair must never use fire-and-forget writes
 - tests must prove both the applied path and the reverted/rejected path
 

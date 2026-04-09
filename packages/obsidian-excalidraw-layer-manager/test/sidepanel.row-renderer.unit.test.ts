@@ -140,6 +140,7 @@ const makeActions = (): LayerManagerUiActions => {
     deleteNode: vi.fn(async () => makeAppliedOutcome()),
     createGroupFromNodeIds: vi.fn(async () => makeAppliedOutcome()),
     reorderFromNodeIds: vi.fn(async () => makeAppliedOutcome()),
+    reorderRelativeToNodeIds: vi.fn(async () => makeAppliedOutcome()),
     reparentFromNodeIds: vi.fn(async () => makeAppliedOutcome()),
     commands: {
       toggleVisibility: vi.fn(async () => makeAppliedOutcome()),

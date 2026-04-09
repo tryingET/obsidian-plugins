@@ -8,6 +8,7 @@ import type {
   ElementVisualState,
   LayerManagerRenderer,
   RenderViewModel,
+  ReorderRelativeToNodeIdsInput,
   ReparentFromNodeIdsInput,
 } from "./renderer.js"
 
@@ -205,6 +206,29 @@ export class LayerManagerController {
     })
   }
 
+  readonly #reorderRelativeToNodeIdsAction = async (
+    input: ReorderRelativeToNodeIdsInput,
+  ): Promise<ExecuteIntentOutcome> => {
+    await this.#interactionLifecycle.waitForIdle()
+
+    const resolved = this.resolveElementIdsFromNodeIds("reorder", input.nodeIds)
+    if (!resolved.ok) {
+      return resolved.outcome
+    }
+
+    if (!this.#latestNodeById.has(input.anchorNodeId)) {
+      const message = `reorder failed: node not found (${input.anchorNodeId}).`
+      this.notify(message)
+      return plannerErrorOutcome(message)
+    }
+
+    return resolved.commandFacade.reorder({
+      orderedElementIds: resolved.elementIds,
+      anchorNodeId: input.anchorNodeId,
+      placement: input.placement,
+    })
+  }
+
   constructor(
     renderer: LayerManagerRenderer,
     store?: LayerManagerStore,
@@ -395,6 +419,7 @@ export class LayerManagerController {
           deleteNode: this.#deleteNodeAction,
           createGroupFromNodeIds: this.#createGroupFromNodeIdsAction,
           reorderFromNodeIds: this.#reorderFromNodeIdsAction,
+          reorderRelativeToNodeIds: this.#reorderRelativeToNodeIdsAction,
           reparentFromNodeIds: this.#reparentFromNodeIdsAction,
           commands: this.#commandFacade,
         },

@@ -68,6 +68,7 @@ The exact module ownership, contract-test matrix, and AK task sequencing for thi
 3. **Reorder + drag/drop requalification**
    - rebind reorder and drag/drop behavior to canonical structural targets after identity stabilization
    - keep reorder semantics honest about scope, especially for collapsed/grouped/frame-aware selections
+   - treat same-parent draggable row drops as relative reorder against the target sibling slot instead of silently reparenting into a sibling container alias
    - fail closed on malformed ancestry or drift instead of silently normalizing meaning away
 
 ## Verification gate for this wave

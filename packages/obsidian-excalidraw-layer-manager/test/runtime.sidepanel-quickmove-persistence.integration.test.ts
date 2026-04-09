@@ -280,6 +280,7 @@ const makeUiActions = (
     deleteNode: vi.fn(async () => makeAppliedOutcome()),
     createGroupFromNodeIds: vi.fn(async () => makeAppliedOutcome()),
     reorderFromNodeIds: vi.fn(async () => makeAppliedOutcome()),
+    reorderRelativeToNodeIds: vi.fn(async () => makeAppliedOutcome()),
     reparentFromNodeIds: vi.fn(async () => makeAppliedOutcome()),
     commands: commandSpies,
     ...overrides,
@@ -1081,15 +1082,15 @@ describe("sidepanel quick-move + persistence integration", () => {
     }
 
     renderer.render({
-      tree: [makeElementNode("A"), makeElementNode("B")],
+      tree: [makeGroupNode("G", [makeElementNode("A")]), makeElementNode("B")],
       selectedIds: new Set(),
       sceneVersion: 8,
       actions,
     })
 
     const contentRoot = getContentRoot(sidepanelTab.contentEl)
-    const sourceRow = findInteractiveRowByLabel(contentRoot, "[element] A")
-    const targetRow = findInteractiveRowByLabel(contentRoot, "[element] B")
+    const sourceRow = findInteractiveRowByLabel(contentRoot, "[group] G")
+    const targetRow = findInteractiveRowByLabel(contentRoot, "[element] A")
 
     if (!sourceRow || !targetRow) {
       throw new Error("Expected source and target rows.")
@@ -1100,6 +1101,7 @@ describe("sidepanel quick-move + persistence integration", () => {
     await flushAsync()
 
     expect(notices).toContain("Drop target is not compatible for this move.")
+    expect(actions.reorderRelativeToNodeIds).not.toHaveBeenCalled()
     expect(actions.reparentFromNodeIds).not.toHaveBeenCalled()
   })
 })

@@ -348,6 +348,37 @@ describe("runtime command facade + controller action seam", () => {
     expect(runtime.addToView).not.toHaveBeenCalled()
   })
 
+  it("wires relative structural reorder action through the controller seam", async () => {
+    const runtime = makeInstrumentedEa([
+      { id: "A", type: "rectangle" },
+      { id: "B", type: "rectangle" },
+      { id: "C", type: "rectangle" },
+    ])
+
+    const render = vi.fn()
+
+    createLayerManagerRuntime(runtime.ea, {
+      render,
+      notify: vi.fn(),
+    })
+
+    const actions = getUiActions(render)
+    const outcome = await actions.reorderRelativeToNodeIds({
+      nodeIds: ["el:A"],
+      anchorNodeId: "el:B",
+      placement: "before",
+    })
+
+    expect(outcome).toEqual({
+      status: "applied",
+      attempts: 1,
+    })
+    expect(runtime.elements.map((element) => element.id)).toEqual(["B", "A", "C"])
+    expect(runtime.updateScene).toHaveBeenCalledTimes(1)
+    expect(runtime.copyForEditing).not.toHaveBeenCalled()
+    expect(runtime.addToView).not.toHaveBeenCalled()
+  })
+
   it("wires structural reparent action through the controller seam", async () => {
     const runtime = makeInstrumentedEa([
       { id: "A", type: "rectangle", groupIds: [] },

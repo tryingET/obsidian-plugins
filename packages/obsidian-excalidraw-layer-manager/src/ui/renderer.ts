@@ -1,4 +1,4 @@
-import type { ReorderMode } from "../commands/reorderNode.js"
+import type { ReorderMode, ReorderPlacement } from "../commands/reorderNode.js"
 import type { LayerNode } from "../model/tree.js"
 import type { LayerManagerCommandFacade } from "../runtime/commandFacade.js"
 import type { ExecuteIntentOutcome } from "../runtime/intentExecution.js"
@@ -15,6 +15,12 @@ export interface ReparentFromNodeIdsInput {
   readonly targetFrameId: string | null
 }
 
+export interface ReorderRelativeToNodeIdsInput {
+  readonly nodeIds: readonly string[]
+  readonly anchorNodeId: string
+  readonly placement: ReorderPlacement
+}
+
 export interface LayerManagerUiActions {
   readonly beginInteraction: () => void
   readonly endInteraction: () => void
@@ -29,6 +35,9 @@ export interface LayerManagerUiActions {
   readonly reorderFromNodeIds: (
     nodeIds: readonly string[],
     mode?: ReorderMode,
+  ) => Promise<ExecuteIntentOutcome>
+  readonly reorderRelativeToNodeIds: (
+    input: ReorderRelativeToNodeIdsInput,
   ) => Promise<ExecuteIntentOutcome>
   readonly reparentFromNodeIds: (input: ReparentFromNodeIdsInput) => Promise<ExecuteIntentOutcome>
   readonly commands: LayerManagerCommandFacade
