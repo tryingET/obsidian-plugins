@@ -443,22 +443,20 @@ export class SidepanelQuickMovePersistenceService {
   }
 
   private persistLastMovePersistencePreference(): Promise<boolean> {
+    const persistLastMoveAcrossRestarts = this.#persistLastMoveAcrossRestarts
+    const persistedLastMoveDestination =
+      persistLastMoveAcrossRestarts && this.#lastQuickMoveDestination
+        ? toPersistedLastMovePayload(this.#lastQuickMoveDestination)
+        : null
+
     return this.#settingsWriteQueue.enqueue((settings) => {
       settings[SETTING_KEY_PERSIST_LAST_MOVE] = {
-        value: this.#persistLastMoveAcrossRestarts,
+        value: persistLastMoveAcrossRestarts,
         description: SETTING_DESC_PERSIST_LAST_MOVE,
       }
 
-      if (!this.#persistLastMoveAcrossRestarts || !this.#lastQuickMoveDestination) {
-        settings[SETTING_KEY_LAST_MOVE_DESTINATION] = {
-          value: null,
-          description: SETTING_DESC_LAST_MOVE_DESTINATION,
-        }
-        return
-      }
-
       settings[SETTING_KEY_LAST_MOVE_DESTINATION] = {
-        value: toPersistedLastMovePayload(this.#lastQuickMoveDestination),
+        value: persistedLastMoveDestination,
         description: SETTING_DESC_LAST_MOVE_DESTINATION,
       }
     }, "Failed to persist last-move preference.")
@@ -469,6 +467,10 @@ export class SidepanelQuickMovePersistenceService {
       return Promise.resolve(true)
     }
 
+    const persistedLastMoveDestination = this.#lastQuickMoveDestination
+      ? toPersistedLastMovePayload(this.#lastQuickMoveDestination)
+      : null
+
     return this.#settingsWriteQueue.enqueue((settings) => {
       settings[SETTING_KEY_PERSIST_LAST_MOVE] = {
         value: true,
@@ -476,9 +478,7 @@ export class SidepanelQuickMovePersistenceService {
       }
 
       settings[SETTING_KEY_LAST_MOVE_DESTINATION] = {
-        value: this.#lastQuickMoveDestination
-          ? toPersistedLastMovePayload(this.#lastQuickMoveDestination)
-          : null,
+        value: persistedLastMoveDestination,
         description: SETTING_DESC_LAST_MOVE_DESTINATION,
       }
     }, "Failed to persist last move destination.")

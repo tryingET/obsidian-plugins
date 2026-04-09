@@ -46,6 +46,49 @@ const createHarness = (initialSettings: ScriptSettingsLike = {}) => {
   }
 }
 
+interface DeferredSettingsWrite {
+  readonly mutator: (settings: ScriptSettingsLike) => void
+  readonly onErrorMessage: string
+  readonly resolve: (result: boolean) => void
+}
+
+const createDeferredQueueHarness = (initialSettings: ScriptSettingsLike = {}) => {
+  let settings = structuredClone(initialSettings)
+  const pendingWrites: DeferredSettingsWrite[] = []
+
+  const queue = {
+    get canWrite(): boolean {
+      return true
+    },
+    enqueue(
+      mutator: (nextSettings: ScriptSettingsLike) => void,
+      onErrorMessage: string,
+    ): Promise<boolean> {
+      return new Promise<boolean>((resolve) => {
+        pendingWrites.push({
+          mutator,
+          onErrorMessage,
+          resolve,
+        })
+      })
+    },
+  } as SidepanelSettingsWriteQueue
+
+  const service = new SidepanelQuickMovePersistenceService({
+    getScriptSettings: () => settings,
+    settingsWriteQueue: queue,
+  })
+
+  return {
+    service,
+    pendingWrites,
+    setSettings: (nextSettings: ScriptSettingsLike) => {
+      settings = structuredClone(nextSettings)
+    },
+    getSettings: () => settings,
+  }
+}
+
 const makeElementNode = (elementId: string): LayerNode => ({
   id: `el:${elementId}`,
   type: "element",
@@ -416,6 +459,108 @@ describe("sidepanel quick-move persistence service", () => {
     expect(harness.setScriptSettings).not.toHaveBeenCalled()
   })
 
+  it("captures last-move destination payloads at enqueue time", async () => {
+    const harness = createDeferredQueueHarness({
+      lmx_persist_last_move_destination: {
+        value: true,
+      },
+      lmx_last_move_destination: {
+        value: null,
+      },
+    })
+
+    harness.service.loadFromSettingsOnce()
+
+    const firstPersist = harness.service.setLastQuickMoveDestination({
+      kind: "root",
+      targetFrameId: null,
+    })
+    const firstWrite = harness.pendingWrites.shift()
+    if (!firstWrite) {
+      throw new Error("Expected first deferred settings write.")
+    }
+
+    const secondPersist = harness.service.setLastQuickMoveDestination({
+      kind: "root",
+      targetFrameId: "Frame-A",
+    })
+    const secondWrite = harness.pendingWrites.shift()
+    if (!secondWrite) {
+      throw new Error("Expected second deferred settings write.")
+    }
+
+    const firstSnapshot: ScriptSettingsLike = {}
+    firstWrite.mutator(firstSnapshot)
+    expect(firstSnapshot["lmx_last_move_destination"]?.value).toEqual({
+      kind: "root",
+      targetFrameId: null,
+    })
+
+    const secondSnapshot: ScriptSettingsLike = {}
+    secondWrite.mutator(secondSnapshot)
+    expect(secondSnapshot["lmx_last_move_destination"]?.value).toEqual({
+      kind: "root",
+      targetFrameId: "Frame-A",
+    })
+
+    firstWrite.resolve(true)
+    secondWrite.resolve(true)
+    await expect(firstPersist).resolves.toBe(true)
+    await expect(secondPersist).resolves.toBe(true)
+  })
+
+  it("captures preference snapshots at enqueue time even when later writes change runtime state", async () => {
+    const harness = createDeferredQueueHarness({
+      lmx_persist_last_move_destination: {
+        value: false,
+      },
+      lmx_last_move_destination: {
+        value: null,
+      },
+    })
+
+    harness.service.loadFromSettingsOnce()
+    await harness.service.setLastQuickMoveDestination({
+      kind: "root",
+      targetFrameId: null,
+    })
+
+    const enablePersistence = harness.service.setPersistLastMoveAcrossRestarts(true)
+    const enableWrite = harness.pendingWrites.shift()
+    if (!enableWrite) {
+      throw new Error("Expected deferred preference write.")
+    }
+
+    const moveAfterEnable = harness.service.setLastQuickMoveDestination({
+      kind: "root",
+      targetFrameId: "Frame-A",
+    })
+    const moveWrite = harness.pendingWrites.shift()
+    if (!moveWrite) {
+      throw new Error("Expected deferred destination write after enabling persistence.")
+    }
+
+    const enableSnapshot: ScriptSettingsLike = {}
+    enableWrite.mutator(enableSnapshot)
+    expect(enableSnapshot["lmx_persist_last_move_destination"]?.value).toBe(true)
+    expect(enableSnapshot["lmx_last_move_destination"]?.value).toEqual({
+      kind: "root",
+      targetFrameId: null,
+    })
+
+    const moveSnapshot: ScriptSettingsLike = {}
+    moveWrite.mutator(moveSnapshot)
+    expect(moveSnapshot["lmx_last_move_destination"]?.value).toEqual({
+      kind: "root",
+      targetFrameId: "Frame-A",
+    })
+
+    enableWrite.resolve(true)
+    moveWrite.resolve(true)
+    await expect(enablePersistence).resolves.toBe(true)
+    await expect(moveAfterEnable).resolves.toBe(true)
+  })
+
   it("writes disabled preference with null persisted destination but keeps runtime destination", async () => {
     const harness = createHarness()
 
@@ -598,5 +743,76 @@ describe("sidepanel quick-move persistence service", () => {
       status: "suppressed",
     })
     expect(setScriptSettings).toHaveBeenCalledTimes(1)
+  })
+
+  it("clears remembered-destination suppression after a later successful persisted change", async () => {
+    const settings: ScriptSettingsLike = {
+      lmx_persist_last_move_destination: {
+        value: true,
+      },
+      lmx_last_move_destination: {
+        value: {
+          kind: "preset",
+          targetParentPath: ["G"],
+          targetFrameId: null,
+          label: "Inside old label",
+        },
+      },
+    }
+
+    const notify = vi.fn<(message: string) => void>()
+    const setScriptSettings = vi
+      .fn<(nextSettings: ScriptSettingsLike) => Promise<void>>()
+      .mockRejectedValueOnce(new Error("disk full"))
+      .mockResolvedValue(undefined)
+
+    const queue = new SidepanelSettingsWriteQueue({
+      getScriptSettings: () => settings,
+      setScriptSettings,
+      notify,
+    })
+
+    const service = new SidepanelQuickMovePersistenceService({
+      getScriptSettings: () => settings,
+      settingsWriteQueue: queue,
+    })
+
+    service.loadFromSettingsOnce()
+
+    const projection = buildSidepanelQuickMoveDestinationProjection(
+      [makeGroupNode("G", "Renamed Group")],
+      24,
+      64,
+    )
+
+    const reboundInput = {
+      lastQuickMoveDestination: projectQuickMoveDestination(
+        service.lastQuickMoveDestination,
+        projection.destinationByKey,
+        projection.liveFrameIds,
+      ),
+      recentQuickMoveDestinations: projectQuickMoveDestinations(
+        service.recentQuickMoveDestinations,
+        projection.destinationByKey,
+        projection.liveFrameIds,
+      ),
+    }
+
+    await expect(service.rebindRememberedDestinations(reboundInput)).resolves.toMatchObject({
+      status: "reconciled",
+      persisted: false,
+    })
+
+    const suppressedPreview = service.previewReboundRememberedDestinations(reboundInput)
+    expect(service.shouldSuppressRememberedDestinationRebind(suppressedPreview)).toBe(true)
+
+    await expect(
+      service.setLastQuickMoveDestination({
+        kind: "root",
+        targetFrameId: null,
+      }),
+    ).resolves.toBe(true)
+
+    expect(service.shouldSuppressRememberedDestinationRebind(suppressedPreview)).toBe(false)
   })
 })
