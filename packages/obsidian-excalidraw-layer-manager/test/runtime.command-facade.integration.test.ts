@@ -352,6 +352,7 @@ describe("runtime command facade + controller action seam", () => {
     const runtime = makeInstrumentedEa([
       { id: "A", type: "rectangle", groupIds: [] },
       { id: "B", type: "rectangle", groupIds: [] },
+      { id: "Anchor", type: "rectangle", groupIds: ["Outer"] },
     ])
 
     const render = vi.fn()

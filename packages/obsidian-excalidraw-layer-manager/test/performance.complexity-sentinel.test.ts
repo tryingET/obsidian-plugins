@@ -356,6 +356,12 @@ describe("performance complexity sentinel", () => {
           type: "frame",
           zIndex: 0,
         }),
+        makeElement({
+          id: "target-anchor",
+          frameId,
+          zIndex: size,
+          groupIds: ["target-inner", "target-outer"],
+        }),
       ]
 
       const movedCount = Math.max(50, Math.floor(size * 0.25))

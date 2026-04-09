@@ -421,6 +421,12 @@ export class SidepanelKeyboardShortcutController {
     context: KeyboardShortcutContext,
     mode: ReorderMode,
   ): Promise<void> {
+    const selectedNodeIds = context.selection.nodes.map((node) => node.id)
+    if (selectedNodeIds.length > 0) {
+      await context.actions.reorderFromNodeIds(selectedNodeIds, mode)
+      return
+    }
+
     if (context.selection.elementIds.length > 0) {
       await context.actions.commands.reorder({
         orderedElementIds: context.selection.elementIds,

@@ -23,19 +23,17 @@ export const bindSidepanelRowInteractions = (input: SidepanelRowInteractionBindi
     input.onRowDoubleClick()
   })
 
-  if (!input.draggable) {
-    return
+  if (input.draggable) {
+    input.row.draggable = true
+
+    input.row.addEventListener("dragstart", (event) => {
+      input.onDragStart(event as DragEvent)
+    })
+
+    input.row.addEventListener("dragend", () => {
+      input.onDragEnd()
+    })
   }
-
-  input.row.draggable = true
-
-  input.row.addEventListener("dragstart", (event) => {
-    input.onDragStart(event as DragEvent)
-  })
-
-  input.row.addEventListener("dragend", () => {
-    input.onDragEnd()
-  })
 
   input.row.addEventListener("dragenter", (event) => {
     input.onDragEnter(event as DragEvent)

@@ -82,16 +82,22 @@ export class SidepanelSelectionActionController {
 
   async reorderSelected(
     actions: LayerManagerUiActions,
-    selectedElementIds: readonly string[],
+    selection: ResolvedSelection,
     mode: ReorderMode,
   ): Promise<void> {
-    if (selectedElementIds.length === 0) {
+    const selectedNodeIds = selection.nodes.map((node) => node.id)
+    if (selectedNodeIds.length > 0) {
+      await actions.reorderFromNodeIds(selectedNodeIds, mode)
+      return
+    }
+
+    if (selection.elementIds.length === 0) {
       this.#host.notify("Reorder requires at least one selected element.")
       return
     }
 
     await actions.commands.reorder({
-      orderedElementIds: selectedElementIds,
+      orderedElementIds: selection.elementIds,
       mode,
     })
   }

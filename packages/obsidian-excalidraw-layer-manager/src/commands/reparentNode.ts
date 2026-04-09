@@ -1,4 +1,8 @@
-import { validateReparentInvariants } from "../domain/invariants.js"
+import {
+  collectCanonicalTargetParentPathKeys,
+  validateReparentInvariants,
+} from "../domain/invariants.js"
+import { buildLayerTree } from "../domain/treeBuilder.js"
 import { type ScenePatch, emptyPatch } from "../model/patch.js"
 import { err, ok } from "../model/result.js"
 import type { Result } from "../model/result.js"
@@ -12,38 +16,22 @@ export interface ReparentNodeInput {
   readonly targetFrameId: string | null
 }
 
-const unique = (values: readonly string[]): string[] => {
-  const seen = new Set<string>()
-  const output: string[] = []
-
-  for (const value of values) {
-    if (!value || seen.has(value)) {
-      continue
-    }
-
-    seen.add(value)
-    output.push(value)
-  }
-
-  return output
-}
-
 const buildReparentedGroupIds = (
   targetGroupIds: readonly string[],
   sourceGroupId: string | null,
   targetSuffix: readonly string[],
 ): readonly string[] => {
   if (!sourceGroupId) {
-    return unique(targetSuffix)
+    return [...targetSuffix]
   }
 
   const sourceIndex = targetGroupIds.lastIndexOf(sourceGroupId)
   if (sourceIndex < 0) {
-    return unique([sourceGroupId, ...targetSuffix])
+    return [sourceGroupId, ...targetSuffix]
   }
 
   const innerPrefix = targetGroupIds.slice(0, sourceIndex)
-  return unique([...innerPrefix, sourceGroupId, ...targetSuffix])
+  return [...innerPrefix, sourceGroupId, ...targetSuffix]
 }
 
 export const planReparentNode = (
@@ -84,18 +72,28 @@ export const planReparentNode = (
     return err("Cannot reparent nodes spanning multiple source frames.")
   }
 
+  const structuralTree = buildLayerTree(
+    {
+      elements: context.snapshot.elements,
+      expandedNodeIds: new Set<string>(),
+      groupFreedraw: context.snapshot.settings.groupFreedraw,
+    },
+    context.indexes,
+  )
+
   const validation = validateReparentInvariants({
     sourceFrameId,
     targetFrameId: input.targetFrameId,
     sourceGroupId: input.sourceGroupId,
     targetParentPath: input.targetParentPath,
+    canonicalTargetParentPathKeys: collectCanonicalTargetParentPathKeys(structuralTree),
   })
 
   if (!validation.ok) {
     return validation
   }
 
-  const targetSuffix = unique([...input.targetParentPath].filter((groupId) => !!groupId).reverse())
+  const targetSuffix = [...input.targetParentPath].reverse()
 
   const elementPatches = targets.flatMap((target) => {
     const nextGroupIds = buildReparentedGroupIds(target.groupIds, input.sourceGroupId, targetSuffix)

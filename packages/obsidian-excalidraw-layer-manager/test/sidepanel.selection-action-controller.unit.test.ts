@@ -101,12 +101,14 @@ const makeHarness = () => {
   const endInteraction = vi.fn<() => void>()
   const createGroup = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
   const reorder = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
+  const reorderFromNodeIds = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
   const reparent = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
   const reparentFromNodeIds = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
 
   const actions = {
     beginInteraction,
     endInteraction,
+    reorderFromNodeIds,
     reparentFromNodeIds,
     commands: {
       createGroup,
@@ -127,6 +129,7 @@ const makeHarness = () => {
     endInteraction,
     createGroup,
     reorder,
+    reorderFromNodeIds,
     reparent,
     reparentFromNodeIds,
   }
@@ -161,6 +164,43 @@ describe("sidepanel selection action controller", () => {
     expect(harness.beginInteraction).toHaveBeenCalledTimes(1)
     expect(harness.endInteraction).toHaveBeenCalledTimes(1)
     expect(harness.suppressKeyboardAfterPrompt).toHaveBeenCalledTimes(1)
+  })
+
+  it("reorders through canonical selected node ids when row identities are available", async () => {
+    const harness = makeHarness()
+
+    await harness.controller.reorderSelected(
+      harness.actions,
+      {
+        elementIds: ["el:A", "el:B"],
+        nodes: [makeGroupNode("G", ["el:A", "el:B"], "Frame-A")],
+        frameResolution: makeFrameResolution("Frame-A"),
+      },
+      "front",
+    )
+
+    expect(harness.reorderFromNodeIds).toHaveBeenCalledWith(["group:G"], "front")
+    expect(harness.reorder).not.toHaveBeenCalled()
+  })
+
+  it("falls back to raw selected element ids when canonical nodes are unavailable", async () => {
+    const harness = makeHarness()
+
+    await harness.controller.reorderSelected(
+      harness.actions,
+      {
+        elementIds: ["el:A"],
+        nodes: [],
+        frameResolution: makeFrameResolution("Frame-A"),
+      },
+      "forward",
+    )
+
+    expect(harness.reorder).toHaveBeenCalledWith({
+      orderedElementIds: ["el:A"],
+      mode: "forward",
+    })
+    expect(harness.reorderFromNodeIds).not.toHaveBeenCalled()
   })
 
   it("applies a preset move and stores the destination", async () => {

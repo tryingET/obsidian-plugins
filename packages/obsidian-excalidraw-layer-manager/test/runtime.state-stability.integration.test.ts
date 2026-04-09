@@ -154,6 +154,7 @@ describe("runtime expanded + selection stability", () => {
         { id: "A", type: "rectangle", frameId: "F" },
         { id: "B", type: "rectangle", frameId: "F" },
         { id: "C", type: "rectangle", frameId: "F" },
+        { id: "Anchor", type: "rectangle", frameId: "F", groupIds: ["G"] },
       ],
       ["A", "C"],
     )
@@ -190,6 +191,7 @@ describe("runtime expanded + selection stability", () => {
       { id: "B", type: "rectangle", groupIds: ["G1"] },
       { id: "C", type: "rectangle", groupIds: ["G2"] },
       { id: "D", type: "rectangle", groupIds: ["G2"] },
+      { id: "Anchor", type: "rectangle", groupIds: ["inner", "G1"] },
     ])
 
     const render = vi.fn()

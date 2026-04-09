@@ -109,6 +109,12 @@ const makeReparentBenchFixture = (sceneSize: number, movedCount: number): Repare
       type: "frame",
       zIndex: 0,
     }),
+    makeElement({
+      id: "target-anchor",
+      frameId,
+      zIndex: sceneSize,
+      groupIds: ["target-inner", "target-outer"],
+    }),
   ]
 
   const movedIds: string[] = []

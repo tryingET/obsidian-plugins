@@ -17,11 +17,12 @@ const patchById = (patch: ScenePatch, id: string) => {
 }
 
 describe("commands acceptance matrix", () => {
-  it("C01 — reparent assigns reversed target parent path", () => {
+  it("C01 — reparent assigns reversed canonical target parent path", () => {
     const context = makeCommandContext([
       makeElement({ id: "F", type: "frame" }),
       makeElement({ id: "A", frameId: "F" }),
       makeElement({ id: "B", frameId: "F" }),
+      makeElement({ id: "Anchor", frameId: "F", groupIds: ["inner", "outer"] }),
     ])
 
     const plan = planReparentNode(context, {
@@ -47,6 +48,7 @@ describe("commands acceptance matrix", () => {
       makeElement({ id: "F", type: "frame" }),
       makeElement({ id: "A", frameId: "F", groupIds: ["inner", "G"] }),
       makeElement({ id: "B", frameId: "F", groupIds: ["G"] }),
+      makeElement({ id: "Anchor", frameId: "F", groupIds: ["outer"] }),
     ])
 
     const plan = planReparentNode(context, {
@@ -142,6 +144,7 @@ describe("commands acceptance matrix", () => {
     const context = makeCommandContext([
       makeElement({ id: "S", type: "rectangle", frameId: "F" }),
       makeElement({ id: "T", type: "text", frameId: "F", containerId: "S" }),
+      makeElement({ id: "Anchor", type: "rectangle", frameId: "F", groupIds: ["G"] }),
     ])
 
     const plan = planReparentNode(context, {
@@ -165,6 +168,7 @@ describe("commands acceptance matrix", () => {
     const context = makeCommandContext([
       makeElement({ id: "S", type: "rectangle", frameId: "F" }),
       makeElement({ id: "T", type: "text", frameId: "F", containerId: "S" }),
+      makeElement({ id: "Anchor", type: "rectangle", frameId: "F", groupIds: ["G"] }),
     ])
 
     const plan = planReparentNode(context, {
@@ -186,6 +190,7 @@ describe("commands acceptance matrix", () => {
     const context = makeCommandContext([
       makeElement({ id: "A", groupIds: ["inner", "G"] }),
       makeElement({ id: "B", groupIds: ["other"] }),
+      makeElement({ id: "Anchor", groupIds: ["outer"] }),
     ])
 
     const plan = planReparentNode(context, {
@@ -220,6 +225,41 @@ describe("commands acceptance matrix", () => {
     }
 
     expect(plan.value.elementPatches).toEqual([])
+  })
+
+  it("C08c — reparent rejects stale target parent paths instead of inventing new ancestry", () => {
+    const context = makeCommandContext([
+      makeElement({ id: "A", frameId: "F" }),
+      makeElement({ id: "F", type: "frame" }),
+    ])
+
+    const plan = planReparentNode(context, {
+      elementIds: ["A"],
+      sourceGroupId: null,
+      targetParentPath: ["missing"],
+      targetFrameId: "F",
+    })
+
+    expect(plan.ok).toBe(false)
+    if (!plan.ok) {
+      expect(plan.error).toContain("stale")
+    }
+  })
+
+  it("C08d — reparent rejects duplicate target path segments instead of normalizing intent", () => {
+    const context = makeCommandContext([makeElement({ id: "A" })])
+
+    const plan = planReparentNode(context, {
+      elementIds: ["A"],
+      sourceGroupId: null,
+      targetParentPath: ["dup", "dup"],
+      targetFrameId: null,
+    })
+
+    expect(plan.ok).toBe(false)
+    if (!plan.ok) {
+      expect(plan.error).toContain("duplicate")
+    }
   })
 
   it("C09 — reorder moves selection to front while preserving current scene-relative order", () => {

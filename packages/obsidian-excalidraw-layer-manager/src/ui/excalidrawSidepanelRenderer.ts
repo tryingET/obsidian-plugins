@@ -568,7 +568,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
 
         await this.#selectionActionController.reorderSelected(
           model.actions,
-          resolvedSelection.elementIds,
+          resolvedSelection,
           mode,
         )
       },

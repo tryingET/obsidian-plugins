@@ -710,6 +710,42 @@ describe("sidepanel rename + drag-drop integration", () => {
     expect(runtime.elements.find((element) => element.id === "A")?.groupIds ?? []).toEqual(["G"])
   })
 
+  it("drops grouped frame children onto the frame row to move them to the frame root", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      [
+        { id: "F", type: "frame", name: "Board" },
+        { id: "A", type: "rectangle", name: "Source", frameId: "F", groupIds: ["G"] },
+        { id: "B", type: "rectangle", frameId: "F", groupIds: ["G"] },
+        { id: "C", type: "rectangle", name: "Frame peer", frameId: "F", groupIds: [] },
+      ],
+      [],
+    )
+
+    const app = createLayerManagerRuntime(runtime.ea)
+    app.toggleExpanded("frame:F")
+    app.toggleExpanded("group:G")
+    await flushAsync()
+
+    const contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const sourceRow = findInteractiveRowByLabel(contentRoot, "[element] Source")
+    const frameRow = findInteractiveRowByLabel(contentRoot, "[frame] Board")
+
+    if (!sourceRow || !frameRow) {
+      throw new Error("Expected grouped frame child and frame-row drop target.")
+    }
+
+    sourceRow.dispatchEvent(new FakeDomEvent("dragstart"))
+    frameRow.dispatchEvent(new FakeDomEvent("dragover"))
+    frameRow.dispatchEvent(new FakeDomEvent("drop"))
+    await flushAsync()
+
+    expect(runtime.elements.find((element) => element.id === "A")?.frameId).toBe("F")
+    expect(runtime.elements.find((element) => element.id === "A")?.groupIds ?? []).toEqual([])
+    expect(runtime.elements.find((element) => element.id === "B")?.groupIds ?? []).toEqual(["G"])
+    expect(runtime.elements.find((element) => element.id === "C")?.groupIds ?? []).toEqual([])
+  })
+
   it("moves grouped leaf rows out to root without preserving the old parent group", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
