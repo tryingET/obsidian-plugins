@@ -133,6 +133,7 @@ describe("sidepanel inline rename controller", () => {
       draft: "  Keep me  ",
       shouldAutofocusInput: false,
     })
+    expect(harness.requestRenderFromLatestModel).toHaveBeenCalledTimes(1)
     expect(harness.suppressNextContentFocusOut).not.toHaveBeenCalled()
     expect(harness.focusContentRoot).not.toHaveBeenCalled()
   })

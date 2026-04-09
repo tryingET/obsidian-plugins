@@ -89,7 +89,10 @@ const filterNodesForQuery = (
     filtered.push({
       ...node,
       children: filteredChildren,
-      canExpand: node.canExpand || node.children.length > 0,
+      // Filter mode projects the currently relevant descendants directly and suppresses
+      // expand/collapse affordances so visible-row controls stay honest about what the
+      // filter can actually reveal.
+      canExpand: false,
       isExpanded: filteredChildren.length > 0,
     })
   }

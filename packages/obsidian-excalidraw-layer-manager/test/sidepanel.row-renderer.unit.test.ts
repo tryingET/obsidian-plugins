@@ -327,10 +327,14 @@ describe("sidepanel row renderer", () => {
       onInlineRenameCancel: () => {},
       isInlineRenameActiveForNode: () => false,
       onRenameNodeFromAction: () => {},
-      createIconActionButton: (ownerDocument: Document, _icon, _action): HTMLButtonElement => {
-        return (ownerDocument as unknown as FakeDocument).createElement(
-          "button",
-        ) as unknown as HTMLButtonElement
+      createIconActionButton: (
+        ownerDocument: Document,
+        icon: { readonly title?: string },
+        _action,
+      ): HTMLButtonElement => {
+        const button = (ownerDocument as unknown as FakeDocument).createElement("button")
+        button.title = icon.title ?? ""
+        return button as unknown as HTMLButtonElement
       },
     })
 
@@ -338,11 +342,16 @@ describe("sidepanel row renderer", () => {
     const textFragments = flattenElements(renderedRow)
       .map((child) => child.textContent ?? "")
       .filter((text) => text.length > 0)
+    const actionTitles = renderedRow.children
+      .filter((child) => child.tagName === "BUTTON")
+      .map((child) => child.title)
 
     expect(textFragments).toContain("contains match")
     expect(textFragments).toContain("3 items")
     expect(textFragments).toContain("mixed hidden")
     expect(textFragments).toContain("mixed lock")
+    expect(actionTitles).toContain("Show all items")
+    expect(actionTitles).toContain("Lock all items")
   })
 
   it("renders row action buttons and routes callbacks", () => {

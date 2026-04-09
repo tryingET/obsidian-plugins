@@ -107,7 +107,7 @@ const resolveVisibilityActionIcon = (state: SidepanelRowVisualState): SidepanelR
     return {
       iconName: "eye",
       fallbackLabel: "◐",
-      title: "Show mixed visibility",
+      title: "Show all items",
     }
   }
 
@@ -131,7 +131,7 @@ const resolveLockActionIcon = (state: SidepanelRowVisualState): SidepanelRowActi
     return {
       iconName: "lock",
       fallbackLabel: "◪",
-      title: "Lock mixed layer states",
+      title: "Lock all items",
     }
   }
 

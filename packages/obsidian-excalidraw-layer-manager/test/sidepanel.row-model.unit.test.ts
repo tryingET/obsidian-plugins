@@ -87,7 +87,7 @@ describe("sidepanel row model helpers", () => {
     expect(result.searchableRowCount).toBe(4)
     expect(result.tree.map((node) => node.id)).toEqual(["group:G"])
     expect(filteredGroup?.isExpanded).toBe(true)
-    expect(filteredGroup?.canExpand).toBe(true)
+    expect(filteredGroup?.canExpand).toBe(false)
     expect(filteredGroup?.children.map((node) => node.id)).toEqual(["el:A"])
     expect(result.matchKindByNodeId.get("group:G")).toBe("descendant")
     expect(result.matchKindByNodeId.get("el:A")).toBe("self")
@@ -106,7 +106,7 @@ describe("sidepanel row model helpers", () => {
     const collapsedResult = buildSidepanelRowFilterResult([collapsedGroup], "alpha group")
     const collapsedFilteredGroup = collapsedResult.tree[0]
 
-    expect(collapsedFilteredGroup?.canExpand).toBe(true)
+    expect(collapsedFilteredGroup?.canExpand).toBe(false)
     expect(collapsedFilteredGroup?.isExpanded).toBe(false)
     expect(collapsedFilteredGroup?.children).toEqual([])
     expect(collapsedResult.renderedRowCount).toBe(1)
@@ -121,6 +121,7 @@ describe("sidepanel row model helpers", () => {
       "alpha group",
     )
 
+    expect(expandedResult.tree[0]?.canExpand).toBe(false)
     expect(expandedResult.tree[0]?.children).toEqual([])
     expect(expandedResult.renderedRowCount).toBe(1)
   })

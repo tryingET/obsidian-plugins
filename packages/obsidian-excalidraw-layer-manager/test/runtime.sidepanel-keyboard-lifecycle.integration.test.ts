@@ -1087,6 +1087,8 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect(findInteractiveRowByLabel(contentRoot, "[element] Alpha")).toBeDefined()
     expect(findInteractiveRowByLabel(contentRoot, "[element] Beta")).toBeUndefined()
     expect(findInteractiveRowByLabel(contentRoot, "[element] Gamma")).toBeUndefined()
+    expect(findButtonByExactText(contentRoot, "▾")).toBeUndefined()
+    expect(findButtonByExactText(contentRoot, "▸")).toBeUndefined()
 
     const filteredRows = flattenElements(contentRoot).filter(
       (element) => element.tagName === "DIV" && element.style["cursor"] === "pointer",
