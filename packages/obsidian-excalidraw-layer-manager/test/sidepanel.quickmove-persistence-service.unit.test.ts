@@ -274,7 +274,7 @@ describe("sidepanel quick-move persistence service", () => {
     })
 
     expect(preview).toEqual({
-      nextLastQuickMoveDestination: {
+      lastQuickMoveDestination: {
         kind: "preset",
         preset: {
           key: makePresetKey(["G"], null),
@@ -283,7 +283,7 @@ describe("sidepanel quick-move persistence service", () => {
           targetFrameId: null,
         },
       },
-      nextRecentQuickMoveDestinations: [
+      recentQuickMoveDestinations: [
         {
           kind: "preset",
           preset: {
@@ -528,7 +528,7 @@ describe("sidepanel quick-move persistence service", () => {
       64,
     )
 
-    const outcome = await service.rebindRememberedDestinations({
+    const reboundInput = {
       lastQuickMoveDestination: projectQuickMoveDestination(
         service.lastQuickMoveDestination,
         projection.destinationByKey,
@@ -539,7 +539,9 @@ describe("sidepanel quick-move persistence service", () => {
         projection.destinationByKey,
         projection.liveFrameIds,
       ),
-    })
+    }
+
+    const outcome = await service.rebindRememberedDestinations(reboundInput)
 
     expect(outcome).toEqual({
       status: "reconciled",
@@ -588,5 +590,13 @@ describe("sidepanel quick-move persistence service", () => {
       },
     ])
     expect(notify).toHaveBeenCalledWith("Failed to persist last move destination.")
+
+    const suppressedPreview = service.previewReboundRememberedDestinations(reboundInput)
+    expect(service.shouldSuppressRememberedDestinationRebind(suppressedPreview)).toBe(true)
+
+    await expect(service.rebindRememberedDestinations(reboundInput)).resolves.toEqual({
+      status: "suppressed",
+    })
+    expect(setScriptSettings).toHaveBeenCalledTimes(1)
   })
 })

@@ -902,6 +902,87 @@ describe("sidepanel quick-move + persistence integration", () => {
     )
   })
 
+  it("does not auto-retry the same remembered-destination reconciliation after a failed persist on rerender", async () => {
+    const settings: ScriptSettings = {
+      lmx_persist_last_move_destination: {
+        value: true,
+      },
+      lmx_last_move_destination: {
+        value: {
+          kind: "preset",
+          targetParentPath: ["G"],
+          targetFrameId: null,
+          label: "Inside old label",
+        },
+      },
+    }
+
+    const notices: string[] = []
+    const setScriptSettings = vi.fn(async () => {
+      throw new Error("disk full")
+    })
+
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    const { actions } = makeUiActions()
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => settings,
+      setScriptSettings,
+      obsidian: {
+        Notice: class {
+          constructor(message: string) {
+            notices.push(message)
+          }
+        },
+      },
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    const baseModel = {
+      tree: [makeElementNode("A"), makeGroupNode("G", [makeElementNode("B")])],
+      selectedIds: new Set(["A"]),
+      actions,
+    }
+
+    renderer.render({
+      ...baseModel,
+      sceneVersion: 10,
+    })
+
+    await flushAsync()
+    await flushAsync()
+
+    expect(setScriptSettings).toHaveBeenCalledTimes(1)
+    expect(
+      notices.filter(
+        (notice) =>
+          notice ===
+          "Remembered last-move destination reverted because reconciliation could not persist.",
+      ),
+    ).toHaveLength(1)
+
+    renderer.render({
+      ...baseModel,
+      sceneVersion: 11,
+    })
+
+    await flushAsync()
+    await flushAsync()
+
+    expect(setScriptSettings).toHaveBeenCalledTimes(1)
+    expect(
+      notices.filter(
+        (notice) =>
+          notice ===
+          "Remembered last-move destination reverted because reconciliation could not persist.",
+      ),
+    ).toHaveLength(1)
+  })
+
   it("replays remembered-destination reconciliation after rerender while a prior reconcile is inflight", async () => {
     let settings: ScriptSettings = {
       lmx_persist_last_move_destination: {

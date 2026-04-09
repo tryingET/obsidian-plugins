@@ -207,9 +207,21 @@ const buildReboundRecentDestinations = (
   return reboundDestinations
 }
 
+interface RememberedDestinationStateSnapshot {
+  readonly lastQuickMoveDestination: LastQuickMoveDestination | null
+  readonly recentQuickMoveDestinations: readonly LastQuickMoveDestination[]
+}
+
+interface RememberedDestinationRebindPreview extends RememberedDestinationStateSnapshot {
+  readonly changed: boolean
+}
+
 export type RememberedDestinationRebindOutcome =
   | {
       readonly status: "unchanged"
+    }
+  | {
+      readonly status: "suppressed"
     }
   | {
       readonly status: "reconciled"
@@ -232,6 +244,7 @@ export class SidepanelQuickMovePersistenceService {
   #recentQuickMoveDestinations: LastQuickMoveDestination[] = []
   #persistLastMoveAcrossRestarts = false
   #didLoadLastMovePersistenceSettings = false
+  #failedRememberedDestinationRebindTarget: RememberedDestinationStateSnapshot | null = null
 
   constructor(input: SidepanelQuickMovePersistenceServiceInput) {
     this.#getScriptSettings = input.getScriptSettings
@@ -289,9 +302,11 @@ export class SidepanelQuickMovePersistenceService {
     const persisted = await this.persistLastMovePersistencePreference()
     if (!persisted) {
       this.#persistLastMoveAcrossRestarts = previousValue
+      return false
     }
 
-    return persisted
+    this.clearFailedRememberedDestinationRebindTarget()
+    return true
   }
 
   async setLastQuickMoveDestination(
@@ -313,17 +328,14 @@ export class SidepanelQuickMovePersistenceService {
       return false
     }
 
+    this.clearFailedRememberedDestinationRebindTarget()
     return true
   }
 
   previewReboundRememberedDestinations(input: {
     readonly lastQuickMoveDestination: LastQuickMoveDestination | null
     readonly recentQuickMoveDestinations: readonly LastQuickMoveDestination[]
-  }): {
-    readonly nextLastQuickMoveDestination: LastQuickMoveDestination | null
-    readonly nextRecentQuickMoveDestinations: readonly LastQuickMoveDestination[]
-    readonly changed: boolean
-  } {
+  }): RememberedDestinationRebindPreview {
     const nextRecentQuickMoveDestinations = buildReboundRecentDestinations(
       input.lastQuickMoveDestination,
       input.recentQuickMoveDestinations,
@@ -337,10 +349,32 @@ export class SidepanelQuickMovePersistenceService {
       )
 
     return {
-      nextLastQuickMoveDestination: input.lastQuickMoveDestination,
-      nextRecentQuickMoveDestinations,
+      lastQuickMoveDestination: input.lastQuickMoveDestination,
+      recentQuickMoveDestinations: nextRecentQuickMoveDestinations,
       changed,
     }
+  }
+
+  shouldSuppressRememberedDestinationRebind(preview: RememberedDestinationRebindPreview): boolean {
+    if (!preview.changed || !this.#persistLastMoveAcrossRestarts) {
+      return false
+    }
+
+    const failedTarget = this.#failedRememberedDestinationRebindTarget
+    if (!failedTarget) {
+      return false
+    }
+
+    return (
+      areEquivalentDestinations(
+        failedTarget.lastQuickMoveDestination,
+        preview.lastQuickMoveDestination,
+      ) &&
+      areEquivalentDestinationLists(
+        failedTarget.recentQuickMoveDestinations,
+        preview.recentQuickMoveDestinations,
+      )
+    )
   }
 
   async rebindRememberedDestinations(input: {
@@ -355,20 +389,31 @@ export class SidepanelQuickMovePersistenceService {
       }
     }
 
+    if (this.shouldSuppressRememberedDestinationRebind(preview)) {
+      return {
+        status: "suppressed",
+      }
+    }
+
     const previousLastQuickMoveDestination = this.#lastQuickMoveDestination
     const previousRecentQuickMoveDestinations = [...this.#recentQuickMoveDestinations]
 
-    this.#lastQuickMoveDestination = preview.nextLastQuickMoveDestination
-    this.#recentQuickMoveDestinations = [...preview.nextRecentQuickMoveDestinations]
+    this.#lastQuickMoveDestination = preview.lastQuickMoveDestination
+    this.#recentQuickMoveDestinations = [...preview.recentQuickMoveDestinations]
 
     const persisted = await this.persistLastMoveDestinationIfEnabled()
     if (persisted) {
+      this.clearFailedRememberedDestinationRebindTarget()
       return {
         status: "reconciled",
         persisted: true,
       }
     }
 
+    this.#failedRememberedDestinationRebindTarget = {
+      lastQuickMoveDestination: preview.lastQuickMoveDestination,
+      recentQuickMoveDestinations: [...preview.recentQuickMoveDestinations],
+    }
     this.#lastQuickMoveDestination = previousLastQuickMoveDestination
     this.#recentQuickMoveDestinations = previousRecentQuickMoveDestinations
 
@@ -380,6 +425,10 @@ export class SidepanelQuickMovePersistenceService {
         recentQuickMoveDestinations: previousRecentQuickMoveDestinations,
       },
     }
+  }
+
+  private clearFailedRememberedDestinationRebindTarget(): void {
+    this.#failedRememberedDestinationRebindTarget = null
   }
 
   private rememberRecentDestination(destination: LastQuickMoveDestination): void {

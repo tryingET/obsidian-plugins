@@ -849,7 +849,10 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       ),
     })
 
-    if (!preview.changed) {
+    if (
+      !preview.changed ||
+      this.#quickMovePersistenceService.shouldSuppressRememberedDestinationRebind(preview)
+    ) {
       return
     }
 
