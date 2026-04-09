@@ -194,6 +194,8 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     readonly projection: ReturnType<typeof buildSidepanelQuickMoveDestinationProjection>
   } | null = null
   #rememberedDestinationReconcileInFlight = false
+  #rememberedDestinationReconcileEpoch = 0
+  #rememberedDestinationReconcileDirtyEpoch = 0
 
   readonly #contentKeydownHandler = (event: KeyboardEvent): void => {
     this.#focusOwnership.activateKeyboardCapture()
@@ -443,12 +445,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
 
     const rowFilter = this.getRowFilterResult(structuralTree)
     const destinationProjection = this.getQuickMoveDestinationProjection(structuralTree)
-    if (!this.#rememberedDestinationReconcileInFlight) {
-      this.#rememberedDestinationReconcileInFlight = true
-      queueMicrotask(() => {
-        void this.reconcileRememberedDestinations(destinationProjection)
-      })
-    }
+    this.scheduleRememberedDestinationReconciliation(destinationProjection)
     const visibleRowTree = rowFilter.visibleTree
     const { visibleNodes, parentById } = collectVisibleNodeContext(visibleRowTree)
     const activeElement = ownerDocument.activeElement
@@ -834,9 +831,29 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     return persisted
   }
 
+  private scheduleRememberedDestinationReconciliation(
+    destinationProjection: ReturnType<typeof buildSidepanelQuickMoveDestinationProjection>,
+  ): void {
+    const nextEpoch = this.#rememberedDestinationReconcileEpoch + 1
+    this.#rememberedDestinationReconcileEpoch = nextEpoch
+    this.#rememberedDestinationReconcileDirtyEpoch = nextEpoch
+
+    if (this.#rememberedDestinationReconcileInFlight) {
+      return
+    }
+
+    this.#rememberedDestinationReconcileInFlight = true
+    queueMicrotask(() => {
+      void this.reconcileRememberedDestinations(destinationProjection, nextEpoch)
+    })
+  }
+
   private async reconcileRememberedDestinations(
     destinationProjection: ReturnType<typeof buildSidepanelQuickMoveDestinationProjection>,
+    reconcileEpoch: number,
   ): Promise<void> {
+    let shouldReplay = false
+
     try {
       const outcome = await this.#quickMovePersistenceService.rebindRememberedDestinations({
         lastQuickMoveDestination: projectQuickMoveDestination(
@@ -851,22 +868,32 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         ),
       })
 
-      if (outcome.status !== "reconciled") {
-        return
+      if (outcome.status === "reconciled") {
+        if (outcome.persisted) {
+          this.requestRenderFromLatestModel()
+        } else {
+          this.notify(
+            "Remembered last-move destination reverted because reconciliation could not persist.",
+          )
+          this.requestRenderFromLatestModel()
+        }
       }
-
-      if (outcome.persisted) {
-        this.requestRenderFromLatestModel()
-        return
-      }
-
-      this.notify(
-        "Remembered last-move destination reverted because reconciliation could not persist.",
-      )
-      this.requestRenderFromLatestModel()
     } finally {
+      shouldReplay = this.#rememberedDestinationReconcileDirtyEpoch > reconcileEpoch
       this.#rememberedDestinationReconcileInFlight = false
     }
+
+    if (!shouldReplay) {
+      return
+    }
+
+    const latestModel = this.#latestModel
+    if (!latestModel) {
+      return
+    }
+
+    const latestProjection = this.getQuickMoveDestinationProjection(latestModel.tree)
+    this.scheduleRememberedDestinationReconciliation(latestProjection)
   }
 
   private isLifecycleDebugEnabled(): boolean {

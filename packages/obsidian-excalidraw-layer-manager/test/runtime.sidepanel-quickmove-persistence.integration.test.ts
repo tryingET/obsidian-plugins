@@ -145,6 +145,9 @@ class FakeDomElement {
 
 class FakeDocument {
   activeElement: FakeDomElement | null = null
+  defaultView = {
+    HTMLElement: FakeDomElement,
+  } as unknown as Window
   #listeners = new Map<string, Set<(event: FakeDomEvent) => void>>()
 
   createElement(tagName: string): FakeDomElement {
@@ -895,6 +898,85 @@ describe("sidepanel quick-move + persistence integration", () => {
     expect(notices).toContain(
       "Remembered last-move destination reverted because reconciliation could not persist.",
     )
+  })
+
+  it("replays remembered-destination reconciliation after rerender while a prior reconcile is inflight", async () => {
+    let settings: ScriptSettings = {
+      lmx_persist_last_move_destination: {
+        value: true,
+      },
+      lmx_last_move_destination: {
+        value: {
+          kind: "preset",
+          targetParentPath: ["G"],
+          targetFrameId: null,
+          label: "Inside old label",
+        },
+      },
+    }
+
+    const pendingResolvers: Array<() => void> = []
+    const setScriptSettings = vi.fn((nextSettings: ScriptSettings) => {
+      return new Promise<void>((resolve) => {
+        pendingResolvers.push(() => {
+          settings = cloneSettings(nextSettings)
+          resolve()
+        })
+      })
+    })
+
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    const { actions } = makeUiActions()
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => settings,
+      setScriptSettings,
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [makeElementNode("A"), makeGroupNode("G", [makeElementNode("B")])],
+      selectedIds: new Set(["A"]),
+      sceneVersion: 20,
+      actions,
+    })
+
+    await Promise.resolve()
+
+    renderer.render({
+      tree: [makeElementNode("A"), makeGroupNode("G", [makeElementNode("B", "Renamed Group")])],
+      selectedIds: new Set(["A"]),
+      sceneVersion: 21,
+      actions,
+    })
+
+    await Promise.resolve()
+
+    expect(setScriptSettings).toHaveBeenCalledTimes(1)
+
+    const resolveFirstWrite = pendingResolvers.shift()
+    resolveFirstWrite?.()
+    await flushAsync()
+
+    expect(setScriptSettings).toHaveBeenCalledTimes(2)
+
+    const resolveSecondWrite = pendingResolvers.shift()
+    resolveSecondWrite?.()
+    await flushAsync()
+
+    const contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const repeatButton = findButtonWithPrefix(contentRoot, "↺ Last:")
+    expect(repeatButton?.textContent).toContain("Inside Renamed Group")
+    expect(settings["lmx_last_move_destination"]?.value).toEqual({
+      kind: "preset",
+      targetParentPath: ["G"],
+      targetFrameId: null,
+      label: "Inside Renamed Group",
+    })
   })
 
   it("notifies when incompatible row drop is rejected before planner execution", async () => {
