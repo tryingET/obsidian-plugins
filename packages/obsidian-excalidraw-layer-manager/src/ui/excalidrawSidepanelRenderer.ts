@@ -367,6 +367,9 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       requestRenderFromLatestModel: () => {
         this.requestRenderFromLatestModel()
       },
+      getLatestStructuralTree: () => {
+        return this.#latestModel?.tree ?? null
+      },
     })
 
     this.#keyboardController = new SidepanelKeyboardShortcutController({
@@ -1273,10 +1276,6 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     return this.#dragDropController.resolveDropTargetForNode(node, branchContext, siblingIndex)
   }
 
-  private canDropDraggedNode(targetNodeId: string, dropTarget: NodeDropTarget): boolean {
-    return this.#dragDropController.canDropDraggedNode(targetNodeId, dropTarget)
-  }
-
   private describeDropHint(
     targetNodeId: string,
     node: LayerNode,
@@ -1358,12 +1357,6 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     targetNodeId: string,
     dropTarget: NodeDropTarget,
   ): Promise<void> {
-    if (!this.canDropDraggedNode(targetNodeId, dropTarget)) {
-      this.notify("Drop target is not compatible for this move.")
-      this.#dragDropController.resetDragState()
-      return
-    }
-
     try {
       await this.runDragDropMove(actions, targetNodeId, dropTarget)
     } catch (error: unknown) {

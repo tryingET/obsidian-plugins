@@ -70,6 +70,7 @@ type DragDropMoveOutcome =
 interface SidepanelDragDropControllerHost {
   notify: (message: string) => void
   requestRenderFromLatestModel: () => void
+  getLatestStructuralTree?: () => readonly LayerNode[] | null
 }
 
 interface StartRowDragInput {
@@ -81,6 +82,27 @@ interface StartRowDragInput {
   readonly dragEvent: DragEvent
 }
 
+interface StructuralNodePosition {
+  readonly node: LayerNode
+  readonly branchContext: DragDropBranchContext
+  readonly siblingIndex: number
+  readonly nodeFrameId: string | null
+}
+
+type QualifiedDropResolution =
+  | {
+      readonly status: "notReady"
+    }
+  | {
+      readonly status: "incompatible"
+    }
+  | {
+      readonly status: "qualified"
+      readonly dragged: DraggedNodeState
+      readonly dropTarget: NodeDropTarget
+      readonly intent: QualifiedDropIntent
+    }
+
 const haveSamePath = (left: readonly string[], right: readonly string[]): boolean => {
   if (left.length !== right.length) {
     return false
@@ -91,6 +113,49 @@ const haveSamePath = (left: readonly string[], right: readonly string[]): boolea
 
 const haveSameScope = (left: DragDropBranchContext, right: DragDropBranchContext): boolean => {
   return left.frameId === right.frameId && haveSamePath(left.groupPath, right.groupPath)
+}
+
+const resolveStructuralNodePosition = (
+  nodes: readonly LayerNode[],
+  targetNodeId: string,
+  branchContext: DragDropBranchContext,
+  resolveNodeFrameId: (node: LayerNode, branchContext: DragDropBranchContext) => string | null,
+): StructuralNodePosition | null => {
+  for (const [siblingIndex, node] of nodes.entries()) {
+    const nodeFrameId = resolveNodeFrameId(node, branchContext)
+    if (node.id === targetNodeId) {
+      return {
+        node,
+        branchContext,
+        siblingIndex,
+        nodeFrameId,
+      }
+    }
+
+    if (node.children.length === 0) {
+      continue
+    }
+
+    const childBranchContext: DragDropBranchContext = {
+      frameId: nodeFrameId,
+      groupPath:
+        node.type === "group" && node.groupId
+          ? [...branchContext.groupPath, node.groupId]
+          : branchContext.groupPath,
+    }
+
+    const nestedMatch = resolveStructuralNodePosition(
+      node.children,
+      targetNodeId,
+      childBranchContext,
+      resolveNodeFrameId,
+    )
+    if (nestedMatch) {
+      return nestedMatch
+    }
+  }
+
+  return null
 }
 
 export class SidepanelDragDropController {
@@ -161,44 +226,16 @@ export class SidepanelDragDropController {
   }
 
   canDropDraggedNode(targetNodeId: string, dropTarget: NodeDropTarget): boolean {
-    return this.previewDropIntent(targetNodeId, dropTarget) !== null
+    return this.qualifyDropIntent(targetNodeId, dropTarget).status === "qualified"
   }
 
   previewDropIntent(targetNodeId: string, dropTarget: NodeDropTarget): QualifiedDropIntent | null {
-    const dragged = this.#draggedNodeState
-    if (!dragged) {
+    const resolution = this.qualifyDropIntent(targetNodeId, dropTarget)
+    if (resolution.status !== "qualified") {
       return null
     }
 
-    if (dragged.nodeId === targetNodeId) {
-      return null
-    }
-
-    if (
-      dropTarget.rowReorderEligible &&
-      haveSameScope(dragged.sourceRowScope, dropTarget.rowScope)
-    ) {
-      return {
-        kind: "reorder",
-        placement: dropTarget.siblingIndex < dragged.sourceSiblingIndex ? "before" : "after",
-      }
-    }
-
-    if (dragged.sourceFrameId !== dropTarget.targetFrameId) {
-      return null
-    }
-
-    if (dragged.sourceGroupId && dropTarget.targetParentPath.includes(dragged.sourceGroupId)) {
-      return null
-    }
-
-    if (haveSamePath(dragged.sourceParentPath, dropTarget.targetParentPath)) {
-      return null
-    }
-
-    return {
-      kind: "reparent",
-    }
+    return resolution.intent
   }
 
   startRowDrag(input: StartRowDragInput): void {
@@ -270,27 +307,26 @@ export class SidepanelDragDropController {
     targetNodeId: string,
     dropTarget: NodeDropTarget,
   ): Promise<DragDropMoveOutcome> {
-    const dragged = this.#draggedNodeState
-    if (!dragged) {
-      this.#host.notify("Drag and drop move is no longer active.")
+    const resolution = this.qualifyDropIntent(targetNodeId, dropTarget)
+    if (resolution.status !== "qualified") {
+      this.#host.notify(
+        resolution.status === "notReady"
+          ? "Drag and drop move is no longer active."
+          : "Drop target is not compatible for this move.",
+      )
       return {
-        status: "notReady",
+        status: resolution.status === "notReady" ? "notReady" : "incompatible",
       }
     }
 
-    const intent = this.previewDropIntent(targetNodeId, dropTarget)
-    if (!intent) {
-      this.#host.notify("Drop target is not compatible for this move.")
-      return {
-        status: "incompatible",
-      }
-    }
+    const { dragged, intent, dropTarget: resolvedDropTarget } = resolution
 
     if (intent.kind === "reorder") {
       const outcome = await actions.reorderRelativeToNodeIds({
         nodeIds: [dragged.nodeId],
         anchorNodeId: targetNodeId,
         placement: intent.placement,
+        notifyOnFailure: false,
       })
 
       if (outcome.status === "plannerError") {
@@ -318,8 +354,9 @@ export class SidepanelDragDropController {
     const outcome = await actions.reparentFromNodeIds({
       nodeIds: [dragged.nodeId],
       sourceGroupId: dragged.sourceGroupId,
-      targetParentPath: dropTarget.targetParentPath,
-      targetFrameId: dropTarget.targetFrameId,
+      targetParentPath: resolvedDropTarget.targetParentPath,
+      targetFrameId: resolvedDropTarget.targetFrameId,
+      notifyOnFailure: false,
     })
 
     if (outcome.status === "plannerError") {
@@ -336,14 +373,14 @@ export class SidepanelDragDropController {
       }
     }
 
-    if (dropTarget.targetParentPath.length === 0) {
+    if (resolvedDropTarget.targetParentPath.length === 0) {
       return {
         status: "applied",
         effect: {
           kind: "reparent",
           destination: {
             kind: "root",
-            targetFrameId: dropTarget.targetFrameId,
+            targetFrameId: resolvedDropTarget.targetFrameId,
           },
         },
       }
@@ -355,11 +392,148 @@ export class SidepanelDragDropController {
         kind: "reparent",
         destination: {
           kind: "preset",
-          targetParentPath: [...dropTarget.targetParentPath],
-          targetFrameId: dropTarget.targetFrameId,
+          targetParentPath: [...resolvedDropTarget.targetParentPath],
+          targetFrameId: resolvedDropTarget.targetFrameId,
         },
       },
     }
+  }
+
+  private qualifyDropIntent(
+    targetNodeId: string,
+    dropTarget: NodeDropTarget,
+  ): QualifiedDropResolution {
+    const dragged = this.resolveCurrentDraggedNodeState()
+    if (!dragged) {
+      return {
+        status: "notReady",
+      }
+    }
+
+    const resolvedDropTarget = this.resolveCurrentDropTarget(targetNodeId, dropTarget)
+    if (!resolvedDropTarget) {
+      return {
+        status: "incompatible",
+      }
+    }
+
+    if (dragged.nodeId === targetNodeId) {
+      return {
+        status: "incompatible",
+      }
+    }
+
+    if (
+      resolvedDropTarget.rowReorderEligible &&
+      haveSameScope(dragged.sourceRowScope, resolvedDropTarget.rowScope)
+    ) {
+      return {
+        status: "qualified",
+        dragged,
+        dropTarget: resolvedDropTarget,
+        intent: {
+          kind: "reorder",
+          placement:
+            resolvedDropTarget.siblingIndex < dragged.sourceSiblingIndex ? "before" : "after",
+        },
+      }
+    }
+
+    if (dragged.sourceFrameId !== resolvedDropTarget.targetFrameId) {
+      return {
+        status: "incompatible",
+      }
+    }
+
+    if (
+      dragged.sourceGroupId &&
+      resolvedDropTarget.targetParentPath.includes(dragged.sourceGroupId)
+    ) {
+      return {
+        status: "incompatible",
+      }
+    }
+
+    if (haveSamePath(dragged.sourceParentPath, resolvedDropTarget.targetParentPath)) {
+      return {
+        status: "incompatible",
+      }
+    }
+
+    return {
+      status: "qualified",
+      dragged,
+      dropTarget: resolvedDropTarget,
+      intent: {
+        kind: "reparent",
+      },
+    }
+  }
+
+  private resolveCurrentDraggedNodeState(): DraggedNodeState | null {
+    const dragged = this.#draggedNodeState
+    if (!dragged) {
+      return null
+    }
+
+    const structuralTree = this.#host.getLatestStructuralTree?.() ?? null
+    if (!structuralTree) {
+      return dragged
+    }
+
+    const position = resolveStructuralNodePosition(
+      structuralTree,
+      dragged.nodeId,
+      {
+        frameId: null,
+        groupPath: [],
+      },
+      (node, branchContext) => this.resolveNodeFrameId(node, branchContext),
+    )
+    if (!position) {
+      return null
+    }
+
+    return {
+      nodeId: position.node.id,
+      sourceGroupId: position.node.type === "group" ? position.node.groupId : null,
+      sourceFrameId: position.nodeFrameId,
+      sourceParentPath: [...position.branchContext.groupPath],
+      sourceRowScope: {
+        frameId: position.branchContext.frameId,
+        groupPath: [...position.branchContext.groupPath],
+      },
+      sourceSiblingIndex: position.siblingIndex,
+    }
+  }
+
+  private resolveCurrentDropTarget(
+    targetNodeId: string,
+    fallbackDropTarget: NodeDropTarget,
+  ): NodeDropTarget | null {
+    const structuralTree = this.#host.getLatestStructuralTree?.() ?? null
+    if (!structuralTree) {
+      return fallbackDropTarget
+    }
+
+    const position = resolveStructuralNodePosition(
+      structuralTree,
+      targetNodeId,
+      {
+        frameId: null,
+        groupPath: [],
+      },
+      (node, branchContext) => this.resolveNodeFrameId(node, branchContext),
+    )
+    if (!position) {
+      return null
+    }
+
+    return this.resolveDropTargetForNode(
+      position.node,
+      position.branchContext,
+      position.siblingIndex,
+    )
   }
 
   private updateDropHint(nodeId: string | null): void {

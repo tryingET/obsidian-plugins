@@ -491,6 +491,106 @@ describe("runtime command facade + controller action seam", () => {
     expect(notify).toHaveBeenCalledTimes(1)
   })
 
+  it("suppresses renderer notification when relative structural reorder opts out of failure notify", async () => {
+    const runtime = makeInstrumentedEa([{ id: "A", type: "rectangle", locked: false }])
+
+    const render = vi.fn()
+    const notify = vi.fn()
+
+    createLayerManagerRuntime(runtime.ea, {
+      render,
+      notify,
+    })
+
+    const actions = getUiActions(render)
+    const outcome = await actions.reorderRelativeToNodeIds({
+      nodeIds: ["el:A"],
+      anchorNodeId: "el:missing",
+      placement: "before",
+      notifyOnFailure: false,
+    })
+
+    expect(outcome).toEqual({
+      status: "plannerError",
+      error: "reorder failed: node not found (el:missing).",
+      attempts: 1,
+    })
+    expect(runtime.copyForEditing).not.toHaveBeenCalled()
+    expect(runtime.addToView).not.toHaveBeenCalled()
+    expect(runtime.updateScene).not.toHaveBeenCalled()
+    expect(notify).not.toHaveBeenCalled()
+  })
+
+  it("suppresses renderer notification when structural reparent opts out of failure notify", async () => {
+    const runtime = makeInstrumentedEa([{ id: "A", type: "rectangle", groupIds: [] }])
+
+    const render = vi.fn()
+    const notify = vi.fn()
+
+    createLayerManagerRuntime(runtime.ea, {
+      render,
+      notify,
+    })
+
+    const actions = getUiActions(render)
+    const outcome = await actions.reparentFromNodeIds({
+      nodeIds: ["el:A", "el:missing"],
+      sourceGroupId: null,
+      targetParentPath: [],
+      targetFrameId: null,
+      notifyOnFailure: false,
+    })
+
+    expect(outcome).toEqual({
+      status: "plannerError",
+      error: "reparent failed: node not found (el:missing).",
+      attempts: 1,
+    })
+    expect(runtime.copyForEditing).not.toHaveBeenCalled()
+    expect(runtime.addToView).not.toHaveBeenCalled()
+    expect(runtime.updateScene).not.toHaveBeenCalled()
+    expect(notify).not.toHaveBeenCalled()
+  })
+
+  it("suppresses facade notification when relative structural reorder opts out and capability is missing", async () => {
+    const runtime = makeInstrumentedEa(
+      [
+        { id: "A", type: "rectangle" },
+        { id: "B", type: "rectangle" },
+        { id: "C", type: "rectangle" },
+      ],
+      {
+        withUpdateSceneCapability: false,
+      },
+    )
+
+    const render = vi.fn()
+    const notify = vi.fn()
+
+    createLayerManagerRuntime(runtime.ea, {
+      render,
+      notify,
+    })
+
+    const actions = getUiActions(render)
+    const outcome = await actions.reorderRelativeToNodeIds({
+      nodeIds: ["el:A"],
+      anchorNodeId: "el:B",
+      placement: "before",
+      notifyOnFailure: false,
+    })
+
+    expect(outcome).toEqual({
+      status: "capabilityMissing",
+      reason: "Missing reorder capability (updateScene).",
+      attempts: 1,
+    })
+    expect(runtime.copyForEditing).not.toHaveBeenCalled()
+    expect(runtime.addToView).not.toHaveBeenCalled()
+    expect(runtime.updateScene).not.toHaveBeenCalled()
+    expect(notify).not.toHaveBeenCalled()
+  })
+
   it("surfaces preflight failure through structural action and renderer notification", async () => {
     const runtime = makeInstrumentedEa(
       [

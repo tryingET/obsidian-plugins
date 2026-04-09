@@ -59,6 +59,13 @@ const makeFrameNode = (frameId: string): LayerNode => ({
   label: frameId,
 })
 
+const makeExpandedFrameNode = (frameId: string, children: readonly LayerNode[]): LayerNode => ({
+  ...makeFrameNode(frameId),
+  children: [...children],
+  canExpand: children.length > 0,
+  isExpanded: true,
+})
+
 const makeDragEvent = () => {
   const setData = vi.fn<(type: string, data: string) => void>()
 
@@ -290,6 +297,152 @@ describe("sidepanel drag-drop controller", () => {
     ).toBe(true)
   })
 
+  it("re-resolves same-scope reorder placement from the latest structural tree", () => {
+    const notify = vi.fn<(message: string) => void>()
+    const requestRenderFromLatestModel = vi.fn<() => void>()
+    let latestStructuralTree: readonly LayerNode[] | null = [
+      makeElementNode("el:A"),
+      makeElementNode("el:B"),
+      makeElementNode("el:C"),
+    ]
+    const controller = new SidepanelDragDropController({
+      notify,
+      requestRenderFromLatestModel,
+      getLatestStructuralTree: () => latestStructuralTree,
+    })
+
+    controller.startRowDrag({
+      node: makeElementNode("el:A"),
+      nodeFrameId: null,
+      branchGroupPath: [],
+      rowScope: makeScope(null),
+      siblingIndex: 0,
+      dragEvent: makeDragEvent().event,
+    })
+
+    latestStructuralTree = [
+      makeElementNode("el:B"),
+      makeElementNode("el:A"),
+      makeElementNode("el:C"),
+    ]
+
+    expect(
+      controller.previewDropIntent(
+        "el:B",
+        makeDropTarget({
+          targetParentPath: [],
+          targetFrameId: null,
+          rowScope: makeScope(null),
+          siblingIndex: 1,
+          rowReorderEligible: true,
+        }),
+      ),
+    ).toEqual({
+      kind: "reorder",
+      placement: "before",
+    })
+  })
+
+  it("re-resolves same-frame child reorder placement from the latest structural tree", () => {
+    const notify = vi.fn<(message: string) => void>()
+    const requestRenderFromLatestModel = vi.fn<() => void>()
+    let latestStructuralTree: readonly LayerNode[] | null = [
+      makeExpandedFrameNode("frame:A", [
+        makeElementNode("el:A", { frameId: "frame:A" }),
+        makeElementNode("el:B", { frameId: "frame:A" }),
+        makeElementNode("el:C", { frameId: "frame:A" }),
+      ]),
+    ]
+    const controller = new SidepanelDragDropController({
+      notify,
+      requestRenderFromLatestModel,
+      getLatestStructuralTree: () => latestStructuralTree,
+    })
+
+    controller.startRowDrag({
+      node: makeElementNode("el:A", { frameId: "frame:A" }),
+      nodeFrameId: "frame:A",
+      branchGroupPath: [],
+      rowScope: makeScope("frame:A"),
+      siblingIndex: 0,
+      dragEvent: makeDragEvent().event,
+    })
+
+    latestStructuralTree = [
+      makeExpandedFrameNode("frame:A", [
+        makeElementNode("el:B", { frameId: "frame:A" }),
+        makeElementNode("el:A", { frameId: "frame:A" }),
+        makeElementNode("el:C", { frameId: "frame:A" }),
+      ]),
+    ]
+
+    expect(
+      controller.previewDropIntent(
+        "el:B",
+        makeDropTarget({
+          targetParentPath: [],
+          targetFrameId: "frame:A",
+          rowScope: makeScope("frame:A"),
+          siblingIndex: 1,
+          rowReorderEligible: true,
+        }),
+      ),
+    ).toEqual({
+      kind: "reorder",
+      placement: "before",
+    })
+  })
+
+  it("re-resolves same-frame group reorder placement from the latest structural tree", () => {
+    const notify = vi.fn<(message: string) => void>()
+    const requestRenderFromLatestModel = vi.fn<() => void>()
+    let latestStructuralTree: readonly LayerNode[] | null = [
+      makeExpandedFrameNode("frame:A", [
+        makeGroupNode("Alpha", { frameId: "frame:A" }),
+        makeGroupNode("Beta", { frameId: "frame:A" }),
+        makeGroupNode("Gamma", { frameId: "frame:A" }),
+      ]),
+    ]
+    const controller = new SidepanelDragDropController({
+      notify,
+      requestRenderFromLatestModel,
+      getLatestStructuralTree: () => latestStructuralTree,
+    })
+
+    controller.startRowDrag({
+      node: makeGroupNode("Alpha", { frameId: "frame:A" }),
+      nodeFrameId: "frame:A",
+      branchGroupPath: [],
+      rowScope: makeScope("frame:A"),
+      siblingIndex: 0,
+      dragEvent: makeDragEvent().event,
+    })
+
+    latestStructuralTree = [
+      makeExpandedFrameNode("frame:A", [
+        makeGroupNode("Beta", { frameId: "frame:A" }),
+        makeGroupNode("Alpha", { frameId: "frame:A" }),
+        makeGroupNode("Gamma", { frameId: "frame:A" }),
+      ]),
+    ]
+
+    expect(
+      controller.previewDropIntent(
+        "group:Beta",
+        makeDropTarget({
+          targetParentPath: ["Beta"],
+          targetFrameId: "frame:A",
+          rowScope: makeScope("frame:A"),
+          siblingIndex: 1,
+          rowReorderEligible: true,
+        }),
+      ),
+    ).toEqual({
+      kind: "reorder",
+      placement: "before",
+    })
+  })
+
   it("tracks drop hints across drag lifecycle events", () => {
     const notify = vi.fn<(message: string) => void>()
     const requestRenderFromLatestModel = vi.fn<() => void>()
@@ -363,6 +516,7 @@ describe("sidepanel drag-drop controller", () => {
       nodeIds: ["el:A"],
       anchorNodeId: "group:Dest",
       placement: "before",
+      notifyOnFailure: false,
     })
     expect(reparentFromNodeIds).not.toHaveBeenCalled()
     expect(outcome).toEqual({
@@ -408,6 +562,7 @@ describe("sidepanel drag-drop controller", () => {
       sourceGroupId: null,
       targetParentPath: [],
       targetFrameId: "frame:A",
+      notifyOnFailure: false,
     })
     expect(outcome).toEqual({
       status: "applied",
@@ -463,6 +618,7 @@ describe("sidepanel drag-drop controller", () => {
       sourceGroupId: "G",
       targetParentPath: ["Dest"],
       targetFrameId: "frame:A",
+      notifyOnFailure: false,
     })
     expect(outcome).toEqual({
       status: "applied",

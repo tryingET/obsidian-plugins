@@ -13,12 +13,14 @@ export interface ReparentFromNodeIdsInput {
   readonly sourceGroupId: string | null
   readonly targetParentPath: readonly string[]
   readonly targetFrameId: string | null
+  readonly notifyOnFailure?: boolean
 }
 
 export interface ReorderRelativeToNodeIdsInput {
   readonly nodeIds: readonly string[]
   readonly anchorNodeId: string
   readonly placement: ReorderPlacement
+  readonly notifyOnFailure?: boolean
 }
 
 export interface LayerManagerUiActions {

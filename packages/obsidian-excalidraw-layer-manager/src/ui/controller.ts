@@ -193,17 +193,23 @@ export class LayerManagerController {
   ): Promise<ExecuteIntentOutcome> => {
     await this.#interactionLifecycle.waitForIdle()
 
-    const resolved = this.resolveElementIdsFromNodeIds("reparent", input.nodeIds)
+    const notifyOnFailure = input.notifyOnFailure !== false
+    const resolved = this.resolveElementIdsFromNodeIds("reparent", input.nodeIds, notifyOnFailure)
     if (!resolved.ok) {
       return resolved.outcome
     }
 
-    return resolved.commandFacade.reparent({
-      elementIds: resolved.elementIds,
-      sourceGroupId: input.sourceGroupId,
-      targetParentPath: input.targetParentPath,
-      targetFrameId: input.targetFrameId,
-    })
+    return resolved.commandFacade.reparent(
+      {
+        elementIds: resolved.elementIds,
+        sourceGroupId: input.sourceGroupId,
+        targetParentPath: input.targetParentPath,
+        targetFrameId: input.targetFrameId,
+      },
+      {
+        notifyOnFailure,
+      },
+    )
   }
 
   readonly #reorderRelativeToNodeIdsAction = async (
@@ -211,22 +217,30 @@ export class LayerManagerController {
   ): Promise<ExecuteIntentOutcome> => {
     await this.#interactionLifecycle.waitForIdle()
 
-    const resolved = this.resolveElementIdsFromNodeIds("reorder", input.nodeIds)
+    const notifyOnFailure = input.notifyOnFailure !== false
+    const resolved = this.resolveElementIdsFromNodeIds("reorder", input.nodeIds, notifyOnFailure)
     if (!resolved.ok) {
       return resolved.outcome
     }
 
     if (!this.#latestNodeById.has(input.anchorNodeId)) {
       const message = `reorder failed: node not found (${input.anchorNodeId}).`
-      this.notify(message)
+      if (notifyOnFailure) {
+        this.notify(message)
+      }
       return plannerErrorOutcome(message)
     }
 
-    return resolved.commandFacade.reorder({
-      orderedElementIds: resolved.elementIds,
-      anchorNodeId: input.anchorNodeId,
-      placement: input.placement,
-    })
+    return resolved.commandFacade.reorder(
+      {
+        orderedElementIds: resolved.elementIds,
+        anchorNodeId: input.anchorNodeId,
+        placement: input.placement,
+      },
+      {
+        notifyOnFailure,
+      },
+    )
   }
 
   constructor(
@@ -297,7 +311,10 @@ export class LayerManagerController {
     return nodeById
   }
 
-  private resolveCommandFacade(commandName: string): CommandFacadeResolution {
+  private resolveCommandFacade(
+    commandName: string,
+    notifyOnFailure = true,
+  ): CommandFacadeResolution {
     if (this.#commandFacade) {
       return {
         ok: true,
@@ -306,7 +323,9 @@ export class LayerManagerController {
     }
 
     const message = `${commandName} failed: command facade is not initialized.`
-    this.notify(message)
+    if (notifyOnFailure) {
+      this.notify(message)
+    }
 
     return {
       ok: false,
@@ -314,8 +333,12 @@ export class LayerManagerController {
     }
   }
 
-  private resolveNodeAction(commandName: string, nodeId: string): NodeActionResolution {
-    const commandFacade = this.resolveCommandFacade(commandName)
+  private resolveNodeAction(
+    commandName: string,
+    nodeId: string,
+    notifyOnFailure = true,
+  ): NodeActionResolution {
+    const commandFacade = this.resolveCommandFacade(commandName, notifyOnFailure)
     if (!commandFacade.ok) {
       return commandFacade
     }
@@ -323,7 +346,9 @@ export class LayerManagerController {
     const node = this.#latestNodeById.get(nodeId)
     if (!node) {
       const message = `${commandName} failed: node not found (${nodeId}).`
-      this.notify(message)
+      if (notifyOnFailure) {
+        this.notify(message)
+      }
       return {
         ok: false,
         outcome: plannerErrorOutcome(message),
@@ -340,15 +365,18 @@ export class LayerManagerController {
   private resolveElementIdsFromNodeIds(
     commandName: string,
     nodeIds: readonly string[],
+    notifyOnFailure = true,
   ): ElementIdsActionResolution {
-    const commandFacade = this.resolveCommandFacade(commandName)
+    const commandFacade = this.resolveCommandFacade(commandName, notifyOnFailure)
     if (!commandFacade.ok) {
       return commandFacade
     }
 
     if (nodeIds.length === 0) {
       const message = `${commandName} failed: no node IDs provided.`
-      this.notify(message)
+      if (notifyOnFailure) {
+        this.notify(message)
+      }
       return {
         ok: false,
         outcome: plannerErrorOutcome(message),
@@ -362,7 +390,9 @@ export class LayerManagerController {
       const node = this.#latestNodeById.get(nodeId)
       if (!node) {
         const message = `${commandName} failed: node not found (${nodeId}).`
-        this.notify(message)
+        if (notifyOnFailure) {
+          this.notify(message)
+        }
         return {
           ok: false,
           outcome: plannerErrorOutcome(message),
@@ -381,7 +411,9 @@ export class LayerManagerController {
 
     if (elementIds.length === 0) {
       const message = `${commandName} failed: no target elements resolved from node IDs.`
-      this.notify(message)
+      if (notifyOnFailure) {
+        this.notify(message)
+      }
       return {
         ok: false,
         outcome: plannerErrorOutcome(message),

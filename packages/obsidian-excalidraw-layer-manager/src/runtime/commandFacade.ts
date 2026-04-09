@@ -8,14 +8,36 @@ import { type ToggleVisibilityInput, planToggleVisibility } from "../commands/to
 import { ok } from "../model/result.js"
 import type { CommandPlanner, ExecuteIntent, ExecuteIntentOutcome } from "./intentExecution.js"
 
+export interface CommandExecutionOptions {
+  readonly notifyOnFailure?: boolean
+}
+
 export interface LayerManagerCommandFacade {
-  toggleVisibility: (input: ToggleVisibilityInput) => Promise<ExecuteIntentOutcome>
-  toggleLock: (input: ToggleLockInput) => Promise<ExecuteIntentOutcome>
-  renameNode: (input: RenameNodeInput) => Promise<ExecuteIntentOutcome>
-  deleteNode: (input: DeleteNodeInput) => Promise<ExecuteIntentOutcome>
-  createGroup: (input: CreateGroupInput) => Promise<ExecuteIntentOutcome>
-  reorder: (input: ReorderInput) => Promise<ExecuteIntentOutcome>
-  reparent: (input: ReparentNodeInput) => Promise<ExecuteIntentOutcome>
+  toggleVisibility: (
+    input: ToggleVisibilityInput,
+    options?: CommandExecutionOptions,
+  ) => Promise<ExecuteIntentOutcome>
+  toggleLock: (
+    input: ToggleLockInput,
+    options?: CommandExecutionOptions,
+  ) => Promise<ExecuteIntentOutcome>
+  renameNode: (
+    input: RenameNodeInput,
+    options?: CommandExecutionOptions,
+  ) => Promise<ExecuteIntentOutcome>
+  deleteNode: (
+    input: DeleteNodeInput,
+    options?: CommandExecutionOptions,
+  ) => Promise<ExecuteIntentOutcome>
+  createGroup: (
+    input: CreateGroupInput,
+    options?: CommandExecutionOptions,
+  ) => Promise<ExecuteIntentOutcome>
+  reorder: (input: ReorderInput, options?: CommandExecutionOptions) => Promise<ExecuteIntentOutcome>
+  reparent: (
+    input: ReparentNodeInput,
+    options?: CommandExecutionOptions,
+  ) => Promise<ExecuteIntentOutcome>
 }
 
 interface CreateLayerManagerCommandFacadeInput {
@@ -39,10 +61,11 @@ const runFacadeCommand = async (
   executeIntent: ExecuteIntent,
   planner: CommandPlanner,
   notify?: (message: string) => void,
+  options?: CommandExecutionOptions,
 ): Promise<ExecuteIntentOutcome> => {
   const outcome = await executeIntent(planner)
 
-  if (outcome.status !== "applied") {
+  if (outcome.status !== "applied" && options?.notifyOnFailure !== false) {
     notify?.(formatFailureMessage(commandName, outcome))
   }
 
@@ -52,36 +75,45 @@ const runFacadeCommand = async (
 export const createLayerManagerCommandFacade = (
   input: CreateLayerManagerCommandFacadeInput,
 ): LayerManagerCommandFacade => {
-  const run = (commandName: string, planner: CommandPlanner): Promise<ExecuteIntentOutcome> => {
-    return runFacadeCommand(commandName, input.executeIntent, planner, input.notify)
+  const run = (
+    commandName: string,
+    planner: CommandPlanner,
+    options?: CommandExecutionOptions,
+  ): Promise<ExecuteIntentOutcome> => {
+    return runFacadeCommand(commandName, input.executeIntent, planner, input.notify, options)
   }
 
   return {
-    toggleVisibility: (commandInput) =>
-      run("toggleVisibility", (context) => planToggleVisibility(context, commandInput)),
+    toggleVisibility: (commandInput, options) =>
+      run("toggleVisibility", (context) => planToggleVisibility(context, commandInput), options),
 
-    toggleLock: (commandInput) =>
-      run("toggleLock", (context) => planToggleLock(context, commandInput)),
+    toggleLock: (commandInput, options) =>
+      run("toggleLock", (context) => planToggleLock(context, commandInput), options),
 
-    renameNode: (commandInput) =>
-      run("renameNode", (context) => planRenameNode(context, commandInput)),
+    renameNode: (commandInput, options) =>
+      run("renameNode", (context) => planRenameNode(context, commandInput), options),
 
-    deleteNode: (commandInput) =>
-      run("deleteNode", (context) => planDeleteNode(context, commandInput)),
+    deleteNode: (commandInput, options) =>
+      run("deleteNode", (context) => planDeleteNode(context, commandInput), options),
 
-    createGroup: (commandInput) =>
-      run("createGroup", (context) => {
-        const plan = planCreateGroup(context, commandInput)
-        if (!plan.ok) {
-          return plan
-        }
+    createGroup: (commandInput, options) =>
+      run(
+        "createGroup",
+        (context) => {
+          const plan = planCreateGroup(context, commandInput)
+          if (!plan.ok) {
+            return plan
+          }
 
-        return ok(plan.value.patch)
-      }),
+          return ok(plan.value.patch)
+        },
+        options,
+      ),
 
-    reorder: (commandInput) => run("reorder", (context) => planReorder(context, commandInput)),
+    reorder: (commandInput, options) =>
+      run("reorder", (context) => planReorder(context, commandInput), options),
 
-    reparent: (commandInput) =>
-      run("reparent", (context) => planReparentNode(context, commandInput)),
+    reparent: (commandInput, options) =>
+      run("reparent", (context) => planReparentNode(context, commandInput), options),
   }
 }

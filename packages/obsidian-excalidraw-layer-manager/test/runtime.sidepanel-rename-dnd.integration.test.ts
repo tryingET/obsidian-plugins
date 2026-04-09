@@ -295,6 +295,7 @@ interface RuntimeWithSidepanel {
 
 interface MakeRuntimeWithSidepanelOptions {
   readonly disableElementEditCapabilities?: boolean
+  readonly disableUpdateSceneCapability?: boolean
 }
 
 const makeRuntimeWithSidepanel = (
@@ -386,7 +387,7 @@ const makeRuntimeWithSidepanel = (
     },
     getScriptSettings: () => ({}),
     getExcalidrawAPI: () => ({
-      updateScene,
+      ...(options.disableUpdateSceneCapability ? {} : { updateScene }),
       onChange: (callback) => {
         sceneChangeListeners.add(callback)
         return () => {
@@ -742,6 +743,40 @@ describe("sidepanel rename + drag-drop integration", () => {
     expect(runtime.elements.map((element) => element.id)).toEqual(["B", "A", "C"])
     expect(runtime.elements.find((element) => element.id === "A")?.groupIds ?? []).toEqual([])
     expect(runtime.elements.find((element) => element.id === "B")?.groupIds ?? []).toEqual([])
+  })
+
+  it("fails closed when same-parent drag-drop reorder cannot execute", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      [
+        { id: "A", type: "rectangle", name: "Alpha" },
+        { id: "B", type: "rectangle", name: "Beta" },
+        { id: "C", type: "rectangle", name: "Gamma" },
+      ],
+      [],
+      {
+        disableUpdateSceneCapability: true,
+      },
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+
+    const contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const sourceRow = findInteractiveRowByLabel(contentRoot, "[element] Alpha")
+    const targetRow = findInteractiveRowByLabel(contentRoot, "[element] Beta")
+
+    if (!sourceRow || !targetRow) {
+      throw new Error("Expected same-parent drag source and target rows.")
+    }
+
+    sourceRow.dispatchEvent(new FakeDomEvent("dragstart"))
+    targetRow.dispatchEvent(new FakeDomEvent("dragover"))
+    targetRow.dispatchEvent(new FakeDomEvent("drop"))
+    await flushAsync()
+    await flushAsync()
+
+    expect(runtime.elements.map((element) => element.id)).toEqual(["A", "B", "C"])
+    expect(runtime.updateScene).not.toHaveBeenCalled()
   })
 
   it("drops grouped frame children onto the frame row to move them to the frame root", async () => {
