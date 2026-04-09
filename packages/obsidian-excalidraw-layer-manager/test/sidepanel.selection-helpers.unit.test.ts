@@ -87,6 +87,18 @@ describe("sidepanel selection helpers", () => {
     expect(resolved.map((node) => node.id)).toEqual(["el:A", "el:B"])
   })
 
+  it("treats representative element ids as representative-only rather than row identity", () => {
+    const hiddenChild = makeElementNode("A")
+    const collapsedGroup = makeGroupNode("G", [hiddenChild], {
+      isExpanded: false,
+      primaryElementId: "A",
+    })
+
+    const resolved = resolveSelectedNodes([collapsedGroup], ["A"])
+
+    expect(resolved.map((node) => node.id)).toEqual(["el:A"])
+  })
+
   it("resolves selections against the full tree even when descendants are collapsed", () => {
     const hiddenChild = makeElementNode("A")
     const collapsedGroup = makeGroupNode("G", [hiddenChild], {

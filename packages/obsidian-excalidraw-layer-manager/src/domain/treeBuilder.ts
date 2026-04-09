@@ -1,7 +1,11 @@
 import type { ElementDTO } from "../model/entities.js"
 import type { SceneIndexes } from "../model/indexes.js"
 import { readLmxElementLabel, readLmxGroupLabel } from "../model/lmxMetadata.js"
-import type { LayerNode, TreeBuildContext } from "../model/tree.js"
+import {
+  type LayerNode,
+  type TreeBuildContext,
+  resolveRepresentativeElementId,
+} from "../model/tree.js"
 
 const makeNodeId = (prefix: string, id: string): string => `${prefix}:${id}`
 
@@ -459,7 +463,7 @@ export const buildLayerTree = (
       return
     }
 
-    const representative = indexes.byId.get(node.primaryElementId)
+    const representative = indexes.byId.get(resolveRepresentativeElementId(node))
     const representativeFrameId = representative?.frameId ?? node.frameId
 
     if (representativeFrameId && frameBuckets.has(representativeFrameId)) {

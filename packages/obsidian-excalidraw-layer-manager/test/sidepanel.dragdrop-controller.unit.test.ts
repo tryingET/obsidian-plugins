@@ -31,12 +31,14 @@ const makeGroupNode = (
   groupId: string,
   options?: {
     readonly frameId?: string | null
+    readonly elementIds?: readonly string[]
+    readonly primaryElementId?: string
   },
 ): LayerNode => ({
   id: `group:${groupId}`,
   type: "group",
-  elementIds: [`el:${groupId}`],
-  primaryElementId: `el:${groupId}`,
+  elementIds: [...(options?.elementIds ?? [`el:${groupId}`])],
+  primaryElementId: options?.primaryElementId ?? options?.elementIds?.[0] ?? `el:${groupId}`,
   children: [],
   canExpand: true,
   isExpanded: true,
@@ -271,6 +273,50 @@ describe("sidepanel drag-drop controller", () => {
       status: "applied",
       destination: {
         kind: "root",
+        targetFrameId: "frame:A",
+      },
+    })
+  })
+
+  it("keeps drag identity on node.id when representative element ids differ", async () => {
+    const notify = vi.fn<(message: string) => void>()
+    const requestRenderFromLatestModel = vi.fn<() => void>()
+    const controller = new SidepanelDragDropController({
+      notify,
+      requestRenderFromLatestModel,
+    })
+    const { actions, reparentFromNodeIds } = makeActions()
+    const drag = makeDragEvent()
+    const group = makeGroupNode("G", {
+      frameId: "frame:A",
+      elementIds: ["A", "B"],
+      primaryElementId: "A",
+    })
+
+    controller.startRowDrag({
+      node: group,
+      nodeFrameId: "frame:A",
+      branchGroupPath: [],
+      dragEvent: drag.event,
+    })
+
+    const outcome = await controller.runDragDropReparent(actions, "el:target", {
+      targetParentPath: ["Dest"],
+      targetFrameId: "frame:A",
+    })
+
+    expect(drag.setData).toHaveBeenCalledWith("text/plain", "group:G")
+    expect(reparentFromNodeIds).toHaveBeenCalledWith({
+      nodeIds: ["group:G"],
+      sourceGroupId: "G",
+      targetParentPath: ["Dest"],
+      targetFrameId: "frame:A",
+    })
+    expect(outcome).toEqual({
+      status: "applied",
+      destination: {
+        kind: "preset",
+        targetParentPath: ["Dest"],
         targetFrameId: "frame:A",
       },
     })

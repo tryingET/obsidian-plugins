@@ -1,5 +1,5 @@
 import type { ReorderMode } from "../commands/reorderNode.js"
-import type { LayerNode } from "../model/tree.js"
+import { type LayerNode, resolveRepresentativeElementId } from "../model/tree.js"
 import type { LayerManagerCommandFacade } from "../runtime/commandFacade.js"
 import type { ExecuteIntentOutcome } from "../runtime/intentExecution.js"
 import { LayerManagerStore } from "../state/store.js"
@@ -130,7 +130,7 @@ export class LayerManagerController {
     }
 
     return resolved.commandFacade.renameNode({
-      elementId: resolved.node.primaryElementId,
+      elementId: resolveRepresentativeElementId(resolved.node),
       nextName,
     })
   }

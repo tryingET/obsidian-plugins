@@ -1,4 +1,4 @@
-import type { LayerNode } from "../../../model/tree.js"
+import { type LayerNode, resolveFrameRowElementId } from "../../../model/tree.js"
 
 export interface SharedFrameResolution {
   readonly ok: boolean
@@ -13,7 +13,7 @@ export interface GroupReparentPreset {
 }
 
 export const resolveNodeFrameId = (node: LayerNode): string | null => {
-  return node.type === "frame" ? node.primaryElementId : (node.frameId ?? null)
+  return resolveFrameRowElementId(node) ?? node.frameId ?? null
 }
 
 export const resolveSharedFrame = (nodes: readonly LayerNode[]): SharedFrameResolution => {

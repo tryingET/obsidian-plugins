@@ -1,4 +1,4 @@
-import type { LayerNode } from "../../../model/tree.js"
+import { type LayerNode, resolveFrameRowElementId } from "../../../model/tree.js"
 import type { LayerManagerUiActions } from "../../renderer.js"
 
 export interface DragDropBranchContext {
@@ -75,11 +75,7 @@ export class SidepanelDragDropController {
   }
 
   resolveNodeFrameId(node: LayerNode, branchContext: DragDropBranchContext): string | null {
-    if (node.type === "frame") {
-      return node.primaryElementId
-    }
-
-    return node.frameId ?? branchContext.frameId
+    return resolveFrameRowElementId(node) ?? node.frameId ?? branchContext.frameId
   }
 
   resolveDropTargetForNode(node: LayerNode, branchContext: DragDropBranchContext): NodeDropTarget {
@@ -95,7 +91,7 @@ export class SidepanelDragDropController {
     if (node.type === "frame") {
       return {
         targetParentPath: [],
-        targetFrameId: node.primaryElementId,
+        targetFrameId: resolveFrameRowElementId(node),
       }
     }
 

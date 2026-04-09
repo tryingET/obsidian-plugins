@@ -33,7 +33,7 @@ export const renderSidepanelRowTree = (input: SidepanelRowTreeRenderInput): void
     const nodeFrameId = input.resolveNodeFrameId(node, input.branchContext)
 
     const childBranchContext: SidepanelRowTreeBranchContext = {
-      frameId: node.type === "frame" ? node.primaryElementId : nodeFrameId,
+      frameId: nodeFrameId,
       groupPath:
         node.type === "group" && node.groupId
           ? [...input.branchContext.groupPath, node.groupId]
