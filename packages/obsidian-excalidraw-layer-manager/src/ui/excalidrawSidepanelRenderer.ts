@@ -887,15 +887,10 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         ),
       })
 
-      if (outcome.status === "reconciled") {
-        if (outcome.persisted) {
-          this.requestRenderFromLatestModel()
-        } else {
-          this.notify(
-            "Remembered last-move destination reverted because reconciliation could not persist.",
-          )
-          this.requestRenderFromLatestModel()
-        }
+      if (outcome.status === "reconciled" && !outcome.persisted) {
+        this.notify(
+          "Remembered last-move destination reverted because reconciliation could not persist.",
+        )
       }
     } finally {
       shouldReplay = this.#rememberedDestinationReconcileDirtyEpoch > reconcileEpoch

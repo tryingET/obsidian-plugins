@@ -895,6 +895,7 @@ describe("sidepanel quick-move + persistence integration", () => {
     const repeatButton = findButtonWithPrefix(contentRoot, "↺ Last:")
     expect(repeatButton?.textContent).toContain("Inside G")
     expect(repeatButton?.textContent).not.toContain("Renamed Group")
+    expect(setScriptSettings).toHaveBeenCalledTimes(1)
     expect(notices).toContain("Failed to persist last move destination.")
     expect(notices).toContain(
       "Remembered last-move destination reverted because reconciliation could not persist.",
