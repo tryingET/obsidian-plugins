@@ -207,7 +207,7 @@ const buildReboundRecentDestinations = (
   return reboundDestinations
 }
 
-export type RememberedDestinationRebindOutcome =
+type RememberedDestinationRebindOutcome =
   | {
       readonly status: "unchanged"
     }
