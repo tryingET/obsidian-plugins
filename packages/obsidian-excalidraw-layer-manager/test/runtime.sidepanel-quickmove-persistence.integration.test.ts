@@ -453,6 +453,58 @@ describe("sidepanel quick-move + persistence integration", () => {
     expect(destinationPayload?.kind).toBe("root")
   })
 
+  it("drops stale persisted last-move destinations from runtime state and persisted settings", async () => {
+    let settings: ScriptSettings = {
+      lmx_persist_last_move_destination: {
+        value: true,
+      },
+      lmx_last_move_destination: {
+        value: {
+          kind: "preset",
+          targetParentPath: ["missing"],
+          targetFrameId: null,
+          label: "Inside missing",
+        },
+      },
+    }
+
+    const setScriptSettings = vi.fn(async (nextSettings: ScriptSettings) => {
+      settings = cloneSettings(nextSettings)
+    })
+
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    const { actions } = makeUiActions()
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => settings,
+      setScriptSettings,
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    const model: RenderViewModel = {
+      tree: [makeElementNode("A"), makeGroupNode("G", [makeElementNode("B")])],
+      selectedIds: new Set(["A"]),
+      sceneVersion: 11,
+      actions,
+    }
+
+    renderer.render(model)
+    await flushAsync()
+
+    const contentRoot = getContentRoot(sidepanelTab.contentEl)
+    expect(findButtonWithPrefix(contentRoot, "↺ Last:")).toBeUndefined()
+
+    expect(setScriptSettings).toHaveBeenCalledTimes(1)
+    const correctedSettings = setScriptSettings.mock.calls[0]?.[0] as ScriptSettings | undefined
+    expect(correctedSettings?.["lmx_persist_last_move_destination"]?.value).toBe(true)
+    expect(correctedSettings?.["lmx_last_move_destination"]?.value).toBeNull()
+    expect(settings["lmx_last_move_destination"]?.value).toBeNull()
+  })
+
   it("keeps quick-move root/dropdown controls and toolbar actions wired", async () => {
     const sidepanelTab = makeSidepanelTab(fakeDocument, null)
     const { actions, commandSpies } = makeUiActions()

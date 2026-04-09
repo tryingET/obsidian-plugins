@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from "vitest"
 
+import type { LayerNode } from "../src/model/tree.js"
+import {
+  buildSidepanelQuickMoveDestinationProjection,
+  projectQuickMoveDestination,
+  projectQuickMoveDestinations,
+} from "../src/ui/sidepanel/quickmove/destinationProjection.js"
 import { makePresetKey, makePresetLabel } from "../src/ui/sidepanel/quickmove/presetHelpers.js"
 import {
   type LastQuickMoveDestination,
@@ -39,6 +45,32 @@ const createHarness = (initialSettings: ScriptSettingsLike = {}) => {
     getSettings: () => settings,
   }
 }
+
+const makeElementNode = (elementId: string): LayerNode => ({
+  id: `el:${elementId}`,
+  type: "element",
+  elementIds: [elementId],
+  primaryElementId: elementId,
+  children: [],
+  canExpand: false,
+  isExpanded: false,
+  groupId: null,
+  frameId: null,
+  label: elementId,
+})
+
+const makeGroupNode = (groupId: string, label = groupId): LayerNode => ({
+  id: `group:${groupId}`,
+  type: "group",
+  elementIds: ["A"],
+  primaryElementId: "A",
+  children: [makeElementNode("A")],
+  canExpand: true,
+  isExpanded: true,
+  groupId,
+  frameId: null,
+  label,
+})
 
 describe("sidepanel quick-move persistence service", () => {
   it("loads persisted preset destination once from settings", () => {
@@ -201,6 +233,71 @@ describe("sidepanel quick-move persistence service", () => {
 
     expect(harness.service.recentQuickMoveDestinations).toEqual([
       { kind: "root", targetFrameId: "Frame-A" },
+      { kind: "root", targetFrameId: null },
+    ])
+  })
+
+  it("rebinds remembered destinations onto live registry labels and drops stale recents", () => {
+    const harness = createHarness()
+
+    harness.service.setLastQuickMoveDestination({ kind: "root", targetFrameId: null })
+    harness.service.setLastQuickMoveDestination({
+      kind: "preset",
+      preset: {
+        key: makePresetKey(["missing"], null),
+        label: "Inside missing",
+        targetParentPath: ["missing"],
+        targetFrameId: null,
+      },
+    })
+    harness.service.setLastQuickMoveDestination({
+      kind: "preset",
+      preset: {
+        key: makePresetKey(["G"], null),
+        label: "Inside old label",
+        targetParentPath: ["G"],
+        targetFrameId: null,
+      },
+    })
+
+    const projection = buildSidepanelQuickMoveDestinationProjection(
+      [makeGroupNode("G", "Renamed Group")],
+      24,
+      64,
+    )
+
+    harness.service.rebindRememberedDestinations({
+      lastQuickMoveDestination: projectQuickMoveDestination(
+        harness.service.lastQuickMoveDestination,
+        projection.destinationByKey,
+        projection.liveFrameIds,
+      ),
+      recentQuickMoveDestinations: projectQuickMoveDestinations(
+        harness.service.recentQuickMoveDestinations,
+        projection.destinationByKey,
+        projection.liveFrameIds,
+      ),
+    })
+
+    expect(harness.service.lastQuickMoveDestination).toEqual({
+      kind: "preset",
+      preset: {
+        key: makePresetKey(["G"], null),
+        label: "Inside Renamed Group",
+        targetParentPath: ["G"],
+        targetFrameId: null,
+      },
+    })
+    expect(harness.service.recentQuickMoveDestinations).toEqual([
+      {
+        kind: "preset",
+        preset: {
+          key: makePresetKey(["G"], null),
+          label: "Inside Renamed Group",
+          targetParentPath: ["G"],
+          targetFrameId: null,
+        },
+      },
       { kind: "root", targetFrameId: null },
     ])
   })

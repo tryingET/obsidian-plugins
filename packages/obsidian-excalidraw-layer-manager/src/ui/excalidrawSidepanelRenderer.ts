@@ -25,6 +25,8 @@ import {
 import { SidepanelPromptInteractionService } from "./sidepanel/prompt/promptInteractionService.js"
 import {
   buildSidepanelQuickMoveDestinationProjection,
+  projectQuickMoveDestination,
+  projectQuickMoveDestinations,
   resolveProjectedQuickMovePreset,
 } from "./sidepanel/quickmove/destinationProjection.js"
 import { makePresetKey, makePresetOptionLabel } from "./sidepanel/quickmove/presetHelpers.js"
@@ -440,6 +442,18 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
 
     const rowFilter = this.getRowFilterResult(structuralTree)
     const destinationProjection = this.getQuickMoveDestinationProjection(structuralTree)
+    this.#quickMovePersistenceService.rebindRememberedDestinations({
+      lastQuickMoveDestination: projectQuickMoveDestination(
+        this.#quickMovePersistenceService.lastQuickMoveDestination,
+        destinationProjection.destinationByKey,
+        destinationProjection.liveFrameIds,
+      ),
+      recentQuickMoveDestinations: projectQuickMoveDestinations(
+        this.#quickMovePersistenceService.recentQuickMoveDestinations,
+        destinationProjection.destinationByKey,
+        destinationProjection.liveFrameIds,
+      ),
+    })
     const visibleRowTree = rowFilter.visibleTree
     const { visibleNodes, parentById } = collectVisibleNodeContext(visibleRowTree)
     const activeElement = ownerDocument.activeElement

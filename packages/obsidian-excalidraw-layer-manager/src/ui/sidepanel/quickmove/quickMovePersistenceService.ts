@@ -130,6 +130,83 @@ const isSameDestination = (
   return left.preset.key === right.preset.key
 }
 
+const areSamePresetPaths = (left: readonly string[], right: readonly string[]): boolean => {
+  if (left.length !== right.length) {
+    return false
+  }
+
+  return left.every((segment, index) => segment === right[index])
+}
+
+const areEquivalentDestinations = (
+  left: LastQuickMoveDestination | null,
+  right: LastQuickMoveDestination | null,
+): boolean => {
+  if (left === right) {
+    return true
+  }
+
+  if (!left || !right) {
+    return left === right
+  }
+
+  if (left.kind === "root" || right.kind === "root") {
+    return (
+      left.kind === "root" && right.kind === "root" && left.targetFrameId === right.targetFrameId
+    )
+  }
+
+  return (
+    left.preset.key === right.preset.key &&
+    left.preset.label === right.preset.label &&
+    left.preset.targetFrameId === right.preset.targetFrameId &&
+    areSamePresetPaths(left.preset.targetParentPath, right.preset.targetParentPath)
+  )
+}
+
+const areEquivalentDestinationLists = (
+  left: readonly LastQuickMoveDestination[],
+  right: readonly LastQuickMoveDestination[],
+): boolean => {
+  if (left.length !== right.length) {
+    return false
+  }
+
+  return left.every((destination, index) =>
+    areEquivalentDestinations(destination, right[index] ?? null),
+  )
+}
+
+const buildReboundRecentDestinations = (
+  lastQuickMoveDestination: LastQuickMoveDestination | null,
+  recentQuickMoveDestinations: readonly LastQuickMoveDestination[],
+): readonly LastQuickMoveDestination[] => {
+  const reboundDestinations: LastQuickMoveDestination[] = []
+
+  const appendDestination = (destination: LastQuickMoveDestination | null): void => {
+    if (!destination) {
+      return
+    }
+
+    if (reboundDestinations.some((existing) => isSameDestination(existing, destination))) {
+      return
+    }
+
+    reboundDestinations.push(destination)
+  }
+
+  appendDestination(lastQuickMoveDestination)
+
+  for (const destination of recentQuickMoveDestinations) {
+    appendDestination(destination)
+    if (reboundDestinations.length >= RECENT_DESTINATION_LIMIT) {
+      break
+    }
+  }
+
+  return reboundDestinations
+}
+
 export class SidepanelQuickMovePersistenceService {
   readonly #getScriptSettings: (() => ScriptSettingsLike) | undefined
   readonly #settingsWriteQueue: SidepanelSettingsWriteQueue
@@ -200,6 +277,31 @@ export class SidepanelQuickMovePersistenceService {
       this.rememberRecentDestination(destination)
     }
 
+    this.persistLastMoveDestinationIfEnabled()
+  }
+
+  rebindRememberedDestinations(input: {
+    readonly lastQuickMoveDestination: LastQuickMoveDestination | null
+    readonly recentQuickMoveDestinations: readonly LastQuickMoveDestination[]
+  }): void {
+    const nextRecentQuickMoveDestinations = buildReboundRecentDestinations(
+      input.lastQuickMoveDestination,
+      input.recentQuickMoveDestinations,
+    )
+
+    const changed =
+      !areEquivalentDestinations(this.#lastQuickMoveDestination, input.lastQuickMoveDestination) ||
+      !areEquivalentDestinationLists(
+        this.#recentQuickMoveDestinations,
+        nextRecentQuickMoveDestinations,
+      )
+
+    if (!changed) {
+      return
+    }
+
+    this.#lastQuickMoveDestination = input.lastQuickMoveDestination
+    this.#recentQuickMoveDestinations = [...nextRecentQuickMoveDestinations]
     this.persistLastMoveDestinationIfEnabled()
   }
 
