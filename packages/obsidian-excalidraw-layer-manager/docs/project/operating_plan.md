@@ -30,6 +30,9 @@ It is: make the current panel trustworthy enough that later intelligence has a s
 
 See also:
 - `docs/project/2026-04-08-projection-kernel-recovery.md`
+- `docs/project/2026-04-09-projection-kernel-recovery-blueprint.md`
+
+The exact module ownership, contract-test matrix, and AK task sequencing for this wave are frozen in `docs/project/2026-04-09-projection-kernel-recovery-blueprint.md`.
 
 ## Guardrails for this wave
 

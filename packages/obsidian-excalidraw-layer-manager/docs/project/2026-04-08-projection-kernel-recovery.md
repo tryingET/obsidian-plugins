@@ -72,6 +72,9 @@ They are subordinate to live scene truth and must be re-projected, validated, or
 5. **Re-qualify reorder and drag/drop** against canonical structural targets.
 6. **Only then** resume adaptive/semantic intelligence.
 
+For the exact module map, contract-test matrix, and task-level execution order, see:
+- `docs/project/2026-04-09-projection-kernel-recovery-blueprint.md`
+
 ## What this wave is not
 
 This wave is not:

@@ -40,6 +40,8 @@ Provide an architecture-first Layer Manager for Obsidian Excalidraw scripts, wit
 - `docs/project/strategic_goals.md`
 - `docs/project/tactical_goals.md`
 - `docs/project/operating_plan.md`
+- `docs/project/2026-04-08-projection-kernel-recovery.md`
+- `docs/project/2026-04-09-projection-kernel-recovery-blueprint.md`
 - `docs/project/script-style-package-boundary.md`
 
 ## Commands
