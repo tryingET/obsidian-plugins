@@ -86,4 +86,37 @@ describe("sidepanel host selection bridge", () => {
       },
     })
   })
+
+  it("invalidates pending verification so stale retries cannot override newer selection", async () => {
+    const suppressContentFocusOut = vi.fn<() => void>()
+    const updateScene = vi.fn<(scene: unknown) => void>()
+    const selectElementsInView = vi.fn<(ids: string[]) => void>()
+
+    const bridge = new SidepanelHostSelectionBridge({
+      host: {
+        targetView: { _loaded: true },
+        selectElementsInView,
+        getViewSelectedElements: () => [],
+        getExcalidrawAPI: () => ({ updateScene }),
+      },
+      suppressContentFocusOut,
+    })
+
+    bridge.mirrorSelectionToHost(["el:A"])
+    bridge.invalidatePendingSelectionMirror()
+    bridge.mirrorSelectionToHost(["el:B"])
+    await Promise.resolve()
+
+    expect(selectElementsInView).toHaveBeenCalledWith(["el:A"])
+    expect(selectElementsInView).toHaveBeenCalledWith(["el:B"])
+    expect(selectElementsInView).toHaveBeenCalledTimes(3)
+    expect(updateScene).toHaveBeenCalledTimes(1)
+    expect(updateScene).toHaveBeenCalledWith({
+      appState: {
+        selectedElementIds: {
+          "el:B": true,
+        },
+      },
+    })
+  })
 })

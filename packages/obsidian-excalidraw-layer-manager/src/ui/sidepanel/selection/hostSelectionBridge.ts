@@ -18,14 +18,21 @@ interface SidepanelHostSelectionBridgeInput {
 export class SidepanelHostSelectionBridge {
   readonly #host: SidepanelHostSelectionBridgeHost
   readonly #suppressContentFocusOut: () => void
+  #latestMirrorRequestId = 0
 
   constructor(input: SidepanelHostSelectionBridgeInput) {
     this.#host = input.host
     this.#suppressContentFocusOut = input.suppressContentFocusOut
   }
 
+  invalidatePendingSelectionMirror(): void {
+    this.#latestMirrorRequestId += 1
+  }
+
   mirrorSelectionToHost(elementIds: readonly string[]): void {
     const nextElementIds = [...elementIds]
+    const mirrorRequestId = this.#latestMirrorRequestId + 1
+    this.#latestMirrorRequestId = mirrorRequestId
 
     const runSelectAttempt = (): boolean => {
       const selectElementsInView = this.#host.selectElementsInView
@@ -87,6 +94,10 @@ export class SidepanelHostSelectionBridge {
     }
 
     Promise.resolve().then(() => {
+      if (mirrorRequestId !== this.#latestMirrorRequestId) {
+        return
+      }
+
       const hasAllExpectedSelections = (): boolean => {
         try {
           ensureHostViewContext(this.#host)
@@ -104,8 +115,16 @@ export class SidepanelHostSelectionBridge {
         return
       }
 
+      if (mirrorRequestId !== this.#latestMirrorRequestId) {
+        return
+      }
+
       const retryApplied = runSelectAttempt()
       if (retryApplied && hasAllExpectedSelections()) {
+        return
+      }
+
+      if (mirrorRequestId !== this.#latestMirrorRequestId) {
         return
       }
 

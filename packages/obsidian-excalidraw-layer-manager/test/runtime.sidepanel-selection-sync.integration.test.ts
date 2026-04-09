@@ -587,18 +587,6 @@ describe("sidepanel selection-sync integration", () => {
     }
 
     initialRow.click()
-    await flushAsync()
-
-    const rowsAfterClick = flattenElements(contentRoot).filter(
-      (element) => element.tagName === "DIV" && element.style["cursor"] === "pointer",
-    )
-
-    const selectedIndexBefore = rowsAfterClick.findIndex(
-      (row) => (row.style["background"]?.length ?? 0) > 0,
-    )
-
-    expect(selectedIndexBefore).toBeGreaterThanOrEqual(0)
-    expect(runtime.selectInView).toHaveBeenCalled()
 
     const lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
     const clickedIds = runtime.selectInView.mock.calls[lastSelectCallIndex]?.[0] as
@@ -638,6 +626,7 @@ describe("sidepanel selection-sync integration", () => {
     )
 
     expect(selectedIndexAfter).toBeGreaterThanOrEqual(0)
-    expect(selectedIndexAfter).not.toBe(selectedIndexBefore)
+    expect(runtime.selectInView).toHaveBeenCalledTimes(1)
+    expect(runtime.updateScene).not.toHaveBeenCalled()
   })
 })
