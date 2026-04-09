@@ -40,6 +40,7 @@ export interface ElementVisualState {
 }
 
 export interface RenderViewModel {
+  /** Authoritative full structural tree; visible rows are derived in the renderer layer. */
   readonly tree: readonly LayerNode[]
   readonly selectedIds: ReadonlySet<string>
   readonly sceneVersion: number

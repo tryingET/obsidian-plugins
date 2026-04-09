@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import type { LayerNode } from "../src/model/tree.js"
 import {
   buildSidepanelRowFilterResult,
+  buildSidepanelVisibleRowTreeResult,
   resolveSidepanelRowVisualState,
 } from "../src/ui/sidepanel/render/rowModel.js"
 
@@ -136,18 +137,23 @@ describe("sidepanel row model helpers", () => {
     expect(result.renderedRowCount).toBe(0)
   })
 
-  it("keeps existing visible tree when filter query is blank", () => {
+  it("derives visible rows from expansion state when filter query is blank", () => {
     const alpha = makeElementNode("A", "Alpha")
     const beta = makeElementNode("B", "Beta")
-    const expandedGroup = makeGroupNode("G", [alpha, beta], {
-      isExpanded: true,
+    const collapsedGroup = makeGroupNode("G", [alpha, beta], {
+      isExpanded: false,
+      label: "Container",
     })
 
-    const result = buildSidepanelRowFilterResult([expandedGroup], "   ")
+    const result = buildSidepanelVisibleRowTreeResult([collapsedGroup], "   ")
 
     expect(result.active).toBe(false)
-    expect(result.renderedRowCount).toBe(3)
+    expect(result.renderedRowCount).toBe(1)
     expect(result.searchableRowCount).toBe(3)
-    expect(result.tree).toEqual([expandedGroup])
+    expect(result.visibleTree.map((node) => node.id)).toEqual(["group:G"])
+    expect(result.visibleTree[0]?.canExpand).toBe(true)
+    expect(result.visibleTree[0]?.isExpanded).toBe(false)
+    expect(result.visibleTree[0]?.children).toEqual([])
+    expect(collapsedGroup.children.map((node) => node.id)).toEqual(["el:A", "el:B"])
   })
 })

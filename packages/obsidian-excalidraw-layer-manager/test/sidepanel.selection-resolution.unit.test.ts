@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest"
 
 import type { LayerNode } from "../src/model/tree.js"
-import { buildSidepanelRowFilterResult } from "../src/ui/sidepanel/render/rowModel.js"
+import {
+  buildSidepanelRowFilterResult,
+  buildSidepanelVisibleRowTreeResult,
+} from "../src/ui/sidepanel/render/rowModel.js"
 import {
   makeSidepanelSelectionNodeRef,
   resolveSidepanelSelection,
@@ -139,6 +142,53 @@ describe("sidepanel selection resolution", () => {
     })
 
     expect(result.selection.nodes.map((node) => node.id)).toEqual(["el:A"])
+    expect(result.selection.structuralMove).toBeNull()
+  })
+
+  it("changes visible row projection without changing structural target resolution", () => {
+    const nestedLeaf = makeElementNode("A", {
+      frameId: "Frame-A",
+      label: "Nested leaf",
+    })
+    const nestedGroup = makeGroupNode("inner", [nestedLeaf], {
+      frameId: "Frame-A",
+      isExpanded: false,
+      label: "Inner target",
+      primaryElementId: "A",
+    })
+    const collapsedGroup = makeGroupNode("outer", [nestedGroup], {
+      frameId: "Frame-A",
+      isExpanded: false,
+      label: "Outer group",
+      primaryElementId: "A",
+    })
+
+    const collapsedVisibleTree = buildSidepanelVisibleRowTreeResult(
+      [collapsedGroup],
+      "",
+    ).visibleTree
+    const filteredVisibleTree = buildSidepanelVisibleRowTreeResult(
+      [collapsedGroup],
+      "inner target",
+    ).visibleTree
+
+    expect(collapsedVisibleTree.map((node) => node.id)).toEqual(["group:outer"])
+    expect(collapsedVisibleTree[0]?.children).toEqual([])
+    expect(filteredVisibleTree.map((node) => node.id)).toEqual(["group:outer"])
+    expect(filteredVisibleTree[0]?.children.map((node) => node.id)).toEqual(["group:inner"])
+    expect(filteredVisibleTree[0]?.isExpanded).toBe(true)
+
+    const result = resolveSidepanelSelection({
+      tree: [collapsedGroup],
+      selectedElementIds: ["A"],
+      selectionOverride: null,
+    })
+
+    expect(result.selection.nodes.map((node) => node.id)).toEqual(["el:A"])
+    expect(result.selection.frameResolution).toEqual({
+      ok: true,
+      frameId: "Frame-A",
+    })
     expect(result.selection.structuralMove).toBeNull()
   })
 })

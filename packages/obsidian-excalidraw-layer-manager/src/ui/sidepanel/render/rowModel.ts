@@ -1,4 +1,4 @@
-import type { LayerNode } from "../../../model/tree.js"
+import type { StructuralLayerNode, VisibleRowNode } from "../../../model/tree.js"
 import type { ElementVisualState } from "../../renderer.js"
 
 export type SidepanelFilterMatchKind = "none" | "self" | "descendant"
@@ -10,8 +10,10 @@ export interface SidepanelRowVisualState {
   readonly lock: SidepanelLockState
 }
 
-interface SidepanelRowFilterResult {
-  readonly tree: readonly LayerNode[]
+export interface SidepanelRowFilterResult {
+  readonly visibleTree: readonly VisibleRowNode[]
+  /** Compatibility alias for visibleTree. */
+  readonly tree: readonly VisibleRowNode[]
   readonly active: boolean
   readonly query: string
   readonly renderedRowCount: number
@@ -21,14 +23,14 @@ interface SidepanelRowFilterResult {
 
 const normalizeQuery = (value: string): string => value.trim().toLowerCase()
 
-const countRenderedRows = (nodes: readonly LayerNode[]): number => {
+const countRenderedRows = (nodes: readonly VisibleRowNode[]): number => {
   let total = 0
 
-  const walk = (nextNodes: readonly LayerNode[]): void => {
+  const walk = (nextNodes: readonly VisibleRowNode[]): void => {
     for (const node of nextNodes) {
       total += 1
 
-      if (node.isExpanded && node.children.length > 0) {
+      if (node.children.length > 0) {
         walk(node.children)
       }
     }
@@ -38,10 +40,10 @@ const countRenderedRows = (nodes: readonly LayerNode[]): number => {
   return total
 }
 
-const countSearchableRows = (nodes: readonly LayerNode[]): number => {
+const countSearchableRows = (nodes: readonly StructuralLayerNode[]): number => {
   let total = 0
 
-  const walk = (nextNodes: readonly LayerNode[]): void => {
+  const walk = (nextNodes: readonly StructuralLayerNode[]): void => {
     for (const node of nextNodes) {
       total += 1
       if (node.children.length > 0) {
@@ -54,16 +56,26 @@ const countSearchableRows = (nodes: readonly LayerNode[]): number => {
   return total
 }
 
-const makeNodeSearchText = (node: LayerNode): string => {
+const makeNodeSearchText = (node: StructuralLayerNode): string => {
   return [node.label, node.type].join(" ").toLowerCase()
 }
 
+const projectExpandedVisibleRows = (
+  nodes: readonly StructuralLayerNode[],
+): readonly VisibleRowNode[] => {
+  return nodes.map((node) => ({
+    ...node,
+    children: node.isExpanded ? projectExpandedVisibleRows(node.children) : [],
+    canExpand: node.canExpand || node.children.length > 0,
+  }))
+}
+
 const filterNodesForQuery = (
-  nodes: readonly LayerNode[],
+  nodes: readonly StructuralLayerNode[],
   query: string,
   matchKindByNodeId: Map<string, SidepanelFilterMatchKind>,
-): readonly LayerNode[] => {
-  const filtered: LayerNode[] = []
+): readonly VisibleRowNode[] => {
+  const filtered: VisibleRowNode[] = []
 
   for (const node of nodes) {
     const filteredChildren = filterNodesForQuery(node.children, query, matchKindByNodeId)
@@ -77,7 +89,7 @@ const filterNodesForQuery = (
     filtered.push({
       ...node,
       children: filteredChildren,
-      canExpand: node.canExpand,
+      canExpand: node.canExpand || node.children.length > 0,
       isExpanded: filteredChildren.length > 0,
     })
   }
@@ -85,39 +97,45 @@ const filterNodesForQuery = (
   return filtered
 }
 
-export const buildSidepanelRowFilterResult = (
-  nodes: readonly LayerNode[],
+export const buildSidepanelVisibleRowTreeResult = (
+  structuralTree: readonly StructuralLayerNode[],
   query: string,
 ): SidepanelRowFilterResult => {
   const normalizedQuery = normalizeQuery(query)
-  const searchableRowCount = countSearchableRows(nodes)
+  const searchableRowCount = countSearchableRows(structuralTree)
 
   if (normalizedQuery.length === 0) {
+    const visibleTree = projectExpandedVisibleRows(structuralTree)
+
     return {
-      tree: nodes,
+      visibleTree,
+      tree: visibleTree,
       active: false,
       query: "",
-      renderedRowCount: countRenderedRows(nodes),
+      renderedRowCount: countRenderedRows(visibleTree),
       searchableRowCount,
       matchKindByNodeId: new Map(),
     }
   }
 
   const matchKindByNodeId = new Map<string, SidepanelFilterMatchKind>()
-  const tree = filterNodesForQuery(nodes, normalizedQuery, matchKindByNodeId)
+  const visibleTree = filterNodesForQuery(structuralTree, normalizedQuery, matchKindByNodeId)
 
   return {
-    tree,
+    visibleTree,
+    tree: visibleTree,
     active: true,
     query: normalizedQuery,
-    renderedRowCount: countRenderedRows(tree),
+    renderedRowCount: countRenderedRows(visibleTree),
     searchableRowCount,
     matchKindByNodeId,
   }
 }
 
+export const buildSidepanelRowFilterResult = buildSidepanelVisibleRowTreeResult
+
 export const resolveSidepanelRowVisualState = (
-  node: LayerNode,
+  node: StructuralLayerNode,
   elementStateById?: ReadonlyMap<string, ElementVisualState>,
 ): SidepanelRowVisualState => {
   if (!elementStateById || node.elementIds.length === 0) {

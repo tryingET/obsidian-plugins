@@ -1,17 +1,17 @@
-import type { LayerNode } from "../../../model/tree.js"
+import type { StructuralLayerNode, VisibleRowNode } from "../../../model/tree.js"
 
 interface VisibleNodeContext {
-  readonly visibleNodes: readonly LayerNode[]
+  readonly visibleNodes: readonly VisibleRowNode[]
   readonly parentById: ReadonlyMap<string, string | null>
 }
 
 interface SelectedNodeCandidate {
-  readonly node: LayerNode
+  readonly node: StructuralLayerNode
   readonly depth: number
 }
 
 const isMoreSpecificCandidate = (
-  candidate: LayerNode,
+  candidate: StructuralLayerNode,
   candidateDepth: number,
   current: SelectedNodeCandidate,
 ): boolean => {
@@ -27,9 +27,9 @@ const isMoreSpecificCandidate = (
 }
 
 export const resolveSelectedNodes = (
-  tree: readonly LayerNode[],
+  tree: readonly StructuralLayerNode[],
   selectedElementIds: readonly string[],
-): readonly LayerNode[] => {
+): readonly StructuralLayerNode[] => {
   const bestByElementId = new Map<string, SelectedNodeCandidate>()
   const stack = tree.map((node) => ({ node, depth: 0 }))
 
@@ -65,7 +65,7 @@ export const resolveSelectedNodes = (
   }
 
   const seenNodeIds = new Set<string>()
-  const resolved: LayerNode[] = []
+  const resolved: StructuralLayerNode[] = []
 
   for (const selectedElementId of selectedElementIds) {
     const node = bestByElementId.get(selectedElementId)?.node
@@ -80,11 +80,11 @@ export const resolveSelectedNodes = (
   return resolved
 }
 
-export const collectVisibleNodeContext = (nodes: readonly LayerNode[]): VisibleNodeContext => {
-  const visibleNodes: LayerNode[] = []
+export const collectVisibleNodeContext = (nodes: readonly VisibleRowNode[]): VisibleNodeContext => {
+  const visibleNodes: VisibleRowNode[] = []
   const parentById = new Map<string, string | null>()
 
-  const walk = (nextNodes: readonly LayerNode[], parentId: string | null): void => {
+  const walk = (nextNodes: readonly VisibleRowNode[], parentId: string | null): void => {
     for (const node of nextNodes) {
       visibleNodes.push(node)
       parentById.set(node.id, parentId)

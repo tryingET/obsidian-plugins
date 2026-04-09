@@ -1,4 +1,4 @@
-import type { LayerNode } from "../../../model/tree.js"
+import type { StructuralLayerNode } from "../../../model/tree.js"
 import { type SharedFrameResolution, resolveSharedFrame } from "../quickmove/presetHelpers.js"
 import { resolveSelectedNodes } from "./nodeContext.js"
 import { haveSameIds } from "./selectionIds.js"
@@ -29,7 +29,7 @@ export interface ResolvedSelection {
    * Row selection resolved from explicit row intent when present, otherwise from
    * the full structural tree that owns the selected elements.
    */
-  readonly nodes: readonly LayerNode[]
+  readonly nodes: readonly StructuralLayerNode[]
   readonly frameResolution: SharedFrameResolution
   /**
    * Structural move intent is only valid when it came from explicit row intent.
@@ -40,17 +40,17 @@ export interface ResolvedSelection {
 
 export interface SidepanelSelectionResolution {
   readonly selection: ResolvedSelection
-  readonly explicitSelectedNodes: readonly LayerNode[] | null
+  readonly explicitSelectedNodes: readonly StructuralLayerNode[] | null
 }
 
 const buildLayerNodeLookup = (
-  tree: readonly LayerNode[],
+  tree: readonly StructuralLayerNode[],
 ): {
-  readonly nodeById: ReadonlyMap<string, LayerNode>
-  readonly groupNodeByGroupId: ReadonlyMap<string, LayerNode>
+  readonly nodeById: ReadonlyMap<string, StructuralLayerNode>
+  readonly groupNodeByGroupId: ReadonlyMap<string, StructuralLayerNode>
 } => {
-  const nodeById = new Map<string, LayerNode>()
-  const groupNodeByGroupId = new Map<string, LayerNode>()
+  const nodeById = new Map<string, StructuralLayerNode>()
+  const groupNodeByGroupId = new Map<string, StructuralLayerNode>()
   const stack = [...tree]
 
   while (stack.length > 0) {
@@ -79,7 +79,9 @@ const buildLayerNodeLookup = (
   }
 }
 
-export const makeSidepanelSelectionNodeRef = (node: LayerNode): SidepanelSelectionNodeRef => {
+export const makeSidepanelSelectionNodeRef = (
+  node: StructuralLayerNode,
+): SidepanelSelectionNodeRef => {
   if (node.type === "group" && node.groupId) {
     return {
       kind: "groupId",
@@ -94,10 +96,10 @@ export const makeSidepanelSelectionNodeRef = (node: LayerNode): SidepanelSelecti
 }
 
 export const resolveExplicitSelectedNodes = (
-  tree: readonly LayerNode[],
+  tree: readonly StructuralLayerNode[],
   selectionOverride: SidepanelSelectionOverrideState | null,
   selectedElementIds: readonly string[],
-): readonly LayerNode[] | null => {
+): readonly StructuralLayerNode[] | null => {
   if (
     !selectionOverride?.nodeRefs ||
     !haveSameIds(selectionOverride.elementIds, selectedElementIds)
@@ -114,7 +116,7 @@ export const resolveExplicitSelectedNodes = (
 
       return lookup.nodeById.get(nodeRef.nodeId) ?? null
     })
-    .filter((node): node is LayerNode => Boolean(node))
+    .filter((node): node is StructuralLayerNode => Boolean(node))
 
   if (resolvedNodes.length !== selectionOverride.nodeRefs.length) {
     return null
@@ -124,7 +126,7 @@ export const resolveExplicitSelectedNodes = (
 }
 
 export const resolveSidepanelSelection = (input: {
-  readonly tree: readonly LayerNode[]
+  readonly tree: readonly StructuralLayerNode[]
   readonly selectedElementIds: readonly string[]
   readonly selectionOverride: SidepanelSelectionOverrideState | null
 }): SidepanelSelectionResolution => {

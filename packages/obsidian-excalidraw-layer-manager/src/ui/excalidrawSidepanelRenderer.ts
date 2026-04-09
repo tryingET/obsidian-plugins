@@ -37,7 +37,7 @@ import { renderSidepanelQuickMove } from "./sidepanel/render/quickMoveRenderer.j
 import { bindSidepanelRowInteractions } from "./sidepanel/render/rowInteractionBinder.js"
 import {
   type SidepanelFilterMatchKind,
-  buildSidepanelRowFilterResult,
+  buildSidepanelVisibleRowTreeResult,
   resolveSidepanelRowVisualState,
 } from "./sidepanel/render/rowModel.js"
 import {
@@ -183,9 +183,9 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   #rowFilterQuery = ""
   #shouldAutofocusRowFilterInput = false
   #cachedRowFilterResult: {
-    readonly tree: readonly LayerNode[]
+    readonly structuralTree: readonly LayerNode[]
     readonly query: string
-    readonly result: ReturnType<typeof buildSidepanelRowFilterResult>
+    readonly result: ReturnType<typeof buildSidepanelVisibleRowTreeResult>
   } | null = null
   #cachedQuickMoveDestinationProjection: {
     readonly tree: readonly LayerNode[]
@@ -429,18 +429,19 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.#quickMovePersistenceService.loadFromSettingsOnce()
     contentRoot.innerHTML = ""
 
+    const structuralTree = model.tree
     const selectedElementIds = this.resolveSelectedElementIds(model.selectedIds)
     const selectedIdSet = new Set(selectedElementIds)
-    const selectionResolution = this.resolveSelection(model.tree, selectedElementIds)
+    const selectionResolution = this.resolveSelection(structuralTree, selectedElementIds)
     const resolvedSelection = selectionResolution.selection
     const explicitSelectedNodeIds = selectionResolution.explicitSelectedNodes
       ? new Set(selectionResolution.explicitSelectedNodes.map((node) => node.id))
       : null
 
-    const rowFilter = this.getRowFilterResult(model.tree)
-    const destinationProjection = this.getQuickMoveDestinationProjection(model.tree)
-    const renderTree = rowFilter.tree
-    const { visibleNodes, parentById } = collectVisibleNodeContext(renderTree)
+    const rowFilter = this.getRowFilterResult(structuralTree)
+    const destinationProjection = this.getQuickMoveDestinationProjection(structuralTree)
+    const visibleRowTree = rowFilter.visibleTree
+    const { visibleNodes, parentById } = collectVisibleNodeContext(visibleRowTree)
     const activeElement = ownerDocument.activeElement
     const hasKeyboardOwnership =
       this.#focusOwnership.shouldAutofocusContentRoot ||
@@ -637,7 +638,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     rows.style.gap = "4px"
     contentRoot.appendChild(rows)
 
-    if (renderTree.length === 0) {
+    if (visibleRowTree.length === 0) {
       const emptyState = ownerDocument.createElement("div")
       emptyState.style.opacity = "0.75"
       emptyState.style.fontSize = "11px"
@@ -649,7 +650,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     } else {
       this.renderNodes(
         rows,
-        renderTree,
+        visibleRowTree,
         0,
         selectedIdSet,
         model.actions,
@@ -668,7 +669,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   private renderRowFilterControls(
     container: HTMLElement,
     ownerDocument: Document,
-    rowFilter: ReturnType<typeof buildSidepanelRowFilterResult>,
+    rowFilter: ReturnType<typeof buildSidepanelVisibleRowTreeResult>,
   ): void {
     const controls = ownerDocument.createElement("div")
     controls.style.display = "flex"
@@ -962,16 +963,20 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   }
 
   private getRowFilterResult(
-    tree: readonly LayerNode[],
-  ): ReturnType<typeof buildSidepanelRowFilterResult> {
+    structuralTree: readonly LayerNode[],
+  ): ReturnType<typeof buildSidepanelVisibleRowTreeResult> {
     const cached = this.#cachedRowFilterResult
-    if (cached && cached.tree === tree && cached.query === this.#rowFilterQuery) {
+    if (
+      cached &&
+      cached.structuralTree === structuralTree &&
+      cached.query === this.#rowFilterQuery
+    ) {
       return cached.result
     }
 
-    const result = buildSidepanelRowFilterResult(tree, this.#rowFilterQuery)
+    const result = buildSidepanelVisibleRowTreeResult(structuralTree, this.#rowFilterQuery)
     this.#cachedRowFilterResult = {
-      tree,
+      structuralTree,
       query: this.#rowFilterQuery,
       result,
     }
@@ -1170,8 +1175,8 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       return
     }
 
-    const latestTree = this.#latestModel?.tree ?? []
-    const destinationProjection = this.getQuickMoveDestinationProjection(latestTree)
+    const latestStructuralTree = this.#latestModel?.tree ?? []
+    const destinationProjection = this.getQuickMoveDestinationProjection(latestStructuralTree)
     const projectedPreset = resolveProjectedQuickMovePreset(
       destination.targetParentPath,
       destination.targetFrameId,

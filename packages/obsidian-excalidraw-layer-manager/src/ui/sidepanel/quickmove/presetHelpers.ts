@@ -1,4 +1,4 @@
-import { type LayerNode, resolveFrameRowElementId } from "../../../model/tree.js"
+import { type StructuralLayerNode, resolveFrameRowElementId } from "../../../model/tree.js"
 
 export interface SharedFrameResolution {
   readonly ok: boolean
@@ -12,11 +12,13 @@ export interface GroupReparentPreset {
   readonly targetFrameId: string | null
 }
 
-export const resolveNodeFrameId = (node: LayerNode): string | null => {
+export const resolveNodeFrameId = (node: StructuralLayerNode): string | null => {
   return resolveFrameRowElementId(node) ?? node.frameId ?? null
 }
 
-export const resolveSharedFrame = (nodes: readonly LayerNode[]): SharedFrameResolution => {
+export const resolveSharedFrame = (
+  nodes: readonly StructuralLayerNode[],
+): SharedFrameResolution => {
   let frameId: string | null | undefined
 
   for (const node of nodes) {
@@ -80,7 +82,7 @@ export const makePresetKey = (path: readonly string[], targetFrameId: string | n
 }
 
 const collectGroupReparentPresets = (
-  tree: readonly LayerNode[],
+  tree: readonly StructuralLayerNode[],
   maxCount: number,
   includeNestedGroups: boolean,
 ): readonly GroupReparentPreset[] => {
@@ -109,7 +111,7 @@ const collectGroupReparentPresets = (
   }
 
   const walk = (
-    nodes: readonly LayerNode[],
+    nodes: readonly StructuralLayerNode[],
     parentPath: readonly string[],
     parentLabelPath: readonly string[],
     groupAncestorDepth: number,
@@ -153,14 +155,14 @@ const collectGroupReparentPresets = (
 }
 
 export const collectTopLevelGroupReparentPresets = (
-  tree: readonly LayerNode[],
+  tree: readonly StructuralLayerNode[],
   maxCount = Number.MAX_SAFE_INTEGER,
 ): readonly GroupReparentPreset[] => {
   return collectGroupReparentPresets(tree, maxCount, false)
 }
 
 export const collectAllGroupReparentPresets = (
-  tree: readonly LayerNode[],
+  tree: readonly StructuralLayerNode[],
   maxCount = Number.MAX_SAFE_INTEGER,
 ): readonly GroupReparentPreset[] => {
   return collectGroupReparentPresets(tree, maxCount, true)

@@ -1,4 +1,4 @@
-import type { LayerNode } from "../../../model/tree.js"
+import type { VisibleRowNode } from "../../../model/tree.js"
 
 interface SidepanelRowTreeBranchContext {
   readonly frameId: string | null
@@ -6,7 +6,7 @@ interface SidepanelRowTreeBranchContext {
 }
 
 interface SidepanelRowTreeVisitInput {
-  readonly node: LayerNode
+  readonly node: VisibleRowNode
   readonly depth: number
   readonly branchContext: SidepanelRowTreeBranchContext
   readonly nodeFrameId: string | null
@@ -14,17 +14,17 @@ interface SidepanelRowTreeVisitInput {
 }
 
 interface SidepanelRowTreeRenderInput {
-  readonly nodes: readonly LayerNode[]
+  readonly nodes: readonly VisibleRowNode[]
   readonly depth: number
   readonly branchContext: SidepanelRowTreeBranchContext
   readonly resolveNodeFrameId: (
-    node: LayerNode,
+    node: VisibleRowNode,
     branchContext: SidepanelRowTreeBranchContext,
   ) => string | null
   readonly visitNode: (input: SidepanelRowTreeVisitInput) => void
 }
 
-const hasVisibleChildren = (node: LayerNode): boolean => {
+const hasVisibleChildren = (node: VisibleRowNode): boolean => {
   return node.isExpanded && node.children.length > 0
 }
 

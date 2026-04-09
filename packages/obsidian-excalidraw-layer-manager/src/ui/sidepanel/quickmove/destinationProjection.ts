@@ -1,4 +1,4 @@
-import type { LayerNode } from "../../../model/tree.js"
+import type { StructuralLayerNode } from "../../../model/tree.js"
 import {
   type GroupReparentPreset,
   collectAllGroupReparentPresets,
@@ -24,7 +24,7 @@ const getDestinationIdentity = (destination: LastQuickMoveDestination): string =
 }
 
 const collectLiveFrameProjection = (
-  tree: readonly LayerNode[],
+  tree: readonly StructuralLayerNode[],
 ): {
   readonly liveFrameIds: ReadonlySet<string>
   readonly frameLabelById: ReadonlyMap<string, string>
@@ -67,7 +67,7 @@ const isLiveRootDestination = (
 }
 
 export const buildSidepanelQuickMoveDestinationProjection = (
-  tree: readonly LayerNode[],
+  tree: readonly StructuralLayerNode[],
   quickPresetTotalMax: number,
   allDestinationTotalMax: number,
 ): SidepanelQuickMoveDestinationProjection => {

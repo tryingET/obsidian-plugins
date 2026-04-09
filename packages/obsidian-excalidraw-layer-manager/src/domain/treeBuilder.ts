@@ -390,6 +390,10 @@ const makeFrameNode = (
   }
 }
 
+/**
+ * Derives the authoritative full structural tree from scene truth.
+ * Visibility/filtering must be projected from this result rather than redefining ownership.
+ */
 export const buildLayerTree = (
   context: TreeBuildContext,
   indexes: SceneIndexes,
