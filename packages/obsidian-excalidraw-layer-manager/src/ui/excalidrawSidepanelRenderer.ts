@@ -101,10 +101,10 @@ const LAST_MOVE_LABEL_MAX = 26
 const KEYBOARD_PROMPT_SUPPRESSION_MS = 160
 const FOCUSOUT_SUPPRESSION_WINDOW_MS = 420
 const KEYBOARD_STICKY_CAPTURE_MS = 1400
-const ROW_MIN_HEIGHT_PX = 22
+const ROW_MIN_HEIGHT_PX = 20
 const ROW_FONT_SIZE_PX = 11
-const ICON_SIZE_PX = 14
-const ICON_BUTTON_SIZE_PX = 18
+const ICON_SIZE_PX = 13
+const ICON_BUTTON_SIZE_PX = 16
 const TOOLBAR_FONT_SIZE_PX = 11
 const SIDEPANEL_LIFECYCLE_DEBUG_FLAG = "LMX_DEBUG_SIDEPANEL_LIFECYCLE"
 const SIDEPANEL_INTERACTION_DEBUG_FLAG = "LMX_DEBUG_SIDEPANEL_INTERACTION"
@@ -670,7 +670,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     const rows = ownerDocument.createElement("div")
     rows.style.display = "flex"
     rows.style.flexDirection = "column"
-    rows.style.gap = "4px"
+    rows.style.gap = "2px"
     contentRoot.appendChild(rows)
 
     if (visibleRowTree.length === 0) {
@@ -1659,6 +1659,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     button.style.lineHeight = "1"
     button.style.padding = "0"
     button.style.border = "none"
+    button.style.borderRadius = "4px"
     button.style.background = "transparent"
     button.style.boxShadow = "none"
     button.style.fontSize = `${TOOLBAR_FONT_SIZE_PX}px`

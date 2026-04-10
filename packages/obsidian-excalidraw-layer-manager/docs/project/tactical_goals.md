@@ -26,9 +26,9 @@ Active strategic goal: **SG1 — Turn the stabilized projection kernel into a fi
 ## Active tactical goals
 
 ### TG3 — Build the dense pro layer operating surface
-- **Why this is active:** with the core interaction grammar now coherent, the panel still needs to feel denser, faster, and more legible as a layer console. That means stronger scanability, clearer structural cues, better visibility/lock/isolate discipline, and more useful operational filtering and inspection modes.
+- **Why this is active:** with the core interaction grammar now coherent, the panel still needs to feel denser, faster, and more legible as a layer console. The first TG3 packet has already landed tighter row density, dedicated row-type tags, and more compact scan-friendly badges, but stronger visibility/lock/structure surfacing still remains.
 - **Outcome target:** the panel stops feeling like a thin utility tree and starts feeling like a dense pro layer surface for reading and controlling scene state quickly.
-- **Current execution anchor:** repo-local AK task `task:1083`.
+- **Current execution anchor:** repo-local AK task `task:1084`.
 
 ### TG4 — Build the board-scale organization and review workflow
 - **Why next:** after the interaction grammar and dense layer surface are in place, the next differentiator is board-scale speed. The panel should help users reorganize, inspect, and review larger scenes unusually well rather than only exposing row-by-row structure.

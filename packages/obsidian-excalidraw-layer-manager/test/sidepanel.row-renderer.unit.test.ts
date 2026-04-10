@@ -211,18 +211,30 @@ describe("sidepanel row renderer", () => {
       createIconActionButton,
     })
 
-    const renderedRow = row as unknown as FakeDomElement
+    const renderedRow = row as unknown as FakeDomElement & { ariaLabel?: string }
     const expandButton = renderedRow.children[0]
+    const typeBadge = renderedRow.children.find(
+      (child) => child.tagName === "SPAN" && child.textContent === "[element]",
+    )
+    const label = renderedRow.children.find(
+      (child) => child.tagName === "SPAN" && child.textContent === "Alpha",
+    )
     const textFragments = flattenElements(renderedRow)
       .map((child) => child.textContent ?? "")
       .filter((text) => text.length > 0)
 
     expect(renderedRow.style["paddingLeft"]).toBe("24px")
+    expect(renderedRow.style["paddingRight"]).toBe("2px")
+    expect(renderedRow.style["gap"]).toBe("3px")
+    expect(renderedRow.style["border"]).toBe("1px solid transparent")
     expect(renderedRow.style["cursor"]).toBe("pointer")
     expect(renderedRow.style["background"]).toContain("interactive-accent-hover")
     expect(renderedRow.style["outline"]).toContain("1px solid")
     expect(renderedRow.style["boxShadow"]).toContain("inset")
+    expect(renderedRow.ariaLabel).toBe("[element] Alpha")
     expect(expandButton?.textContent).toBe("▸")
+    expect(typeBadge).toBeDefined()
+    expect(label?.title).toBe("Alpha")
     expect(textFragments).toContain("drop to root")
 
     expandButton?.dispatchEvent(new FakeDomEvent("click"))
@@ -347,10 +359,12 @@ describe("sidepanel row renderer", () => {
       .filter((child) => child.tagName === "BUTTON")
       .map((child) => child.title)
 
-    expect(textFragments).toContain("contains match")
+    expect(textFragments).toContain("[group]")
+    expect(textFragments).toContain("Group Alpha")
+    expect(textFragments).toContain("nested match")
     expect(textFragments).toContain("3 items")
-    expect(textFragments).toContain("mixed hidden")
-    expect(textFragments).toContain("mixed lock")
+    expect(textFragments).toContain("some hidden")
+    expect(textFragments).toContain("some locked")
     expect(actionTitles).toContain("Show hidden items")
     expect(actionTitles).toContain("Lock unlocked items")
   })

@@ -19,11 +19,11 @@ The projection-kernel recovery wave, package-level direction adoption, and the p
 That means the current package problem is no longer direction legibility, kernel stabilization, or basic interaction coherence. The current package problem is turning the now-coherent interaction model into a denser, faster, more legible operating surface.
 
 Today the panel still under-delivers on the intended product blend in a different way:
-- **Figma-like precision** for selection, hierarchy, and focus state is now materially established, but the panel still lacks the dense visual cues and structural scanability that make that precision feel effortless.
+- **Figma-like precision** for selection, hierarchy, and focus state is now materially established, and the first TG3 packet has started to reinforce that with denser row spacing, dedicated row-type tags, and more compact scan-friendly badges, but structural readability still needs another pass.
 - **Miro-like movement fluidity** now has a trustworthy interaction baseline, but destination reading and board-scale organization still need richer surface support.
-- **Photoshop-like deliberateness** for layer-state control and operator feedback needs stronger scanability, clearer state surfacing, and a more serious dense-console feel.
+- **Photoshop-like deliberateness** for layer-state control and operator feedback now has a more console-like row shell, but visibility/lock/structure cues still need stronger dedicated treatment.
 
-So the next wave is not another selection packet. It is the first density-and-legibility packet that should make the panel feel like a serious pro layer console rather than a correct-but-thin tree.
+So the live wave is no longer the first density packet itself. It is the follow-on packet that should deepen those row-state cues until the panel reads like a serious pro layer console rather than a correct-but-thin tree.
 
 Operational note: package-level AK direction commands should target the registered alias path `owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager` for the L3 package surface.
 
@@ -48,13 +48,13 @@ Operational note: package-level AK direction commands should target the register
 
 ### OP4 — Improve row-state scanability and density for the first TG3 layer-surface packet
 - **AK task:** `task:1083`
-- **State:** active
-- **Deliverable:** cut the first dense-surface packet around scanability, clearer row-state cues, and higher-confidence layer-console density without reopening the now-landed interaction grammar packet.
+- **State:** done
+- **Outcome:** the row surface now uses tighter list spacing, compact action sizing, dedicated row-type tags, and denser match/state badges so the panel reads faster and feels more like a layer console without reopening the landed interaction grammar.
 
 ### OP5 — Strengthen dense row-state cues for visibility, lock, and structure after the first TG3 packet
 - **AK task:** `task:1084`
-- **State:** next
-- **Deliverable:** follow the first density packet with richer row-state surfacing for visibility, lock, and structural readability so the panel compounds into a serious dense operating surface instead of stopping at spacing-only polish.
+- **State:** active
+- **Deliverable:** compound the first density packet with richer row-state surfacing for visibility, lock, and structural readability so the panel keeps moving toward a serious dense operating surface instead of stopping at spacing-and-badge polish.
 
 ## Guardrails for this wave
 

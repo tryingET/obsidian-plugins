@@ -246,29 +246,13 @@ const findInteractiveRowByLabel = (
   contentRoot: FakeDomElement,
   labelPrefix: string,
 ): FakeDomElement | undefined => {
-  const elements = flattenElements(contentRoot)
-
-  const label = elements.find(
-    (element) =>
-      element.tagName === "SPAN" &&
-      typeof element.textContent === "string" &&
-      element.textContent.startsWith(labelPrefix),
-  )
-
-  if (!label) {
-    return undefined
-  }
-
-  const parent = label.parentElement
-  if (!parent) {
-    return undefined
-  }
-
-  if (parent.tagName !== "DIV" || parent.style["cursor"] !== "pointer") {
-    return undefined
-  }
-
-  return parent
+  return flattenElements(contentRoot)
+    .filter((element) => element.tagName === "DIV" && element.style["cursor"] === "pointer")
+    .find(
+      (row) =>
+        typeof (row as FakeDomElement & { ariaLabel?: string }).ariaLabel === "string" &&
+        (row as FakeDomElement & { ariaLabel: string }).ariaLabel.startsWith(labelPrefix),
+    )
 }
 
 interface RuntimeWithSidepanel {

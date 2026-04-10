@@ -56,16 +56,18 @@ interface SidepanelRowRenderResult {
 const createMetaBadge = (
   ownerDocument: Document,
   text: string,
-  emphasis: "default" | "match" = "default",
+  emphasis: "default" | "match" | "type" | "visibility" | "lock" = "default",
 ): HTMLSpanElement => {
   const badge = ownerDocument.createElement("span")
   badge.textContent = text
   badge.style.display = "inline-flex"
   badge.style.alignItems = "center"
-  badge.style.padding = "0 5px"
+  badge.style.flexShrink = "0"
+  badge.style.padding = "0 4px"
   badge.style.borderRadius = "999px"
-  badge.style.fontSize = "10px"
-  badge.style.lineHeight = "16px"
+  badge.style.fontSize = "9px"
+  badge.style.lineHeight = "14px"
+  badge.style.letterSpacing = "0.01em"
 
   if (emphasis === "match") {
     badge.style.background = "var(--interactive-accent-hover, rgba(120,120,120,0.2))"
@@ -73,9 +75,36 @@ const createMetaBadge = (
     return badge
   }
 
+  if (emphasis === "type") {
+    badge.style.border = "1px solid var(--background-modifier-border, rgba(120,120,120,0.12))"
+    badge.style.background = "transparent"
+    badge.style.color = "var(--text-muted, inherit)"
+    return badge
+  }
+
+  if (emphasis === "visibility") {
+    badge.style.background = "var(--background-modifier-hover, rgba(120,120,120,0.12))"
+    badge.style.color = "var(--text-muted, inherit)"
+    return badge
+  }
+
+  if (emphasis === "lock") {
+    badge.style.background = "var(--background-secondary-alt, rgba(120,120,120,0.12))"
+    badge.style.color = "var(--text-muted, inherit)"
+    return badge
+  }
+
   badge.style.background = "var(--background-modifier-border, rgba(120,120,120,0.12))"
   badge.style.color = "var(--text-muted, inherit)"
   return badge
+}
+
+const resolveTypeBadgeLabel = (node: LayerNode): string => {
+  if (node.type === "freedrawBucket") {
+    return "[strokes]"
+  }
+
+  return `[${node.type}]`
 }
 
 const resolveCountBadgeLabel = (node: LayerNode): string | null => {
@@ -146,12 +175,14 @@ export const renderSidepanelRow = (input: SidepanelRowRenderInput): SidepanelRow
   const row = input.ownerDocument.createElement("div")
   row.style.display = "flex"
   row.style.alignItems = "center"
-  row.style.gap = "4px"
+  row.style.gap = "3px"
   row.style.minHeight = `${input.styleConfig.rowMinHeightPx}px`
   row.style.paddingLeft = `${input.depth * input.styleConfig.indentStepPx}px`
-  row.style.paddingRight = "4px"
+  row.style.paddingRight = "2px"
   row.style.borderRadius = "4px"
   row.style.fontSize = `${input.styleConfig.rowFontSizePx}px`
+  row.style.border = "1px solid transparent"
+  row.ariaLabel = `${resolveTypeBadgeLabel(input.node)} ${input.node.label}`
   row.tabIndex = -1
 
   if (input.filterMatchKind === "self") {
@@ -222,6 +253,8 @@ const appendLabelOrRenameInput = (
   const inlineRenameState =
     input.inlineRenameState?.nodeId === input.node.id ? input.inlineRenameState : null
 
+  row.appendChild(createMetaBadge(input.ownerDocument, resolveTypeBadgeLabel(input.node), "type"))
+
   if (inlineRenameState && input.actions) {
     const renameInput = input.ownerDocument.createElement("input")
     renameInput.type = "text"
@@ -275,8 +308,10 @@ const appendLabelOrRenameInput = (
   }
 
   const label = input.ownerDocument.createElement("span")
-  label.textContent = `[${input.node.type}] ${input.node.label}`
+  label.textContent = input.node.label
+  label.title = input.node.label
   label.style.flex = "1"
+  label.style.minWidth = "0"
   label.style.fontSize = `${input.styleConfig.rowFontSizePx}px`
   label.style.color = "var(--text-normal, inherit)"
   label.style.fontWeight = input.filterMatchKind === "self" ? "600" : "500"
@@ -301,7 +336,7 @@ const appendMetaBadges = (input: SidepanelRowRenderInput, row: HTMLDivElement): 
   metaHost.style.display = "inline-flex"
   metaHost.style.alignItems = "center"
   metaHost.style.flexWrap = "wrap"
-  metaHost.style.gap = "4px"
+  metaHost.style.gap = "3px"
 
   const countBadgeLabel = resolveCountBadgeLabel(input.node)
   if (countBadgeLabel) {
@@ -317,19 +352,19 @@ const appendMetaBadges = (input: SidepanelRowRenderInput, row: HTMLDivElement): 
   if (input.filterMatchKind === "self") {
     metaHost.appendChild(createMetaBadge(input.ownerDocument, "match", "match"))
   } else if (input.filterMatchKind === "descendant") {
-    metaHost.appendChild(createMetaBadge(input.ownerDocument, "contains match", "match"))
+    metaHost.appendChild(createMetaBadge(input.ownerDocument, "nested match", "match"))
   }
 
   if (input.nodeVisualState.visibility === "hidden") {
-    metaHost.appendChild(createMetaBadge(input.ownerDocument, "hidden"))
+    metaHost.appendChild(createMetaBadge(input.ownerDocument, "hidden", "visibility"))
   } else if (input.nodeVisualState.visibility === "mixed") {
-    metaHost.appendChild(createMetaBadge(input.ownerDocument, "mixed hidden"))
+    metaHost.appendChild(createMetaBadge(input.ownerDocument, "some hidden", "visibility"))
   }
 
   if (input.nodeVisualState.lock === "locked") {
-    metaHost.appendChild(createMetaBadge(input.ownerDocument, "locked"))
+    metaHost.appendChild(createMetaBadge(input.ownerDocument, "locked", "lock"))
   } else if (input.nodeVisualState.lock === "mixed") {
-    metaHost.appendChild(createMetaBadge(input.ownerDocument, "mixed lock"))
+    metaHost.appendChild(createMetaBadge(input.ownerDocument, "some locked", "lock"))
   }
 
   if (metaHost.children.length === 0) {
