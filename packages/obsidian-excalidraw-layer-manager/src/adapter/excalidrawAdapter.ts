@@ -131,12 +131,16 @@ const readViewSelectedElements = (ea: EaLike): readonly RawExcalidrawElement[] =
   }
 }
 
+let snapshotVersionCounter = 0
+
 export const readSnapshot = (ea: EaLike): SceneSnapshot => {
   const rawElements = readViewElements(ea)
   const selected = readViewSelectedElements(ea)
 
+  snapshotVersionCounter += 1
+
   return {
-    version: Date.now(),
+    version: snapshotVersionCounter,
     elements: rawElements.map((element, index) => normalizeElement(element, index)),
     selectedIds: new Set(selected.map((element) => element.id)),
     settings: readSettings(ea),
