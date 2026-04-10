@@ -1,19 +1,22 @@
 import type { StructuralLayerNode, VisibleRowNode } from "../../../model/tree.js"
 import type { ElementVisualState } from "../../renderer.js"
+import {
+  type SidepanelFilterMatchKind,
+  type SidepanelLockState,
+  type SidepanelRowVisualState,
+  type SidepanelVisibilityState,
+  buildSidepanelRowSearchText,
+} from "./rowPresentation.js"
 
-export type SidepanelFilterMatchKind = "none" | "self" | "descendant"
-export type SidepanelVisibilityState = "visible" | "hidden" | "mixed"
-export type SidepanelLockState = "unlocked" | "locked" | "mixed"
-
-export interface SidepanelRowVisualState {
-  readonly visibility: SidepanelVisibilityState
-  readonly lock: SidepanelLockState
-}
+export type {
+  SidepanelFilterMatchKind,
+  SidepanelLockState,
+  SidepanelRowVisualState,
+  SidepanelVisibilityState,
+} from "./rowPresentation.js"
 
 interface SidepanelRowFilterResult {
   readonly visibleTree: readonly VisibleRowNode[]
-  /** Compatibility alias for visibleTree. */
-  readonly tree: readonly VisibleRowNode[]
   readonly active: boolean
   readonly query: string
   readonly renderedRowCount: number
@@ -56,10 +59,6 @@ const countSearchableRows = (nodes: readonly StructuralLayerNode[]): number => {
   return total
 }
 
-const makeNodeSearchText = (node: StructuralLayerNode): string => {
-  return [node.label, node.type].join(" ").toLowerCase()
-}
-
 const projectExpandedVisibleRows = (
   nodes: readonly StructuralLayerNode[],
 ): readonly VisibleRowNode[] => {
@@ -79,7 +78,7 @@ const filterNodesForQuery = (
 
   for (const node of nodes) {
     const filteredChildren = filterNodesForQuery(node.children, query, matchKindByNodeId)
-    const selfMatches = makeNodeSearchText(node).includes(query)
+    const selfMatches = buildSidepanelRowSearchText(node).includes(query)
 
     if (!selfMatches && filteredChildren.length === 0) {
       continue
@@ -112,7 +111,6 @@ export const buildSidepanelVisibleRowTreeResult = (
 
     return {
       visibleTree,
-      tree: visibleTree,
       active: false,
       query: "",
       renderedRowCount: countRenderedRows(visibleTree),
@@ -126,7 +124,6 @@ export const buildSidepanelVisibleRowTreeResult = (
 
   return {
     visibleTree,
-    tree: visibleTree,
     active: true,
     query: normalizedQuery,
     renderedRowCount: countRenderedRows(visibleTree),

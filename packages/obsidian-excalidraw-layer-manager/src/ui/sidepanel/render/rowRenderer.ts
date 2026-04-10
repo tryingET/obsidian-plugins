@@ -1,6 +1,11 @@
 import type { LayerNode } from "../../../model/tree.js"
 import type { LayerManagerUiActions } from "../../renderer.js"
 import type { SidepanelFilterMatchKind, SidepanelRowVisualState } from "./rowModel.js"
+import {
+  type SidepanelRowBadgeDescriptor,
+  type SidepanelRowBadgeEmphasis,
+  buildSidepanelRowDescriptors,
+} from "./rowPresentation.js"
 
 export interface SidepanelInlineRenameRenderState {
   readonly nodeId: string
@@ -24,6 +29,7 @@ interface SidepanelRowActionIcon {
 
 interface SidepanelRowRenderInput {
   readonly ownerDocument: Document
+  readonly rowDomId: string
   readonly node: LayerNode
   readonly depth: number
   readonly selected: boolean
@@ -56,7 +62,7 @@ interface SidepanelRowRenderResult {
 const createMetaBadge = (
   ownerDocument: Document,
   text: string,
-  emphasis: "default" | "match" | "type" | "structure" | "visibility" | "lock" = "default",
+  emphasis: SidepanelRowBadgeEmphasis = "default",
 ): HTMLSpanElement => {
   const badge = ownerDocument.createElement("span")
   badge.textContent = text
@@ -106,75 +112,6 @@ const createMetaBadge = (
   return badge
 }
 
-const resolveTypeBadgeLabel = (node: LayerNode): string => {
-  if (node.type === "freedrawBucket") {
-    return "[strokes]"
-  }
-
-  return `[${node.type}]`
-}
-
-const resolveStructureBadgeLabel = (node: LayerNode): string | null => {
-  if (node.type !== "group" && node.type !== "frame") {
-    return null
-  }
-
-  if (node.canExpand && !node.isExpanded) {
-    return "collapsed"
-  }
-
-  if (node.children.length > 0) {
-    return node.children.length === 1 ? "1 row" : `${node.children.length} rows`
-  }
-
-  return null
-}
-
-const resolveVisibilityStateLabel = (state: SidepanelRowVisualState): string | null => {
-  if (state.visibility === "hidden") {
-    return "hidden"
-  }
-
-  if (state.visibility === "mixed") {
-    return "some hidden"
-  }
-
-  return null
-}
-
-const resolveLockStateLabel = (state: SidepanelRowVisualState): string | null => {
-  if (state.lock === "locked") {
-    return "locked"
-  }
-
-  if (state.lock === "mixed") {
-    return "some locked"
-  }
-
-  return null
-}
-
-const resolveRowAriaLabel = (node: LayerNode, state: SidepanelRowVisualState): string => {
-  const parts = [`${resolveTypeBadgeLabel(node)} ${node.label}`]
-  const structureLabel = resolveStructureBadgeLabel(node)
-  const visibilityLabel = resolveVisibilityStateLabel(state)
-  const lockLabel = resolveLockStateLabel(state)
-
-  if (structureLabel) {
-    parts.push(structureLabel)
-  }
-
-  if (visibilityLabel) {
-    parts.push(visibilityLabel)
-  }
-
-  if (lockLabel) {
-    parts.push(lockLabel)
-  }
-
-  return parts.join(" · ")
-}
-
 const resolveRowShellBoxShadow = (state: SidepanelRowVisualState, dropHinted: boolean): string => {
   const shadows: string[] = []
 
@@ -195,22 +132,6 @@ const resolveRowShellBoxShadow = (state: SidepanelRowVisualState, dropHinted: bo
   }
 
   return shadows.join(", ")
-}
-
-const resolveCountBadgeLabel = (node: LayerNode): string | null => {
-  if (node.type === "freedrawBucket") {
-    return `${node.elementIds.length} strokes`
-  }
-
-  if (node.type === "group" || node.type === "frame") {
-    return `${node.elementIds.length} items`
-  }
-
-  if (node.elementIds.length > 1) {
-    return `${node.elementIds.length} linked`
-  }
-
-  return null
 }
 
 const resolveVisibilityActionIcon = (state: SidepanelRowVisualState): SidepanelRowActionIcon => {
@@ -262,7 +183,14 @@ const resolveLockActionIcon = (state: SidepanelRowVisualState): SidepanelRowActi
 }
 
 export const renderSidepanelRow = (input: SidepanelRowRenderInput): SidepanelRowRenderResult => {
+  const rowDescriptors = buildSidepanelRowDescriptors({
+    node: input.node,
+    nodeVisualState: input.nodeVisualState,
+    filterMatchKind: input.filterMatchKind,
+  })
   const row = input.ownerDocument.createElement("div")
+  row.id = input.rowDomId
+  row.role = "treeitem"
   row.style.display = "flex"
   row.style.alignItems = "center"
   row.style.gap = "3px"
@@ -272,7 +200,15 @@ export const renderSidepanelRow = (input: SidepanelRowRenderInput): SidepanelRow
   row.style.borderRadius = "4px"
   row.style.fontSize = `${input.styleConfig.rowFontSizePx}px`
   row.style.border = "1px solid transparent"
-  row.ariaLabel = resolveRowAriaLabel(input.node, input.nodeVisualState)
+  row.ariaLabel = rowDescriptors.ariaLabel
+  row.ariaSelected = input.selected ? "true" : "false"
+  row.ariaLevel = `${input.depth + 1}`
+  if (input.node.canExpand || input.node.children.length > 0) {
+    // Filter projections may intentionally suppress expand/collapse controls while still
+    // exposing a descendant subtree directly. Keep the tree hierarchy state truthful to the
+    // rendered projection even when the current row is not interactively expandable.
+    row.ariaExpanded = input.node.isExpanded ? "true" : "false"
+  }
   row.tabIndex = -1
 
   const rowBoxShadow = resolveRowShellBoxShadow(input.nodeVisualState, input.dropHinted)
@@ -297,10 +233,14 @@ export const renderSidepanelRow = (input: SidepanelRowRenderInput): SidepanelRow
     row.style.cursor = "pointer"
   }
 
-  appendExpandControl(input, row)
+  appendExpandControl(input, row, rowDescriptors.expandButtonLabel)
 
-  const renameInputForAutofocus = appendLabelOrRenameInput(input, row)
-  appendMetaBadges(input, row)
+  const renameInputForAutofocus = appendLabelOrRenameInput(
+    input,
+    row,
+    rowDescriptors.typeBadge.text,
+  )
+  appendMetaBadges(input, row, rowDescriptors.metaBadges)
   appendRowActionButtons(input, row)
 
   return {
@@ -309,7 +249,11 @@ export const renderSidepanelRow = (input: SidepanelRowRenderInput): SidepanelRow
   }
 }
 
-const appendExpandControl = (input: SidepanelRowRenderInput, row: HTMLDivElement): void => {
+const appendExpandControl = (
+  input: SidepanelRowRenderInput,
+  row: HTMLDivElement,
+  expandButtonLabel: string | null,
+): void => {
   const { node, actions, ownerDocument } = input
 
   if (node.canExpand && actions) {
@@ -323,6 +267,10 @@ const appendExpandControl = (input: SidepanelRowRenderInput, row: HTMLDivElement
     expandButton.style.border = "none"
     expandButton.style.background = "transparent"
     expandButton.style.boxShadow = "none"
+    if (expandButtonLabel) {
+      expandButton.title = expandButtonLabel
+      expandButton.ariaLabel = expandButtonLabel
+    }
     expandButton.addEventListener("click", (event) => {
       event.stopPropagation()
       input.onToggleExpanded(node.id)
@@ -340,11 +288,12 @@ const appendExpandControl = (input: SidepanelRowRenderInput, row: HTMLDivElement
 const appendLabelOrRenameInput = (
   input: SidepanelRowRenderInput,
   row: HTMLDivElement,
+  typeBadgeLabel: string,
 ): HTMLInputElement | null => {
   const inlineRenameState =
     input.inlineRenameState?.nodeId === input.node.id ? input.inlineRenameState : null
 
-  row.appendChild(createMetaBadge(input.ownerDocument, resolveTypeBadgeLabel(input.node), "type"))
+  row.appendChild(createMetaBadge(input.ownerDocument, typeBadgeLabel, "type"))
 
   if (inlineRenameState && input.actions) {
     const renameInput = input.ownerDocument.createElement("input")
@@ -422,46 +371,38 @@ const appendLabelOrRenameInput = (
   return null
 }
 
-const appendMetaBadges = (input: SidepanelRowRenderInput, row: HTMLDivElement): void => {
+const appendMetaBadges = (
+  input: SidepanelRowRenderInput,
+  row: HTMLDivElement,
+  metaBadges: readonly SidepanelRowBadgeDescriptor[],
+): void => {
   const metaHost = input.ownerDocument.createElement("div")
   metaHost.style.display = "inline-flex"
   metaHost.style.alignItems = "center"
   metaHost.style.flexWrap = "wrap"
   metaHost.style.gap = "3px"
 
-  const structureBadgeLabel = resolveStructureBadgeLabel(input.node)
-  if (structureBadgeLabel) {
-    metaHost.appendChild(createMetaBadge(input.ownerDocument, structureBadgeLabel, "structure"))
-  }
+  let didAppendDropHint = false
+  const appendDropHintBadge = (): void => {
+    if (!input.dropHinted || didAppendDropHint) {
+      return
+    }
 
-  const countBadgeLabel = resolveCountBadgeLabel(input.node)
-  if (countBadgeLabel) {
-    metaHost.appendChild(createMetaBadge(input.ownerDocument, countBadgeLabel))
-  }
-
-  if (input.dropHinted) {
     metaHost.appendChild(
       createMetaBadge(input.ownerDocument, input.dropHintLabel ?? "drop target", "match"),
     )
+    didAppendDropHint = true
   }
 
-  if (input.filterMatchKind === "self") {
-    metaHost.appendChild(createMetaBadge(input.ownerDocument, "match", "match"))
-  } else if (input.filterMatchKind === "descendant") {
-    metaHost.appendChild(createMetaBadge(input.ownerDocument, "nested match", "match"))
+  for (const badge of metaBadges) {
+    if (!didAppendDropHint && badge.emphasis !== "structure" && badge.emphasis !== "default") {
+      appendDropHintBadge()
+    }
+
+    metaHost.appendChild(createMetaBadge(input.ownerDocument, badge.text, badge.emphasis))
   }
 
-  if (input.nodeVisualState.visibility === "hidden") {
-    metaHost.appendChild(createMetaBadge(input.ownerDocument, "hidden", "visibility"))
-  } else if (input.nodeVisualState.visibility === "mixed") {
-    metaHost.appendChild(createMetaBadge(input.ownerDocument, "some hidden", "visibility"))
-  }
-
-  if (input.nodeVisualState.lock === "locked") {
-    metaHost.appendChild(createMetaBadge(input.ownerDocument, "locked", "lock"))
-  } else if (input.nodeVisualState.lock === "mixed") {
-    metaHost.appendChild(createMetaBadge(input.ownerDocument, "some locked", "lock"))
-  }
+  appendDropHintBadge()
 
   if (metaHost.children.length === 0) {
     return

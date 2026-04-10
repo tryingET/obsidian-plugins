@@ -185,6 +185,7 @@ describe("sidepanel row renderer", () => {
 
     const { row } = renderSidepanelRow({
       ownerDocument: document as unknown as Document,
+      rowDomId: "row-A",
       node: makeNode("A", {
         canExpand: true,
         label: "Alpha",
@@ -211,8 +212,15 @@ describe("sidepanel row renderer", () => {
       createIconActionButton,
     })
 
-    const renderedRow = row as unknown as FakeDomElement & { ariaLabel?: string }
-    const expandButton = renderedRow.children[0]
+    const renderedRow = row as unknown as FakeDomElement & {
+      ariaLabel?: string
+      ariaSelected?: string
+      ariaLevel?: string
+      ariaExpanded?: string
+    }
+    const expandButton = renderedRow.children[0] as
+      | (FakeDomElement & { ariaLabel?: string })
+      | undefined
     const typeBadge = renderedRow.children.find(
       (child) => child.tagName === "SPAN" && child.textContent === "[element]",
     )
@@ -223,6 +231,8 @@ describe("sidepanel row renderer", () => {
       .map((child) => child.textContent ?? "")
       .filter((text) => text.length > 0)
 
+    expect((renderedRow as FakeDomElement & { id?: string; role?: string }).id).toBe("row-A")
+    expect((renderedRow as FakeDomElement & { id?: string; role?: string }).role).toBe("treeitem")
     expect(renderedRow.style["paddingLeft"]).toBe("24px")
     expect(renderedRow.style["paddingRight"]).toBe("2px")
     expect(renderedRow.style["gap"]).toBe("3px")
@@ -232,7 +242,12 @@ describe("sidepanel row renderer", () => {
     expect(renderedRow.style["outline"]).toContain("1px solid")
     expect(renderedRow.style["boxShadow"]).toContain("inset")
     expect(renderedRow.ariaLabel).toBe("[element] Alpha")
+    expect(renderedRow.ariaSelected).toBe("true")
+    expect(renderedRow.ariaLevel).toBe("3")
+    expect(renderedRow.ariaExpanded).toBe("false")
     expect(expandButton?.textContent).toBe("▸")
+    expect(expandButton?.title).toBe("Expand row Alpha")
+    expect(expandButton?.ariaLabel).toBe("Expand row Alpha")
     expect(typeBadge).toBeDefined()
     expect(label?.title).toBe("Alpha")
     expect(textFragments).toContain("drop to root")
@@ -250,6 +265,7 @@ describe("sidepanel row renderer", () => {
 
     const { row, renameInputForAutofocus } = renderSidepanelRow({
       ownerDocument: document as unknown as Document,
+      rowDomId: "row-A",
       node: makeNode("A", { label: "Alpha" }),
       depth: 0,
       selected: false,
@@ -316,6 +332,7 @@ describe("sidepanel row renderer", () => {
 
     const { row } = renderSidepanelRow({
       ownerDocument: document as unknown as Document,
+      rowDomId: "row-G-collapsed",
       node: makeNode("G", {
         type: "group",
         canExpand: true,
@@ -353,22 +370,28 @@ describe("sidepanel row renderer", () => {
       },
     })
 
-    const renderedRow = row as unknown as FakeDomElement & { ariaLabel?: string }
+    const renderedRow = row as unknown as FakeDomElement & {
+      ariaLabel?: string
+      ariaExpanded?: string
+    }
     const textFragments = flattenElements(renderedRow)
       .map((child) => child.textContent ?? "")
       .filter((text) => text.length > 0)
 
     expect(textFragments).toContain("collapsed")
     expect(textFragments).toContain("2 items")
-    expect(renderedRow.ariaLabel).toBe("[group] Collapsed Group · collapsed")
+    expect((renderedRow.children[0] as FakeDomElement).title).toBe("Expand row Collapsed Group")
+    expect(renderedRow.ariaExpanded).toBe("false")
+    expect(renderedRow.ariaLabel).toBe("[group] Collapsed Group · collapsed · 2 items")
   })
 
-  it("renders mixed-state badges and search-match metadata", () => {
+  it("renders mixed-state badges and tree hierarchy metadata", () => {
     const document = new FakeDocument()
     const actions = makeActions()
 
     const { row } = renderSidepanelRow({
       ownerDocument: document as unknown as Document,
+      rowDomId: "row-G-expanded",
       node: makeNode("G", {
         type: "group",
         canExpand: true,
@@ -407,7 +430,10 @@ describe("sidepanel row renderer", () => {
       },
     })
 
-    const renderedRow = row as unknown as FakeDomElement & { ariaLabel?: string }
+    const renderedRow = row as unknown as FakeDomElement & {
+      ariaLabel?: string
+      ariaExpanded?: string
+    }
     const textFragments = flattenElements(renderedRow)
       .map((child) => child.textContent ?? "")
       .filter((text) => text.length > 0)
@@ -418,15 +444,72 @@ describe("sidepanel row renderer", () => {
     expect(textFragments).toContain("[group]")
     expect(textFragments).toContain("Group Alpha")
     expect(textFragments).toContain("nested match")
-    expect(textFragments).toContain("2 rows")
+    expect(textFragments).toContain("2 child rows")
     expect(textFragments).toContain("3 items")
     expect(textFragments).toContain("some hidden")
     expect(textFragments).toContain("some locked")
     expect(renderedRow.style["boxShadow"]).toContain("inset 3px 0 0 0")
     expect(renderedRow.style["boxShadow"]).toContain("inset -3px 0 0 0")
-    expect(renderedRow.ariaLabel).toBe("[group] Group Alpha · 2 rows · some hidden · some locked")
+    expect(renderedRow.ariaExpanded).toBe("true")
+    expect(renderedRow.ariaLabel).toBe(
+      "[group] Group Alpha · 2 child rows · 3 items · nested match · some hidden · some locked",
+    )
+    expect(actionTitles).toContain("Collapse row Group Alpha")
     expect(actionTitles).toContain("Show hidden items")
     expect(actionTitles).toContain("Lock unlocked items")
+  })
+
+  it("keeps rendered hierarchy semantics when filter projection exposes descendants", () => {
+    const document = new FakeDocument()
+    const actions = makeActions()
+
+    const { row } = renderSidepanelRow({
+      ownerDocument: document as unknown as Document,
+      rowDomId: "row-G-filtered",
+      node: makeNode("G", {
+        type: "group",
+        canExpand: false,
+        isExpanded: true,
+        children: [makeNode("A")],
+        elementIds: ["A"],
+        label: "Filtered Group",
+      }),
+      depth: 0,
+      selected: false,
+      focused: false,
+      dropHinted: false,
+      dropHintLabel: null,
+      actions,
+      styleConfig: rowStyleConfig,
+      nodeVisualState: {
+        visibility: "visible",
+        lock: "unlocked",
+      },
+      filterMatchKind: "descendant",
+      inlineRenameState: null,
+      onToggleExpanded: () => {},
+      onInlineRenameDraftChange: () => {},
+      onInlineRenameCommit: () => {},
+      onInlineRenameCancel: () => {},
+      isInlineRenameActiveForNode: () => false,
+      onRenameNodeFromAction: () => {},
+      createIconActionButton: (
+        ownerDocument: Document,
+        icon: { readonly title?: string },
+        _action,
+      ): HTMLButtonElement => {
+        const button = (ownerDocument as unknown as FakeDocument).createElement("button")
+        button.title = icon.title ?? ""
+        return button as unknown as HTMLButtonElement
+      },
+    })
+
+    const renderedRow = row as unknown as FakeDomElement & {
+      ariaExpanded?: string
+    }
+
+    expect(renderedRow.ariaExpanded).toBe("true")
+    expect((renderedRow.children[0] as FakeDomElement).tagName).toBe("SPAN")
   })
 
   it("renders row action buttons and routes callbacks", () => {
@@ -451,6 +534,7 @@ describe("sidepanel row renderer", () => {
 
     const { row } = renderSidepanelRow({
       ownerDocument: document as unknown as Document,
+      rowDomId: "row-A-hidden",
       node: makeNode("A", { label: "Alpha" }),
       depth: 0,
       selected: false,

@@ -130,7 +130,7 @@ describe("sidepanel selection resolution", () => {
     const filteredVisibleTree = buildSidepanelVisibleRowTreeResult(
       [collapsedGroup],
       "group alpha",
-    ).tree
+    ).visibleTree
 
     expect(filteredVisibleTree.map((node) => node.id)).toEqual(["group:G"])
     expect(filteredVisibleTree[0]?.children).toEqual([])

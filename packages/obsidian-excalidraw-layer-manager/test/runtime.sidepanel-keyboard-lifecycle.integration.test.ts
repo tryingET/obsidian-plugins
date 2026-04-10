@@ -431,6 +431,13 @@ const findFirstSelect = (root: FakeDomElement): FakeDomElement | undefined => {
   return elements.find((element) => element.tagName === "SELECT")
 }
 
+const findRowTreeRoot = (root: FakeDomElement): FakeDomElement | undefined => {
+  return flattenElements(root).find(
+    (element) =>
+      element.tagName === "DIV" && (element as FakeDomElement & { role?: string }).role === "tree",
+  )
+}
+
 const findInteractiveRowByLabel = (
   root: FakeDomElement,
   labelPrefix: string,
@@ -442,6 +449,12 @@ const findInteractiveRowByLabel = (
         typeof (row as FakeDomElement & { ariaLabel?: string }).ariaLabel === "string" &&
         (row as FakeDomElement & { ariaLabel: string }).ariaLabel.startsWith(labelPrefix),
     )
+}
+
+const findFocusedInteractiveRow = (root: FakeDomElement): FakeDomElement | undefined => {
+  return flattenElements(root)
+    .filter((element) => element.tagName === "DIV" && element.style["cursor"] === "pointer")
+    .find((row) => (row.style["outline"]?.length ?? 0) > 0)
 }
 
 interface DispatchKeydownOptions {
@@ -1001,7 +1014,14 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     const layerManagerRuntime = createLayerManagerRuntime(runtime.ea)
 
     const firstRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    expect(fakeDocument.activeElement).toBe(firstRoot)
+    const firstRowTree = findRowTreeRoot(firstRoot)
+    const firstFocusedRow = findFocusedInteractiveRow(firstRoot)
+    expect(firstRowTree).toBeDefined()
+    expect(firstFocusedRow).toBeDefined()
+    expect(fakeDocument.activeElement).toBe(firstRowTree)
+    expect(
+      (firstRowTree as FakeDomElement & { ariaActivedescendant?: string }).ariaActivedescendant,
+    ).toBe((firstFocusedRow as FakeDomElement & { id?: string }).id)
 
     const closeButton = findButtonByExactText(firstRoot, "Close tab")
     if (!closeButton) {
@@ -1014,8 +1034,15 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     layerManagerRuntime.refresh()
 
     const secondRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const secondRowTree = findRowTreeRoot(secondRoot)
+    const secondFocusedRow = findFocusedInteractiveRow(secondRoot)
     expect(secondRoot).not.toBe(firstRoot)
-    expect(fakeDocument.activeElement).toBe(secondRoot)
+    expect(secondRowTree).toBeDefined()
+    expect(secondFocusedRow).toBeDefined()
+    expect(fakeDocument.activeElement).toBe(secondRowTree)
+    expect(
+      (secondRowTree as FakeDomElement & { ariaActivedescendant?: string }).ariaActivedescendant,
+    ).toBe((secondFocusedRow as FakeDomElement & { id?: string }).id)
   })
 
   it("switches row visibility action icon/title for hidden node state", async () => {
@@ -1070,6 +1097,42 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect(findButtonByTitle(contentRoot, "Lock unlocked items")).toBeDefined()
   })
 
+  it("marks only resolved row targets as aria-selected for host element selection", async () => {
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    const { actions } = makeUiActions()
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => ({}),
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [makeGroupNode("G", [makeElementNode("A"), makeElementNode("B")])],
+      selectedIds: new Set(["A"]),
+      sceneVersion: 11,
+      actions,
+    })
+
+    const contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const groupRow = findInteractiveRowByLabel(contentRoot, "[group] G")
+    const alphaRow = findInteractiveRowByLabel(contentRoot, "[element] A")
+    const betaRow = findInteractiveRowByLabel(contentRoot, "[element] B")
+
+    expect(
+      (groupRow as (FakeDomElement & { ariaSelected?: string }) | undefined)?.ariaSelected,
+    ).toBe("false")
+    expect(
+      (alphaRow as (FakeDomElement & { ariaSelected?: string }) | undefined)?.ariaSelected,
+    ).toBe("true")
+    expect(
+      (betaRow as (FakeDomElement & { ariaSelected?: string }) | undefined)?.ariaSelected,
+    ).toBe("false")
+  })
+
   it("filters rows and surfaces descendant matches from collapsed groups", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
@@ -1109,6 +1172,57 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     )
 
     expect(filteredRows).toHaveLength(2)
+  })
+
+  it("clears row filters on Escape and returns focus to the row tree", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      [
+        { id: "A", type: "text", text: "Alpha", groupIds: ["G"], isDeleted: false },
+        { id: "B", type: "text", text: "Beta", groupIds: ["G"], isDeleted: false },
+        { id: "C", type: "rectangle", name: "Gamma", isDeleted: false },
+      ],
+      [],
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+
+    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    let searchInput = findRowFilterInput(contentRoot)
+
+    if (!searchInput) {
+      throw new Error("Expected row filter input to exist.")
+    }
+
+    searchInput.focus()
+    searchInput.value = "Alpha"
+    searchInput.dispatchEvent(new FakeDomEvent("input"))
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    searchInput = findRowFilterInput(contentRoot)
+    if (!searchInput) {
+      throw new Error("Expected refreshed row filter input after filtering.")
+    }
+
+    expect(fakeDocument.activeElement).toBe(searchInput)
+
+    searchInput.dispatchEvent(new FakeDomEvent("keydown", { key: "Escape" }))
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const rowTree = findRowTreeRoot(contentRoot)
+    const focusedRow = findFocusedInteractiveRow(contentRoot)
+    const refreshedSearchInput = findRowFilterInput(contentRoot)
+
+    expect(findButtonByExactText(contentRoot, "Clear filter")).toBeUndefined()
+    expect(refreshedSearchInput?.value).toBe("")
+    expect(rowTree).toBeDefined()
+    expect(focusedRow).toBeDefined()
+    expect(fakeDocument.activeElement).toBe(rowTree)
+    expect(
+      (rowTree as FakeDomElement & { ariaActivedescendant?: string }).ariaActivedescendant,
+    ).toBe((focusedRow as FakeDomElement & { id?: string }).id)
   })
 
   it("routes toolbar reorder through canonical group row ids even when the group is collapsed", async () => {
@@ -1248,12 +1362,22 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     targetRow.dispatchEvent(new FakeDomEvent("drop"))
     await flushAsync()
 
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const rowTree = findRowTreeRoot(contentRoot)
+    const focusedRow = findFocusedInteractiveRow(contentRoot)
+
     expect(actions.reorderRelativeToNodeIds).toHaveBeenCalledWith({
       nodeIds: ["el:A", "el:B"],
       anchorNodeId: "el:C",
       placement: "after",
       notifyOnFailure: false,
     })
+    expect(rowTree).toBeDefined()
+    expect(focusedRow).toBeDefined()
+    expect(fakeDocument.activeElement).toBe(rowTree)
+    expect(
+      (rowTree as FakeDomElement & { ariaActivedescendant?: string }).ariaActivedescendant,
+    ).toBe((focusedRow as FakeDomElement & { id?: string }).id)
   })
 
   it("routes Delete shortcut through command seam for selected elements", async () => {
@@ -1537,7 +1661,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     await flushAsync()
 
     contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    expect(fakeDocument.activeElement).toBe(contentRoot)
+    expect(fakeDocument.activeElement).toBe(findRowTreeRoot(contentRoot))
 
     const rowsAfterArrow = flattenElements(contentRoot).filter(
       (element) => element.tagName === "DIV" && element.style["cursor"] === "pointer",
@@ -1623,7 +1747,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     await flushAsync()
 
     contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    expect(fakeDocument.activeElement).toBe(contentRoot)
+    expect(fakeDocument.activeElement).toBe(findRowTreeRoot(contentRoot))
 
     const rowsAfterArrow = flattenElements(contentRoot).filter(
       (element) => element.tagName === "DIV" && element.style["cursor"] === "pointer",

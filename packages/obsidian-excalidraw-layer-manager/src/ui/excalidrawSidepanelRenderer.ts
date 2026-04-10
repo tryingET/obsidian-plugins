@@ -109,6 +109,8 @@ const TOOLBAR_FONT_SIZE_PX = 11
 const SIDEPANEL_LIFECYCLE_DEBUG_FLAG = "LMX_DEBUG_SIDEPANEL_LIFECYCLE"
 const SIDEPANEL_INTERACTION_DEBUG_FLAG = "LMX_DEBUG_SIDEPANEL_INTERACTION"
 
+let nextSidepanelRendererInstanceId = 0
+
 const ROW_STYLE_CONFIG = {
   indentStepPx: INDENT_STEP_PX,
   rowMinHeightPx: ROW_MIN_HEIGHT_PX,
@@ -119,16 +121,6 @@ const ROW_STYLE_CONFIG = {
 
 const hasDom = (): boolean => {
   return typeof document !== "undefined"
-}
-
-const intersectsSelectedIds = (node: LayerNode, selectedIds: ReadonlySet<string>): boolean => {
-  for (const elementId of node.elementIds) {
-    if (selectedIds.has(elementId)) {
-      return true
-    }
-  }
-
-  return false
 }
 
 const runUiAction = (
@@ -178,6 +170,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     keyboardStickyCaptureMs: KEYBOARD_STICKY_CAPTURE_MS,
   })
   #contentRoot: HTMLElement | null = null
+  #rowTreeRoot: HTMLDivElement | null = null
   #latestModel: RenderViewModel | null = null
   #focusedNodeId: string | null = null
   #keyboardContext: KeyboardShortcutContext | null = null
@@ -202,6 +195,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   #rememberedDestinationReconcileInFlight = false
   #rememberedDestinationReconcileEpoch = 0
   #rememberedDestinationReconcileDirtyEpoch = 0
+  readonly #rowDomIdPrefix = `lmx-row-${++nextSidepanelRendererInstanceId}`
 
   readonly #contentKeydownHandler = (event: KeyboardEvent): void => {
     this.#focusOwnership.activateKeyboardCapture()
@@ -453,27 +447,37 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     }
 
     const ownerDocument = contentRoot.ownerDocument
+    const activeElementBeforeRender = ownerDocument.activeElement
+    const previousRowTreeRoot = this.#rowTreeRoot
+    const shouldRestoreRowTreeFocus = !!(
+      activeElementBeforeRender &&
+      previousRowTreeRoot &&
+      (activeElementBeforeRender === previousRowTreeRoot ||
+        previousRowTreeRoot.contains(activeElementBeforeRender as HTMLElement))
+    )
     this.#quickMovePersistenceService.loadFromSettingsOnce()
+    if (shouldRestoreRowTreeFocus) {
+      this.requestRowTreeAutofocus()
+    }
     contentRoot.innerHTML = ""
+    this.#rowTreeRoot = null
 
     const structuralTree = model.tree
     const selectedElementIds = this.resolveSelectedElementIds(model.selectedIds)
-    const selectedIdSet = new Set(selectedElementIds)
     const selectionResolution = this.resolveSelection(structuralTree, selectedElementIds)
     this.#latestSelectionResolution = selectionResolution
     const resolvedSelection = selectionResolution.selection
     const currentSelectedNodes =
       selectionResolution.explicitSelectedNodes ?? resolvedSelection.nodes
+    const selectedNodeIds = new Set(currentSelectedNodes.map((node) => node.id))
     this.reconcileSelectionAnchor(currentSelectedNodes)
-    const explicitSelectedNodeIds = selectionResolution.explicitSelectedNodes
-      ? new Set(selectionResolution.explicitSelectedNodes.map((node) => node.id))
-      : null
 
     const rowFilter = this.getRowFilterResult(structuralTree)
     const destinationProjection = this.getQuickMoveDestinationProjection(structuralTree)
     this.scheduleRememberedDestinationReconciliation(destinationProjection)
     const visibleRowTree = rowFilter.visibleTree
     const { visibleNodes, parentById } = collectVisibleNodeContext(visibleRowTree)
+    const visibleNodeIds = new Set(visibleNodes.map((node) => node.id))
     const activeElement = ownerDocument.activeElement
     const hasKeyboardOwnership =
       this.#focusOwnership.shouldAutofocusContentRoot ||
@@ -671,6 +675,11 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     rows.style.display = "flex"
     rows.style.flexDirection = "column"
     rows.style.gap = "2px"
+    rows.tabIndex = 0
+    rows.role = "tree"
+    rows.ariaLabel = "Layer rows"
+    rows.ariaMultiSelectable = "true"
+    this.#rowTreeRoot = rows
     contentRoot.appendChild(rows)
 
     if (visibleRowTree.length === 0) {
@@ -689,18 +698,25 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         visibleNodes,
         currentSelectedNodes,
         0,
-        selectedIdSet,
+        selectedNodeIds,
         model.actions,
         {
           frameId: null,
           groupPath: [],
         },
         rowFilter.matchKindByNodeId,
-        explicitSelectedNodeIds,
       )
     }
 
-    this.autofocusContentRootIfNeeded(contentRoot)
+    if (this.#focusedNodeId && visibleNodeIds.has(this.#focusedNodeId)) {
+      ;(rows as HTMLDivElement & { ariaActivedescendant?: string }).ariaActivedescendant =
+        this.resolveRowDomId(this.#focusedNodeId)
+    }
+
+    const focusTargetRoot = this.getFocusTargetRoot(contentRoot)
+    if (focusTargetRoot) {
+      this.autofocusContentRootIfNeeded(focusTargetRoot)
+    }
   }
 
   private renderRowFilterControls(
@@ -734,13 +750,14 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     })
 
     searchInput.addEventListener("keydown", (event) => {
-      if (event.key !== "Escape") {
+      if (event.key === "Escape") {
+        event.preventDefault()
+        event.stopPropagation()
+        this.clearRowFilterAndFocusRows()
         return
       }
 
-      event.preventDefault()
       event.stopPropagation()
-      this.updateRowFilterQuery("", true)
     })
 
     controls.appendChild(searchInput)
@@ -769,6 +786,18 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.#rowFilterQuery = nextQuery
     this.#shouldAutofocusRowFilterInput = shouldAutofocusInput
     this.requestRenderFromLatestModel()
+  }
+
+  private requestRowTreeAutofocus(): void {
+    this.#shouldAutofocusRowFilterInput = false
+    this.#focusOwnership.setShouldAutofocusContentRoot(true)
+  }
+
+  private clearRowFilterAndFocusRows(): void {
+    this.#rowFilterQuery = ""
+    this.requestRowTreeAutofocus()
+    this.requestRenderFromLatestModel()
+    this.focusContentRootBestEffort()
   }
 
   notify(message: string): void {
@@ -1058,12 +1087,15 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.#contentRoot?.removeEventListener("pointerdown", this.#contentPointerDownHandler)
     this.detachOwnerDocumentKeyCapture()
     this.#contentRoot = null
+    this.#rowTreeRoot = null
     this.#keyboardContext = null
     this.#focusedNodeId = null
     this.#selectionOverrideState = null
     this.#selectionAnchorNodeId = null
     this.#latestSelectionResolution = null
     this.#lastSnapshotSelectionIds = []
+    this.#cachedRowFilterResult = null
+    this.#cachedQuickMoveDestinationProjection = null
     this.#focusOwnership.reset()
     this.#inlineRenameController.clear()
     this.#dragDropController.clear()
@@ -1301,8 +1333,23 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.#focusOwnership.suppressTransientFocusOut()
   }
 
+  private getFocusTargetRoot(
+    contentRoot: HTMLElement | null = this.#contentRoot,
+  ): HTMLElement | null {
+    if (this.#rowTreeRoot && contentRoot && contentRoot.contains(this.#rowTreeRoot)) {
+      return this.#rowTreeRoot
+    }
+
+    return contentRoot
+  }
+
+  private resolveRowDomId(nodeId: string): string {
+    const safeNodeId = encodeURIComponent(nodeId).replace(/%/g, "_")
+    return `${this.#rowDomIdPrefix}-${safeNodeId}`
+  }
+
   private focusContentRootImmediate(): void {
-    this.#focusOwnership.focusContentRootImmediate(this.#contentRoot)
+    this.#focusOwnership.focusContentRootImmediate(this.getFocusTargetRoot())
   }
 
   private cancelDeferredFocusRestore(): void {
@@ -1311,8 +1358,8 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
 
   private focusContentRootBestEffort(): void {
     this.#focusOwnership.focusContentRootBestEffort({
-      contentRoot: this.#contentRoot,
-      isContentRootCurrent: (contentRoot) => this.#contentRoot === contentRoot,
+      contentRoot: this.getFocusTargetRoot(),
+      isContentRootCurrent: (contentRoot) => this.getFocusTargetRoot() === contentRoot,
     })
   }
 
@@ -1428,12 +1475,8 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       }
     } finally {
       this.#dragDropController.resetDragState()
-
-      try {
-        this.#contentRoot?.focus()
-      } catch {
-        // no-op; best-effort focus restoration
-      }
+      this.requestRowTreeAutofocus()
+      this.focusContentRootBestEffort()
     }
   }
 
@@ -1443,11 +1486,10 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     visibleNodes: readonly LayerNode[],
     currentSelectedNodes: readonly LayerNode[],
     depth: number,
-    selectedIds: ReadonlySet<string>,
+    selectedNodeIds: ReadonlySet<string>,
     actions: LayerManagerUiActions | undefined,
     branchContext: DragDropBranchContext,
     matchKindByNodeId: ReadonlyMap<string, SidepanelFilterMatchKind>,
-    explicitSelectedNodeIds: ReadonlySet<string> | null,
   ): void {
     const ownerDocument = container.ownerDocument
 
@@ -1476,11 +1518,10 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         )
         const { row, renameInputForAutofocus } = renderSidepanelRow({
           ownerDocument,
+          rowDomId: this.resolveRowDomId(node.id),
           node,
           depth: nodeDepth,
-          selected: explicitSelectedNodeIds
-            ? explicitSelectedNodeIds.has(node.id)
-            : intersectsSelectedIds(node, selectedIds),
+          selected: selectedNodeIds.has(node.id),
           focused: this.#focusedNodeId === node.id,
           dropHinted: this.#dragDropController.dropHintNodeId === node.id,
           dropHintLabel:

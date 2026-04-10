@@ -318,6 +318,13 @@ const findFirstInput = (root: FakeDomElement): FakeDomElement | undefined => {
   return elements.find((element) => element.tagName === "INPUT" && !isRowFilterInput(element))
 }
 
+const findRowTreeRoot = (root: FakeDomElement): FakeDomElement | undefined => {
+  return flattenElements(root).find(
+    (element) =>
+      element.tagName === "DIV" && (element as FakeDomElement & { role?: string }).role === "tree",
+  )
+}
+
 const getContentRoot = (contentEl: FakeDomElement): FakeDomElement => {
   const root = contentEl.children[0]
   if (!root) {
@@ -669,7 +676,7 @@ describe("sidepanel focus + keyboard integration", () => {
     await flushAsync()
 
     contentRoot = getContentRoot(sidepanelTab.contentEl)
-    expect(fakeDocument.activeElement).toBe(contentRoot)
+    expect(fakeDocument.activeElement).toBe(findRowTreeRoot(contentRoot))
 
     const rowsAfterArrow = flattenElements(contentRoot).filter(
       (element) => element.tagName === "DIV" && element.style["cursor"] === "pointer",

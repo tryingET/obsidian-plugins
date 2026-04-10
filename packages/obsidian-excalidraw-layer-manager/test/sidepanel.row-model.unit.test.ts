@@ -39,6 +39,23 @@ const makeGroupNode = (
   label: options?.label ?? groupId,
 })
 
+const makeFreedrawBucketNode = (
+  id: string,
+  elementIds: readonly string[],
+  label = `freedraw (${elementIds.length})`,
+): LayerNode => ({
+  id,
+  type: "freedrawBucket",
+  elementIds: [...elementIds],
+  primaryElementId: elementIds[0] ?? `${id}:primary`,
+  children: [],
+  canExpand: false,
+  isExpanded: false,
+  groupId: null,
+  frameId: null,
+  label,
+})
+
 describe("sidepanel row model helpers", () => {
   it("derives mixed visibility and lock states from represented elements", () => {
     const node = makeGroupNode("G", [makeElementNode("A"), makeElementNode("B")])
@@ -79,12 +96,12 @@ describe("sidepanel row model helpers", () => {
     const gamma = makeElementNode("C", "Gamma")
 
     const result = buildSidepanelVisibleRowTreeResult([collapsedGroup, gamma], "alpha")
-    const filteredGroup = result.tree[0]
+    const filteredGroup = result.visibleTree[0]
 
     expect(result.active).toBe(true)
     expect(result.renderedRowCount).toBe(2)
     expect(result.searchableRowCount).toBe(4)
-    expect(result.tree.map((node) => node.id)).toEqual(["group:G"])
+    expect(result.visibleTree.map((node) => node.id)).toEqual(["group:G"])
     expect(filteredGroup?.isExpanded).toBe(true)
     expect(filteredGroup?.canExpand).toBe(false)
     expect(filteredGroup?.children.map((node) => node.id)).toEqual(["el:A"])
@@ -103,7 +120,7 @@ describe("sidepanel row model helpers", () => {
     })
 
     const collapsedResult = buildSidepanelVisibleRowTreeResult([collapsedGroup], "alpha group")
-    const collapsedFilteredGroup = collapsedResult.tree[0]
+    const collapsedFilteredGroup = collapsedResult.visibleTree[0]
 
     expect(collapsedFilteredGroup?.canExpand).toBe(false)
     expect(collapsedFilteredGroup?.isExpanded).toBe(false)
@@ -120,8 +137,8 @@ describe("sidepanel row model helpers", () => {
       "alpha group",
     )
 
-    expect(expandedResult.tree[0]?.canExpand).toBe(false)
-    expect(expandedResult.tree[0]?.children).toEqual([])
+    expect(expandedResult.visibleTree[0]?.canExpand).toBe(false)
+    expect(expandedResult.visibleTree[0]?.children).toEqual([])
     expect(expandedResult.renderedRowCount).toBe(1)
   })
 
@@ -133,8 +150,35 @@ describe("sidepanel row model helpers", () => {
 
     const result = buildSidepanelVisibleRowTreeResult([hiddenIdGroup], "internal-group-id")
 
-    expect(result.tree).toEqual([])
+    expect(result.visibleTree).toEqual([])
     expect(result.renderedRowCount).toBe(0)
+  })
+
+  it("keeps search aligned with dense-row descriptor vocabulary", () => {
+    const collapsedGroup = makeGroupNode("G", [makeElementNode("A", "Alpha")], {
+      isExpanded: false,
+      label: "Container",
+    })
+    const strokes = makeFreedrawBucketNode("fd:1", ["F1", "F2"])
+
+    expect(
+      buildSidepanelVisibleRowTreeResult([collapsedGroup], "collapsed").visibleTree.map(
+        (node) => node.id,
+      ),
+    ).toEqual(["group:G"])
+    expect(
+      buildSidepanelVisibleRowTreeResult([collapsedGroup], "1 items").visibleTree.map(
+        (node) => node.id,
+      ),
+    ).toEqual(["group:G"])
+    expect(
+      buildSidepanelVisibleRowTreeResult([strokes], "strokes").visibleTree.map((node) => node.id),
+    ).toEqual(["fd:1"])
+    expect(
+      buildSidepanelVisibleRowTreeResult([strokes], "freedrawbucket").visibleTree.map(
+        (node) => node.id,
+      ),
+    ).toEqual(["fd:1"])
   })
 
   it("derives visible rows from expansion state when filter query is blank", () => {
