@@ -1801,6 +1801,86 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     }
   })
 
+  it("restores first-row expand semantics when ArrowRight runs after focus resets during tree replacement", async () => {
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    const { actions } = makeUiActions()
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => ({}),
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [makeElementNode("A"), makeElementNode("B")],
+      selectedIds: new Set(),
+      sceneVersion: 61,
+      actions,
+    })
+
+    let contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowDown")
+    await flushAsync()
+
+    fakeDocument.activeElement = fakeDocument.createElement("div")
+
+    renderer.render({
+      tree: [makeGroupNode("Outer", [makeElementNode("Child")], false)],
+      selectedIds: new Set(),
+      sceneVersion: 62,
+      actions,
+    })
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowRight")
+    await flushAsync()
+
+    expect(actions.toggleExpanded).toHaveBeenCalledWith("group:Outer")
+  })
+
+  it("restores first-row collapse semantics when ArrowLeft runs after focus resets during tree replacement", async () => {
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    const { actions } = makeUiActions()
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => ({}),
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [makeElementNode("A"), makeElementNode("B")],
+      selectedIds: new Set(),
+      sceneVersion: 63,
+      actions,
+    })
+
+    let contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowDown")
+    await flushAsync()
+
+    fakeDocument.activeElement = fakeDocument.createElement("div")
+
+    renderer.render({
+      tree: [makeGroupNode("Outer", [makeElementNode("Child")], true)],
+      selectedIds: new Set(),
+      sceneVersion: 64,
+      actions,
+    })
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowLeft")
+    await flushAsync()
+
+    expect(actions.toggleExpanded).toHaveBeenCalledWith("group:Outer")
+  })
+
   it("keeps async tab creation in-flight without fallback warning spam or duplicate create requests", async () => {
     const asyncTab = makeSidepanelTab(fakeDocument, null)
     const deferredTab = createDeferred<typeof asyncTab.tab>()

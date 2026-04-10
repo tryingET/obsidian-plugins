@@ -317,16 +317,32 @@ export class SidepanelKeyboardShortcutController {
     return explicitNodes
   }
 
-  private handleArrowRight(context: KeyboardShortcutContext): void {
+  private resolveFocusedNodeForHorizontalNavigation(
+    context: KeyboardShortcutContext,
+  ): LayerNode | null {
     const focusedNodeId = this.#host.getFocusedNodeId()
-    if (!focusedNodeId) {
-      return
+    if (focusedNodeId) {
+      const focusedNode = context.nodeById.get(focusedNodeId)
+      if (focusedNode) {
+        return focusedNode
+      }
+
+      this.#host.notify("Keyboard focus is stale. Refreshing row focus.")
     }
 
-    const focusedNode = context.nodeById.get(focusedNodeId)
+    const fallbackNode = context.visibleNodes[0] ?? null
+    if (!fallbackNode) {
+      this.#host.setFocusedNodeIdSilently(null)
+      return null
+    }
+
+    this.#host.setFocusedNode(fallbackNode.id)
+    return fallbackNode
+  }
+
+  private handleArrowRight(context: KeyboardShortcutContext): void {
+    const focusedNode = this.resolveFocusedNodeForHorizontalNavigation(context)
     if (!focusedNode) {
-      this.#host.notify("Keyboard focus is stale. Refreshing row focus.")
-      this.#host.setFocusedNode(context.visibleNodes[0]?.id ?? null)
       return
     }
 
@@ -339,15 +355,8 @@ export class SidepanelKeyboardShortcutController {
   }
 
   private handleArrowLeft(context: KeyboardShortcutContext): void {
-    const focusedNodeId = this.#host.getFocusedNodeId()
-    if (!focusedNodeId) {
-      return
-    }
-
-    const focusedNode = context.nodeById.get(focusedNodeId)
+    const focusedNode = this.resolveFocusedNodeForHorizontalNavigation(context)
     if (!focusedNode) {
-      this.#host.notify("Keyboard focus is stale. Refreshing row focus.")
-      this.#host.setFocusedNode(context.visibleNodes[0]?.id ?? null)
       return
     }
 

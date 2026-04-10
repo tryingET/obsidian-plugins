@@ -329,6 +329,206 @@ describe("sidepanel keyboard shortcut controller", () => {
     expect(selectElementsInView).toHaveBeenCalledWith(["A", "B", "el:C"])
   })
 
+  it("restores first-row focus and expands collapsed groups when ArrowRight starts without a focused row", () => {
+    const toggleExpanded = vi.fn<(nodeId: string) => void>()
+    const setFocusedNode = vi.fn<(nodeId: string | null) => void>()
+    const groupNode = makeGroupNode("G")
+    const collapsedGroupNode = {
+      ...groupNode,
+      isExpanded: false,
+    }
+
+    const context: KeyboardShortcutContext = {
+      actions: {
+        toggleExpanded,
+      } as unknown as LayerManagerUiActions,
+      selection: {
+        elementIds: [],
+        nodes: [],
+        frameResolution: makeFrameResolution(null),
+      },
+      visibleNodes: [collapsedGroupNode],
+      nodeById: new Map([[collapsedGroupNode.id, collapsedGroupNode]]),
+      parentById: new Map([[collapsedGroupNode.id, null]]),
+    }
+
+    const controller = new SidepanelKeyboardShortcutController({
+      getKeyboardContext: () => context,
+      resolveKeyboardContext: (resolvedContext) => resolvedContext,
+      getFocusedNodeId: () => null,
+      setFocusedNodeIdSilently: () => {},
+      setFocusedNode,
+      getInlineRenameNodeId: () => null,
+      beginInlineRename: () => {},
+      commitInlineRename: vi.fn(async () => {}),
+      setSelectionOverride: () => {},
+      ensureHostViewContext: () => true,
+      moveSelectionToRoot: vi.fn(async () => {}),
+      setLastQuickMoveDestinationToRoot: () => {},
+      isTextInputTarget: () => false,
+      isKeyboardSuppressed: () => false,
+      releaseKeyboardCapture: () => {},
+      suppressTransientFocusOut: () => {},
+      notify: () => {},
+      runUiAction: () => {},
+      requestRenderFromLatestModel: () => {},
+    })
+
+    controller.handleContentKeydown(makeKeyboardEvent("ArrowRight"))
+
+    expect(setFocusedNode).toHaveBeenCalledWith(collapsedGroupNode.id)
+    expect(toggleExpanded).toHaveBeenCalledWith(collapsedGroupNode.id)
+  })
+
+  it("restores first-row focus and collapses expanded groups when ArrowLeft starts without a focused row", () => {
+    const toggleExpanded = vi.fn<(nodeId: string) => void>()
+    const setFocusedNode = vi.fn<(nodeId: string | null) => void>()
+    const groupNode = makeGroupNode("G")
+
+    const context: KeyboardShortcutContext = {
+      actions: {
+        toggleExpanded,
+      } as unknown as LayerManagerUiActions,
+      selection: {
+        elementIds: [],
+        nodes: [],
+        frameResolution: makeFrameResolution(null),
+      },
+      visibleNodes: [groupNode],
+      nodeById: new Map([[groupNode.id, groupNode]]),
+      parentById: new Map([[groupNode.id, null]]),
+    }
+
+    const controller = new SidepanelKeyboardShortcutController({
+      getKeyboardContext: () => context,
+      resolveKeyboardContext: (resolvedContext) => resolvedContext,
+      getFocusedNodeId: () => null,
+      setFocusedNodeIdSilently: () => {},
+      setFocusedNode,
+      getInlineRenameNodeId: () => null,
+      beginInlineRename: () => {},
+      commitInlineRename: vi.fn(async () => {}),
+      setSelectionOverride: () => {},
+      ensureHostViewContext: () => true,
+      moveSelectionToRoot: vi.fn(async () => {}),
+      setLastQuickMoveDestinationToRoot: () => {},
+      isTextInputTarget: () => false,
+      isKeyboardSuppressed: () => false,
+      releaseKeyboardCapture: () => {},
+      suppressTransientFocusOut: () => {},
+      notify: () => {},
+      runUiAction: () => {},
+      requestRenderFromLatestModel: () => {},
+    })
+
+    controller.handleContentKeydown(makeKeyboardEvent("ArrowLeft"))
+
+    expect(setFocusedNode).toHaveBeenCalledWith(groupNode.id)
+    expect(toggleExpanded).toHaveBeenCalledWith(groupNode.id)
+  })
+
+  it("rebinds stale focus once and still expands collapsed groups on ArrowRight", () => {
+    const toggleExpanded = vi.fn<(nodeId: string) => void>()
+    const setFocusedNode = vi.fn<(nodeId: string | null) => void>()
+    const notify = vi.fn<(message: string) => void>()
+    const groupNode = makeGroupNode("G")
+    const collapsedGroupNode = {
+      ...groupNode,
+      isExpanded: false,
+    }
+
+    const context: KeyboardShortcutContext = {
+      actions: {
+        toggleExpanded,
+      } as unknown as LayerManagerUiActions,
+      selection: {
+        elementIds: [],
+        nodes: [],
+        frameResolution: makeFrameResolution(null),
+      },
+      visibleNodes: [collapsedGroupNode],
+      nodeById: new Map([[collapsedGroupNode.id, collapsedGroupNode]]),
+      parentById: new Map([[collapsedGroupNode.id, null]]),
+    }
+
+    const controller = new SidepanelKeyboardShortcutController({
+      getKeyboardContext: () => context,
+      resolveKeyboardContext: (resolvedContext) => resolvedContext,
+      getFocusedNodeId: () => "stale",
+      setFocusedNodeIdSilently: () => {},
+      setFocusedNode,
+      getInlineRenameNodeId: () => null,
+      beginInlineRename: () => {},
+      commitInlineRename: vi.fn(async () => {}),
+      setSelectionOverride: () => {},
+      ensureHostViewContext: () => true,
+      moveSelectionToRoot: vi.fn(async () => {}),
+      setLastQuickMoveDestinationToRoot: () => {},
+      isTextInputTarget: () => false,
+      isKeyboardSuppressed: () => false,
+      releaseKeyboardCapture: () => {},
+      suppressTransientFocusOut: () => {},
+      notify,
+      runUiAction: () => {},
+      requestRenderFromLatestModel: () => {},
+    })
+
+    controller.handleContentKeydown(makeKeyboardEvent("ArrowRight"))
+
+    expect(notify).toHaveBeenCalledWith("Keyboard focus is stale. Refreshing row focus.")
+    expect(setFocusedNode).toHaveBeenCalledWith(collapsedGroupNode.id)
+    expect(toggleExpanded).toHaveBeenCalledWith(collapsedGroupNode.id)
+  })
+
+  it("rebinds stale focus once and still collapses expanded groups on ArrowLeft", () => {
+    const toggleExpanded = vi.fn<(nodeId: string) => void>()
+    const setFocusedNode = vi.fn<(nodeId: string | null) => void>()
+    const notify = vi.fn<(message: string) => void>()
+    const groupNode = makeGroupNode("G")
+
+    const context: KeyboardShortcutContext = {
+      actions: {
+        toggleExpanded,
+      } as unknown as LayerManagerUiActions,
+      selection: {
+        elementIds: [],
+        nodes: [],
+        frameResolution: makeFrameResolution(null),
+      },
+      visibleNodes: [groupNode],
+      nodeById: new Map([[groupNode.id, groupNode]]),
+      parentById: new Map([[groupNode.id, null]]),
+    }
+
+    const controller = new SidepanelKeyboardShortcutController({
+      getKeyboardContext: () => context,
+      resolveKeyboardContext: (resolvedContext) => resolvedContext,
+      getFocusedNodeId: () => "stale",
+      setFocusedNodeIdSilently: () => {},
+      setFocusedNode,
+      getInlineRenameNodeId: () => null,
+      beginInlineRename: () => {},
+      commitInlineRename: vi.fn(async () => {}),
+      setSelectionOverride: () => {},
+      ensureHostViewContext: () => true,
+      moveSelectionToRoot: vi.fn(async () => {}),
+      setLastQuickMoveDestinationToRoot: () => {},
+      isTextInputTarget: () => false,
+      isKeyboardSuppressed: () => false,
+      releaseKeyboardCapture: () => {},
+      suppressTransientFocusOut: () => {},
+      notify,
+      runUiAction: () => {},
+      requestRenderFromLatestModel: () => {},
+    })
+
+    controller.handleContentKeydown(makeKeyboardEvent("ArrowLeft"))
+
+    expect(notify).toHaveBeenCalledWith("Keyboard focus is stale. Refreshing row focus.")
+    expect(setFocusedNode).toHaveBeenCalledWith(groupNode.id)
+    expect(toggleExpanded).toHaveBeenCalledWith(groupNode.id)
+  })
+
   it("suppresses transient blur before handling Enter rename shortcut", () => {
     const suppressTransientFocusOut = vi.fn<() => void>()
     const beginInlineRename = vi.fn<(nodeId: string, initialValue: string) => void>()
