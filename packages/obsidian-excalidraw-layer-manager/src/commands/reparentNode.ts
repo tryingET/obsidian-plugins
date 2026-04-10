@@ -87,6 +87,7 @@ export const planReparentNode = (
     sourceGroupId: input.sourceGroupId,
     targetParentPath: input.targetParentPath,
     canonicalTargetParentPathKeys: collectCanonicalTargetParentPathKeys(structuralTree),
+    structuralTree,
   })
 
   if (!validation.ok) {

@@ -8,6 +8,7 @@ export interface ReparentValidationInput {
   readonly sourceGroupId: string | null
   readonly targetParentPath: readonly string[]
   readonly canonicalTargetParentPathKeys?: ReadonlySet<string>
+  readonly structuralTree?: readonly StructuralLayerNode[]
 }
 
 const makeCanonicalTargetParentPathKey = (
@@ -119,6 +120,60 @@ export const validateNoSelfNesting = (
   return ok(undefined)
 }
 
+const collectDescendantGroupIds = (
+  nodes: readonly StructuralLayerNode[],
+  targetGroupId: string,
+): ReadonlySet<string> => {
+  const descendants = new Set<string>()
+
+  const walk = (children: readonly StructuralLayerNode[]): boolean => {
+    for (const child of children) {
+      if (child.type === "group" && child.groupId === targetGroupId) {
+        collectAllGroupIds(child.children, descendants)
+        return true
+      }
+      if (child.children.length > 0 && walk(child.children)) {
+        return true
+      }
+    }
+    return false
+  }
+
+  walk(nodes)
+  return descendants
+}
+
+const collectAllGroupIds = (nodes: readonly StructuralLayerNode[], out: Set<string>): void => {
+  for (const node of nodes) {
+    if (node.type === "group" && node.groupId) {
+      out.add(node.groupId)
+    }
+    if (node.children.length > 0) {
+      collectAllGroupIds(node.children, out)
+    }
+  }
+}
+
+export const validateNoDescendantCycle = (
+  sourceGroupId: string | null,
+  targetParentPath: readonly string[],
+  structuralTree: readonly StructuralLayerNode[] | undefined,
+): Result<void, string> => {
+  if (!sourceGroupId || targetParentPath.length === 0 || !structuralTree) {
+    return ok(undefined)
+  }
+
+  const descendantGroupIds = collectDescendantGroupIds(structuralTree, sourceGroupId)
+
+  for (const pathGroupId of targetParentPath) {
+    if (descendantGroupIds.has(pathGroupId)) {
+      return err("Cannot move a group into one of its own descendants (would create a cycle).")
+    }
+  }
+
+  return ok(undefined)
+}
+
 export const validateReparentInvariants = (
   input: ReparentValidationInput,
 ): Result<void, string> => {
@@ -135,6 +190,15 @@ export const validateReparentInvariants = (
   const cycleCheck = validateNoSelfNesting(input.sourceGroupId, input.targetParentPath)
   if (!cycleCheck.ok) {
     return cycleCheck
+  }
+
+  const descendantCycleCheck = validateNoDescendantCycle(
+    input.sourceGroupId,
+    input.targetParentPath,
+    input.structuralTree,
+  )
+  if (!descendantCycleCheck.ok) {
+    return descendantCycleCheck
   }
 
   const canonicalPathCheck = validateCanonicalTargetParentPath(
