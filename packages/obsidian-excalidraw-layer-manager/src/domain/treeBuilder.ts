@@ -141,7 +141,8 @@ const makeFreedrawBucketNode = (elements: readonly ElementDTO[]): LayerNode => {
   const elementIds = elements.map((element) => element.id)
   const primaryElementId = elements[0]?.id ?? "freedraw"
   const frameId = elements[0]?.frameId ?? null
-  const bucketId = makeNodeId("freedraw", elementIds.join("|"))
+  const stableBucketKey = [...elementIds].sort().join("|")
+  const bucketId = makeNodeId("freedraw", stableBucketKey)
 
   return {
     id: bucketId,

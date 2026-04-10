@@ -449,4 +449,26 @@ describe("buildLayerTree acceptance matrix", () => {
     expect(second).toEqual(first)
     expect(coveredIds.size).toBe(elements.length)
   })
+
+  it("A13 — freedraw bucket ID is stable across z-order changes", () => {
+    const elementsV1 = [
+      makeElement({ id: "s1", type: "freedraw", zIndex: 0 }),
+      makeElement({ id: "s2", type: "freedraw", zIndex: 1 }),
+      makeElement({ id: "s3", type: "freedraw", zIndex: 2 }),
+    ]
+
+    const elementsV2 = [
+      makeElement({ id: "s3", type: "freedraw", zIndex: 0 }),
+      makeElement({ id: "s1", type: "freedraw", zIndex: 1 }),
+      makeElement({ id: "s2", type: "freedraw", zIndex: 2 }),
+    ]
+
+    const treeV1 = buildTree(elementsV1)
+    const treeV2 = buildTree(elementsV2)
+
+    expect(treeV1).toHaveLength(1)
+    expect(treeV2).toHaveLength(1)
+    expect(treeV1[0]?.id).toBe(treeV2[0]?.id)
+    expect(treeV1[0]?.type).toBe("freedrawBucket")
+  })
 })
