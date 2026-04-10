@@ -44,6 +44,8 @@ Operational note: package-level AK direction commands should target the register
 - **State:** done
 - **Outcome:** the selection grammar is now proven across host-selection mirroring, drag/drop structural moves, and package tests, including combined coverage that keeps mouse-built multi-selection coherent through host echo and reorder.
 
+## Current operating slices
+
 ### OP4 — Improve row-state scanability and density for the first TG3 layer-surface packet
 - **AK task:** `task:1083`
 - **State:** done
@@ -53,8 +55,6 @@ Operational note: package-level AK direction commands should target the register
 - **AK task:** `task:1084`
 - **State:** done
 - **Outcome:** the follow-on TG3 packet now adds structure badges for collapsed or expanded containers, row-shell edge cues for hidden and locked state, and richer row aria labels so visibility/lock/structure scanability compounds beyond spacing-and-badge polish.
-
-## Current operating slices
 
 ### OP6 — Cut the first TG4 board-scale organization/review packet in AK before implementation resumes
 - **AK task:** `task:1088`

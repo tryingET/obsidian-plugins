@@ -23,14 +23,16 @@ Active strategic goal: **SG1 — Turn the stabilized projection kernel into a fi
 - **Outcome:** Layer Manager X now has one validated interaction grammar across row-click selection, keyboard focus/anchor handling, host-selection synchronization, and drag/drop structural moves, so the panel behaves like one pro interaction surface instead of adjacent input-specific paths.
 - **Completed by:** repo-local AK tasks `task:1074`, `task:1072`, and `task:1073`.
 
+## Active tactical goals
+
 ### TG3 — Build the dense pro layer operating surface
+- **State:** done
 - **Why this was active:** with the core interaction grammar now coherent, the panel still needed to feel denser, faster, and more legible as a layer console. That required more than spacing polish: the row shell needed clearer structure surfacing plus stronger visibility/lock scan cues.
 - **Outcome:** two TG3 packets now landed a denser row shell, dedicated row-type tags, compact match/state badges, structure badges for collapsed or expanded containers, and row-shell/aria cues for hidden and locked state so the panel reads more like a serious layer console.
 - **Completed by:** repo-local AK tasks `task:1083-1084`.
 
-## Active tactical goals
-
 ### TG4 — Build the board-scale organization and review workflow
+- **State:** active
 - **Why this is active:** the dense row surface is now materially cut, so the next differentiator is board-scale speed. The panel should help users reorganize, inspect, and review larger scenes unusually well rather than only exposing row-by-row structure.
 - **Outcome target:** Layer Manager X supports fast organization, destination memory, review modes, and cleanup/restructure workflows that make large scenes feel tractable.
 - **Current execution anchor:** repo-local AK task `task:1088`.
