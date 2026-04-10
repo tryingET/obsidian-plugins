@@ -1,8 +1,8 @@
 ---
-summary: "Contract for outcome-bearing sidepanel state transitions so open recovery tasks share one explicit success/failure model."
+summary: "Contract for outcome-bearing sidepanel state transitions so recovery tasks and later review-affordance slices share one explicit success/failure model."
 read_when:
   - "You are implementing or reviewing sidepanel interactions that claim applied, persisted, remembered, rejected, or reverted outcomes."
-  - "You are working AK tasks 981, 982, 983, or 1019 and need the required sidepanel outcome semantics."
+  - "You are working AK tasks 981, 982, 983, 1019, or later outcome-honesty follow-ons and need the required sidepanel outcome semantics."
 type: "reference"
 ---
 
@@ -82,19 +82,22 @@ This pattern is reusable and should be applied to upcoming task surfaces where a
 - Does rejection notify instead of silently returning?
 - Do tests prove the failure semantics?
 
-## Binding for current open tasks
-This contract is required input for AK tasks:
+## Binding for the recovery-epic family
+This contract was the required input for the recovery epics and follow-on slices that hardened sidepanel outcome honesty:
 - 981 — sidepanel affordances outcome honesty
 - 982 — reorder and drag/drop requalification
 - 983 — structural reparent fail-closed behavior
 - 1019 — same-parent drag/drop semantics
+- 1103 — board-scale review action honesty under filtered, mixed, and failure states
 
-Reusable pattern for the remaining tasks (`982`, `983`, `1019`):
+Reusable pattern for later outcome-bearing interaction work:
 - any qualification or reconciliation step that can change user-visible outcome state must return an explicit outcome object
 - the caller must decide the visible state from that outcome, not infer success from attempted mutation
 - planner rejection and post-qualification incompatibility must notify explicitly
 - same-parent draggable row drops must qualify as relative reorder against the target sibling slot instead of silently falling through to sibling-container reparent semantics
 - persistence or remembered-state repair must never use fire-and-forget writes
+- review-scope affordances must stay explicit that filtering does not narrow canonical command targets
+- mixed-state affordances must disable or qualify actions truthfully before execution when the planner would fail closed
 - tests must prove both the applied path and the reverted/rejected path
 
-Those tasks must conform to this contract instead of inventing task-local outcome semantics.
+Future tasks must conform to this contract instead of inventing task-local outcome semantics.
