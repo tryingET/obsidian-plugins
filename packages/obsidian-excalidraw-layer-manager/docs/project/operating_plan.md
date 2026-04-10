@@ -31,17 +31,17 @@ Operational note: package-level AK direction commands should target the register
 
 ### OP1 — Implement row-click modifier selection with explicit anchor/range/toggle semantics
 - **AK task:** `task:1074`
-- **State:** completed
+- **State:** done
 - **Outcome:** layer rows now support the core mouse selection contract: replace-on-click, additive ctrl/cmd-click, range shift-click, and explicit anchor handling that keeps visible-row range behavior explicit instead of smuggling structural intent through inferred element selection.
 
 ### OP2 — Extend keyboard selection parity and focus/anchor state for the new interaction grammar
 - **AK task:** `task:1072`
-- **State:** active
-- **Deliverable:** keyboard flows such as shift-arrow extension, focused-row movement through the visible tree, and host-selection synchronization work against the same selection grammar instead of a second keyboard-only interpretation.
+- **State:** done
+- **Outcome:** keyboard navigation now works against the same explicit selection grammar as row clicks: focused-row movement and shift-arrow extension preserve row intent/anchor state, host-selection synchronization stays aligned, and runtime scene-subscription lifecycle cleanup keeps that bridge bounded across reruns.
 
 ### OP3 — Validate multi-selection across drag/drop and host selection sync
 - **AK task:** `task:1073`
-- **State:** next
+- **State:** active
 - **Deliverable:** the new selection grammar is proven across drag/drop, host selection mirroring, and package tests so the package does not gain a mouse-only selection feature that drifts from the rest of the interaction model.
 
 ## Guardrails for this wave

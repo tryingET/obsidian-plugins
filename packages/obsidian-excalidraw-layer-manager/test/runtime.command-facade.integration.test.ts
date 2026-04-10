@@ -441,6 +441,38 @@ describe("runtime command facade + controller action seam", () => {
     expect(notify).toHaveBeenCalledTimes(1)
   })
 
+  it("returns plannerError, notifies, and writes nothing when structural createGroup spans multiple frames", async () => {
+    const runtime = makeInstrumentedEa([
+      { id: "A", type: "rectangle", frameId: "F1", groupIds: [] },
+      { id: "B", type: "rectangle", frameId: "F2", groupIds: [] },
+    ])
+
+    const render = vi.fn()
+    const notify = vi.fn()
+
+    createLayerManagerRuntime(runtime.ea, {
+      render,
+      notify,
+    })
+
+    const actions = getUiActions(render)
+    const outcome = await actions.createGroupFromNodeIds({
+      nodeIds: ["el:A", "el:B"],
+      nameSeed: "Cross",
+    })
+
+    expect(outcome.status).toBe("plannerError")
+    expect(outcome.attempts).toBe(1)
+    if (outcome.status === "plannerError") {
+      expect(outcome.error).toContain("multiple frames")
+    }
+
+    expect(runtime.copyForEditing).not.toHaveBeenCalled()
+    expect(runtime.addToView).not.toHaveBeenCalled()
+    expect(runtime.updateScene).not.toHaveBeenCalled()
+    expect(notify).toHaveBeenCalledTimes(1)
+  })
+
   it("returns plannerError, notifies, and writes nothing when structural action node id is missing", async () => {
     const runtime = makeInstrumentedEa([{ id: "A", type: "rectangle", locked: false }])
 

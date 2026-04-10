@@ -3,7 +3,8 @@ set -eu
 
 script_dir="$(cd "$(dirname "$0")" && pwd)"
 
-"$script_dir/smoke.sh"
+sh "$script_dir/smoke.sh"
+sh "$script_dir/package-gate.sh" ci
 
 repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "error: not a git repo" >&2; exit 1; }
 cd "$repo_root"

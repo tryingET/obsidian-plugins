@@ -44,6 +44,22 @@ Provide an architecture-first Layer Manager for Obsidian Excalidraw scripts, wit
 - `docs/project/2026-04-09-projection-kernel-recovery-blueprint.md`
 - `docs/project/script-style-package-boundary.md`
 
+## AK direction (L3 package surface)
+
+This package now has its own AK direction substrate as an **L3 monorepo member**.
+
+Use the registered alias path when targeting package-level AK direction surfaces:
+
+```bash
+./scripts/ak.sh direction export --repo 'owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager'
+./scripts/ak.sh direction check --repo 'owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager'
+./scripts/ak.sh task show 1074
+./scripts/ak.sh task show 1072
+./scripts/ak.sh task show 1073
+```
+
+Repo root remains the L2 family direction surface; this package is the L3 product/package surface.
+
 ## Commands
 
 ```bash

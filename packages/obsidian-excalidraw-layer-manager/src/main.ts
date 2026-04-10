@@ -71,6 +71,10 @@ const createDeferredVoid = (): DeferredVoid => {
   }
 }
 
+const toSceneChangeUnsubscribe = (value: unknown): (() => void) | null => {
+  return typeof value === "function" ? (value as () => void) : null
+}
+
 export interface LayerManagerRuntime {
   refresh: () => void
   apply: (patch: ScenePatch) => Promise<void>
@@ -81,6 +85,7 @@ export interface LayerManagerRuntime {
   endInteraction: () => void
   withInteraction: <T>(operation: () => Promise<T> | T) => Promise<T>
   isInteractionActive: () => boolean
+  dispose: () => void
   commands: LayerManagerCommandFacade
 }
 
@@ -95,13 +100,15 @@ export const createLayerManagerRuntime = (
   let pendingRefreshWhileInteractive = false
   let interactionIdleDeferred: DeferredVoid | null = null
   let renderLatestSnapshot: () => void = () => {}
+  let disposed = false
+  let sceneChangeUnsubscribe: (() => void) | null = null
 
   const isInteractionActive = (): boolean => {
-    return interactionDepth > 0
+    return !disposed && interactionDepth > 0
   }
 
   const waitForInteractionIdle = async (): Promise<void> => {
-    if (!isInteractionActive()) {
+    if (!isInteractionActive() || disposed) {
       return
     }
 
@@ -113,6 +120,10 @@ export const createLayerManagerRuntime = (
   }
 
   const beginInteraction = (): void => {
+    if (disposed) {
+      return
+    }
+
     interactionDepth += 1
     pendingRefreshWhileInteractive = true
 
@@ -122,7 +133,7 @@ export const createLayerManagerRuntime = (
   }
 
   const endInteraction = (): void => {
-    if (interactionDepth === 0) {
+    if (disposed || interactionDepth === 0) {
       return
     }
 
@@ -196,12 +207,31 @@ export const createLayerManagerRuntime = (
     controller.setTree(tree, nextSnapshot.version, resolvedSelectedIds, elementStateById)
   }
 
+  const clearSceneChangeSubscription = (): void => {
+    try {
+      sceneChangeUnsubscribe?.()
+    } catch {
+      // no-op: best-effort cleanup only
+    }
+
+    sceneChangeUnsubscribe = null
+    subscribedSceneChangeApi = null
+  }
+
   renderLatestSnapshot = (): void => {
+    if (disposed) {
+      return
+    }
+
     renderSnapshot(readSnapshot(ea))
     subscribeToSceneChanges()
   }
 
   const refresh = (): void => {
+    if (disposed) {
+      return
+    }
+
     if (isInteractionActive()) {
       pendingRefreshWhileInteractive = true
       return
@@ -214,13 +244,16 @@ export const createLayerManagerRuntime = (
   let subscribedSceneChangeApi: unknown = null
 
   const queueExternalRefresh = (): void => {
-    if (externalRefreshQueued) {
+    if (disposed || externalRefreshQueued) {
       return
     }
 
     externalRefreshQueued = true
     Promise.resolve().then(() => {
       externalRefreshQueued = false
+      if (disposed) {
+        return
+      }
       refresh()
     })
   }
@@ -234,9 +267,16 @@ export const createLayerManagerRuntime = (
       return
     }
 
-    if (!api || api === subscribedSceneChangeApi) {
+    if (!api) {
+      clearSceneChangeSubscription()
       return
     }
+
+    if (api === subscribedSceneChangeApi) {
+      return
+    }
+
+    clearSceneChangeSubscription()
 
     const onChange = (
       api as {
@@ -251,10 +291,11 @@ export const createLayerManagerRuntime = (
     }
 
     try {
-      onChange((_elements, appState) => {
+      const unsubscribeCandidate = onChange((_elements, appState) => {
         selectedIdsHintFromOnChange = readSelectedIdsFromAppState(appState)
         queueExternalRefresh()
       })
+      sceneChangeUnsubscribe = toSceneChangeUnsubscribe(unsubscribeCandidate)
       subscribedSceneChangeApi = api
     } catch {
       // no-op: host may expose a partial API without change subscriptions
@@ -349,6 +390,20 @@ export const createLayerManagerRuntime = (
     },
   })
 
+  const dispose = (): void => {
+    if (disposed) {
+      return
+    }
+
+    disposed = true
+    pendingRefreshWhileInteractive = false
+    interactionDepth = 0
+    interactionIdleDeferred?.resolve()
+    interactionIdleDeferred = null
+    clearSceneChangeSubscription()
+    renderer.dispose?.()
+  }
+
   controller.setCommandFacade(commands)
 
   const toggleExpanded = (nodeId: string): void => {
@@ -368,6 +423,7 @@ export const createLayerManagerRuntime = (
     endInteraction,
     withInteraction,
     isInteractionActive,
+    dispose,
     commands,
   }
 }
@@ -415,6 +471,7 @@ if (scriptEa) {
     })
   }
 
+  runtimeGlobal.excalidrawLayerManagerRuntime?.dispose?.()
   runtimeGlobal.excalidrawLayerManagerRuntime = createLayerManagerRuntime(scriptEa)
 } else if (isLifecycleDebugEnabled) {
   console.log(

@@ -38,4 +38,57 @@ describe("planToggleVisibility", () => {
 
     expect(plan.value.elementPatches[0]?.set.opacity).toBe(67)
   })
+
+  it("restores only hidden members in a mixed selection and preserves visible opacity", () => {
+    const context = makeCommandContext([
+      makeElement({ id: "visible", opacity: 40 }),
+      makeElement({
+        id: "hidden",
+        opacity: 0,
+        customData: { originalOpacity: 55 },
+      }),
+    ])
+
+    const plan = planToggleVisibility(context, { elementIds: ["visible", "hidden"] })
+    expect(plan.ok).toBe(true)
+    if (!plan.ok) {
+      return
+    }
+
+    expect(plan.value.elementPatches).toEqual([
+      {
+        id: "hidden",
+        set: {
+          opacity: 55,
+          customData: { originalOpacity: 55 },
+        },
+      },
+    ])
+  })
+
+  it("restores hidden members without originalOpacity to full opacity during mixed selection restore", () => {
+    const context = makeCommandContext([
+      makeElement({ id: "visible", opacity: 40 }),
+      makeElement({
+        id: "hidden",
+        opacity: 0,
+      }),
+    ])
+
+    const plan = planToggleVisibility(context, { elementIds: ["visible", "hidden"] })
+    expect(plan.ok).toBe(true)
+    if (!plan.ok) {
+      return
+    }
+
+    expect(plan.value.elementPatches).toEqual([
+      {
+        id: "hidden",
+        set: {
+          opacity: 100,
+          customData: {},
+        },
+      },
+    ])
+  })
 })

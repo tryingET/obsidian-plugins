@@ -62,6 +62,7 @@ export interface RenderViewModel {
 export interface LayerManagerRenderer {
   render(model: RenderViewModel): void
   notify?(message: string): void
+  dispose?(): void
 }
 
 export class ConsoleRenderer implements LayerManagerRenderer {

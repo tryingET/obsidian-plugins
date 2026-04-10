@@ -28,22 +28,38 @@ export const planToggleVisibility = (
   const anyHidden = targets.some((target) => target.opacity <= 0)
 
   return ok({
-    elementPatches: targets.map((target) => {
-      const originalOpacity = target.customData.originalOpacity
-      const restoreOpacity = typeof originalOpacity === "number" ? originalOpacity : 100
+    elementPatches: targets.flatMap((target) => {
+      if (anyHidden) {
+        if (target.opacity > 0) {
+          return []
+        }
 
-      return {
-        id: target.id,
-        set: {
-          opacity: anyHidden ? restoreOpacity : 0,
-          customData: anyHidden
-            ? target.customData
-            : {
-                ...target.customData,
-                originalOpacity: target.opacity,
-              },
-        },
+        const originalOpacity = target.customData.originalOpacity
+        const restoreOpacity = typeof originalOpacity === "number" ? originalOpacity : 100
+
+        return [
+          {
+            id: target.id,
+            set: {
+              opacity: restoreOpacity,
+              customData: target.customData,
+            },
+          },
+        ]
       }
+
+      return [
+        {
+          id: target.id,
+          set: {
+            opacity: 0,
+            customData: {
+              ...target.customData,
+              originalOpacity: target.opacity,
+            },
+          },
+        },
+      ]
     }),
   })
 }

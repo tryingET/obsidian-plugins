@@ -727,7 +727,7 @@ describe("commands acceptance matrix", () => {
     expect(plan.value.groupId).toBe("Group-3")
   })
 
-  it("C21 — createGroup allows mixed-frame targets without frame mutation", () => {
+  it("C21 — createGroup rejects mixed-frame targets", () => {
     const context = makeCommandContext([
       makeElement({ id: "A", frameId: "F1" }),
       makeElement({ id: "B", frameId: "F2" }),
@@ -738,15 +738,12 @@ describe("commands acceptance matrix", () => {
       nameSeed: "Cross",
     })
 
-    expect(plan.ok).toBe(true)
-    if (!plan.ok) {
+    expect(plan.ok).toBe(false)
+    if (plan.ok) {
       return
     }
 
-    for (const entry of plan.value.patch.elementPatches) {
-      expect(entry.set.frameId).toBeUndefined()
-      expect(entry.set.groupIds?.includes(plan.value.groupId)).toBe(true)
-    }
+    expect(plan.error).toContain("multiple frames")
   })
 
   it("C22 — createGroup normalization includes bound text closure", () => {

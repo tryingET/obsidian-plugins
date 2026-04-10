@@ -1,12 +1,12 @@
 import type { LayerNode } from "../../../model/tree.js"
 import { appendUniqueIds } from "./selectionIds.js"
 
-export interface RowClickSelectionModifiers {
+interface RowClickSelectionModifiers {
   readonly shiftKey: boolean
   readonly toggleKey: boolean
 }
 
-export interface ResolveRowClickSelectionInput {
+interface ResolveRowClickSelectionInput {
   readonly clickedNode: LayerNode
   readonly visibleNodes: readonly LayerNode[]
   readonly currentSelectedNodes: readonly LayerNode[]
@@ -15,7 +15,7 @@ export interface ResolveRowClickSelectionInput {
   readonly modifiers: RowClickSelectionModifiers
 }
 
-export interface RowClickSelectionResult {
+interface RowClickSelectionResult {
   readonly selectedNodes: readonly LayerNode[]
   readonly selectedElementIds: readonly string[]
   readonly anchorNodeId: string | null

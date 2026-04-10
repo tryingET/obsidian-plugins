@@ -21,10 +21,10 @@ Active strategic goal: **SG1 — Turn the stabilized projection kernel into a fi
 ## Active tactical goals
 
 ### TG2 — Establish the professional interaction grammar
-- **Why this is active:** the current gap is no longer kernel truth. The current gap is that the panel still lacks a unified professional interaction grammar. Selection, focus, anchor, range extension, drag intent, reorder intent, reparent intent, and keyboard/mouse parity still feel like adjacent features instead of one coherent operator model.
+- **Why this is active:** the current gap is no longer kernel truth. The current gap is proving that the now-shared selection grammar stays coherent across the remaining interaction seams instead of leaving keyboard, drag/drop, and host-sync behavior as adjacent interpretations.
 - **Outcome target:** Layer Manager X feels like a serious pro interaction surface: Figma-like precision for selection and hierarchy, Miro-like movement fluidity, and Photoshop-like deliberateness around state and action feedback.
-- **Recently completed execution slice:** repo-local AK task `task:1074` landed the mouse-side anchor/range/toggle row-selection contract.
-- **Current execution anchor:** repo-local AK task `task:1072`.
+- **Recently completed execution slices:** repo-local AK task `task:1074` landed the mouse-side anchor/range/toggle row-selection contract, and repo-local AK task `task:1072` extended that grammar through keyboard focus/anchor handling plus host-selection synchronization.
+- **Current execution anchor:** repo-local AK task `task:1073`.
 
 ### TG3 — Build the dense pro layer operating surface
 - **Why next:** once the core interaction grammar is coherent, the panel still needs to feel denser, faster, and more legible as a layer console. That means stronger scanability, clearer structural cues, better visibility/lock/isolate discipline, and more useful operational filtering and inspection modes.

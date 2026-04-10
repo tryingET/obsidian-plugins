@@ -52,6 +52,16 @@ export const planCreateGroup = (
     return err("Need at least two elements to create a group.")
   }
 
+  const targets = resolved.value
+    .map((id) => context.indexes.byId.get(id))
+    .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
+
+  const sourceFrameId = targets[0]?.frameId ?? null
+  const spansMultipleFrames = targets.some((target) => target.frameId !== sourceFrameId)
+  if (spansMultipleFrames) {
+    return err("Cannot create a group across multiple frames.")
+  }
+
   const groupLabel = normalizeGroupLabel(input.nameSeed ?? "Group")
   const base = normalizeGroupSeed(groupLabel)
   const groupId = makeUniqueGroupId(context, base)
