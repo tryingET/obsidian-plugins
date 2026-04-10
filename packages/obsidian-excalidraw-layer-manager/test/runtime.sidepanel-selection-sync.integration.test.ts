@@ -228,6 +228,49 @@ const flushAsync = async (): Promise<void> => {
   await Promise.resolve()
 }
 
+const getInteractiveRows = (contentRoot: FakeDomElement): FakeDomElement[] => {
+  return flattenElements(contentRoot).filter(
+    (element) => element.tagName === "DIV" && element.style["cursor"] === "pointer",
+  )
+}
+
+const getSelectedRows = (contentRoot: FakeDomElement): FakeDomElement[] => {
+  return getInteractiveRows(contentRoot).filter((row) => (row.style["background"]?.length ?? 0) > 0)
+}
+
+const dispatchClick = (element: FakeDomElement, init: FakeDomEventInit = {}): void => {
+  element.dispatchEvent(new FakeDomEvent("click", init))
+}
+
+const findInteractiveRowByLabel = (
+  contentRoot: FakeDomElement,
+  labelPrefix: string,
+): FakeDomElement | undefined => {
+  const elements = flattenElements(contentRoot)
+
+  const label = elements.find(
+    (element) =>
+      element.tagName === "SPAN" &&
+      typeof element.textContent === "string" &&
+      element.textContent.startsWith(labelPrefix),
+  )
+
+  if (!label) {
+    return undefined
+  }
+
+  const parent = label.parentElement
+  if (!parent) {
+    return undefined
+  }
+
+  if (parent.tagName !== "DIV" || parent.style["cursor"] !== "pointer") {
+    return undefined
+  }
+
+  return parent
+}
+
 interface RuntimeWithSidepanel {
   readonly ea: EaLike
   readonly elements: RawExcalidrawElement[]
@@ -560,6 +603,92 @@ describe("sidepanel selection-sync integration", () => {
     expect(selectedIds.length).toBe(1)
     expect(["A", "B"]).toContain(selectedIds[0])
     expect([...app.getSnapshot().selectedIds]).toEqual(selectedIds)
+  })
+
+  it("adds a second explicit row selection on modifier-click without replacing the anchor selection", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      [
+        { id: "A", type: "rectangle", name: "A", isDeleted: false },
+        { id: "B", type: "rectangle", name: "B", isDeleted: false },
+        { id: "C", type: "rectangle", name: "C", isDeleted: false },
+      ],
+      [],
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+
+    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const firstRow = findInteractiveRowByLabel(contentRoot, "[element] A")
+
+    if (!firstRow) {
+      throw new Error("Expected row for element A in modifier-click selection test.")
+    }
+
+    firstRow.click()
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const targetRow = findInteractiveRowByLabel(contentRoot, "[element] C")
+    if (!targetRow) {
+      throw new Error("Expected row for element C after initial row-click selection.")
+    }
+
+    dispatchClick(targetRow, { metaKey: true })
+    await flushAsync()
+
+    const lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
+    const selectedIds = runtime.selectInView.mock.calls[lastSelectCallIndex]?.[0] as
+      | readonly string[]
+      | undefined
+
+    expect([...(selectedIds ?? [])].sort()).toEqual(["A", "C"])
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    expect(getSelectedRows(contentRoot)).toHaveLength(2)
+  })
+
+  it("extends the explicit row selection across the visible range on shift-click", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      [
+        { id: "A", type: "rectangle", name: "A", isDeleted: false },
+        { id: "B", type: "rectangle", name: "B", isDeleted: false },
+        { id: "C", type: "rectangle", name: "C", isDeleted: false },
+      ],
+      [],
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+
+    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const anchorRow = findInteractiveRowByLabel(contentRoot, "[element] A")
+
+    if (!anchorRow) {
+      throw new Error("Expected row for element A in shift-click selection test.")
+    }
+
+    anchorRow.click()
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const targetRow = findInteractiveRowByLabel(contentRoot, "[element] C")
+    if (!targetRow) {
+      throw new Error("Expected row for element C after establishing the selection anchor.")
+    }
+
+    dispatchClick(targetRow, { shiftKey: true })
+    await flushAsync()
+
+    const lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
+    const selectedIds = runtime.selectInView.mock.calls[lastSelectCallIndex]?.[0] as
+      | readonly string[]
+      | undefined
+
+    expect([...(selectedIds ?? [])].sort()).toEqual(["A", "B", "C"])
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    expect(getSelectedRows(contentRoot)).toHaveLength(3)
   })
 
   it("clears stale row-click override when host emits newer canvas selection", async () => {

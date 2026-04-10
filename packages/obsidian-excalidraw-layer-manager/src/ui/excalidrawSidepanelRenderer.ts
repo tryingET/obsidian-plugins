@@ -53,6 +53,7 @@ import { renderSidepanelToolbar } from "./sidepanel/render/toolbarRenderer.js"
 import { SidepanelHostSelectionBridge } from "./sidepanel/selection/hostSelectionBridge.js"
 import { ensureHostViewContext } from "./sidepanel/selection/hostViewContext.js"
 import { collectVisibleNodeContext } from "./sidepanel/selection/nodeContext.js"
+import { resolveRowClickSelection } from "./sidepanel/selection/rowClickSelection.js"
 import { haveSameIds, haveSameIdsInSameOrder } from "./sidepanel/selection/selectionIds.js"
 import { reconcileSelectedElementIds } from "./sidepanel/selection/selectionReconciler.js"
 import {
@@ -184,6 +185,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   #keyboardSuppressedUntilMs = 0
   #ownerDocumentWithKeyCapture: Document | null = null
   #selectionOverrideState: SidepanelSelectionOverrideState | null = null
+  #selectionAnchorNodeId: string | null = null
   #latestSelectionResolution: SidepanelSelectionResolution | null = null
   #lastSnapshotSelectionIds: readonly string[] = []
   #rowFilterQuery = ""
@@ -460,6 +462,9 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     const selectionResolution = this.resolveSelection(structuralTree, selectedElementIds)
     this.#latestSelectionResolution = selectionResolution
     const resolvedSelection = selectionResolution.selection
+    const currentSelectedNodes =
+      selectionResolution.explicitSelectedNodes ?? resolvedSelection.nodes
+    this.reconcileSelectionAnchor(currentSelectedNodes)
     const explicitSelectedNodeIds = selectionResolution.explicitSelectedNodes
       ? new Set(selectionResolution.explicitSelectedNodes.map((node) => node.id))
       : null
@@ -681,6 +686,8 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       this.renderNodes(
         rows,
         visibleRowTree,
+        visibleNodes,
+        currentSelectedNodes,
         0,
         selectedIdSet,
         model.actions,
@@ -772,6 +779,11 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     }
 
     console.log(`[LMX] ${message}`)
+  }
+
+  dispose(): void {
+    this.clearInteractiveBindings()
+    this.#latestModel = null
   }
 
   private resolveSelectedElementIds(snapshotSelectedIds: ReadonlySet<string>): readonly string[] {
@@ -1049,6 +1061,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.#keyboardContext = null
     this.#focusedNodeId = null
     this.#selectionOverrideState = null
+    this.#selectionAnchorNodeId = null
     this.#latestSelectionResolution = null
     this.#lastSnapshotSelectionIds = []
     this.#focusOwnership.reset()
@@ -1209,11 +1222,25 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     })
   }
 
-  private setSelectionOverrideFromNode(node: LayerNode): void {
-    this.setSelectionOverrideState({
-      elementIds: [...node.elementIds],
-      nodeRefs: [makeSidepanelSelectionNodeRef(node)],
-    })
+  private reconcileSelectionAnchor(selectedNodes: readonly LayerNode[]): void {
+    if (selectedNodes.length === 0) {
+      this.#selectionAnchorNodeId = null
+      return
+    }
+
+    if (
+      this.#selectionAnchorNodeId &&
+      selectedNodes.some((node) => node.id === this.#selectionAnchorNodeId)
+    ) {
+      return
+    }
+
+    if (this.#focusedNodeId && selectedNodes.some((node) => node.id === this.#focusedNodeId)) {
+      this.#selectionAnchorNodeId = this.#focusedNodeId
+      return
+    }
+
+    this.#selectionAnchorNodeId = selectedNodes.length === 1 ? (selectedNodes[0]?.id ?? null) : null
   }
 
   private beginInlineRename(nodeId: string, initialValue: string): void {
@@ -1413,6 +1440,8 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   private renderNodes(
     container: HTMLElement,
     nodes: readonly LayerNode[],
+    visibleNodes: readonly LayerNode[],
+    currentSelectedNodes: readonly LayerNode[],
     depth: number,
     selectedIds: ReadonlySet<string>,
     actions: LayerManagerUiActions | undefined,
@@ -1496,15 +1525,37 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
           bindSidepanelRowInteractions({
             row,
             draggable: node.type !== "frame",
-            onRowClick: () => {
+            onRowClick: (event) => {
+              const previousFocusedNodeId = this.#focusedNodeId
               this.activateKeyboardCapture()
               this.#focusedNodeId = node.id
-              this.setSelectionOverrideFromNode(node)
+
+              const nextSelection = resolveRowClickSelection({
+                clickedNode: node,
+                visibleNodes,
+                currentSelectedNodes,
+                currentAnchorNodeId: this.#selectionAnchorNodeId,
+                fallbackAnchorNodeId: previousFocusedNodeId,
+                modifiers: {
+                  shiftKey: event.shiftKey,
+                  toggleKey: event.ctrlKey || event.metaKey,
+                },
+              })
+
+              this.#selectionAnchorNodeId = nextSelection.anchorNodeId
+              if (nextSelection.selectedNodes.length > 0) {
+                this.setSelectionOverrideFromNodes(
+                  nextSelection.selectedElementIds,
+                  nextSelection.selectedNodes,
+                )
+              } else {
+                this.setSelectionOverride(null)
+              }
 
               // Architecture seam note:
               // This bridge mirrors UI selection intent to the host selection model.
               // It must never mutate scene element fields directly.
-              this.#hostSelectionBridge.mirrorSelectionToHost(node.elementIds)
+              this.#hostSelectionBridge.mirrorSelectionToHost(nextSelection.selectedElementIds)
 
               this.focusContentRootBestEffort()
               this.requestRenderFromLatestModel()

@@ -1,28 +1,45 @@
 ---
-summary: "Tactical goals for the projection-kernel recovery wave in obsidian-excalidraw-layer-manager."
+summary: "Tactical goals for Layer Manager X after L3 direction adoption: the active wave is now the professional interaction grammar, followed by the dense pro layer surface and board-scale review workflow."
 read_when:
   - "You are planning the next implementation waves for Layer Manager X."
-  - "You need package-level tactical goals before sequencing AK tasks in the recovery wave."
+  - "You need package-level tactical goals before sequencing AK tasks in the current post-recovery interaction wave."
 type: "proposal"
 proposal_status: "active package direction"
 ---
 
 # Tactical Goals
 
-- Goal: Codify the Layer Manager projection-kernel recovery contract in package docs.
-  Definition of done: package docs explicitly define the authority split between scene truth, metadata truth, structural truth, visible truth, and convenience truth; the current recovery wave is described clearly; and later adaptive intelligence is explicitly gated on re-qualifying the current foundation.
+Active strategic goal: **SG1 — Turn the stabilized projection kernel into a finished operator-facing interaction surface**
 
-- Goal: Separate structural identity and selection semantics from visible row projection.
-  Definition of done: row identity, representative element identity, explicit row selection, structural selection, and raw selected element ids are handled as distinct concepts; full-tree and visible-tree derivations are consumed intentionally; and tests cover collapsed/filtered/grouped edge cases.
+## Recently completed tactical goals
 
-- Goal: Make quick-move destinations live-derived, disambiguated, and compatibility-ranked.
-  Definition of done: destination keys stay canonical, labels re-project against the live tree, stale or incompatible destinations fail closed or demote cleanly, and recent-target rendering does not hide compatible destinations behind ambiguous or dead entries.
+### TG1 — Adopt Layer Manager package direction into AK and cut the post-recovery interaction wave truthfully
+- **Why this was active:** the package already had strong direction docs, but they still lived only as prose and recovery-era planning notes. Before the next interaction wave could start truthfully, the package needed its own L3 AK direction substrate instead of hiding behind the monorepo root.
+- **Outcome:** the package now imports/checks/exports cleanly through AK as its own L3 direction surface, the recovery wave is preserved as completed history instead of lingering as an active slice, and package read-path guidance now names the package-level direction substrate explicitly.
+- **Completed by:** repo-local AK tasks `task:1070-1071`.
 
-- Goal: Make sidepanel affordances outcome-honest under filter, mixed, and failure states.
-  Definition of done: filtered containers only expose truthful expansion affordances, mixed visibility/lock states use honest interaction copy, and inline rename preserves user intent until the command outcome is actually known.
+## Active tactical goals
 
-- Goal: Re-qualify reorder and drag/drop behavior against canonical structural targets.
-  Definition of done: reorder/drag-drop actions operate on the intended structural targets rather than accidental representative aliases, drifted ancestry fails closed instead of being silently normalized, and the interaction model stays honest about scope and frame boundaries.
+### TG2 — Establish the professional interaction grammar
+- **Why this is active:** the current gap is no longer kernel truth. The current gap is that the panel still lacks a unified professional interaction grammar. Selection, focus, anchor, range extension, drag intent, reorder intent, reparent intent, and keyboard/mouse parity still feel like adjacent features instead of one coherent operator model.
+- **Outcome target:** Layer Manager X feels like a serious pro interaction surface: Figma-like precision for selection and hierarchy, Miro-like movement fluidity, and Photoshop-like deliberateness around state and action feedback.
+- **Recently completed execution slice:** repo-local AK task `task:1074` landed the mouse-side anchor/range/toggle row-selection contract.
+- **Current execution anchor:** repo-local AK task `task:1072`.
 
-- Goal: Leave adaptive/semantic assistance as a bounded follow-up after the projection kernel becomes trustworthy.
-  Definition of done: only after the stabilization wave is complete do we add adaptive surfacing, cleanup suggestions, or more alienlike interaction modes.
+### TG3 — Build the dense pro layer operating surface
+- **Why next:** once the core interaction grammar is coherent, the panel still needs to feel denser, faster, and more legible as a layer console. That means stronger scanability, clearer structural cues, better visibility/lock/isolate discipline, and more useful operational filtering and inspection modes.
+- **Outcome target:** the panel stops feeling like a thin utility tree and starts feeling like a dense pro layer surface for reading and controlling scene state quickly.
+
+### TG4 — Build the board-scale organization and review workflow
+- **Why next:** after the interaction grammar and dense layer surface are in place, the next differentiator is board-scale speed. The panel should help users reorganize, inspect, and review larger scenes unusually well rather than only exposing row-by-row structure.
+- **Outcome target:** Layer Manager X supports fast organization, destination memory, review modes, and cleanup/restructure workflows that make large scenes feel tractable.
+
+## Cross-cutting quality bar for TG2-TG4
+
+These are not a separate tactical goal. They are mandatory constraints across every interaction phase:
+- **outcome honesty** — do not clear or imply success before the command outcome is known
+- **persistence honesty** — remembered state, settings, and host reconciliation must not drift silently
+- **structural truth** — visible-row convenience must not override canonical structural targeting
+- **performance discipline** — richer UX must remain bounded on larger scenes
+
+Each later interaction wave must ship through those constraints rather than deferring them to a cleanup-only phase.

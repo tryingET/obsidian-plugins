@@ -1,93 +1,66 @@
 ---
-summary: "Current operating plan for Layer Manager X as it enters projection-kernel recovery inside the obsidian-plugins monorepo."
+summary: "Operating plan for Layer Manager X after L3 direction adoption: the active package wave is the professional interaction grammar on top of the stabilized projection kernel."
 read_when:
-  - "You are resuming package work and need the current implementation wave."
-  - "You need the active slices after the package proved its Hybrid Pro Panel direction and exposed stabilization seams."
+  - "You are resuming package work and need the current post-recovery implementation wave."
+  - "You need the active slices after package-level AK direction adoption completed and the professional interaction grammar became the next current packet."
 type: "reference"
 ---
 
 # Operating Plan
 
-## Current wave
+Active strategic goal: **SG1 — Turn the stabilized projection kernel into a finished operator-facing interaction surface**
 
-Stabilize Layer Manager X as a **high-trust projection kernel** over native Excalidraw structure.
+Active tactical goal: **TG2 — Establish the professional interaction grammar**
 
-The recent Hybrid Pro Panel slices proved the desired product shape:
-- metadata-backed naming
-- richer row model + filtering
-- panel-native movement
-- broader ordering semantics
+## Current state
 
-They also exposed the real recovery wave:
-- row identity vs representative element identity
-- full structural tree vs visible row projection
-- live destinations vs persisted convenience state
-- command outcomes vs optimistic UI state transitions
-- truthful affordances vs ambiguous mixed/filtered states
+The projection-kernel recovery wave is complete history, and the package now also has its own L3 AK direction substrate.
 
-The current wave is therefore **not** “add more intelligence.”
-It is: make the current panel trustworthy enough that later intelligence has a stable substrate.
+That means the current package problem is no longer direction legibility or kernel stabilization. The current package problem is the missing professional interaction grammar.
 
-See also:
-- `docs/project/2026-04-08-projection-kernel-recovery.md`
-- `docs/project/2026-04-09-projection-kernel-recovery-blueprint.md`
+Today the panel still under-delivers on the intended product blend:
+- **Figma-like precision** for focus, hierarchy, range selection, and keyboard parity is incomplete
+- **Miro-like movement fluidity** for moving sets of rows around larger structures is incomplete
+- **Photoshop-like deliberateness** for layer-state control and operator feedback is stronger than before, but not yet integrated into one obvious professional interaction language
 
-The exact module ownership, contract-test matrix, and AK task sequencing for this wave are frozen in `docs/project/2026-04-09-projection-kernel-recovery-blueprint.md`.
+So this wave is not a grab bag of isolated fixes. It is the first coherent packet that makes the panel feel like a real professional layer manager.
+
+Operational note: package-level AK direction commands should target the registered alias path `owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager` for the L3 package surface.
+
+## Current operating slices
+
+### OP1 — Implement row-click modifier selection with explicit anchor/range/toggle semantics
+- **AK task:** `task:1074`
+- **State:** completed
+- **Outcome:** layer rows now support the core mouse selection contract: replace-on-click, additive ctrl/cmd-click, range shift-click, and explicit anchor handling that keeps visible-row range behavior explicit instead of smuggling structural intent through inferred element selection.
+
+### OP2 — Extend keyboard selection parity and focus/anchor state for the new interaction grammar
+- **AK task:** `task:1072`
+- **State:** active
+- **Deliverable:** keyboard flows such as shift-arrow extension, focused-row movement through the visible tree, and host-selection synchronization work against the same selection grammar instead of a second keyboard-only interpretation.
+
+### OP3 — Validate multi-selection across drag/drop and host selection sync
+- **AK task:** `task:1073`
+- **State:** next
+- **Deliverable:** the new selection grammar is proven across drag/drop, host selection mirroring, and package tests so the package does not gain a mouse-only selection feature that drifts from the rest of the interaction model.
 
 ## Guardrails for this wave
 
-- scene truth stays Excalidraw-native (`zIndex`, `groupIds`, `frameId`, `opacity`, `locked`, selection)
-- Layer Manager X remains a projection + interaction surface, not a shadow runtime authority
-- Layer Manager X must not persist alternate structural truth
-- `customData.lmx` stays bounded to labels and package-owned metadata, not shadow hierarchy
-- full structural truth and visible row truth are separate derived surfaces and must not be conflated
-- row identity, structural target identity, and representative element identity must not be conflated
-- convenience state (recent/last destinations, filter state, focus state, drafts) remains subordinate to live scene truth
-- command/move preflight must resolve from canonical selected element ids + scene frame truth, not only from the currently visible row projection
-- command outcomes must drive UI state transitions; do not clear user intent optimistically when the outcome is still unknown
-- preserve deterministic mutation flow: UI -> controller -> command facade -> planner -> adapter
-- keep strong test/performance coverage as the UI gets richer
+- selection, focus, anchor, and movement semantics must stay one shared interaction grammar rather than separate local interpretations
+- visible-row range behavior must not weaken full structural truth for commands and move targeting
+- keyboard and mouse must converge onto the same model instead of becoming feature-parity theater
+- this wave must preserve outcome honesty, persistence honesty, structural truth, and bounded performance
+- do not jump into adaptive assistance before the professional interaction grammar is complete
 
-## Completed recovery epics
+## Next tactical waves after TG2
 
-- `task:978` **Projection-kernel contract** codified the authority split between scene truth, metadata truth, structural truth, visible truth, and convenience truth in the package docs.
-- `task:979` **Identity + selection stabilization** closed through `task:986`, `task:987`, `task:988`, and `task:995`, so row identity, representative identity, selection precedence, and full-tree-versus-visible-tree authority now route through the shared kernel and mandatory verification gate.
-- `task:980` **Destination registry hardening** closed through `task:989`, `task:992`, and `task:995`, so quick-move destinations now stay live-derived, canonical-keyed, frame-aware, and compatibility-ranked instead of trusting remembered labels as structural truth.
-- `task:983` **Fail-closed structural reparenting** closed through `task:994` and `task:995`, so drifted ancestry and malformed structural intent now reject explicitly instead of being silently normalized into a different meaning.
-- `task:982` **Reorder + drag/drop requalification** closed through `task:983`, `task:993`, `task:994`, `task:1019`, and `task:995`, so reorder and drag/drop now re-resolve against the live structural tree, same-parent row drops qualify as relative reorder against the target sibling slot, and incompatible or drifted targets fail closed with explicit user-visible outcomes.
-
-## Active slice
-
-1. **Affordance honesty pass**
-   - ensure filtered containers only present expand/collapse affordances that remain truthful in filtered mode
-   - keep mixed visibility/lock actions semantically honest
-   - preserve inline rename intent until the command outcome is known
-
-## Verification gate for this wave
-
-- `npm run verify:recovery` is the mandatory pre-ship kernel gate for the recovery packet. It runs `npm run check:fast`, `npm test`, and `npm run arch` in that fixed order.
-- When package docs differ from `HEAD` (including working-tree changes), the same gate also runs `node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs packages/obsidian-excalidraw-layer-manager/docs --strict`.
-- `npm run check:full` is the recovery-wave ship-ready gate. Do not call the current wave ship-ready unless it passes green after routing through `verify:recovery`.
-
-## Completed slices informing this wave
-
-These are done and now serve as the proving ground the recovery wave must harden:
-- **Metadata-backed naming foundation**
-- **Hybrid Pro Panel row model**
-- **Panel-native movement model**
-- **Broader ordering semantics**
-
-## Later slices
-
-- adaptive/semantic assistance after the projection kernel is trustworthy
-- favorites/pins/tags beyond the minimum metadata foundation
-- solo/isolate and stronger structure-inspection modes
-- more alienlike view/state transitions only after the pro-panel foundation feels obvious and stable
+Once TG2 is landed truthfully, promote the next tactical goals under the same strategic goal:
+- `TG3` dense pro layer operating surface
+- then `TG4` board-scale organization and review workflow
 
 ## Not this wave
 
-- upstream-native Excalidraw layers
-- a second plugin-owned canonical layer engine
-- speculative AI behavior that weakens determinism or clarity
-- adaptive scene intelligence before the current projection kernel is re-qualified as trustworthy
-- persistence schemes that turn convenience state into shadow structure
+- reopening the recovery packet as if it were still active
+- reducing the product goal to a few isolated selection bug fixes
+- jumping ahead to adaptive assistance
+- treating package-level direction adoption as the live product wave now that it is complete

@@ -1,7 +1,7 @@
 interface SidepanelRowInteractionBindingInput {
   readonly row: HTMLDivElement
   readonly draggable: boolean
-  readonly onRowClick: () => void
+  readonly onRowClick: (event: MouseEvent) => void
   readonly onRowDoubleClick: () => void
   readonly onDragStart: (event: DragEvent) => void
   readonly onDragEnd: () => void
@@ -14,7 +14,7 @@ interface SidepanelRowInteractionBindingInput {
 export const bindSidepanelRowInteractions = (input: SidepanelRowInteractionBindingInput): void => {
   input.row.addEventListener("click", (event) => {
     event.stopPropagation()
-    input.onRowClick()
+    input.onRowClick(event as MouseEvent)
   })
 
   input.row.addEventListener("dblclick", (event) => {
