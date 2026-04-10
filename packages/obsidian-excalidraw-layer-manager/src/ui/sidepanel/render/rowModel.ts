@@ -21,6 +21,8 @@ interface SidepanelRowFilterResult {
   readonly query: string
   readonly renderedRowCount: number
   readonly searchableRowCount: number
+  readonly matchingRowCount: number
+  readonly contextRowCount: number
   readonly matchKindByNodeId: ReadonlyMap<string, SidepanelFilterMatchKind>
 }
 
@@ -69,6 +71,32 @@ const projectExpandedVisibleRows = (
   }))
 }
 
+const countFilterMatchKinds = (
+  matchKindByNodeId: ReadonlyMap<string, SidepanelFilterMatchKind>,
+): {
+  readonly matchingRowCount: number
+  readonly contextRowCount: number
+} => {
+  let matchingRowCount = 0
+  let contextRowCount = 0
+
+  for (const matchKind of matchKindByNodeId.values()) {
+    if (matchKind === "self") {
+      matchingRowCount += 1
+      continue
+    }
+
+    if (matchKind === "descendant") {
+      contextRowCount += 1
+    }
+  }
+
+  return {
+    matchingRowCount,
+    contextRowCount,
+  }
+}
+
 const filterNodesForQuery = (
   nodes: readonly StructuralLayerNode[],
   query: string,
@@ -115,12 +143,15 @@ export const buildSidepanelVisibleRowTreeResult = (
       query: "",
       renderedRowCount: countRenderedRows(visibleTree),
       searchableRowCount,
+      matchingRowCount: 0,
+      contextRowCount: 0,
       matchKindByNodeId: new Map(),
     }
   }
 
   const matchKindByNodeId = new Map<string, SidepanelFilterMatchKind>()
   const visibleTree = filterNodesForQuery(structuralTree, normalizedQuery, matchKindByNodeId)
+  const { matchingRowCount, contextRowCount } = countFilterMatchKinds(matchKindByNodeId)
 
   return {
     visibleTree,
@@ -128,6 +159,8 @@ export const buildSidepanelVisibleRowTreeResult = (
     query: normalizedQuery,
     renderedRowCount: countRenderedRows(visibleTree),
     searchableRowCount,
+    matchingRowCount,
+    contextRowCount,
     matchKindByNodeId,
   }
 }

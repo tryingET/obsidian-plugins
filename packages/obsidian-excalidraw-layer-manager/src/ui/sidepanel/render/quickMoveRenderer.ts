@@ -27,11 +27,18 @@ interface SidepanelQuickMoveSelection {
   readonly structuralMove?: StructuralMoveSelection | null
 }
 
+interface SidepanelQuickMoveReviewScope {
+  readonly active: boolean
+  readonly matchingRowCount: number
+  readonly contextRowCount: number
+}
+
 interface SidepanelQuickMoveRenderInput {
   readonly container: HTMLElement
   readonly ownerDocument: Document
   readonly hasActions: boolean
   readonly selection: SidepanelQuickMoveSelection
+  readonly reviewScope: SidepanelQuickMoveReviewScope
   readonly destinationProjection: SidepanelQuickMoveDestinationProjection
   readonly lastQuickMoveDestination: LastQuickMoveDestination | null
   readonly recentQuickMoveDestinations: readonly LastQuickMoveDestination[]
@@ -72,6 +79,54 @@ const describeRootDestination = (
 
   const frameLabel = frameLabelById.get(destination.targetFrameId) ?? destination.targetFrameId
   return `Frame root: ${frameLabel}`
+}
+
+const describeFrameSurface = (
+  targetFrameId: string | null,
+  frameLabelById: ReadonlyMap<string, string>,
+): string => {
+  if (!targetFrameId) {
+    return "canvas"
+  }
+
+  return `frame ${frameLabelById.get(targetFrameId) ?? targetFrameId}`
+}
+
+const describePresetDestinationOptionLabel = (
+  preset: GroupReparentPreset,
+  frameLabelById: ReadonlyMap<string, string>,
+): string => {
+  return `${preset.label} · ${describeFrameSurface(preset.targetFrameId, frameLabelById)}`
+}
+
+const describePresetDestinationTitle = (
+  preset: GroupReparentPreset,
+  frameLabelById: ReadonlyMap<string, string>,
+): string => {
+  const pathLabel =
+    preset.targetParentPath.length > 0 ? ` · path ${preset.targetParentPath.join(" / ")}` : ""
+
+  return `${preset.label} · ${describeFrameSurface(preset.targetFrameId, frameLabelById)}${pathLabel}`
+}
+
+const describeReviewScopeTitle = (reviewScope: SidepanelQuickMoveReviewScope): string => {
+  if (!reviewScope.active) {
+    return ""
+  }
+
+  const contextFragment =
+    reviewScope.contextRowCount > 0
+      ? reviewScope.contextRowCount === 1
+        ? " + 1 context row"
+        : ` + ${reviewScope.contextRowCount} context rows`
+      : ""
+
+  const matchingLabel =
+    reviewScope.matchingRowCount === 1
+      ? "1 matching row"
+      : `${reviewScope.matchingRowCount} matching rows`
+
+  return `Filtered review scope: ${matchingLabel}${contextFragment}. Commands still target canonical selected rows.`
 }
 
 const appendUniquePreset = (
@@ -151,7 +206,11 @@ export const renderSidepanelQuickMove = (
   }
 
   const presetRow = createControlRow(projectedInput)
-  appendRowTitle(presetRow, projectedInput, "Move selection:")
+  appendRowTitle(
+    presetRow,
+    projectedInput,
+    projectedInput.reviewScope.active ? "Move selection from review scope:" : "Move selection:",
+  )
 
   appendLastQuickMoveControl(projectedInput, presetRow, renderState)
   appendRecentDestinationControls(projectedInput, presetRow, renderState)
@@ -179,7 +238,11 @@ export const renderSidepanelQuickMove = (
 
   if (pickerPresets.length > 0) {
     const pickerRow = createControlRow(projectedInput)
-    appendRowTitle(pickerRow, projectedInput, "Destination picker:")
+    appendRowTitle(
+      pickerRow,
+      projectedInput,
+      projectedInput.reviewScope.active ? "Review destinations:" : "Destination picker:",
+    )
     appendDestinationPicker(
       projectedInput,
       pickerRow,
@@ -213,6 +276,11 @@ const appendRowTitle = (
   title.style.fontSize = "11px"
   title.style.opacity = "0.75"
   title.style.paddingRight = "2px"
+
+  if (input.reviewScope.active) {
+    title.title = describeReviewScopeTitle(input.reviewScope)
+  }
+
   row.appendChild(title)
 }
 
@@ -235,6 +303,14 @@ const appendRootMoveControl = (
 
   if (renderState.selectionIssue) {
     rootButton.title = renderState.selectionIssue
+  } else {
+    rootButton.title = `Move selection to ${describeRootDestination(
+      {
+        kind: "root",
+        targetFrameId: renderState.frameResolution.frameId,
+      },
+      input.destinationProjection.frameLabelById,
+    )}.`
   }
 
   presetRow.appendChild(rootButton)
@@ -295,6 +371,11 @@ const appendLastQuickMoveControl = (
     return
   }
 
+  repeatButton.title =
+    lastDestination.kind === "root"
+      ? `Repeat move to ${describeRootDestination(lastDestination, input.destinationProjection.frameLabelById)}.`
+      : `Repeat move to ${describePresetDestinationTitle(lastDestination.preset, input.destinationProjection.frameLabelById)}.`
+
   presetRow.appendChild(repeatButton)
 }
 
@@ -323,6 +404,11 @@ const appendRecentDestinationControls = (
   recentLabel.textContent = "Recent:"
   recentLabel.style.fontSize = "11px"
   recentLabel.style.opacity = "0.75"
+
+  if (input.reviewScope.active) {
+    recentLabel.title = describeReviewScopeTitle(input.reviewScope)
+  }
+
   presetRow.appendChild(recentLabel)
 
   for (const destination of recentDestinations) {
@@ -350,7 +436,14 @@ const appendRecentDestinationControls = (
     if (!isDestinationFrameCompatible(renderState.frameResolution, destination)) {
       button.disabled = true
       button.title = "Recent destination is in a different frame."
+      presetRow.appendChild(button)
+      continue
     }
+
+    button.title =
+      destination.kind === "root"
+        ? `Move selection to ${describeRootDestination(destination, input.destinationProjection.frameLabelById)}.`
+        : `Move selection to ${describePresetDestinationTitle(destination.preset, input.destinationProjection.frameLabelById)}.`
 
     presetRow.appendChild(button)
   }
@@ -379,6 +472,8 @@ const appendInlinePresetButtons = (
       presetButton.title = renderState.selectionIssue
     } else if (!isFrameCompatible) {
       presetButton.title = "Preset is in a different frame than the current selection."
+    } else {
+      presetButton.title = `Move selection to ${describePresetDestinationTitle(preset, input.destinationProjection.frameLabelById)}.`
     }
 
     presetRow.appendChild(presetButton)
@@ -407,7 +502,9 @@ const appendPresetDropdown = (
 
   const placeholder = input.ownerDocument.createElement("option")
   placeholder.value = ""
-  placeholder.textContent = `Top-level groups (${presets.length})`
+  placeholder.textContent = input.reviewScope.active
+    ? `Top-level review destinations (${presets.length})`
+    : `Top-level groups (${presets.length})`
   select.appendChild(placeholder)
 
   let compatibleCount = 0
@@ -415,7 +512,14 @@ const appendPresetDropdown = (
   for (const preset of presets) {
     const option = input.ownerDocument.createElement("option")
     option.value = preset.key
-    option.textContent = preset.key === lastPresetKey ? `${preset.label} ★` : preset.label
+    option.textContent =
+      preset.key === lastPresetKey
+        ? `${describePresetDestinationOptionLabel(preset, input.destinationProjection.frameLabelById)} ★`
+        : describePresetDestinationOptionLabel(preset, input.destinationProjection.frameLabelById)
+    option.title = describePresetDestinationTitle(
+      preset,
+      input.destinationProjection.frameLabelById,
+    )
 
     const isFrameCompatible = isPresetFrameCompatible(renderState.frameResolution, preset)
     if (renderState.hasSelection && renderState.frameResolution.ok && !isFrameCompatible) {
@@ -439,6 +543,9 @@ const appendPresetDropdown = (
   } else if (compatibleCount === 0) {
     select.disabled = true
     select.title = "No compatible top-level group presets for this frame."
+  } else if (input.reviewScope.active) {
+    select.title =
+      "Review-scope move targets. Labels include frame context while commands still target canonical selected rows."
   }
 
   const applyButton = input.createToolbarButton(input.ownerDocument, "Move", async () => {
@@ -479,7 +586,7 @@ const appendPresetDropdown = (
       return
     }
 
-    applyButton.title = ""
+    applyButton.title = `Move selection to ${describePresetDestinationTitle(preset, input.destinationProjection.frameLabelById)}.`
   }
 
   select.addEventListener("change", updateApplyState)
@@ -513,8 +620,12 @@ const appendDestinationPicker = (
   const placeholder = input.ownerDocument.createElement("option")
   placeholder.value = ""
   placeholder.textContent = wasCapped
-    ? `All group destinations (${presets.length} shown, list capped)`
-    : `All group destinations (${presets.length})`
+    ? input.reviewScope.active
+      ? `All review destinations (${presets.length} shown, list capped)`
+      : `All group destinations (${presets.length} shown, list capped)`
+    : input.reviewScope.active
+      ? `All review destinations (${presets.length})`
+      : `All group destinations (${presets.length})`
   select.appendChild(placeholder)
 
   let compatibleCount = 0
@@ -522,7 +633,14 @@ const appendDestinationPicker = (
   for (const preset of presets) {
     const option = input.ownerDocument.createElement("option")
     option.value = preset.key
-    option.textContent = preset.key === lastPresetKey ? `${preset.label} ★` : preset.label
+    option.textContent =
+      preset.key === lastPresetKey
+        ? `${describePresetDestinationOptionLabel(preset, input.destinationProjection.frameLabelById)} ★`
+        : describePresetDestinationOptionLabel(preset, input.destinationProjection.frameLabelById)
+    option.title = describePresetDestinationTitle(
+      preset,
+      input.destinationProjection.frameLabelById,
+    )
 
     const isFrameCompatible = isPresetFrameCompatible(renderState.frameResolution, preset)
     if (renderState.hasSelection && renderState.frameResolution.ok && !isFrameCompatible) {
@@ -542,6 +660,9 @@ const appendDestinationPicker = (
   } else if (compatibleCount === 0) {
     select.disabled = true
     select.title = "No compatible group destinations for this frame."
+  } else if (input.reviewScope.active) {
+    select.title =
+      "Review-scope destination picker. Labels include frame context and canonical path while commands still target canonical selected rows."
   }
 
   const applyButton = input.createToolbarButton(input.ownerDocument, "Move to picked", async () => {
@@ -580,7 +701,7 @@ const appendDestinationPicker = (
       return
     }
 
-    applyButton.title = ""
+    applyButton.title = `Move selection to ${describePresetDestinationTitle(preset, input.destinationProjection.frameLabelById)}.`
   }
 
   select.addEventListener("change", updateApplyState)

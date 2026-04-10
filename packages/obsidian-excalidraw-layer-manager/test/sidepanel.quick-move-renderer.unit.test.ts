@@ -209,6 +209,11 @@ const makeBaseInput = (
       readonly nodes: readonly LayerNode[]
       readonly frameResolution: { readonly ok: true; readonly frameId: string | null }
     }
+    reviewScope: {
+      readonly active: boolean
+      readonly matchingRowCount: number
+      readonly contextRowCount: number
+    }
     lastQuickMoveDestination: LastQuickMoveDestination | null
     recentQuickMoveDestinations: readonly LastQuickMoveDestination[]
     quickPresetInlineMax: number
@@ -238,6 +243,11 @@ const makeBaseInput = (
       elementIds: ["A"],
       nodes: [makeElementNode("A")],
       frameResolution: makeFrameResolution(null),
+    },
+    reviewScope: overrides.reviewScope ?? {
+      active: false,
+      matchingRowCount: 0,
+      contextRowCount: 0,
     },
     destinationProjection: buildSidepanelQuickMoveDestinationProjection(
       tree,
@@ -703,6 +713,74 @@ describe("sidepanel quick-move renderer", () => {
     )
 
     expect(rememberedOption).toBeDefined()
+  })
+
+  it("surfaces review-scope copy and richer destination context for board-scale quick moves", () => {
+    const document = new FakeDocument()
+    const container = document.createElement("div")
+
+    renderSidepanelQuickMove(
+      makeBaseInput(document, container, {
+        tree: [
+          makeFrameNode("F1", [
+            makeGroupNode(
+              "Outer",
+              [makeGroupNode("Inner", [makeElementNode("A", "Alpha")], "F1", "Inner")],
+              "F1",
+              "Outer",
+            ),
+            makeGroupNode("Archive", [makeElementNode("B", "Beta")], "F1", "Archive"),
+          ]),
+        ],
+        selection: {
+          elementIds: ["A"],
+          nodes: [makeElementNode("A", "Alpha")],
+          frameResolution: makeFrameResolution("F1"),
+        },
+        reviewScope: {
+          active: true,
+          matchingRowCount: 1,
+          contextRowCount: 1,
+        },
+        lastQuickMoveDestination: {
+          kind: "preset",
+          preset: {
+            key: makePresetKey(["Outer", "Inner"], "F1"),
+            label: "Inside Outer › Inner",
+            targetParentPath: ["Outer", "Inner"],
+            targetFrameId: "F1",
+          },
+        },
+      }),
+    )
+
+    const renderedContainer = container as unknown as FakeDomElement
+    const reviewMoveTitle = flattenElements(renderedContainer).find(
+      (element) =>
+        element.tagName === "SPAN" && element.textContent === "Move selection from review scope:",
+    )
+    const reviewDestinationsTitle = flattenElements(renderedContainer).find(
+      (element) => element.tagName === "SPAN" && element.textContent === "Review destinations:",
+    )
+    const repeatButton = findButtonWithPrefix(renderedContainer, "↺ Last:")
+    const pickerSelect = findSelects(renderedContainer).at(-1)
+
+    if (!reviewMoveTitle || !reviewDestinationsTitle || !repeatButton || !pickerSelect) {
+      throw new Error("Expected review-scope quick-move controls to exist.")
+    }
+
+    const rememberedOption = pickerSelect.children.find(
+      (child) =>
+        child.tagName === "OPTION" && child.value === makePresetKey(["Outer", "Inner"], "F1"),
+    )
+
+    expect(reviewMoveTitle.title).toContain("Filtered review scope")
+    expect(reviewMoveTitle.title).toContain("1 context row")
+    expect(reviewDestinationsTitle.title).toContain("canonical selected rows")
+    expect(repeatButton.title).toContain("frame F1")
+    expect(repeatButton.title).toContain("path Outer / Inner")
+    expect(pickerSelect.title).toContain("Review-scope destination picker")
+    expect(rememberedOption?.textContent).toBe("Inside Outer › Inner · frame F1 ★")
   })
 
   it("skips rendering when actions are unavailable", () => {

@@ -152,6 +152,31 @@ const isTextInputTarget = (target: EventTarget | null): boolean => {
   return tagName === "input" || tagName === "textarea" || tagName === "select"
 }
 
+const pluralize = (count: number, singular: string, plural = `${singular}s`): string => {
+  return count === 1 ? singular : plural
+}
+
+const formatRowScopeSummary = (
+  rowFilter: ReturnType<typeof buildSidepanelVisibleRowTreeResult>,
+  selectedElementCount: number,
+): string => {
+  if (!rowFilter.active) {
+    return `Visible rows: ${rowFilter.renderedRowCount} of ${rowFilter.searchableRowCount} searchable · Selected elements: ${selectedElementCount}`
+  }
+
+  const reviewScopeParts = [
+    `${rowFilter.matchingRowCount} ${pluralize(rowFilter.matchingRowCount, "match")}`,
+  ]
+
+  if (rowFilter.contextRowCount > 0) {
+    reviewScopeParts.push(
+      `${rowFilter.contextRowCount} ${pluralize(rowFilter.contextRowCount, "context row")}`,
+    )
+  }
+
+  return `Review scope: ${reviewScopeParts.join(" + ")} · ${rowFilter.renderedRowCount} shown of ${rowFilter.searchableRowCount} searchable · Selected elements: ${selectedElementCount}`
+}
+
 class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   readonly #host: ExcalidrawSidepanelHost
   readonly #fallbackRenderer: LayerManagerRenderer = new ConsoleRenderer()
@@ -544,9 +569,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     info.style.opacity = "0.75"
     info.style.fontSize = "12px"
     info.style.marginBottom = "4px"
-    info.textContent = rowFilter.active
-      ? `Filtered rows: ${rowFilter.renderedRowCount} of ${rowFilter.searchableRowCount} searchable · Selected elements: ${selectedElementIds.length}`
-      : `Visible rows: ${rowFilter.renderedRowCount} of ${rowFilter.searchableRowCount} searchable · Selected elements: ${selectedElementIds.length}`
+    info.textContent = formatRowScopeSummary(rowFilter, selectedElementIds.length)
     contentRoot.appendChild(info)
 
     const keyboardHint = ownerDocument.createElement("div")
@@ -637,6 +660,11 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       ownerDocument,
       hasActions: !!model.actions,
       selection: resolvedSelection,
+      reviewScope: {
+        active: rowFilter.active,
+        matchingRowCount: rowFilter.matchingRowCount,
+        contextRowCount: rowFilter.contextRowCount,
+      },
       destinationProjection,
       lastQuickMoveDestination: this.#quickMovePersistenceService.lastQuickMoveDestination,
       recentQuickMoveDestinations: this.#quickMovePersistenceService.recentQuickMoveDestinations,
@@ -770,6 +798,16 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     }
 
     container.appendChild(controls)
+
+    if (rowFilter.active) {
+      const reviewScopeHint = ownerDocument.createElement("div")
+      reviewScopeHint.style.opacity = "0.65"
+      reviewScopeHint.style.fontSize = "11px"
+      reviewScopeHint.style.marginBottom = "6px"
+      reviewScopeHint.textContent =
+        "Review scope only — move and toolbar commands still act on canonical selected rows."
+      container.appendChild(reviewScopeHint)
+    }
 
     if (this.#shouldAutofocusRowFilterInput) {
       try {

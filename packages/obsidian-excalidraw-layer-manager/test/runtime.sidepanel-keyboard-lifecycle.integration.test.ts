@@ -750,6 +750,24 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect(findButtonByExactText(contentRoot, "▾")).toBeUndefined()
     expect(findButtonByExactText(contentRoot, "▸")).toBeUndefined()
 
+    const textFragments = flattenElements(contentRoot)
+      .map((element) => element.textContent ?? "")
+      .filter((text) => text.length > 0)
+    const reviewMoveTitle = flattenElements(contentRoot).find(
+      (element) =>
+        element.tagName === "SPAN" && element.textContent === "Move selection from review scope:",
+    )
+
+    expect(textFragments).toContain(
+      "Review scope: 1 match + 1 context row · 2 shown of 4 searchable · Selected elements: 0",
+    )
+    expect(textFragments).toContain(
+      "Review scope only — move and toolbar commands still act on canonical selected rows.",
+    )
+    expect((reviewMoveTitle as (FakeDomElement & { title?: string }) | undefined)?.title).toContain(
+      "Filtered review scope: 1 matching row + 1 context row.",
+    )
+
     const filteredRows = flattenElements(contentRoot).filter(
       (element) => element.tagName === "DIV" && element.style["cursor"] === "pointer",
     )

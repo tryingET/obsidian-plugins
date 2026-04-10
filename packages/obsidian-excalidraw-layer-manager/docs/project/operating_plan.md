@@ -23,7 +23,7 @@ Today the panel stands in a different place:
 - **Miro-like movement fluidity** is now the clearest remaining gap: destination reading, large-scene reorganization, and review-oriented board navigation still need richer surface support.
 - **Photoshop-like deliberateness** for layer-state control and operator feedback now has stronger row-shell cues, but those cues should compound into larger-scene workflows rather than becoming an end in themselves.
 
-So the live wave is no longer dense-row polish. It is now the first board-scale organization/review packet focused on review-scope legibility and quick-move destination reading, so larger scenes feel easier to inspect and reorganize without reopening the landed interaction grammar or dense row-state packet.
+So the live wave is no longer dense-row polish. The first board-scale organization/review packet around review-scope legibility and quick-move destination reading is now landed, and the next pressure is keeping those new review affordances outcome-honest under filtered, mixed, and failure states without reopening the landed interaction grammar or dense row-state packet.
 
 Operational note: package-level AK direction commands should target the registered alias path `owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager` for the L3 package surface.
 
@@ -63,8 +63,10 @@ Operational note: package-level AK direction commands should target the register
 
 ### OP7 — Make filtered review scope and quick-move destinations legible at board scale
 - **AK task:** `task:1104`
-- **State:** active
-- **Deliverable:** add explicit review-scope counts/cues plus richer quick-move destination context so large-scene organization work reads faster before any new automation or adaptive behavior is added.
+- **State:** done
+- **Outcome:** the sidepanel now frames filtered results as a review scope with explicit match/context counts, carries that scope through quick-move copy, and gives destination pickers/tooltips richer frame/path context so large-scene organization reads faster before new automation is added.
+
+Next AK packet queued behind OP7: repo-local task `task:1103` to tighten those review affordances under filtered, mixed, and failure states.
 
 ## Guardrails for this wave
 
