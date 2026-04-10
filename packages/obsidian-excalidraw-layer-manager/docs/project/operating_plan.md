@@ -23,7 +23,7 @@ Today the panel stands in a different place:
 - **Miro-like movement fluidity** is now the clearest remaining gap: destination reading, large-scene reorganization, and review-oriented board navigation still need richer surface support.
 - **Photoshop-like deliberateness** for layer-state control and operator feedback now has stronger row-shell cues, but those cues should compound into larger-scene workflows rather than becoming an end in themselves.
 
-So the live wave is no longer dense-row polish. It is the first board-scale organization/review packet that should make larger scenes feel unusually tractable without reopening the landed interaction grammar or dense row-state packet.
+So the live wave is no longer dense-row polish. It is now the first board-scale organization/review packet focused on review-scope legibility and quick-move destination reading, so larger scenes feel easier to inspect and reorganize without reopening the landed interaction grammar or dense row-state packet.
 
 Operational note: package-level AK direction commands should target the registered alias path `owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager` for the L3 package surface.
 
@@ -58,8 +58,13 @@ Operational note: package-level AK direction commands should target the register
 
 ### OP6 — Cut the first TG4 board-scale organization/review packet in AK before implementation resumes
 - **AK task:** `task:1088`
+- **State:** done
+- **Outcome:** TG4 is now cut into a concrete first packet around filtered review scope and quick-move destination legibility, with the immediate follow-on honesty packet already queued behind it so implementation can resume from truthful AK-backed authority instead of ad-hoc iteration.
+
+### OP7 — Make filtered review scope and quick-move destinations legible at board scale
+- **AK task:** `task:1104`
 - **State:** active
-- **Deliverable:** translate TG4 from tactical direction into the first bounded board-scale execution packet so destination reading and review work resume from truthful AK-backed authority rather than ad-hoc iteration.
+- **Deliverable:** add explicit review-scope counts/cues plus richer quick-move destination context so large-scene organization work reads faster before any new automation or adaptive behavior is added.
 
 ## Guardrails for this wave
 

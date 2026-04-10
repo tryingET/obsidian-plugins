@@ -35,7 +35,8 @@ Active strategic goal: **SG1 — Turn the stabilized projection kernel into a fi
 - **State:** active
 - **Why this is active:** the dense row surface is now materially cut, so the next differentiator is board-scale speed. The panel should help users reorganize, inspect, and review larger scenes unusually well rather than only exposing row-by-row structure.
 - **Outcome target:** Layer Manager X supports fast organization, destination memory, review modes, and cleanup/restructure workflows that make large scenes feel tractable.
-- **Current execution anchor:** repo-local AK task `task:1088`.
+- **Current execution anchor:** repo-local AK task `task:1104`.
+- **First packet now cut:** `task:1088` translated TG4 into a concrete first packet around review-scope legibility and quick-move destination reading, with the follow-on honesty packet queued behind it as `task:1103`.
 
 ## Cross-cutting quality bar for TG2-TG4
 
