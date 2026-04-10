@@ -35,14 +35,17 @@ export const planToggleVisibility = (
         }
 
         const originalOpacity = target.customData.originalOpacity
-        const restoreOpacity = typeof originalOpacity === "number" ? originalOpacity : 100
+        const restoreOpacity =
+          typeof originalOpacity === "number" && originalOpacity > 0 ? originalOpacity : 100
+
+        const { originalOpacity: _, ...cleanedCustomData } = target.customData
 
         return [
           {
             id: target.id,
             set: {
               opacity: restoreOpacity,
-              customData: target.customData,
+              customData: cleanedCustomData,
             },
           },
         ]

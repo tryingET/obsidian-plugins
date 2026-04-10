@@ -60,7 +60,7 @@ describe("planToggleVisibility", () => {
         id: "hidden",
         set: {
           opacity: 55,
-          customData: { originalOpacity: 55 },
+          customData: {},
         },
       },
     ])
@@ -90,5 +90,79 @@ describe("planToggleVisibility", () => {
         },
       },
     ])
+  })
+
+  it("clamps originalOpacity of 0 to safe fallback (100) on restore", () => {
+    const context = makeCommandContext([
+      makeElement({
+        id: "a",
+        opacity: 0,
+        customData: { originalOpacity: 0 },
+      }),
+    ])
+
+    const plan = planToggleVisibility(context, { elementIds: ["a"] })
+    expect(plan.ok).toBe(true)
+    if (!plan.ok) return
+
+    expect(plan.value.elementPatches[0]?.set.opacity).toBe(100)
+    expect(plan.value.elementPatches[0]?.set.customData).toEqual({})
+  })
+
+  it("cleans up originalOpacity after restore so next hide records fresh value", () => {
+    const context = makeCommandContext([
+      makeElement({
+        id: "a",
+        opacity: 0,
+        customData: { originalOpacity: 80 },
+      }),
+    ])
+
+    const plan = planToggleVisibility(context, { elementIds: ["a"] })
+    expect(plan.ok).toBe(true)
+    if (!plan.ok) return
+
+    const patch = plan.value.elementPatches[0]
+    expect(patch?.set.opacity).toBe(80)
+    expect(patch?.set.customData).toEqual({})
+    expect("originalOpacity" in (patch?.set.customData ?? {})).toBe(false)
+  })
+
+  it("preserves other customData keys when cleaning up originalOpacity", () => {
+    const context = makeCommandContext([
+      makeElement({
+        id: "a",
+        opacity: 0,
+        customData: { originalOpacity: 42, lmx: { label: "my layer" }, otherPlugin: true },
+      }),
+    ])
+
+    const plan = planToggleVisibility(context, { elementIds: ["a"] })
+    expect(plan.ok).toBe(true)
+    if (!plan.ok) return
+
+    const patch = plan.value.elementPatches[0]
+    expect(patch?.set.opacity).toBe(42)
+    expect(patch?.set.customData).toEqual({
+      lmx: { label: "my layer" },
+      otherPlugin: true,
+    })
+  })
+
+  it("clamps negative originalOpacity to 100 on restore", () => {
+    const context = makeCommandContext([
+      makeElement({
+        id: "a",
+        opacity: 0,
+        customData: { originalOpacity: -5 },
+      }),
+    ])
+
+    const plan = planToggleVisibility(context, { elementIds: ["a"] })
+    expect(plan.ok).toBe(true)
+    if (!plan.ok) return
+
+    expect(plan.value.elementPatches[0]?.set.opacity).toBe(100)
+    expect(plan.value.elementPatches[0]?.set.customData).toEqual({})
   })
 })
