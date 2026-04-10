@@ -587,6 +587,8 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       ownerDocument,
       hasActions: !!model.actions,
       selectedElementCount: resolvedSelection.elementIds.length,
+      reviewScopeActive: rowFilter.active,
+      ungroupLikeIssue: resolveStructuralSelectionIssue(resolvedSelection),
       canPersistTab: !!this.#host.persistSidepanelTab,
       didPersistTab: this.#didPersistTab,
       canCloseTab:

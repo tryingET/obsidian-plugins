@@ -23,7 +23,7 @@ Today the panel stands in a different place:
 - **Miro-like movement fluidity** is now the clearest remaining gap: destination reading, large-scene reorganization, and review-oriented board navigation still need richer surface support.
 - **Photoshop-like deliberateness** for layer-state control and operator feedback now has stronger row-shell cues, but those cues should compound into larger-scene workflows rather than becoming an end in themselves.
 
-So the live wave is no longer dense-row polish. The first board-scale organization/review packet around review-scope legibility and quick-move destination reading is now landed, and the next pressure is keeping those new review affordances outcome-honest under filtered, mixed, and failure states without reopening the landed interaction grammar or dense row-state packet.
+So the live wave is no longer dense-row polish. Two board-scale organization/review packets are now landed: the first made review scope and quick-move destinations legible at board scale, and the second tightened those same review actions under filtered, mixed, and failure states. The next pressure is cutting the next TG4 slice without reopening the landed interaction grammar, dense row-state packet, or newly tightened review-honesty guardrails.
 
 Operational note: package-level AK direction commands should target the registered alias path `owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager` for the L3 package surface.
 
@@ -44,7 +44,7 @@ Operational note: package-level AK direction commands should target the register
 - **State:** done
 - **Outcome:** the selection grammar is now proven across host-selection mirroring, drag/drop structural moves, and package tests, including combined coverage that keeps mouse-built multi-selection coherent through host echo and reorder.
 
-## Current operating slices
+## Recently landed operating slices
 
 ### OP4 — Improve row-state scanability and density for the first TG3 layer-surface packet
 - **AK task:** `task:1083`
@@ -65,8 +65,8 @@ TG4 packet-cutting step `task:1088` is now complete history: it translated the b
 
 ### OP8 — Tighten board-scale review actions under filtered, mixed, and failure states
 - **AK task:** `task:1103`
-- **State:** active
-- **Deliverable:** keep the new review-scope and destination-reading affordances outcome-honest when filtered projections, mixed row state, or command failures would otherwise imply more certainty than the runtime has earned.
+- **State:** done
+- **Outcome:** quick-move titles now keep review-scope actions explicit about canonical selected rows, toolbar controls carry the same filtered-scope honesty and disable ungroup-like when mixed structural selections would fail, and filtered quick-move failure coverage now proves remembered destinations stay unchanged until a move actually applies.
 
 ## Guardrails for this wave
 

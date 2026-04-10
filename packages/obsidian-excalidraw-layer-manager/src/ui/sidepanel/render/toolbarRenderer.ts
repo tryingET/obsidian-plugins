@@ -5,6 +5,8 @@ interface SidepanelToolbarRenderInput {
   readonly ownerDocument: Document
   readonly hasActions: boolean
   readonly selectedElementCount: number
+  readonly reviewScopeActive: boolean
+  readonly ungroupLikeIssue: string | null
   readonly canPersistTab: boolean
   readonly didPersistTab: boolean
   readonly canCloseTab: boolean
@@ -22,6 +24,12 @@ interface SidepanelToolbarRenderInput {
   readonly onNotify: (message: string) => void
   readonly onPersistTab: () => boolean
   readonly onCloseTab: () => void
+}
+
+const qualifyReviewScopeActionTitle = (baseTitle: string, reviewScopeActive: boolean): string => {
+  return reviewScopeActive
+    ? `${baseTitle} Review scope does not narrow command targets.`
+    : baseTitle
 }
 
 export const renderSidepanelToolbar = (input: SidepanelToolbarRenderInput): HTMLDivElement => {
@@ -44,6 +52,17 @@ export const renderSidepanelToolbar = (input: SidepanelToolbarRenderInput): HTML
     await input.onGroupSelected()
   })
   groupButton.disabled = input.selectedElementCount < 2
+  if (groupButton.disabled) {
+    groupButton.title = qualifyReviewScopeActionTitle(
+      "Group selected requires at least two selected elements.",
+      input.reviewScopeActive,
+    )
+  } else if (input.reviewScopeActive) {
+    groupButton.title = qualifyReviewScopeActionTitle(
+      "Group selected acts on canonical selected rows.",
+      input.reviewScopeActive,
+    )
+  }
   toolbar.appendChild(groupButton)
 
   appendReorderControls(input, toolbar)
@@ -55,7 +74,23 @@ export const renderSidepanelToolbar = (input: SidepanelToolbarRenderInput): HTML
       await input.onUngroupLikeSelection()
     },
   )
-  ungroupLikeButton.disabled = input.selectedElementCount === 0
+  ungroupLikeButton.disabled = input.selectedElementCount === 0 || !!input.ungroupLikeIssue
+  if (input.ungroupLikeIssue) {
+    ungroupLikeButton.title = qualifyReviewScopeActionTitle(
+      input.ungroupLikeIssue,
+      input.reviewScopeActive,
+    )
+  } else if (ungroupLikeButton.disabled) {
+    ungroupLikeButton.title = qualifyReviewScopeActionTitle(
+      "Ungroup-like requires at least one selected element.",
+      input.reviewScopeActive,
+    )
+  } else if (input.reviewScopeActive) {
+    ungroupLikeButton.title = qualifyReviewScopeActionTitle(
+      "Ungroup-like acts on canonical selected rows.",
+      input.reviewScopeActive,
+    )
+  }
   toolbar.appendChild(ungroupLikeButton)
 
   return toolbar
@@ -89,6 +124,17 @@ const appendReorderControls = (input: SidepanelToolbarRenderInput, toolbar: HTML
       await input.onReorderSelected(control.mode)
     })
     button.disabled = input.selectedElementCount === 0
+    if (button.disabled) {
+      button.title = qualifyReviewScopeActionTitle(
+        `${control.label} requires at least one selected row.`,
+        input.reviewScopeActive,
+      )
+    } else if (input.reviewScopeActive) {
+      button.title = qualifyReviewScopeActionTitle(
+        `${control.label} acts on canonical selected rows.`,
+        input.reviewScopeActive,
+      )
+    }
     toolbar.appendChild(button)
   }
 }

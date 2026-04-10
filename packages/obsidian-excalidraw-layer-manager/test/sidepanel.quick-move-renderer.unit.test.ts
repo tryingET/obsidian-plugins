@@ -779,8 +779,59 @@ describe("sidepanel quick-move renderer", () => {
     expect(reviewDestinationsTitle.title).toContain("canonical selected rows")
     expect(repeatButton.title).toContain("frame F1")
     expect(repeatButton.title).toContain("path Outer / Inner")
+    expect(repeatButton.title).toContain("canonical selected rows")
     expect(pickerSelect.title).toContain("Review-scope destination picker")
     expect(rememberedOption?.textContent).toBe("Inside Outer › Inner · frame F1 ★")
+  })
+
+  it("keeps mixed-selection disable reasons review-scope honest", () => {
+    const document = new FakeDocument()
+    const container = document.createElement("div")
+
+    renderSidepanelQuickMove(
+      makeBaseInput(document, container, {
+        tree: [
+          makeFrameNode("F1", [
+            makeGroupNode("G", [makeElementNode("A", "F1"), makeElementNode("B", "F1")], "F1"),
+            makeGroupNode("Archive", [makeElementNode("C", "F1")], "F1"),
+          ]),
+        ],
+        selection: {
+          elementIds: ["A", "B", "C"],
+          nodes: [
+            makeGroupNode("G", [makeElementNode("A", "F1"), makeElementNode("B", "F1")], "F1"),
+            makeElementNode("C", "F1"),
+          ],
+          frameResolution: makeFrameResolution("F1"),
+        },
+        reviewScope: {
+          active: true,
+          matchingRowCount: 1,
+          contextRowCount: 1,
+        },
+        lastQuickMoveDestination: {
+          kind: "root",
+          targetFrameId: "F1",
+        },
+      }),
+    )
+
+    const renderedContainer = container as unknown as FakeDomElement
+    const rootButton = findButtonByText(renderedContainer, "Root ★")
+    const repeatButton = findButtonWithPrefix(renderedContainer, "↺ Last:")
+    const pickerSelect = findSelects(renderedContainer).at(-1)
+
+    if (!rootButton || !repeatButton || !pickerSelect) {
+      throw new Error("Expected mixed-selection quick-move controls to exist.")
+    }
+
+    expect(rootButton.disabled).toBe(true)
+    expect(rootButton.title).toContain("Selection includes mixed or multiple group rows.")
+    expect(rootButton.title).toContain("canonical selected rows")
+    expect(repeatButton.disabled).toBe(true)
+    expect(repeatButton.title).toContain("Selection includes mixed or multiple group rows.")
+    expect(pickerSelect.disabled).toBe(true)
+    expect(pickerSelect.title).toContain("Selection includes mixed or multiple group rows.")
   })
 
   it("skips rendering when actions are unavailable", () => {

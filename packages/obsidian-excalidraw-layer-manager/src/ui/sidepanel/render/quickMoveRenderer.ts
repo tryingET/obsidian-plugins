@@ -129,6 +129,15 @@ const describeReviewScopeTitle = (reviewScope: SidepanelQuickMoveReviewScope): s
   return `Filtered review scope: ${matchingLabel}${contextFragment}. Commands still target canonical selected rows.`
 }
 
+const qualifyQuickMoveTitle = (
+  baseTitle: string,
+  reviewScope: SidepanelQuickMoveReviewScope,
+): string => {
+  return reviewScope.active
+    ? `${baseTitle} Review scope only — command still targets canonical selected rows.`
+    : baseTitle
+}
+
 const appendUniquePreset = (
   target: GroupReparentPreset[],
   seenKeys: Set<string>,
@@ -302,15 +311,18 @@ const appendRootMoveControl = (
   rootButton.disabled = !!renderState.selectionIssue
 
   if (renderState.selectionIssue) {
-    rootButton.title = renderState.selectionIssue
+    rootButton.title = qualifyQuickMoveTitle(renderState.selectionIssue, input.reviewScope)
   } else {
-    rootButton.title = `Move selection to ${describeRootDestination(
-      {
-        kind: "root",
-        targetFrameId: renderState.frameResolution.frameId,
-      },
-      input.destinationProjection.frameLabelById,
-    )}.`
+    rootButton.title = qualifyQuickMoveTitle(
+      `Move selection to ${describeRootDestination(
+        {
+          kind: "root",
+          targetFrameId: renderState.frameResolution.frameId,
+        },
+        input.destinationProjection.frameLabelById,
+      )}.`,
+      input.reviewScope,
+    )
   }
 
   presetRow.appendChild(rootButton)
@@ -346,7 +358,7 @@ const appendLastQuickMoveControl = (
 
   if (renderState.selectionIssue) {
     repeatButton.disabled = true
-    repeatButton.title = renderState.selectionIssue
+    repeatButton.title = qualifyQuickMoveTitle(renderState.selectionIssue, input.reviewScope)
     presetRow.appendChild(repeatButton)
     return
   }
@@ -356,7 +368,10 @@ const appendLastQuickMoveControl = (
     !isRootFrameCompatible(renderState.frameResolution, lastDestination)
   ) {
     repeatButton.disabled = true
-    repeatButton.title = "Last destination is in a different frame."
+    repeatButton.title = qualifyQuickMoveTitle(
+      "Last destination is in a different frame.",
+      input.reviewScope,
+    )
     presetRow.appendChild(repeatButton)
     return
   }
@@ -366,15 +381,20 @@ const appendLastQuickMoveControl = (
     !isPresetFrameCompatible(renderState.frameResolution, lastDestination.preset)
   ) {
     repeatButton.disabled = true
-    repeatButton.title = "Last destination is in a different frame."
+    repeatButton.title = qualifyQuickMoveTitle(
+      "Last destination is in a different frame.",
+      input.reviewScope,
+    )
     presetRow.appendChild(repeatButton)
     return
   }
 
-  repeatButton.title =
+  repeatButton.title = qualifyQuickMoveTitle(
     lastDestination.kind === "root"
       ? `Repeat move to ${describeRootDestination(lastDestination, input.destinationProjection.frameLabelById)}.`
-      : `Repeat move to ${describePresetDestinationTitle(lastDestination.preset, input.destinationProjection.frameLabelById)}.`
+      : `Repeat move to ${describePresetDestinationTitle(lastDestination.preset, input.destinationProjection.frameLabelById)}.`,
+    input.reviewScope,
+  )
 
   presetRow.appendChild(repeatButton)
 }
@@ -428,22 +448,27 @@ const appendRecentDestinationControls = (
 
     if (renderState.selectionIssue) {
       button.disabled = true
-      button.title = renderState.selectionIssue
+      button.title = qualifyQuickMoveTitle(renderState.selectionIssue, input.reviewScope)
       presetRow.appendChild(button)
       continue
     }
 
     if (!isDestinationFrameCompatible(renderState.frameResolution, destination)) {
       button.disabled = true
-      button.title = "Recent destination is in a different frame."
+      button.title = qualifyQuickMoveTitle(
+        "Recent destination is in a different frame.",
+        input.reviewScope,
+      )
       presetRow.appendChild(button)
       continue
     }
 
-    button.title =
+    button.title = qualifyQuickMoveTitle(
       destination.kind === "root"
         ? `Move selection to ${describeRootDestination(destination, input.destinationProjection.frameLabelById)}.`
-        : `Move selection to ${describePresetDestinationTitle(destination.preset, input.destinationProjection.frameLabelById)}.`
+        : `Move selection to ${describePresetDestinationTitle(destination.preset, input.destinationProjection.frameLabelById)}.`,
+      input.reviewScope,
+    )
 
     presetRow.appendChild(button)
   }
@@ -469,11 +494,17 @@ const appendInlinePresetButtons = (
     presetButton.disabled = !!renderState.selectionIssue || !isFrameCompatible
 
     if (renderState.selectionIssue) {
-      presetButton.title = renderState.selectionIssue
+      presetButton.title = qualifyQuickMoveTitle(renderState.selectionIssue, input.reviewScope)
     } else if (!isFrameCompatible) {
-      presetButton.title = "Preset is in a different frame than the current selection."
+      presetButton.title = qualifyQuickMoveTitle(
+        "Preset is in a different frame than the current selection.",
+        input.reviewScope,
+      )
     } else {
-      presetButton.title = `Move selection to ${describePresetDestinationTitle(preset, input.destinationProjection.frameLabelById)}.`
+      presetButton.title = qualifyQuickMoveTitle(
+        `Move selection to ${describePresetDestinationTitle(preset, input.destinationProjection.frameLabelById)}.`,
+        input.reviewScope,
+      )
     }
 
     presetRow.appendChild(presetButton)
@@ -539,10 +570,13 @@ const appendPresetDropdown = (
 
   if (renderState.selectionIssue) {
     select.disabled = true
-    select.title = renderState.selectionIssue
+    select.title = qualifyQuickMoveTitle(renderState.selectionIssue, input.reviewScope)
   } else if (compatibleCount === 0) {
     select.disabled = true
-    select.title = "No compatible top-level group presets for this frame."
+    select.title = qualifyQuickMoveTitle(
+      "No compatible top-level group presets for this frame.",
+      input.reviewScope,
+    )
   } else if (input.reviewScope.active) {
     select.title =
       "Review-scope move targets. Labels include frame context while commands still target canonical selected rows."
@@ -572,21 +606,27 @@ const appendPresetDropdown = (
     applyButton.disabled = !canApply
 
     if (renderState.selectionIssue) {
-      applyButton.title = renderState.selectionIssue
+      applyButton.title = qualifyQuickMoveTitle(renderState.selectionIssue, input.reviewScope)
       return
     }
 
     if (!preset) {
-      applyButton.title = "Choose a destination preset."
+      applyButton.title = qualifyQuickMoveTitle("Choose a destination preset.", input.reviewScope)
       return
     }
 
     if (!isPresetFrameCompatible(renderState.frameResolution, preset)) {
-      applyButton.title = "Preset is in a different frame than the current selection."
+      applyButton.title = qualifyQuickMoveTitle(
+        "Preset is in a different frame than the current selection.",
+        input.reviewScope,
+      )
       return
     }
 
-    applyButton.title = `Move selection to ${describePresetDestinationTitle(preset, input.destinationProjection.frameLabelById)}.`
+    applyButton.title = qualifyQuickMoveTitle(
+      `Move selection to ${describePresetDestinationTitle(preset, input.destinationProjection.frameLabelById)}.`,
+      input.reviewScope,
+    )
   }
 
   select.addEventListener("change", updateApplyState)
@@ -656,10 +696,13 @@ const appendDestinationPicker = (
 
   if (renderState.selectionIssue) {
     select.disabled = true
-    select.title = renderState.selectionIssue
+    select.title = qualifyQuickMoveTitle(renderState.selectionIssue, input.reviewScope)
   } else if (compatibleCount === 0) {
     select.disabled = true
-    select.title = "No compatible group destinations for this frame."
+    select.title = qualifyQuickMoveTitle(
+      "No compatible group destinations for this frame.",
+      input.reviewScope,
+    )
   } else if (input.reviewScope.active) {
     select.title =
       "Review-scope destination picker. Labels include frame context and canonical path while commands still target canonical selected rows."
@@ -687,21 +730,30 @@ const appendDestinationPicker = (
     applyButton.disabled = !canApply
 
     if (renderState.selectionIssue) {
-      applyButton.title = renderState.selectionIssue
+      applyButton.title = qualifyQuickMoveTitle(renderState.selectionIssue, input.reviewScope)
       return
     }
 
     if (!preset) {
-      applyButton.title = "Choose a destination from the picker."
+      applyButton.title = qualifyQuickMoveTitle(
+        "Choose a destination from the picker.",
+        input.reviewScope,
+      )
       return
     }
 
     if (!isPresetFrameCompatible(renderState.frameResolution, preset)) {
-      applyButton.title = "Destination is in a different frame than the current selection."
+      applyButton.title = qualifyQuickMoveTitle(
+        "Destination is in a different frame than the current selection.",
+        input.reviewScope,
+      )
       return
     }
 
-    applyButton.title = `Move selection to ${describePresetDestinationTitle(preset, input.destinationProjection.frameLabelById)}.`
+    applyButton.title = qualifyQuickMoveTitle(
+      `Move selection to ${describePresetDestinationTitle(preset, input.destinationProjection.frameLabelById)}.`,
+      input.reviewScope,
+    )
   }
 
   select.addEventListener("change", updateApplyState)

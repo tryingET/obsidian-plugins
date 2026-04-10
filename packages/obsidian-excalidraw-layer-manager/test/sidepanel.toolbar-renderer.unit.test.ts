@@ -139,6 +139,8 @@ describe("sidepanel toolbar renderer", () => {
       ownerDocument: document as unknown as Document,
       hasActions: true,
       selectedElementCount: 2,
+      reviewScopeActive: false,
+      ungroupLikeIssue: null,
       canPersistTab: true,
       didPersistTab: false,
       canCloseTab: true,
@@ -215,6 +217,8 @@ describe("sidepanel toolbar renderer", () => {
       ownerDocument: document as unknown as Document,
       hasActions: true,
       selectedElementCount: 0,
+      reviewScopeActive: false,
+      ungroupLikeIssue: null,
       canPersistTab: true,
       didPersistTab: true,
       canCloseTab: false,
@@ -259,5 +263,47 @@ describe("sidepanel toolbar renderer", () => {
     expect(bringForwardButton?.disabled).toBe(true)
     expect(bringToFrontButton?.disabled).toBe(true)
     expect(ungroupButton?.disabled).toBe(true)
+  })
+
+  it("adds review-scope titles and mixed-state disable reasons for board-scale actions", () => {
+    const document = new FakeDocument()
+    const container = document.createElement("div")
+
+    renderSidepanelToolbar({
+      container: container as unknown as HTMLElement,
+      ownerDocument: document as unknown as Document,
+      hasActions: true,
+      selectedElementCount: 3,
+      reviewScopeActive: true,
+      ungroupLikeIssue: "Selection includes mixed or multiple group rows.",
+      canPersistTab: false,
+      didPersistTab: false,
+      canCloseTab: false,
+      canPersistLastMovePreference: false,
+      persistLastMoveAcrossRestarts: false,
+      createToolbarButton: (ownerDocument, label, _action): HTMLButtonElement => {
+        const button = (ownerDocument as unknown as FakeDocument).createElement("button")
+        button.textContent = label
+        return button as unknown as HTMLButtonElement
+      },
+      onGroupSelected: async () => {},
+      onReorderSelected: async () => {},
+      onUngroupLikeSelection: async () => {},
+      onTogglePersistLastMoveAcrossRestarts: async () => true,
+      onNotify: () => {},
+      onPersistTab: () => true,
+      onCloseTab: () => {},
+    })
+
+    const renderedContainer = container as unknown as FakeDomElement
+    const groupButton = findButtonByText(renderedContainer, "Group selected")
+    const bringToFrontButton = findButtonByText(renderedContainer, "Bring to front")
+    const ungroupButton = findButtonByText(renderedContainer, "Ungroup-like")
+
+    expect(groupButton?.title).toContain("canonical selected rows")
+    expect(bringToFrontButton?.title).toContain("Review scope does not narrow command targets.")
+    expect(ungroupButton?.disabled).toBe(true)
+    expect(ungroupButton?.title).toContain("Selection includes mixed or multiple group rows.")
+    expect(ungroupButton?.title).toContain("Review scope does not narrow command targets.")
   })
 })

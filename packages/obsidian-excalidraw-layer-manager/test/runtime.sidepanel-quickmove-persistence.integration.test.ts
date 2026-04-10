@@ -14,6 +14,7 @@ import {
   findButtonWithPrefix,
   findFirstSelect,
   findInteractiveRowByLabel,
+  findRowFilterInput,
   flushAsync,
   getContentRoot,
   makeSidepanelTab,
@@ -337,6 +338,106 @@ describe("sidepanel quick-move + persistence integration", () => {
     expect(latestReparentCall?.sourceGroupId).toBeNull()
     expect(latestReparentCall?.targetParentPath.length ?? 0).toBeGreaterThan(0)
     expect(latestReparentCall?.targetFrameId).toBeNull()
+  })
+
+  it("keeps the remembered destination unchanged after a filtered review-scope move fails", async () => {
+    let settings: ScriptSettings = {
+      lmx_persist_last_move_destination: {
+        value: true,
+      },
+      lmx_last_move_destination: {
+        value: {
+          kind: "preset",
+          targetParentPath: ["Archive"],
+          targetFrameId: null,
+          label: "Inside Archive",
+        },
+      },
+    }
+
+    const setScriptSettings = vi.fn(async (nextSettings: ScriptSettings) => {
+      settings = cloneSettings(nextSettings)
+    })
+
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    const { actions, commandSpies } = makeUiActions()
+    vi.mocked(commandSpies.reparent).mockImplementation(async () => ({
+      status: "preflightFailed",
+      reason: "scene drifted",
+      attempts: 1 as const,
+    }))
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => settings,
+      setScriptSettings,
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    const baseModel: RenderViewModel = {
+      tree: [
+        makeGroupNode("G", [makeElementNode("Alpha"), makeElementNode("Beta")]),
+        makeGroupNode("Archive", [makeElementNode("Gamma")]),
+      ],
+      selectedIds: new Set(["Alpha"]),
+      sceneVersion: 30,
+      actions,
+    }
+
+    renderer.render(baseModel)
+
+    let contentRoot = getContentRoot(sidepanelTab.contentEl)
+    let repeatButton = findButtonWithPrefix(contentRoot, "↺ Last:")
+    const searchInput = findRowFilterInput(contentRoot)
+
+    if (!repeatButton || !searchInput) {
+      throw new Error("Expected remembered-destination and filter controls to exist.")
+    }
+
+    expect(repeatButton.textContent).toContain("Inside Archive")
+
+    searchInput.value = "Alpha"
+    searchInput.dispatchEvent(new FakeDomEvent("input"))
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const rootButton = findButtonByExactText(contentRoot, "Root")
+    if (!rootButton) {
+      throw new Error("Expected root quick-move button under review scope.")
+    }
+
+    expect(rootButton.title).toContain("canonical selected rows")
+
+    rootButton.click()
+    await flushAsync()
+
+    expect(commandSpies.reparent).toHaveBeenCalledWith({
+      elementIds: ["Alpha"],
+      sourceGroupId: null,
+      targetParentPath: [],
+      targetFrameId: null,
+    })
+    expect(setScriptSettings).not.toHaveBeenCalled()
+
+    renderer.render({
+      ...baseModel,
+      sceneVersion: 31,
+    })
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    repeatButton = findButtonWithPrefix(contentRoot, "↺ Last:")
+
+    expect(repeatButton?.textContent).toContain("Inside Archive")
+    expect(repeatButton?.textContent).not.toContain("Canvas root")
+    expect(settings["lmx_last_move_destination"]?.value).toEqual({
+      kind: "preset",
+      targetParentPath: ["Archive"],
+      targetFrameId: null,
+      label: "Inside Archive",
+    })
   })
 
   it("keeps rapid settings toggles consistent while async writes are inflight", async () => {
