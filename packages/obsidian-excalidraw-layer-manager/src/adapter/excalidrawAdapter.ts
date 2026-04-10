@@ -197,16 +197,39 @@ const isFullPermutation = (
   return seen.size === currentIds.size
 }
 
+type CachedCapabilities = {
+  readonly legacy: boolean
+  readonly updateScene: boolean
+}
+
+const capabilityCache = new WeakMap<EaLike, CachedCapabilities>()
+
+const probeCapabilities = (ea: EaLike): CachedCapabilities => {
+  const cached = capabilityCache.get(ea)
+  if (cached) {
+    return cached
+  }
+
+  const result: CachedCapabilities = {
+    legacy: !!ea.copyViewElementsToEAforEditing && !!ea.getElement && !!ea.addElementsToView,
+    updateScene: !!ea.getExcalidrawAPI?.()?.updateScene,
+  }
+
+  capabilityCache.set(ea, result)
+  return result
+}
+
 const hasLegacyElementMutationCapabilities = (ea: EaLike): boolean => {
-  return !!ea.copyViewElementsToEAforEditing && !!ea.getElement && !!ea.addElementsToView
+  return probeCapabilities(ea).legacy
 }
 
 const hasUpdateSceneCapability = (ea: EaLike): boolean => {
-  return !!ea.getExcalidrawAPI?.()?.updateScene
+  return probeCapabilities(ea).updateScene
 }
 
 const hasElementMutationCapability = (ea: EaLike): boolean => {
-  return hasLegacyElementMutationCapabilities(ea) || hasUpdateSceneCapability(ea)
+  const caps = probeCapabilities(ea)
+  return caps.legacy || caps.updateScene
 }
 
 const preflightPatch = (ea: EaLike, patch: ScenePatch): PreflightResult => {
