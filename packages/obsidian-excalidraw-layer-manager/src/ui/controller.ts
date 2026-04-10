@@ -66,6 +66,7 @@ export class LayerManagerController {
   readonly #store: LayerManagerStore
   readonly #renderer: LayerManagerRenderer
   readonly #interactionLifecycle: ControllerInteractionLifecycle
+  readonly #unsubscribeFromStore: () => void
 
   #latestTree: readonly LayerNode[] = []
   #latestNodeById: ReadonlyMap<string, LayerNode> = new Map()
@@ -252,9 +253,13 @@ export class LayerManagerController {
     this.#store = store ?? new LayerManagerStore()
     this.#interactionLifecycle = interactionLifecycle
 
-    this.#store.subscribe(() => {
+    this.#unsubscribeFromStore = this.#store.subscribe(() => {
       this.render()
     })
+  }
+
+  dispose(): void {
+    this.#unsubscribeFromStore()
   }
 
   setTree(

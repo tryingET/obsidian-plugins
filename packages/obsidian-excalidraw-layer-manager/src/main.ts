@@ -402,6 +402,7 @@ export const createLayerManagerRuntime = (
     interactionIdleDeferred = null
     clearSceneChangeSubscription()
     renderer.dispose?.()
+    controller.dispose()
   }
 
   controller.setCommandFacade(commands)
