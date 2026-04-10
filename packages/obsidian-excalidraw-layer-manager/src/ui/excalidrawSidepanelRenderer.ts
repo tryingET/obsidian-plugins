@@ -996,6 +996,10 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
           "Remembered last-move destination reverted because reconciliation could not persist.",
         )
       }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error)
+      this.notify(`Quick-move reconciliation failed: ${message}`)
+      shouldReplay = false
     } finally {
       shouldReplay = this.#rememberedDestinationReconcileDirtyEpoch > reconcileEpoch
       this.#rememberedDestinationReconcileInFlight = false
