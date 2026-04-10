@@ -227,9 +227,14 @@ export class SidepanelKeyboardShortcutController {
     const currentFocusedNodeId = this.#host.getFocusedNodeId()
     const currentIndex = currentFocusedNodeId ? visibleNodeIds.indexOf(currentFocusedNodeId) : -1
 
-    const fallbackIndex = delta > 0 ? 0 : visibleNodeIds.length - 1
-    const startIndex = currentIndex === -1 ? fallbackIndex : currentIndex
-    const boundedNextIndex = Math.min(visibleNodeIds.length - 1, Math.max(0, startIndex + delta))
+    if (currentIndex === -1) {
+      const fallbackIndex = delta > 0 ? 0 : visibleNodeIds.length - 1
+      const fallbackNodeId = visibleNodeIds[fallbackIndex] ?? null
+      this.#host.setFocusedNode(fallbackNodeId)
+      return
+    }
+
+    const boundedNextIndex = Math.min(visibleNodeIds.length - 1, Math.max(0, currentIndex + delta))
 
     const nextFocusedNodeId = visibleNodeIds[boundedNextIndex] ?? null
     this.#host.setFocusedNode(nextFocusedNodeId)

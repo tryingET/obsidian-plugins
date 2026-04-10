@@ -1801,6 +1801,88 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     }
   })
 
+  it("restores first-row vertical navigation semantics when ArrowDown runs after focus resets during tree replacement", async () => {
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    const { actions } = makeUiActions()
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => ({}),
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [makeElementNode("A"), makeElementNode("B")],
+      selectedIds: new Set(),
+      sceneVersion: 59,
+      actions,
+    })
+
+    let contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowDown")
+    await flushAsync()
+
+    fakeDocument.activeElement = fakeDocument.createElement("div")
+
+    renderer.render({
+      tree: [makeElementNode("C"), makeElementNode("D")],
+      selectedIds: new Set(),
+      sceneVersion: 60,
+      actions,
+    })
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowDown")
+    dispatchKeydown(contentRoot, "f")
+    await flushAsync()
+
+    expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(["el:C"], "forward")
+  })
+
+  it("restores last-row vertical navigation semantics when ArrowUp runs after focus resets during tree replacement", async () => {
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    const { actions } = makeUiActions()
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => ({}),
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [makeElementNode("A"), makeElementNode("B")],
+      selectedIds: new Set(),
+      sceneVersion: 57,
+      actions,
+    })
+
+    let contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowDown")
+    await flushAsync()
+
+    fakeDocument.activeElement = fakeDocument.createElement("div")
+
+    renderer.render({
+      tree: [makeElementNode("C"), makeElementNode("D")],
+      selectedIds: new Set(),
+      sceneVersion: 58,
+      actions,
+    })
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowUp")
+    dispatchKeydown(contentRoot, "f")
+    await flushAsync()
+
+    expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(["el:D"], "forward")
+  })
+
   it("restores first-row expand semantics when ArrowRight runs after focus resets during tree replacement", async () => {
     const sidepanelTab = makeSidepanelTab(fakeDocument, null)
     const { actions } = makeUiActions()
