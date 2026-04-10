@@ -310,6 +310,59 @@ describe("sidepanel row renderer", () => {
     expect(escapeEvent.defaultPrevented).toBe(true)
   })
 
+  it("surfaces collapsed container structure cues in badges and aria labels", () => {
+    const document = new FakeDocument()
+    const actions = makeActions()
+
+    const { row } = renderSidepanelRow({
+      ownerDocument: document as unknown as Document,
+      node: makeNode("G", {
+        type: "group",
+        canExpand: true,
+        isExpanded: false,
+        elementIds: ["A", "B"],
+        label: "Collapsed Group",
+      }),
+      depth: 0,
+      selected: false,
+      focused: false,
+      dropHinted: false,
+      dropHintLabel: null,
+      actions,
+      styleConfig: rowStyleConfig,
+      nodeVisualState: {
+        visibility: "visible",
+        lock: "unlocked",
+      },
+      filterMatchKind: "none",
+      inlineRenameState: null,
+      onToggleExpanded: () => {},
+      onInlineRenameDraftChange: () => {},
+      onInlineRenameCommit: () => {},
+      onInlineRenameCancel: () => {},
+      isInlineRenameActiveForNode: () => false,
+      onRenameNodeFromAction: () => {},
+      createIconActionButton: (
+        ownerDocument: Document,
+        icon: { readonly title?: string },
+        _action,
+      ): HTMLButtonElement => {
+        const button = (ownerDocument as unknown as FakeDocument).createElement("button")
+        button.title = icon.title ?? ""
+        return button as unknown as HTMLButtonElement
+      },
+    })
+
+    const renderedRow = row as unknown as FakeDomElement & { ariaLabel?: string }
+    const textFragments = flattenElements(renderedRow)
+      .map((child) => child.textContent ?? "")
+      .filter((text) => text.length > 0)
+
+    expect(textFragments).toContain("collapsed")
+    expect(textFragments).toContain("2 items")
+    expect(renderedRow.ariaLabel).toBe("[group] Collapsed Group · collapsed")
+  })
+
   it("renders mixed-state badges and search-match metadata", () => {
     const document = new FakeDocument()
     const actions = makeActions()
@@ -318,6 +371,9 @@ describe("sidepanel row renderer", () => {
       ownerDocument: document as unknown as Document,
       node: makeNode("G", {
         type: "group",
+        canExpand: true,
+        isExpanded: true,
+        children: [makeNode("A"), makeNode("B")],
         elementIds: ["A", "B", "C"],
         label: "Group Alpha",
       }),
@@ -351,7 +407,7 @@ describe("sidepanel row renderer", () => {
       },
     })
 
-    const renderedRow = row as unknown as FakeDomElement
+    const renderedRow = row as unknown as FakeDomElement & { ariaLabel?: string }
     const textFragments = flattenElements(renderedRow)
       .map((child) => child.textContent ?? "")
       .filter((text) => text.length > 0)
@@ -362,9 +418,13 @@ describe("sidepanel row renderer", () => {
     expect(textFragments).toContain("[group]")
     expect(textFragments).toContain("Group Alpha")
     expect(textFragments).toContain("nested match")
+    expect(textFragments).toContain("2 rows")
     expect(textFragments).toContain("3 items")
     expect(textFragments).toContain("some hidden")
     expect(textFragments).toContain("some locked")
+    expect(renderedRow.style["boxShadow"]).toContain("inset 3px 0 0 0")
+    expect(renderedRow.style["boxShadow"]).toContain("inset -3px 0 0 0")
+    expect(renderedRow.ariaLabel).toBe("[group] Group Alpha · 2 rows · some hidden · some locked")
     expect(actionTitles).toContain("Show hidden items")
     expect(actionTitles).toContain("Lock unlocked items")
   })
@@ -414,7 +474,10 @@ describe("sidepanel row renderer", () => {
       createIconActionButton,
     })
 
-    const renderedRow = row as unknown as FakeDomElement
+    const renderedRow = row as unknown as FakeDomElement & { ariaLabel?: string }
+    const label = renderedRow.children.find(
+      (child) => child.tagName === "SPAN" && child.textContent === "Alpha",
+    )
     const buttons = renderedRow.children.filter((child) => child.tagName === "BUTTON")
     const showButton = buttons.find((button) => button.title === "Show all items")
     const unlockButton = buttons.find((button) => button.title === "Unlock all items")
@@ -426,6 +489,11 @@ describe("sidepanel row renderer", () => {
     renameButton?.click()
     deleteButton?.click()
 
+    expect(label?.style["textDecoration"]).toBe("line-through")
+    expect(label?.style["opacity"]).toBe("0.6")
+    expect(renderedRow.style["boxShadow"]).toContain("inset 3px 0 0 0")
+    expect(renderedRow.style["boxShadow"]).toContain("inset -3px 0 0 0")
+    expect(renderedRow.ariaLabel).toBe("[element] Alpha · hidden · locked")
     expect(createIconActionButton).toHaveBeenCalledTimes(4)
     expect(actions.toggleVisibilityNode).toHaveBeenCalledWith("A")
     expect(actions.toggleLockNode).toHaveBeenCalledWith("A")

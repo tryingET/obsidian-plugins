@@ -56,7 +56,7 @@ interface SidepanelRowRenderResult {
 const createMetaBadge = (
   ownerDocument: Document,
   text: string,
-  emphasis: "default" | "match" | "type" | "visibility" | "lock" = "default",
+  emphasis: "default" | "match" | "type" | "structure" | "visibility" | "lock" = "default",
 ): HTMLSpanElement => {
   const badge = ownerDocument.createElement("span")
   badge.textContent = text
@@ -78,6 +78,13 @@ const createMetaBadge = (
   if (emphasis === "type") {
     badge.style.border = "1px solid var(--background-modifier-border, rgba(120,120,120,0.12))"
     badge.style.background = "transparent"
+    badge.style.color = "var(--text-muted, inherit)"
+    return badge
+  }
+
+  if (emphasis === "structure") {
+    badge.style.border = "1px solid var(--background-modifier-border, rgba(120,120,120,0.12))"
+    badge.style.background = "var(--background-secondary-alt, rgba(120,120,120,0.08))"
     badge.style.color = "var(--text-muted, inherit)"
     return badge
   }
@@ -105,6 +112,89 @@ const resolveTypeBadgeLabel = (node: LayerNode): string => {
   }
 
   return `[${node.type}]`
+}
+
+const resolveStructureBadgeLabel = (node: LayerNode): string | null => {
+  if (node.type !== "group" && node.type !== "frame") {
+    return null
+  }
+
+  if (node.canExpand && !node.isExpanded) {
+    return "collapsed"
+  }
+
+  if (node.children.length > 0) {
+    return node.children.length === 1 ? "1 row" : `${node.children.length} rows`
+  }
+
+  return null
+}
+
+const resolveVisibilityStateLabel = (state: SidepanelRowVisualState): string | null => {
+  if (state.visibility === "hidden") {
+    return "hidden"
+  }
+
+  if (state.visibility === "mixed") {
+    return "some hidden"
+  }
+
+  return null
+}
+
+const resolveLockStateLabel = (state: SidepanelRowVisualState): string | null => {
+  if (state.lock === "locked") {
+    return "locked"
+  }
+
+  if (state.lock === "mixed") {
+    return "some locked"
+  }
+
+  return null
+}
+
+const resolveRowAriaLabel = (node: LayerNode, state: SidepanelRowVisualState): string => {
+  const parts = [`${resolveTypeBadgeLabel(node)} ${node.label}`]
+  const structureLabel = resolveStructureBadgeLabel(node)
+  const visibilityLabel = resolveVisibilityStateLabel(state)
+  const lockLabel = resolveLockStateLabel(state)
+
+  if (structureLabel) {
+    parts.push(structureLabel)
+  }
+
+  if (visibilityLabel) {
+    parts.push(visibilityLabel)
+  }
+
+  if (lockLabel) {
+    parts.push(lockLabel)
+  }
+
+  return parts.join(" · ")
+}
+
+const resolveRowShellBoxShadow = (state: SidepanelRowVisualState, dropHinted: boolean): string => {
+  const shadows: string[] = []
+
+  if (state.visibility === "hidden") {
+    shadows.push("inset 3px 0 0 0 var(--text-faint, rgba(120,120,120,0.55))")
+  } else if (state.visibility === "mixed") {
+    shadows.push("inset 3px 0 0 0 var(--background-modifier-border-hover, rgba(120,120,120,0.45))")
+  }
+
+  if (state.lock === "locked") {
+    shadows.push("inset -3px 0 0 0 var(--text-muted, rgba(120,120,120,0.6))")
+  } else if (state.lock === "mixed") {
+    shadows.push("inset -3px 0 0 0 var(--background-secondary-alt, rgba(120,120,120,0.45))")
+  }
+
+  if (dropHinted) {
+    shadows.push("inset 0 0 0 1px var(--interactive-accent, rgba(120,120,120,0.6))")
+  }
+
+  return shadows.join(", ")
 }
 
 const resolveCountBadgeLabel = (node: LayerNode): string | null => {
@@ -182,8 +272,13 @@ export const renderSidepanelRow = (input: SidepanelRowRenderInput): SidepanelRow
   row.style.borderRadius = "4px"
   row.style.fontSize = `${input.styleConfig.rowFontSizePx}px`
   row.style.border = "1px solid transparent"
-  row.ariaLabel = `${resolveTypeBadgeLabel(input.node)} ${input.node.label}`
+  row.ariaLabel = resolveRowAriaLabel(input.node, input.nodeVisualState)
   row.tabIndex = -1
+
+  const rowBoxShadow = resolveRowShellBoxShadow(input.nodeVisualState, input.dropHinted)
+  if (rowBoxShadow.length > 0) {
+    row.style.boxShadow = rowBoxShadow
+  }
 
   if (input.filterMatchKind === "self") {
     row.style.background = "var(--background-modifier-hover, rgba(120,120,120,0.12))"
@@ -196,10 +291,6 @@ export const renderSidepanelRow = (input: SidepanelRowRenderInput): SidepanelRow
   if (input.focused) {
     row.style.outline = "1px solid var(--interactive-accent, rgba(120,120,120,0.6))"
     row.style.outlineOffset = "-1px"
-  }
-
-  if (input.dropHinted) {
-    row.style.boxShadow = "inset 0 0 0 1px var(--interactive-accent, rgba(120,120,120,0.6))"
   }
 
   if (input.actions) {
@@ -337,6 +428,11 @@ const appendMetaBadges = (input: SidepanelRowRenderInput, row: HTMLDivElement): 
   metaHost.style.alignItems = "center"
   metaHost.style.flexWrap = "wrap"
   metaHost.style.gap = "3px"
+
+  const structureBadgeLabel = resolveStructureBadgeLabel(input.node)
+  if (structureBadgeLabel) {
+    metaHost.appendChild(createMetaBadge(input.ownerDocument, structureBadgeLabel, "structure"))
+  }
 
   const countBadgeLabel = resolveCountBadgeLabel(input.node)
   if (countBadgeLabel) {
