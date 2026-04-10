@@ -56,17 +56,17 @@ Operational note: package-level AK direction commands should target the register
 - **State:** done
 - **Outcome:** the follow-on TG3 packet now adds structure badges for collapsed or expanded containers, row-shell edge cues for hidden and locked state, and richer row aria labels so visibility/lock/structure scanability compounds beyond spacing-and-badge polish.
 
-### OP6 — Cut the first TG4 board-scale organization/review packet in AK before implementation resumes
-- **AK task:** `task:1088`
-- **State:** done
-- **Outcome:** TG4 is now cut into a concrete first packet around filtered review scope and quick-move destination legibility, with the immediate follow-on honesty packet already queued behind it so implementation can resume from truthful AK-backed authority instead of ad-hoc iteration.
+TG4 packet-cutting step `task:1088` is now complete history: it translated the board-scale organization/review wave into the concrete slices below so implementation resumed from truthful AK-backed authority instead of ad-hoc iteration.
 
 ### OP7 — Make filtered review scope and quick-move destinations legible at board scale
 - **AK task:** `task:1104`
 - **State:** done
 - **Outcome:** the sidepanel now frames filtered results as a review scope with explicit match/context counts, carries that scope through quick-move copy, and gives destination pickers/tooltips richer frame/path context so large-scene organization reads faster before new automation is added.
 
-Next AK packet queued behind OP7: repo-local task `task:1103` to tighten those review affordances under filtered, mixed, and failure states.
+### OP8 — Tighten board-scale review actions under filtered, mixed, and failure states
+- **AK task:** `task:1103`
+- **State:** active
+- **Deliverable:** keep the new review-scope and destination-reading affordances outcome-honest when filtered projections, mixed row state, or command failures would otherwise imply more certainty than the runtime has earned.
 
 ## Guardrails for this wave
 
