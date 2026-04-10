@@ -691,6 +691,75 @@ describe("sidepanel selection-sync integration", () => {
     expect(getSelectedRows(contentRoot)).toHaveLength(3)
   })
 
+  it("keeps explicit mouse multi-selection coherent through host echo and drag-drop reorder", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      [
+        { id: "A", type: "rectangle", name: "Alpha", isDeleted: false },
+        { id: "B", type: "rectangle", name: "Beta", isDeleted: false },
+        { id: "C", type: "rectangle", name: "Gamma", isDeleted: false },
+      ],
+      [],
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+
+    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const firstRow = findInteractiveRowByLabel(contentRoot, "[element] Alpha")
+
+    if (!firstRow) {
+      throw new Error("Expected row for element Alpha in mouse multi-selection drag-drop test.")
+    }
+
+    firstRow.click()
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const secondRow = findInteractiveRowByLabel(contentRoot, "[element] Beta")
+    if (!secondRow) {
+      throw new Error("Expected row for element Beta after establishing the initial selection.")
+    }
+
+    dispatchClick(secondRow, { metaKey: true })
+    await flushAsync()
+
+    expect(runtime.selectInView).toHaveBeenCalledTimes(2)
+    const lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
+    const selectedIds = runtime.selectInView.mock.calls[lastSelectCallIndex]?.[0] as
+      | readonly string[]
+      | undefined
+
+    expect([...(selectedIds ?? [])].sort()).toEqual(["A", "B"])
+
+    runtime.emitSceneChange({
+      selectedElementIds: {
+        A: true,
+        B: true,
+      },
+    })
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    expect(getSelectedRows(contentRoot)).toHaveLength(2)
+
+    const dragSourceRow = findInteractiveRowByLabel(contentRoot, "[element] Alpha")
+    const dropTargetRow = findInteractiveRowByLabel(contentRoot, "[element] Gamma")
+    if (!dragSourceRow || !dropTargetRow) {
+      throw new Error("Expected drag source and drop target rows after host selection echo.")
+    }
+
+    dragSourceRow.dispatchEvent(new FakeDomEvent("dragstart"))
+    dropTargetRow.dispatchEvent(new FakeDomEvent("dragover"))
+    dropTargetRow.dispatchEvent(new FakeDomEvent("drop"))
+    await flushAsync()
+    await flushAsync()
+
+    expect(runtime.elements.map((element) => element.id)).toEqual(["C", "A", "B"])
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    expect(getSelectedRows(contentRoot)).toHaveLength(2)
+  })
+
   it("clears stale row-click override when host emits newer canvas selection", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
