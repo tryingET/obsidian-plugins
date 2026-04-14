@@ -37,6 +37,52 @@ export class FakeDomEvent {
   }
 }
 
+interface FakeDomClientRectLike {
+  readonly top: number
+  readonly left: number
+  readonly width: number
+  readonly height: number
+  readonly right: number
+  readonly bottom: number
+  toJSON?: () => Record<string, number>
+}
+
+const parsePixelValue = (value: string | undefined): number => {
+  if (!value) {
+    return 0
+  }
+
+  const numeric = Number.parseFloat(value)
+  return Number.isFinite(numeric) ? numeric : 0
+}
+
+const parseBoxShorthand = (
+  value: string | undefined,
+): readonly [number, number, number, number] => {
+  if (!value || value.trim().length === 0) {
+    return [0, 0, 0, 0]
+  }
+
+  const parts = value
+    .trim()
+    .split(/\s+/)
+    .map((entry) => parsePixelValue(entry))
+
+  if (parts.length === 1) {
+    return [parts[0] ?? 0, parts[0] ?? 0, parts[0] ?? 0, parts[0] ?? 0]
+  }
+
+  if (parts.length === 2) {
+    return [parts[0] ?? 0, parts[1] ?? 0, parts[0] ?? 0, parts[1] ?? 0]
+  }
+
+  if (parts.length === 3) {
+    return [parts[0] ?? 0, parts[1] ?? 0, parts[2] ?? 0, parts[1] ?? 0]
+  }
+
+  return [parts[0] ?? 0, parts[1] ?? 0, parts[2] ?? 0, parts[3] ?? 0]
+}
+
 export class FakeDocument {
   activeElement: FakeDomElement | null = null
   defaultView = {
@@ -94,10 +140,17 @@ export class FakeDomElement {
   title = ""
   tabIndex = 0
   draggable = false
+  placeholder = ""
+  id = ""
   parentElement: FakeDomElement | null = null
+  scrollTop = 0
+  clientHeight = 0
+  clientWidth = 0
 
   #children: FakeDomElement[] = []
   #listeners = new Map<string, Set<(event: FakeDomEvent) => void>>()
+  #explicitScrollHeight: number | null = null
+  #explicitClientRect: FakeDomClientRectLike | null = null
 
   constructor(tagName: string, ownerDocument: FakeDocument) {
     this.tagName = tagName.toUpperCase()
@@ -106,6 +159,18 @@ export class FakeDomElement {
 
   get children(): readonly FakeDomElement[] {
     return this.#children
+  }
+
+  get scrollHeight(): number {
+    if (this.#explicitScrollHeight !== null) {
+      return this.#explicitScrollHeight
+    }
+
+    return Math.max(this.resolveLayoutHeight(), this.resolveAutoHeight())
+  }
+
+  set scrollHeight(value: number) {
+    this.#explicitScrollHeight = value
   }
 
   appendChild(child: FakeDomElement): FakeDomElement {
@@ -172,6 +237,27 @@ export class FakeDomElement {
     this.ownerDocument.activeElement = this
   }
 
+  scrollIntoView(): void {
+    // no-op for the fake harness; tests inspect scrollTop and geometry directly
+  }
+
+  getBoundingClientRect(): FakeDomClientRectLike {
+    if (this.#explicitClientRect) {
+      return this.#explicitClientRect
+    }
+
+    const height = this.resolveLayoutHeight()
+    const width = this.clientWidth
+
+    if (!this.parentElement) {
+      return this.makeClientRect(0, 0, width, height)
+    }
+
+    const parentRect = this.parentElement.getBoundingClientRect()
+    const top = parentRect.top + this.resolveOffsetWithinParent() - this.parentElement.scrollTop
+    return this.makeClientRect(top, parentRect.left, width, height)
+  }
+
   set innerHTML(value: string) {
     this.#children = []
     this.textContent = value
@@ -179,6 +265,116 @@ export class FakeDomElement {
 
   get innerHTML(): string {
     return this.textContent ?? ""
+  }
+
+  private makeClientRect(
+    top: number,
+    left: number,
+    width: number,
+    height: number,
+  ): FakeDomClientRectLike {
+    return {
+      top,
+      left,
+      width,
+      height,
+      right: left + width,
+      bottom: top + height,
+      toJSON: () => ({
+        top,
+        left,
+        width,
+        height,
+        right: left + width,
+        bottom: top + height,
+      }),
+    }
+  }
+
+  private resolveLayoutHeight(): number {
+    const explicitHeight = parsePixelValue(this.style["height"])
+    const minHeight = parsePixelValue(this.style["minHeight"])
+    const baseHeight = this.clientHeight > 0 ? this.clientHeight : explicitHeight
+    const autoHeight = baseHeight > 0 ? baseHeight : this.resolveAutoHeight()
+    return Math.max(autoHeight, minHeight)
+  }
+
+  private resolveAutoHeight(): number {
+    const [paddingTop, , paddingBottom] = parseBoxShorthand(this.style["padding"])
+
+    if (this.#children.length === 0) {
+      return this.resolveLeafHeight() + paddingTop + paddingBottom
+    }
+
+    const gap = parsePixelValue(this.style["gap"])
+    const isRowFlex = this.style["display"] === "flex" && this.style["flexDirection"] !== "column"
+
+    if (isRowFlex) {
+      const tallestChild = this.#children.reduce((maxHeight, child) => {
+        return Math.max(maxHeight, child.resolveLayoutHeight())
+      }, 0)
+
+      return tallestChild + paddingTop + paddingBottom
+    }
+
+    let childHeight = 0
+    for (const [index, child] of this.#children.entries()) {
+      childHeight += child.resolveOuterHeight()
+      if (index < this.#children.length - 1) {
+        childHeight += gap
+      }
+    }
+
+    return childHeight + paddingTop + paddingBottom
+  }
+
+  private resolveLeafHeight(): number {
+    switch (this.tagName) {
+      case "INPUT":
+      case "SELECT":
+        return 24
+      case "BUTTON":
+        return 20
+      default:
+        break
+    }
+
+    if (this.style["cursor"] === "pointer") {
+      return parsePixelValue(this.style["minHeight"]) || 20
+    }
+
+    if ((this.textContent?.length ?? 0) > 0) {
+      return 16
+    }
+
+    return 0
+  }
+
+  private resolveOuterHeight(): number {
+    const marginTop = parsePixelValue(this.style["marginTop"])
+    const marginBottom = parsePixelValue(this.style["marginBottom"])
+    return this.resolveLayoutHeight() + marginTop + marginBottom
+  }
+
+  private resolveOffsetWithinParent(): number {
+    const parent = this.parentElement
+    if (!parent) {
+      return 0
+    }
+
+    const [paddingTop] = parseBoxShorthand(parent.style["padding"])
+    const gap = parsePixelValue(parent.style["gap"])
+    let offset = paddingTop + parsePixelValue(this.style["marginTop"])
+
+    for (const sibling of parent.children) {
+      if (sibling === this) {
+        break
+      }
+
+      offset += sibling.resolveOuterHeight() + gap
+    }
+
+    return offset
   }
 }
 

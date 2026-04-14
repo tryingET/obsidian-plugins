@@ -14,6 +14,7 @@ import {
   dispatchKeydown,
   findButtonByTitle,
   findFirstInput,
+  findFocusedInteractiveRow,
   findRowTreeRoot,
   flattenElements,
   flushAsync,
@@ -373,6 +374,67 @@ describe("sidepanel focus + keyboard integration", () => {
 
     contentRoot = getContentRoot(sidepanelTab.contentEl)
     expect(findFirstInput(contentRoot)).toBeDefined()
+  })
+
+  it("keeps keyboard review cursor inside a comfort band while navigating long row lists", async () => {
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    sidepanelTab.contentEl.clientHeight = 120
+    const { actions } = makeUiActions()
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => ({}),
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: Array.from({ length: 12 }, (_, index) =>
+        makeElementNode(`${index + 1}`, `Row ${index + 1}`),
+      ),
+      selectedIds: new Set(),
+      sceneVersion: 32,
+      actions,
+    })
+
+    let contentRoot = getContentRoot(sidepanelTab.contentEl)
+    for (let step = 0; step < 7; step += 1) {
+      dispatchKeydown(contentRoot, "ArrowDown")
+      await flushAsync()
+      contentRoot = getContentRoot(sidepanelTab.contentEl)
+    }
+
+    const viewportRect = sidepanelTab.contentEl.getBoundingClientRect()
+    const focusedRowAfterDown = findFocusedInteractiveRow(contentRoot)
+    if (!focusedRowAfterDown) {
+      throw new Error("Expected a focused row after downward keyboard navigation.")
+    }
+
+    const focusedDownRect = focusedRowAfterDown.getBoundingClientRect()
+    const scrollTopAfterDown = sidepanelTab.contentEl.scrollTop
+
+    expect(scrollTopAfterDown).toBeGreaterThan(0)
+    expect(focusedDownRect.top).toBeGreaterThan(viewportRect.top + 20)
+    expect(focusedDownRect.bottom).toBeLessThan(viewportRect.bottom - 20)
+
+    for (let step = 0; step < 5; step += 1) {
+      dispatchKeydown(contentRoot, "ArrowUp")
+      await flushAsync()
+      contentRoot = getContentRoot(sidepanelTab.contentEl)
+    }
+
+    const focusedRowAfterUp = findFocusedInteractiveRow(contentRoot)
+    if (!focusedRowAfterUp) {
+      throw new Error("Expected a focused row after upward keyboard navigation.")
+    }
+
+    const focusedUpRect = focusedRowAfterUp.getBoundingClientRect()
+
+    expect(sidepanelTab.contentEl.scrollTop).toBeLessThan(scrollTopAfterDown)
+    expect(focusedUpRect.top).toBeGreaterThan(viewportRect.top + 20)
+    expect(focusedUpRect.bottom).toBeLessThan(viewportRect.bottom - 20)
   })
 
   it("keeps row focus marker when host emits immediate blur after keyboard arrow navigation", async () => {

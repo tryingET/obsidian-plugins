@@ -101,6 +101,9 @@ const KEYBOARD_PROMPT_SUPPRESSION_MS = 160
 const FOCUSOUT_SUPPRESSION_WINDOW_MS = 420
 const KEYBOARD_STICKY_CAPTURE_MS = 1400
 const ROW_MIN_HEIGHT_PX = 20
+const REVIEW_CURSOR_COMFORT_MIN_MARGIN_ROWS = 2
+const REVIEW_CURSOR_COMFORT_VIEWPORT_RATIO = 0.18
+const REVIEW_CURSOR_COMFORT_MAX_VIEWPORT_RATIO = 0.3
 const ROW_FONT_SIZE_PX = 11
 const ICON_SIZE_PX = 13
 const ICON_BUTTON_SIZE_PX = 16
@@ -120,6 +123,37 @@ const ROW_STYLE_CONFIG = {
 
 const hasDom = (): boolean => {
   return typeof document !== "undefined"
+}
+
+const readNumericDimension = (value: unknown): number => {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0
+}
+
+const resolveElementViewportHeight = (element: HTMLElement): number => {
+  const clientHeight = readNumericDimension(
+    (element as unknown as { readonly clientHeight?: unknown }).clientHeight,
+  )
+  if (clientHeight > 0) {
+    return clientHeight
+  }
+
+  const rect = element.getBoundingClientRect?.()
+  return rect && Number.isFinite(rect.height) ? rect.height : 0
+}
+
+const resolveElementScrollHeight = (element: HTMLElement): number => {
+  const scrollHeight = readNumericDimension(
+    (element as unknown as { readonly scrollHeight?: unknown }).scrollHeight,
+  )
+  if (scrollHeight > 0) {
+    return scrollHeight
+  }
+
+  return resolveElementViewportHeight(element)
+}
+
+const resolveElementScrollTop = (element: HTMLElement): number => {
+  return readNumericDimension((element as unknown as { readonly scrollTop?: unknown }).scrollTop)
 }
 
 const runUiAction = (
@@ -208,6 +242,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   #selectionAnchorNodeId: string | null = null
   #latestSelectionResolution: SidepanelSelectionResolution | null = null
   #lastSnapshotSelectionIds: readonly string[] = []
+  #pendingFocusedRowRevealNodeId: string | null = null
   #rowFilterQuery = ""
   #shouldAutofocusRowFilterInput = false
   #cachedRowFilterResult: {
@@ -518,6 +553,8 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       this.activateKeyboardCapture()
     }
 
+    const focusedNodeIdBeforeVisibleReconcile = this.#focusedNodeId
+
     if (visibleNodes.length === 0) {
       this.#focusedNodeId = null
     } else if (
@@ -527,6 +564,14 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       this.#focusedNodeId = hasKeyboardOwnership ? (visibleNodes[0]?.id ?? null) : null
     } else if (!this.#focusedNodeId && hasKeyboardOwnership) {
       this.#focusedNodeId = visibleNodes[0]?.id ?? null
+    }
+
+    if (
+      hasKeyboardOwnership &&
+      this.#focusedNodeId &&
+      this.#focusedNodeId !== focusedNodeIdBeforeVisibleReconcile
+    ) {
+      this.requestFocusedRowReveal(this.#focusedNodeId)
     }
 
     const activeTagName =
@@ -753,6 +798,8 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     if (focusTargetRoot) {
       this.autofocusContentRootIfNeeded(focusTargetRoot)
     }
+
+    this.revealFocusedRowWithinComfortBandIfNeeded()
   }
 
   private renderRowFilterControls(
@@ -1070,6 +1117,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.#selectionAnchorNodeId = null
     this.#latestSelectionResolution = null
     this.#lastSnapshotSelectionIds = []
+    this.#pendingFocusedRowRevealNodeId = null
     this.#cachedRowFilterResult = null
     this.#cachedQuickMoveDestinationProjection = null
     this.#focusOwnership.reset()
@@ -1339,12 +1387,122 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     })
   }
 
+  private requestFocusedRowReveal(nodeId: string | null): void {
+    this.#pendingFocusedRowRevealNodeId = nodeId
+  }
+
+  private revealFocusedRowWithinComfortBandIfNeeded(): void {
+    const pendingNodeId = this.#pendingFocusedRowRevealNodeId
+    if (!pendingNodeId || !this.#focusedNodeId || pendingNodeId !== this.#focusedNodeId) {
+      return
+    }
+
+    this.#pendingFocusedRowRevealNodeId = null
+
+    const rowElement = this.findElementById(
+      this.#contentRoot,
+      this.resolveRowDomId(this.#focusedNodeId),
+    )
+    if (!rowElement) {
+      return
+    }
+
+    const scrollContainer = this.resolveReviewCursorScrollContainer(rowElement)
+    if (!scrollContainer) {
+      rowElement.scrollIntoView?.({
+        block: "nearest",
+      })
+      return
+    }
+
+    const viewportHeight = resolveElementViewportHeight(scrollContainer)
+    if (viewportHeight <= 0) {
+      rowElement.scrollIntoView?.({
+        block: "nearest",
+      })
+      return
+    }
+
+    const rowRect = rowElement.getBoundingClientRect?.()
+    const containerRect = scrollContainer.getBoundingClientRect?.()
+    if (!rowRect || !containerRect) {
+      return
+    }
+
+    const comfortInset = this.resolveReviewCursorComfortInset(viewportHeight)
+    const comfortTop = containerRect.top + comfortInset
+    const comfortBottom = containerRect.bottom - comfortInset
+    const currentScrollTop = resolveElementScrollTop(scrollContainer)
+    let nextScrollTop = currentScrollTop
+
+    if (rowRect.top < comfortTop) {
+      nextScrollTop -= comfortTop - rowRect.top
+    } else if (rowRect.bottom > comfortBottom) {
+      nextScrollTop += rowRect.bottom - comfortBottom
+    }
+
+    const maxScrollTop = Math.max(0, resolveElementScrollHeight(scrollContainer) - viewportHeight)
+    const clampedScrollTop = Math.max(0, Math.min(maxScrollTop, nextScrollTop))
+
+    if (Math.abs(clampedScrollTop - currentScrollTop) < 1) {
+      return
+    }
+    ;(scrollContainer as unknown as { scrollTop: number }).scrollTop = clampedScrollTop
+  }
+
+  private resolveReviewCursorComfortInset(viewportHeight: number): number {
+    const desiredInset = Math.max(
+      ROW_MIN_HEIGHT_PX * REVIEW_CURSOR_COMFORT_MIN_MARGIN_ROWS,
+      Math.floor(viewportHeight * REVIEW_CURSOR_COMFORT_VIEWPORT_RATIO),
+    )
+    const maxInset = Math.floor(viewportHeight * REVIEW_CURSOR_COMFORT_MAX_VIEWPORT_RATIO)
+
+    return Math.max(0, Math.min(desiredInset, maxInset))
+  }
+
+  private resolveReviewCursorScrollContainer(start: HTMLElement): HTMLElement | null {
+    let current: HTMLElement | null = start
+
+    while (current) {
+      const viewportHeight = resolveElementViewportHeight(current)
+      const scrollHeight = resolveElementScrollHeight(current)
+      if (viewportHeight > 0 && scrollHeight > viewportHeight + 1) {
+        return current
+      }
+
+      current = current.parentElement
+    }
+
+    return null
+  }
+
+  private findElementById(root: HTMLElement | null, targetId: string): HTMLElement | null {
+    if (!root) {
+      return null
+    }
+
+    if ((root as HTMLElement & { id?: string }).id === targetId) {
+      return root
+    }
+
+    const childElements = Array.from(root.children ?? []) as HTMLElement[]
+    for (const child of childElements) {
+      const match = this.findElementById(child, targetId)
+      if (match) {
+        return match
+      }
+    }
+
+    return null
+  }
+
   private setFocusedNode(nodeId: string | null): void {
     if (nodeId === this.#focusedNodeId) {
       return
     }
 
     this.#focusedNodeId = nodeId
+    this.requestFocusedRowReveal(nodeId)
     this.requestRenderFromLatestModel()
   }
 
