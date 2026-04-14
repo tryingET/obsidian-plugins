@@ -185,11 +185,18 @@ export const createLayerManagerRuntime = (
     }
   }
 
-  const controller = new LayerManagerController(renderer, undefined, {
-    waitForIdle: waitForInteractionIdle,
-    beginInteraction,
-    endInteraction,
-  })
+  const controller = new LayerManagerController(
+    renderer,
+    undefined,
+    {
+      waitForIdle: waitForInteractionIdle,
+      beginInteraction,
+      endInteraction,
+    },
+    () => {
+      refresh()
+    },
+  )
 
   let selectedIdsHintFromOnChange: ReadonlySet<string> | null = null
 
@@ -362,7 +369,6 @@ export const createLayerManagerRuntime = (
 
   const toggleExpanded = (nodeId: string): void => {
     controller.toggleExpanded(nodeId)
-    refresh()
   }
 
   refresh()

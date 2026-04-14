@@ -67,6 +67,7 @@ export class LayerManagerController {
   readonly #renderer: LayerManagerRenderer
   readonly #interactionLifecycle: ControllerInteractionLifecycle
   readonly #unsubscribeFromStore: () => void
+  readonly #onExpandedStateChanged: () => void
 
   #latestTree: readonly LayerNode[] = []
   #latestNodeById: ReadonlyMap<string, LayerNode> = new Map()
@@ -74,6 +75,7 @@ export class LayerManagerController {
   #latestSelectedIds: ReadonlySet<string> = new Set()
   #latestElementStateById: ReadonlyMap<string, ElementVisualState> = new Map()
   #commandFacade: LayerManagerCommandFacade | null = null
+  #suppressNextStoreRender = false
 
   readonly #beginInteractionAction = (): void => {
     this.#interactionLifecycle.beginInteraction()
@@ -248,12 +250,19 @@ export class LayerManagerController {
     renderer: LayerManagerRenderer,
     store?: LayerManagerStore,
     interactionLifecycle: ControllerInteractionLifecycle = noopInteractionLifecycle,
+    onExpandedStateChanged: () => void = () => {},
   ) {
     this.#renderer = renderer
     this.#store = store ?? new LayerManagerStore()
     this.#interactionLifecycle = interactionLifecycle
+    this.#onExpandedStateChanged = onExpandedStateChanged
 
     this.#unsubscribeFromStore = this.#store.subscribe(() => {
+      if (this.#suppressNextStoreRender) {
+        this.#suppressNextStoreRender = false
+        return
+      }
+
       this.render()
     })
   }
@@ -282,7 +291,9 @@ export class LayerManagerController {
   }
 
   toggleExpanded(nodeId: string): void {
+    this.#suppressNextStoreRender = true
     this.#store.toggleExpanded(nodeId)
+    this.#onExpandedStateChanged()
   }
 
   getExpandedNodeIds(): ReadonlySet<string> {

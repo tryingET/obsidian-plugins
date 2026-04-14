@@ -651,6 +651,61 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect(findButtonByTitle(contentRoot, "Show all items")).toBeDefined()
   })
 
+  it("expands collapsed groups from the row toggle button in the live runtime", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      [
+        { id: "A", type: "text", text: "Alpha", groupIds: ["G"], isDeleted: false },
+        { id: "B", type: "text", text: "Beta", groupIds: ["G"], isDeleted: false },
+      ],
+      [],
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+
+    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Alpha")).toBeUndefined()
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Beta")).toBeUndefined()
+
+    const expandButton = findButtonByTitle(contentRoot, "Expand row G")
+    if (!expandButton) {
+      throw new Error("Expected expand button for collapsed group row.")
+    }
+
+    expandButton.click()
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    expect(findButtonByTitle(contentRoot, "Collapse row G")).toBeDefined()
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Alpha")).toBeDefined()
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Beta")).toBeDefined()
+  })
+
+  it("expands collapsed groups from ArrowRight in the live runtime", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      [
+        { id: "A", type: "text", text: "Alpha", groupIds: ["G"], isDeleted: false },
+        { id: "B", type: "text", text: "Beta", groupIds: ["G"], isDeleted: false },
+      ],
+      [],
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+
+    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Alpha")).toBeUndefined()
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Beta")).toBeUndefined()
+
+    dispatchKeydown(contentRoot, "ArrowRight")
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    expect(findButtonByTitle(contentRoot, "Collapse row G")).toBeDefined()
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Alpha")).toBeDefined()
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Beta")).toBeDefined()
+  })
+
   it("uses outcome-honest mixed visibility and lock action copy", async () => {
     const sidepanelTab = makeSidepanelTab(fakeDocument, null)
     const { actions } = makeUiActions()
