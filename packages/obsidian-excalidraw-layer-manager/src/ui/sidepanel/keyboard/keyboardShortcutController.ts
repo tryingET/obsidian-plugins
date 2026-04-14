@@ -3,7 +3,6 @@ import type { LayerNode } from "../../../model/tree.js"
 import { didInteractionApply } from "../../interactionOutcome.js"
 import type { LayerManagerUiActions } from "../../renderer.js"
 import { resolveRowClickSelection } from "../selection/rowClickSelection.js"
-import { appendUniqueIds } from "../selection/selectionIds.js"
 import type { ResolvedSelection } from "../selection/selectionResolution.js"
 import { resolveFocusedNodeStructuralMove } from "../selection/structuralMoveSelection.js"
 
@@ -40,6 +39,7 @@ interface SidepanelKeyboardShortcutControllerHost {
   ) => void
   setSelectionAnchorNodeId?: (nodeId: string | null) => void
   mirrorSelectionToHost?: (elementIds: readonly string[]) => void
+  getPageNavigationStep?: () => number
   ensureHostViewContext: () => boolean
   selectElementsInView?: (ids: string[]) => void
 
@@ -123,6 +123,42 @@ export class SidepanelKeyboardShortcutController {
         this.extendSelectionWithKeyboard(context, -1)
       } else {
         this.moveFocusedNode(context, -1)
+      }
+      return
+    }
+
+    if (event.key === "Home") {
+      this.#host.suppressTransientFocusOut()
+      event.preventDefault()
+      this.moveFocusedNodeToBoundary(context, "start")
+      return
+    }
+
+    if (event.key === "End") {
+      this.#host.suppressTransientFocusOut()
+      event.preventDefault()
+      this.moveFocusedNodeToBoundary(context, "end")
+      return
+    }
+
+    if (event.key === "PageDown") {
+      this.#host.suppressTransientFocusOut()
+      event.preventDefault()
+      if (event.shiftKey) {
+        this.extendSelectionByPage(context, 1)
+      } else {
+        this.moveFocusedNodeByPage(context, 1)
+      }
+      return
+    }
+
+    if (event.key === "PageUp") {
+      this.#host.suppressTransientFocusOut()
+      event.preventDefault()
+      if (event.shiftKey) {
+        this.extendSelectionByPage(context, -1)
+      } else {
+        this.moveFocusedNodeByPage(context, -1)
       }
       return
     }
@@ -255,7 +291,21 @@ export class SidepanelKeyboardShortcutController {
     this.#host.setFocusedNode(nextFocusedNodeId)
   }
 
-  private extendSelectionWithKeyboard(context: KeyboardShortcutContext, delta: -1 | 1): void {
+  private moveFocusedNodeToBoundary(
+    context: KeyboardShortcutContext,
+    boundary: "start" | "end",
+  ): void {
+    if (context.visibleNodes.length === 0) {
+      this.#host.setFocusedNodeIdSilently(null)
+      return
+    }
+
+    const targetIndex = boundary === "start" ? 0 : context.visibleNodes.length - 1
+    const targetNodeId = context.visibleNodes[targetIndex]?.id ?? null
+    this.#host.setFocusedNode(targetNodeId)
+  }
+
+  private moveFocusedNodeByPage(context: KeyboardShortcutContext, direction: -1 | 1): void {
     if (context.visibleNodes.length === 0) {
       this.#host.setFocusedNodeIdSilently(null)
       return
@@ -265,40 +315,97 @@ export class SidepanelKeyboardShortcutController {
     const currentFocusedNodeId = this.#host.getFocusedNodeId()
     const currentIndex = currentFocusedNodeId ? visibleNodeIds.indexOf(currentFocusedNodeId) : -1
 
-    const fallbackIndex = delta > 0 ? 0 : visibleNodeIds.length - 1
-    const startIndex = currentIndex === -1 ? fallbackIndex : currentIndex
-    const boundedNextIndex = Math.min(visibleNodeIds.length - 1, Math.max(0, startIndex + delta))
-
-    const nextNode = context.visibleNodes[boundedNextIndex]
-    if (!nextNode) {
+    if (currentIndex === -1) {
+      const fallbackIndex = direction > 0 ? 0 : visibleNodeIds.length - 1
+      const fallbackNodeId = visibleNodeIds[fallbackIndex] ?? null
+      this.#host.setFocusedNode(fallbackNodeId)
       return
     }
 
-    const nextSelectedElementIds: string[] = []
-    const seenElementIds = new Set<string>()
-
-    appendUniqueIds(nextSelectedElementIds, seenElementIds, context.selection.elementIds)
-
-    const currentNode = currentIndex !== -1 ? (context.visibleNodes[currentIndex] ?? null) : null
-    if (currentNode) {
-      appendUniqueIds(nextSelectedElementIds, seenElementIds, currentNode.elementIds)
-    }
-
-    appendUniqueIds(nextSelectedElementIds, seenElementIds, nextNode.elementIds)
-
-    const explicitSelectionNodes = this.collectExplicitSelectionNodes(
-      context,
-      currentNode,
-      nextNode,
+    const step = this.resolvePageNavigationStep(context)
+    const boundedNextIndex = Math.min(
+      visibleNodeIds.length - 1,
+      Math.max(0, currentIndex + step * direction),
     )
 
-    this.applyResolvedRowSelection({
-      selectedNodes: explicitSelectionNodes,
-      selectedElementIds: nextSelectedElementIds,
-      anchorNodeId: context.anchorNodeId ?? currentNode?.id ?? nextNode.id,
+    const nextFocusedNodeId = visibleNodeIds[boundedNextIndex] ?? null
+    this.#host.setFocusedNode(nextFocusedNodeId)
+  }
+
+  private extendSelectionWithKeyboard(context: KeyboardShortcutContext, delta: -1 | 1): void {
+    this.extendSelectionToRelativeTarget(context, delta)
+  }
+
+  private extendSelectionByPage(context: KeyboardShortcutContext, direction: -1 | 1): void {
+    this.extendSelectionToRelativeTarget(
+      context,
+      this.resolvePageNavigationStep(context) * direction,
+    )
+  }
+
+  private extendSelectionToRelativeTarget(context: KeyboardShortcutContext, delta: number): void {
+    const navigationTarget = this.resolveRelativeSelectionTarget(context, delta)
+    if (!navigationTarget) {
+      return
+    }
+
+    const nextSelection = resolveRowClickSelection({
+      clickedNode: navigationTarget.nextNode,
+      visibleNodes: context.visibleNodes,
+      currentSelectedNodes: this.resolveCurrentSelectionNodes(context),
+      currentAnchorNodeId: context.anchorNodeId ?? null,
+      fallbackAnchorNodeId: navigationTarget.currentNode.id,
+      modifiers: {
+        shiftKey: true,
+        toggleKey: false,
+      },
     })
 
-    this.#host.setFocusedNode(nextNode.id)
+    this.applyResolvedRowSelection(nextSelection)
+    this.#host.setFocusedNode(navigationTarget.nextNode.id)
+  }
+
+  private resolveRelativeSelectionTarget(
+    context: KeyboardShortcutContext,
+    delta: number,
+  ): {
+    readonly currentNode: LayerNode
+    readonly nextNode: LayerNode
+  } | null {
+    if (context.visibleNodes.length === 0) {
+      this.#host.setFocusedNodeIdSilently(null)
+      return null
+    }
+
+    const visibleNodeIds = context.visibleNodes.map((node) => node.id)
+    const currentFocusedNodeId = this.#host.getFocusedNodeId()
+    const currentIndex = currentFocusedNodeId ? visibleNodeIds.indexOf(currentFocusedNodeId) : -1
+    const fallbackIndex = delta >= 0 ? 0 : visibleNodeIds.length - 1
+    const resolvedCurrentIndex = currentIndex === -1 ? fallbackIndex : currentIndex
+    const boundedNextIndex = Math.min(
+      visibleNodeIds.length - 1,
+      Math.max(0, resolvedCurrentIndex + delta),
+    )
+
+    const currentNode = context.visibleNodes[resolvedCurrentIndex]
+    const nextNode = context.visibleNodes[boundedNextIndex]
+    if (!currentNode || !nextNode) {
+      return null
+    }
+
+    return {
+      currentNode,
+      nextNode,
+    }
+  }
+
+  private resolvePageNavigationStep(context: KeyboardShortcutContext): number {
+    const hostStep = this.#host.getPageNavigationStep?.() ?? 0
+    if (hostStep > 0) {
+      return Math.max(1, Math.min(context.visibleNodes.length, Math.floor(hostStep)))
+    }
+
+    return Math.max(1, Math.floor(Math.max(1, context.visibleNodes.length) / 2))
   }
 
   private resolveFocusedNodeForSelectionGesture(
@@ -387,33 +494,6 @@ export class SidepanelKeyboardShortcutController {
         },
       }),
     )
-  }
-
-  private collectExplicitSelectionNodes(
-    context: KeyboardShortcutContext,
-    currentNode: LayerNode | null,
-    nextNode: LayerNode,
-  ): readonly LayerNode[] {
-    const explicitNodes: LayerNode[] = []
-    const seenNodeIds = new Set<string>()
-
-    const appendNode = (node: LayerNode | null | undefined): void => {
-      if (!node || seenNodeIds.has(node.id)) {
-        return
-      }
-
-      seenNodeIds.add(node.id)
-      explicitNodes.push(node)
-    }
-
-    for (const node of context.explicitSelectedNodes ?? []) {
-      appendNode(node)
-    }
-
-    appendNode(currentNode)
-    appendNode(nextNode)
-
-    return explicitNodes
   }
 
   private resolveFocusedNodeForHorizontalNavigation(

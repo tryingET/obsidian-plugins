@@ -482,6 +482,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       mirrorSelectionToHost: (elementIds) => {
         this.#hostSelectionBridge.mirrorSelectionToHost(elementIds)
       },
+      getPageNavigationStep: () => this.resolveKeyboardPageNavigationStep(),
       ensureHostViewContext: () => ensureHostViewContext(this.#host),
       ...(this.#host.selectElementsInView
         ? { selectElementsInView: this.#host.selectElementsInView }
@@ -642,7 +643,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     keyboardHint.style.fontSize = "11px"
     keyboardHint.style.marginBottom = "8px"
     keyboardHint.textContent =
-      "Shortcuts: ↑/↓ focus · Shift+↑/↓ extend selection · Space toggle · Shift+Space range · ←/→ collapse/expand · Enter rename · Del delete · F/B reorder · Shift+F/B front/back · G/U structural"
+      "Shortcuts: ↑/↓ focus · Shift+↑/↓ extend selection · Home/End bounds · PgUp/PgDn page · Shift+PgUp/PgDn extend page · Space toggle · Shift+Space range · ←/→ collapse/expand · Enter rename · Del delete · F/B reorder · Shift+F/B front/back · G/U structural"
     contentRoot.appendChild(keyboardHint)
 
     this.renderRowFilterControls(contentRoot, ownerDocument, rowFilter)
@@ -1420,6 +1421,22 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
 
   private requestFocusedRowReveal(nodeId: string | null): void {
     this.#pendingFocusedRowRevealNodeId = nodeId
+  }
+
+  private resolveKeyboardPageNavigationStep(): number {
+    const focusTargetRoot = this.getFocusTargetRoot()
+    if (!focusTargetRoot) {
+      return 1
+    }
+
+    const scrollContainer =
+      this.resolveReviewCursorScrollContainer(focusTargetRoot) ?? focusTargetRoot
+    const viewportHeight = resolveElementViewportHeight(scrollContainer)
+    if (viewportHeight <= 0) {
+      return 1
+    }
+
+    return Math.max(1, Math.floor(viewportHeight / ROW_MIN_HEIGHT_PX) - 1)
   }
 
   private revealFocusedRowWithinComfortBandIfNeeded(): void {

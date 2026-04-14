@@ -712,6 +712,211 @@ describe("sidepanel keyboard shortcut controller", () => {
     expect(setFocusedNode).toHaveBeenCalledWith(secondNode.id)
   })
 
+  it("moves focus to the first and last visible row with Home and End", () => {
+    const setFocusedNode = vi.fn<(nodeId: string | null) => void>()
+    const firstNode = makeNode("el:A", "Alpha")
+    const middleNode = makeNode("el:B", "Beta")
+    const lastNode = makeNode("el:C", "Gamma")
+
+    const context: KeyboardShortcutContext = {
+      actions: {} as LayerManagerUiActions,
+      selection: {
+        elementIds: [],
+        nodes: [],
+        frameResolution: makeFrameResolution(null),
+      },
+      visibleNodes: [firstNode, middleNode, lastNode],
+      nodeById: new Map([
+        [firstNode.id, firstNode],
+        [middleNode.id, middleNode],
+        [lastNode.id, lastNode],
+      ]),
+      parentById: new Map([
+        [firstNode.id, null],
+        [middleNode.id, null],
+        [lastNode.id, null],
+      ]),
+    }
+
+    const controller = new SidepanelKeyboardShortcutController({
+      getKeyboardContext: () => context,
+      resolveKeyboardContext: (resolvedContext) => resolvedContext,
+      getFocusedNodeId: () => middleNode.id,
+      setFocusedNodeIdSilently: () => {},
+      setFocusedNode,
+      getInlineRenameNodeId: () => null,
+      beginInlineRename: () => {},
+      commitInlineRename: vi.fn(async () => {}),
+      setSelectionOverride: () => {},
+      ensureHostViewContext: () => true,
+      moveSelectionToRoot: vi.fn(async () => {}),
+      setLastQuickMoveDestinationToRoot: () => {},
+      isTextInputTarget: () => false,
+      isKeyboardSuppressed: () => false,
+      releaseKeyboardCapture: () => {},
+      suppressTransientFocusOut: () => {},
+      notify: () => {},
+      runUiAction: () => {},
+      requestRenderFromLatestModel: () => {},
+    })
+
+    controller.handleContentKeydown(makeKeyboardEvent("Home"))
+    controller.handleContentKeydown(makeKeyboardEvent("End"))
+
+    expect(setFocusedNode).toHaveBeenNthCalledWith(1, firstNode.id)
+    expect(setFocusedNode).toHaveBeenNthCalledWith(2, lastNode.id)
+  })
+
+  it("moves focus by a page with PageDown and PageUp", () => {
+    const setFocusedNode = vi.fn<(nodeId: string | null) => void>()
+    const firstNode = makeNode("el:A", "Alpha")
+    const secondNode = makeNode("el:B", "Beta")
+    const thirdNode = makeNode("el:C", "Gamma")
+    const fourthNode = makeNode("el:D", "Delta")
+    const fifthNode = makeNode("el:E", "Epsilon")
+
+    const context: KeyboardShortcutContext = {
+      actions: {} as LayerManagerUiActions,
+      selection: {
+        elementIds: [],
+        nodes: [],
+        frameResolution: makeFrameResolution(null),
+      },
+      visibleNodes: [firstNode, secondNode, thirdNode, fourthNode, fifthNode],
+      nodeById: new Map([
+        [firstNode.id, firstNode],
+        [secondNode.id, secondNode],
+        [thirdNode.id, thirdNode],
+        [fourthNode.id, fourthNode],
+        [fifthNode.id, fifthNode],
+      ]),
+      parentById: new Map([
+        [firstNode.id, null],
+        [secondNode.id, null],
+        [thirdNode.id, null],
+        [fourthNode.id, null],
+        [fifthNode.id, null],
+      ]),
+    }
+
+    const focusedNodeIds = [secondNode.id, fourthNode.id]
+    let focusedIndex = 0
+
+    const controller = new SidepanelKeyboardShortcutController({
+      getKeyboardContext: () => context,
+      resolveKeyboardContext: (resolvedContext) => resolvedContext,
+      getFocusedNodeId: () => focusedNodeIds[focusedIndex] ?? null,
+      setFocusedNodeIdSilently: () => {},
+      setFocusedNode: (nodeId) => {
+        setFocusedNode(nodeId)
+        focusedIndex += 1
+      },
+      getInlineRenameNodeId: () => null,
+      beginInlineRename: () => {},
+      commitInlineRename: vi.fn(async () => {}),
+      setSelectionOverride: () => {},
+      getPageNavigationStep: () => 2,
+      ensureHostViewContext: () => true,
+      moveSelectionToRoot: vi.fn(async () => {}),
+      setLastQuickMoveDestinationToRoot: () => {},
+      isTextInputTarget: () => false,
+      isKeyboardSuppressed: () => false,
+      releaseKeyboardCapture: () => {},
+      suppressTransientFocusOut: () => {},
+      notify: () => {},
+      runUiAction: () => {},
+      requestRenderFromLatestModel: () => {},
+    })
+
+    controller.handleContentKeydown(makeKeyboardEvent("PageDown"))
+    controller.handleContentKeydown(makeKeyboardEvent("PageUp"))
+
+    expect(setFocusedNode).toHaveBeenNthCalledWith(1, fourthNode.id)
+    expect(setFocusedNode).toHaveBeenNthCalledWith(2, secondNode.id)
+  })
+
+  it("extends explicit selection across a page range on Shift+PageDown", () => {
+    const firstNode = makeNode("el:A", "Alpha")
+    const secondNode = makeNode("el:B", "Beta")
+    const thirdNode = makeNode("el:C", "Gamma")
+    const fourthNode = makeNode("el:D", "Delta")
+    const fifthNode = makeNode("el:E", "Epsilon")
+    const setSelectionOverrideWithNodes =
+      vi.fn<(elementIds: readonly string[], nodes: readonly LayerNode[]) => void>()
+    const setSelectionAnchorNodeId = vi.fn<(nodeId: string | null) => void>()
+    const mirrorSelectionToHost = vi.fn<(elementIds: readonly string[]) => void>()
+    const requestRenderFromLatestModel = vi.fn<() => void>()
+    const setFocusedNode = vi.fn<(nodeId: string | null) => void>()
+
+    const context: KeyboardShortcutContext = {
+      actions: {} as LayerManagerUiActions,
+      selection: {
+        elementIds: [firstNode.id],
+        nodes: [firstNode],
+        frameResolution: makeFrameResolution(null),
+      },
+      explicitSelectedNodes: [firstNode],
+      anchorNodeId: firstNode.id,
+      visibleNodes: [firstNode, secondNode, thirdNode, fourthNode, fifthNode],
+      nodeById: new Map([
+        [firstNode.id, firstNode],
+        [secondNode.id, secondNode],
+        [thirdNode.id, thirdNode],
+        [fourthNode.id, fourthNode],
+        [fifthNode.id, fifthNode],
+      ]),
+      parentById: new Map([
+        [firstNode.id, null],
+        [secondNode.id, null],
+        [thirdNode.id, null],
+        [fourthNode.id, null],
+        [fifthNode.id, null],
+      ]),
+    }
+
+    const controller = new SidepanelKeyboardShortcutController({
+      getKeyboardContext: () => context,
+      resolveKeyboardContext: (resolvedContext) => resolvedContext,
+      getFocusedNodeId: () => secondNode.id,
+      setFocusedNodeIdSilently: () => {},
+      setFocusedNode,
+      getInlineRenameNodeId: () => null,
+      beginInlineRename: () => {},
+      commitInlineRename: vi.fn(async () => {}),
+      setSelectionOverride: () => {},
+      setSelectionOverrideWithNodes,
+      setSelectionAnchorNodeId,
+      mirrorSelectionToHost,
+      getPageNavigationStep: () => 2,
+      ensureHostViewContext: () => true,
+      moveSelectionToRoot: vi.fn(async () => {}),
+      setLastQuickMoveDestinationToRoot: () => {},
+      isTextInputTarget: () => false,
+      isKeyboardSuppressed: () => false,
+      releaseKeyboardCapture: () => {},
+      suppressTransientFocusOut: () => {},
+      notify: () => {},
+      runUiAction: () => {},
+      requestRenderFromLatestModel,
+    })
+
+    controller.handleContentKeydown(makeKeyboardEvent("PageDown", { shiftKey: true }))
+
+    expect(setSelectionAnchorNodeId).toHaveBeenCalledWith(firstNode.id)
+    expect(setSelectionOverrideWithNodes).toHaveBeenCalledWith(
+      [firstNode.id, secondNode.id, thirdNode.id, fourthNode.id],
+      [firstNode, secondNode, thirdNode, fourthNode],
+    )
+    expect(mirrorSelectionToHost).toHaveBeenCalledWith([
+      firstNode.id,
+      secondNode.id,
+      thirdNode.id,
+      fourthNode.id,
+    ])
+    expect(requestRenderFromLatestModel).toHaveBeenCalledTimes(1)
+    expect(setFocusedNode).toHaveBeenCalledWith(fourthNode.id)
+  })
+
   it("restores first-row focus and expands collapsed groups when ArrowRight starts without a focused row", () => {
     const toggleExpanded = vi.fn<(nodeId: string) => void>()
     const setFocusedNode = vi.fn<(nodeId: string | null) => void>()

@@ -238,6 +238,10 @@ describe("sidepanel focus + keyboard integration", () => {
       { key: "ArrowUp", metaKey: true },
       { key: "ArrowRight", altKey: true },
       { key: "ArrowLeft", ctrlKey: true },
+      { key: "Home", metaKey: true },
+      { key: "End", ctrlKey: true },
+      { key: "PageDown", altKey: true },
+      { key: "PageUp", ctrlKey: true },
       { key: "Enter", metaKey: true },
       { key: "Delete", altKey: true },
       { key: "f", ctrlKey: true },
@@ -268,6 +272,8 @@ describe("sidepanel focus + keyboard integration", () => {
       dispatchKeydown(contentRoot, "f", { eventTarget: textTarget })
       dispatchKeydown(contentRoot, "Delete", { eventTarget: textTarget })
       dispatchKeydown(contentRoot, "ArrowRight", { eventTarget: textTarget })
+      dispatchKeydown(contentRoot, "Home", { eventTarget: textTarget })
+      dispatchKeydown(contentRoot, "PageDown", { eventTarget: textTarget })
       dispatchKeydown(contentRoot, "Enter", { eventTarget: textTarget })
     }
 
@@ -286,6 +292,136 @@ describe("sidepanel focus + keyboard integration", () => {
     expect(commandSpies.createGroup).not.toHaveBeenCalled()
     expect(commandSpies.reparent).not.toHaveBeenCalled()
     expect(commandSpies.deleteNode).not.toHaveBeenCalled()
+  })
+
+  it("supports Home End and PageUp PageDown focus navigation", async () => {
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    sidepanelTab.contentEl.clientHeight = 120
+    const { actions } = makeUiActions()
+    const reorderFromNodeIdsMock = actions.reorderFromNodeIds as unknown as ReturnType<typeof vi.fn>
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => ({}),
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: Array.from({ length: 12 }, (_, index) =>
+        makeElementNode(`${index + 1}`, `Row ${index + 1}`),
+      ),
+      selectedIds: new Set(),
+      sceneVersion: 31,
+      actions,
+    })
+
+    let contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowDown")
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "PageDown")
+    await flushAsync()
+
+    const scrollTopAfterPageDown = sidepanelTab.contentEl.scrollTop
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "f")
+    await flushAsync()
+
+    const pageDownTargetNodeIds = reorderFromNodeIdsMock.mock.calls[0]?.[0] as
+      | readonly string[]
+      | undefined
+
+    expect(pageDownTargetNodeIds).toBeDefined()
+    expect(pageDownTargetNodeIds?.[0]).not.toBe("el:1")
+    expect(scrollTopAfterPageDown).toBeGreaterThan(0)
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "PageUp")
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "f")
+    await flushAsync()
+
+    const pageUpTargetNodeIds = reorderFromNodeIdsMock.mock.calls[1]?.[0] as
+      | readonly string[]
+      | undefined
+
+    expect(pageUpTargetNodeIds).toBeDefined()
+    expect(Number((pageUpTargetNodeIds?.[0] ?? "el:0").replace("el:", ""))).toBeLessThan(
+      Number((pageDownTargetNodeIds?.[0] ?? "el:0").replace("el:", "")),
+    )
+    expect(sidepanelTab.contentEl.scrollTop).toBeLessThan(scrollTopAfterPageDown)
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "End")
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "f")
+    await flushAsync()
+
+    expect(reorderFromNodeIdsMock).toHaveBeenNthCalledWith(3, ["el:12"], "forward")
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "Home")
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "f")
+    await flushAsync()
+
+    expect(reorderFromNodeIdsMock).toHaveBeenNthCalledWith(4, ["el:1"], "forward")
+  })
+
+  it("extends selection by page from the current anchor with Shift+PageDown", async () => {
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    sidepanelTab.contentEl.clientHeight = 120
+    const { actions } = makeUiActions()
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => ({}),
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: Array.from({ length: 12 }, (_, index) =>
+        makeElementNode(`${index + 1}`, `Row ${index + 1}`),
+      ),
+      selectedIds: new Set(),
+      sceneVersion: 31,
+      actions,
+    })
+
+    let contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "Space")
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "PageDown")
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "PageDown", { shiftKey: true })
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "f")
+    await flushAsync()
+
+    expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(
+      Array.from({ length: 11 }, (_, index) => `el:${index + 1}`),
+      "forward",
+    )
   })
 
   it("keeps document-level keyboard routing continuity after row-action rename blur transition", async () => {
