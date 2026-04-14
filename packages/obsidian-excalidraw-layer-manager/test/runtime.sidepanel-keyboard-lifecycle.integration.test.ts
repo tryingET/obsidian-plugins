@@ -1279,7 +1279,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect(groupC).toEqual(groupA)
   })
 
-  it("supports keyboard-only toggle and range selection with N alias semantics", async () => {
+  it("supports keyboard-only toggle and range selection with M alias semantics", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
       [
@@ -1293,7 +1293,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     createLayerManagerRuntime(runtime.ea)
 
     let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    dispatchKeydown(contentRoot, "n")
+    dispatchKeydown(contentRoot, "m")
     await flushAsync()
 
     let lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
@@ -1312,7 +1312,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     await flushAsync()
 
     contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    dispatchKeydown(contentRoot, "n", { shiftKey: true })
+    dispatchKeydown(contentRoot, "m", { shiftKey: true })
     await flushAsync()
 
     lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1

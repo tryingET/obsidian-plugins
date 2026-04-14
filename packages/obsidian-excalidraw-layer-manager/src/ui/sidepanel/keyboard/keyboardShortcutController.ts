@@ -196,7 +196,8 @@ export class SidepanelKeyboardShortcutController {
       event.key === " " ||
       event.key === "Space" ||
       event.key === "Spacebar" ||
-      normalizedKey === "n"
+      normalizedKey === "n" ||
+      normalizedKey === "m"
     ) {
       this.#host.suppressTransientFocusOut()
       claimHandledKeyboardEvent(event)

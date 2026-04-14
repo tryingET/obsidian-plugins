@@ -831,7 +831,7 @@ describe("sidepanel keyboard shortcut controller", () => {
     expect(requestRenderFromLatestModel).toHaveBeenCalledTimes(1)
   })
 
-  it("toggles the focused row into explicit selection on N alias", () => {
+  it("toggles the focused row into explicit selection on M alias", () => {
     const focusedNode = makeNode("el:B", "Beta")
     const setSelectionOverrideWithNodes =
       vi.fn<(elementIds: readonly string[], nodes: readonly LayerNode[]) => void>()
@@ -878,7 +878,7 @@ describe("sidepanel keyboard shortcut controller", () => {
       requestRenderFromLatestModel,
     })
 
-    controller.handleContentKeydown(makeKeyboardEvent("n"))
+    controller.handleContentKeydown(makeKeyboardEvent("m"))
 
     expect(setSelectionOverrideWithNodes).toHaveBeenCalledWith([focusedNode.id], [focusedNode])
     expect(requestRowTreeAutofocus).toHaveBeenCalledTimes(1)
