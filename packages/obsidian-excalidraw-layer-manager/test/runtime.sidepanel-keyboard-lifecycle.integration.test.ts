@@ -1059,6 +1059,49 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect(runtime.elements.find((element) => element.id === "B")?.isDeleted).toBe(false)
   })
 
+  it("keeps canonical selection ahead of focused-row fallback for keyboard reorder", async () => {
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    const { actions } = makeUiActions()
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => ({}),
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [makeElementNode("A", "Alpha"), makeElementNode("B", "Beta")],
+      selectedIds: new Set(["A"]),
+      sceneVersion: 11,
+      actions,
+    })
+
+    let contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowDown")
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowDown")
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const focusedRow = findFocusedInteractiveRow(contentRoot)
+    if (!focusedRow) {
+      throw new Error("Expected a focused row before keyboard reorder precedence check.")
+    }
+
+    expect((focusedRow as FakeDomElement & { ariaLabel?: string }).ariaLabel).toContain("Beta")
+
+    dispatchKeydown(contentRoot, "f")
+    await flushAsync()
+
+    expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(["el:A"], "forward")
+    expect(actions.reorderFromNodeIds).not.toHaveBeenCalledWith(["el:B"], "forward")
+  })
+
   it("extends keyboard selection with Shift+Arrow and groups selected rows with G", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,

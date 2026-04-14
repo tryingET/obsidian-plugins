@@ -401,17 +401,36 @@ export class SidepanelKeyboardShortcutController {
     }
   }
 
-  private async runKeyboardRenameFocused(context: KeyboardShortcutContext): Promise<void> {
+  /**
+   * Keyboard commands act on canonical selection first and only fall back to focused-row
+   * targeting when selection is empty.
+   */
+  private resolveFocusedNodeIdOrNotify(
+    context: KeyboardShortcutContext,
+    emptyMessage: string,
+  ): string | null {
     let focusedNodeId = this.#host.getFocusedNodeId()
 
     if (!focusedNodeId) {
       focusedNodeId = context.visibleNodes[0]?.id ?? null
-      if (!focusedNodeId) {
-        this.#host.notify("Keyboard rename requires at least one visible row.")
-        return
-      }
-
       this.#host.setFocusedNodeIdSilently(focusedNodeId)
+    }
+
+    if (!focusedNodeId) {
+      this.#host.notify(emptyMessage)
+      return null
+    }
+
+    return focusedNodeId
+  }
+
+  private async runKeyboardRenameFocused(context: KeyboardShortcutContext): Promise<void> {
+    const focusedNodeId = this.resolveFocusedNodeIdOrNotify(
+      context,
+      "Keyboard rename requires at least one visible row.",
+    )
+    if (!focusedNodeId) {
+      return
     }
 
     const focusedNode = context.nodeById.get(focusedNodeId)
@@ -455,14 +474,11 @@ export class SidepanelKeyboardShortcutController {
       return
     }
 
-    let focusedNodeId = this.#host.getFocusedNodeId()
+    const focusedNodeId = this.resolveFocusedNodeIdOrNotify(
+      context,
+      "Keyboard group requires selected elements or a focused row.",
+    )
     if (!focusedNodeId) {
-      focusedNodeId = context.visibleNodes[0]?.id ?? null
-      this.#host.setFocusedNodeIdSilently(focusedNodeId)
-    }
-
-    if (!focusedNodeId) {
-      this.#host.notify("Keyboard group requires selected elements or a focused row.")
       return
     }
 
@@ -489,14 +505,11 @@ export class SidepanelKeyboardShortcutController {
       return
     }
 
-    let focusedNodeId = this.#host.getFocusedNodeId()
+    const focusedNodeId = this.resolveFocusedNodeIdOrNotify(
+      context,
+      "Keyboard reorder requires selected elements or a focused row.",
+    )
     if (!focusedNodeId) {
-      focusedNodeId = context.visibleNodes[0]?.id ?? null
-      this.#host.setFocusedNodeIdSilently(focusedNodeId)
-    }
-
-    if (!focusedNodeId) {
-      this.#host.notify("Keyboard reorder requires selected elements or a focused row.")
       return
     }
 
@@ -509,14 +522,11 @@ export class SidepanelKeyboardShortcutController {
       return
     }
 
-    let focusedNodeId = this.#host.getFocusedNodeId()
+    const focusedNodeId = this.resolveFocusedNodeIdOrNotify(
+      context,
+      "Keyboard ungroup-like requires selected elements or a focused row.",
+    )
     if (!focusedNodeId) {
-      focusedNodeId = context.visibleNodes[0]?.id ?? null
-      this.#host.setFocusedNodeIdSilently(focusedNodeId)
-    }
-
-    if (!focusedNodeId) {
-      this.#host.notify("Keyboard ungroup-like requires selected elements or a focused row.")
       return
     }
 

@@ -266,6 +266,152 @@ describe("sidepanel keyboard shortcut controller", () => {
     expect(setLastQuickMoveDestinationToRoot).toHaveBeenCalledWith("Frame-A")
   })
 
+  it("keeps canonical selected rows ahead of focused-row fallback for keyboard reorder", async () => {
+    const selectedNode = makeNode("el:A", "Alpha")
+    const focusedNode = makeNode("el:B", "Beta")
+    const reorderFromNodeIds = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
+    const reorder = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
+    const runUiAction = vi.fn<(action: () => Promise<unknown>, fallbackMessage: string) => void>(
+      (action) => {
+        void action()
+      },
+    )
+
+    const context: KeyboardShortcutContext = {
+      actions: {
+        reorderFromNodeIds,
+        commands: {
+          reorder,
+        },
+      } as unknown as LayerManagerUiActions,
+      selection: {
+        elementIds: ["A"],
+        nodes: [selectedNode],
+        frameResolution: makeFrameResolution(null),
+      },
+      visibleNodes: [selectedNode, focusedNode],
+      nodeById: new Map([
+        [selectedNode.id, selectedNode],
+        [focusedNode.id, focusedNode],
+      ]),
+      parentById: new Map([
+        [selectedNode.id, null],
+        [focusedNode.id, null],
+      ]),
+    }
+
+    const controller = new SidepanelKeyboardShortcutController({
+      getKeyboardContext: () => context,
+      resolveKeyboardContext: (resolvedContext) => resolvedContext,
+      getFocusedNodeId: () => focusedNode.id,
+      setFocusedNodeIdSilently: () => {},
+      setFocusedNode: () => {},
+      getInlineRenameNodeId: () => null,
+      beginInlineRename: () => {},
+      commitInlineRename: vi.fn(async () => {}),
+      setSelectionOverride: () => {},
+      ensureHostViewContext: () => true,
+      moveSelectionToRoot: vi.fn(async () => {}),
+      setLastQuickMoveDestinationToRoot: () => {},
+      isTextInputTarget: () => false,
+      isKeyboardSuppressed: () => false,
+      releaseKeyboardCapture: () => {},
+      suppressTransientFocusOut: () => {},
+      notify: () => {},
+      runUiAction,
+      requestRenderFromLatestModel: () => {},
+    })
+
+    controller.handleContentKeydown(makeKeyboardEvent("f"))
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(reorderFromNodeIds).toHaveBeenCalledWith([selectedNode.id], "forward")
+    expect(reorderFromNodeIds).not.toHaveBeenCalledWith([focusedNode.id], "forward")
+    expect(reorder).not.toHaveBeenCalled()
+  })
+
+  it("routes delete, group, and ungroup-like through canonical selection before focused-row fallback", async () => {
+    const selectedNode = makeNode("el:A", "Alpha")
+    const focusedNode = makeNode("el:B", "Beta")
+    const deleteNode = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
+    const createGroup = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
+    const focusedDeleteFallback = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
+    const focusedGroupFallback = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
+    const focusedUngroupFallback = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
+    const moveSelectionToRoot = vi.fn(async () => {})
+    const runUiAction = vi.fn<(action: () => Promise<unknown>, fallbackMessage: string) => void>(
+      (action) => {
+        void action()
+      },
+    )
+
+    const context: KeyboardShortcutContext = {
+      actions: {
+        deleteNode: focusedDeleteFallback,
+        createGroupFromNodeIds: focusedGroupFallback,
+        reparentFromNodeIds: focusedUngroupFallback,
+        commands: {
+          deleteNode,
+          createGroup,
+        },
+      } as unknown as LayerManagerUiActions,
+      selection: {
+        elementIds: ["A"],
+        nodes: [selectedNode],
+        frameResolution: makeFrameResolution(null),
+      },
+      visibleNodes: [selectedNode, focusedNode],
+      nodeById: new Map([
+        [selectedNode.id, selectedNode],
+        [focusedNode.id, focusedNode],
+      ]),
+      parentById: new Map([
+        [selectedNode.id, null],
+        [focusedNode.id, null],
+      ]),
+    }
+
+    const controller = new SidepanelKeyboardShortcutController({
+      getKeyboardContext: () => context,
+      resolveKeyboardContext: (resolvedContext) => resolvedContext,
+      getFocusedNodeId: () => focusedNode.id,
+      setFocusedNodeIdSilently: () => {},
+      setFocusedNode: () => {},
+      getInlineRenameNodeId: () => null,
+      beginInlineRename: () => {},
+      commitInlineRename: vi.fn(async () => {}),
+      setSelectionOverride: () => {},
+      ensureHostViewContext: () => true,
+      moveSelectionToRoot,
+      setLastQuickMoveDestinationToRoot: () => {},
+      isTextInputTarget: () => false,
+      isKeyboardSuppressed: () => false,
+      releaseKeyboardCapture: () => {},
+      suppressTransientFocusOut: () => {},
+      notify: () => {},
+      runUiAction,
+      requestRenderFromLatestModel: () => {},
+    })
+
+    controller.handleContentKeydown(makeKeyboardEvent("Delete"))
+    controller.handleContentKeydown(makeKeyboardEvent("g"))
+    controller.handleContentKeydown(makeKeyboardEvent("u"))
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(deleteNode).toHaveBeenCalledWith({
+      elementIds: ["A"],
+    })
+    expect(focusedDeleteFallback).not.toHaveBeenCalled()
+    expect(createGroup).toHaveBeenCalledWith({
+      elementIds: ["A"],
+    })
+    expect(focusedGroupFallback).not.toHaveBeenCalled()
+    expect(moveSelectionToRoot).toHaveBeenCalledWith(context.actions, context.selection)
+    expect(focusedUngroupFallback).not.toHaveBeenCalled()
+  })
+
   it("preserves explicit row node refs when Shift+Arrow extends keyboard selection", () => {
     const setSelectionOverrideWithNodes =
       vi.fn<(elementIds: readonly string[], nodes: readonly LayerNode[]) => void>()

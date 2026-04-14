@@ -64,6 +64,11 @@ const resolveVisibleRangeNodes = (
   return visibleNodes.slice(start, end + 1)
 }
 
+/**
+ * Resolves visible-row click gestures into explicit row intent only.
+ * Range and anchor semantics stay bound to the current visible projection; command targeting
+ * is reconciled later against canonical selected element ids by the selection kernel.
+ */
 export const resolveRowClickSelection = (
   input: ResolveRowClickSelectionInput,
 ): RowClickSelectionResult => {

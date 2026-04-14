@@ -125,6 +125,11 @@ const resolveExplicitSelectedNodes = (
   return resolvedNodes
 }
 
+/**
+ * Selection precedence is explicit row intent first, then full-tree element ownership.
+ * Structural move intent is only derived from the explicit row branch; inferred element
+ * ownership must never silently gain structural authority.
+ */
 export const resolveSidepanelSelection = (input: {
   readonly tree: readonly StructuralLayerNode[]
   readonly selectedElementIds: readonly string[]
