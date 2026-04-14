@@ -26,8 +26,9 @@ export interface ResolvedSelection {
   /** Canonical selected element ids after host/snapshot reconciliation. */
   readonly elementIds: readonly string[]
   /**
-   * Row selection resolved from explicit row intent when present, otherwise from
-   * the full structural tree that owns the selected elements.
+   * Keyboard-first tree selection state: keep explicit row intent when present,
+   * otherwise resolve the owning rows from full structural truth for canonical
+   * element selection.
    */
   readonly nodes: readonly StructuralLayerNode[]
   /** Explicit row intent preserved across host/snapshot reconciliation when available. */
@@ -134,9 +135,12 @@ const resolveExplicitSelectedNodes = (
 }
 
 /**
- * Selection precedence is explicit row intent first, then full-tree element ownership.
- * Structural move intent is only derived from the explicit row branch; inferred element
- * ownership must never silently gain structural authority.
+ * Keyboard-first tree selection model:
+ * - explicit row intent is authoritative tree selection when available
+ * - canonical element selection resolves through full structural ownership only when
+ *   explicit row intent is absent
+ * - structural move intent is only derived from the explicit row branch, so inferred
+ *   ownership never silently gains structural authority
  */
 export const resolveSidepanelSelection = (input: {
   readonly tree: readonly StructuralLayerNode[]

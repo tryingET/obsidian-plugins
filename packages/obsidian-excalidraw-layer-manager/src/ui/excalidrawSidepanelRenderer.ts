@@ -111,6 +111,10 @@ const ICON_BUTTON_SIZE_PX = 16
 const TOOLBAR_FONT_SIZE_PX = 11
 const SIDEPANEL_LIFECYCLE_DEBUG_FLAG = "LMX_DEBUG_SIDEPANEL_LIFECYCLE"
 const SIDEPANEL_INTERACTION_DEBUG_FLAG = "LMX_DEBUG_SIDEPANEL_INTERACTION"
+/**
+ * On-panel summary of the keyboard-first tree selection model so the row surface
+ * advertises row intent before command fallback behavior.
+ */
 const SIDEPANEL_KEYBOARD_HINT_TEXT = [
   "Shortcuts: ↑/↓ focus rows",
   "Shift+↑/↓ extend row selection",

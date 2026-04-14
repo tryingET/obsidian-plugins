@@ -266,7 +266,7 @@ describe("sidepanel keyboard shortcut controller", () => {
     expect(setLastQuickMoveDestinationToRoot).toHaveBeenCalledWith("Frame-A")
   })
 
-  it("keeps explicit selected rows ahead of focused-row fallback for keyboard reorder", async () => {
+  it("uses explicit row selection before other keyboard reorder targets", async () => {
     const selectedNode = makeGroupNode("G", "Frame-A")
     const focusedNode = makeNode("el:B", "Beta")
     const reorderFromNodeIds = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
@@ -337,7 +337,7 @@ describe("sidepanel keyboard shortcut controller", () => {
     expect(reorder).not.toHaveBeenCalled()
   })
 
-  it("keeps canonical element selection ahead of focused-row fallback for keyboard reorder while staying on the command seam", async () => {
+  it("uses canonical element selection before focused-row fallback when tree selection is absent", async () => {
     const selectedNode = makeNode("el:A", "Alpha")
     const focusedNode = makeNode("el:B", "Beta")
     const reorderFromNodeIds = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
@@ -572,6 +572,65 @@ describe("sidepanel keyboard shortcut controller", () => {
     expect(focusedGroupFallback).not.toHaveBeenCalled()
     expect(moveSelectionToRoot).toHaveBeenCalledWith(context.actions, context.selection)
     expect(focusedUngroupFallback).not.toHaveBeenCalled()
+  })
+
+  it("falls back to the focused row when keyboard reorder has no tree or canonical selection", async () => {
+    const focusedNode = makeNode("el:B", "Beta")
+    const reorderFromNodeIds = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
+    const reorder = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
+    const runUiAction = vi.fn<(action: () => Promise<unknown>, fallbackMessage: string) => void>(
+      (action) => {
+        void action()
+      },
+    )
+
+    const context: KeyboardShortcutContext = {
+      actions: {
+        reorderFromNodeIds,
+        commands: {
+          reorder,
+        },
+      } as unknown as LayerManagerUiActions,
+      selection: {
+        elementIds: [],
+        nodes: [],
+        explicitSelectedNodes: null,
+        frameResolution: makeFrameResolution(null),
+      },
+      explicitSelectedNodes: null,
+      visibleNodes: [focusedNode],
+      nodeById: new Map([[focusedNode.id, focusedNode]]),
+      parentById: new Map([[focusedNode.id, null]]),
+    }
+
+    const controller = new SidepanelKeyboardShortcutController({
+      getKeyboardContext: () => context,
+      resolveKeyboardContext: (resolvedContext) => resolvedContext,
+      getFocusedNodeId: () => focusedNode.id,
+      setFocusedNodeIdSilently: () => {},
+      setFocusedNode: () => {},
+      getInlineRenameNodeId: () => null,
+      beginInlineRename: () => {},
+      commitInlineRename: vi.fn(async () => {}),
+      setSelectionOverride: () => {},
+      ensureHostViewContext: () => true,
+      moveSelectionToRoot: vi.fn(async () => {}),
+      setLastQuickMoveDestinationToRoot: () => {},
+      isTextInputTarget: () => false,
+      isKeyboardSuppressed: () => false,
+      releaseKeyboardCapture: () => {},
+      suppressTransientFocusOut: () => {},
+      notify: () => {},
+      runUiAction,
+      requestRenderFromLatestModel: () => {},
+    })
+
+    controller.handleContentKeydown(makeKeyboardEvent("f"))
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(reorderFromNodeIds).toHaveBeenCalledWith([focusedNode.id], "forward")
+    expect(reorder).not.toHaveBeenCalled()
   })
 
   it("fails closed with active-selection messaging when keyboard commands have no selection or visible focus target", async () => {

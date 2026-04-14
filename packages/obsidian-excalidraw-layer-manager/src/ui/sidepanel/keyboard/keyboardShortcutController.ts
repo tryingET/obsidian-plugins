@@ -583,8 +583,8 @@ export class SidepanelKeyboardShortcutController {
   }
 
   /**
-   * Keyboard commands act on explicit row selection first, then canonical element selection,
-   * and only fall back to focused-row targeting when selection is empty.
+   * Keyboard-first tree selection command precedence:
+   * explicit row selection -> canonical element selection -> focused-row fallback.
    */
   private resolveFocusedNodeIdOrNotify(
     context: KeyboardShortcutContext,

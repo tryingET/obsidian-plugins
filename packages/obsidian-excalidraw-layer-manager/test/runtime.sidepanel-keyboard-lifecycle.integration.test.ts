@@ -1167,7 +1167,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect(runtime.elements.find((element) => element.id === "B")?.isDeleted).toBe(false)
   })
 
-  it("keeps canonical selection ahead of focused-row fallback for keyboard reorder", async () => {
+  it("uses canonical element selection before focused-row fallback for keyboard reorder", async () => {
     const sidepanelTab = makeSidepanelTab(fakeDocument, null)
     const { actions, commandSpies } = makeUiActions()
 

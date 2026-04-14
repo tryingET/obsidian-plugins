@@ -120,7 +120,7 @@ describe("sidepanel focus + keyboard integration", () => {
     Reflect.deleteProperty(globalRecord, "document")
   })
 
-  it("supports focused-row keyboard fallback for reorder and rename", async () => {
+  it("uses focused-row keyboard fallback only after the tree selection model is empty", async () => {
     const sidepanelTab = makeSidepanelTab(fakeDocument, null)
     const { actions } = makeUiActions()
 
