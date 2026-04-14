@@ -925,9 +925,113 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(["group:Outer"], "front")
   })
 
+  it("routes toolbar grouping through explicit group row selection", async () => {
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    const { actions, commandSpies } = makeUiActions()
+    const previousPrompt = globalRecord["prompt"]
+    globalRecord["prompt"] = vi.fn(() => "  Nested Team  ")
+
+    try {
+      const renderer = createExcalidrawSidepanelRenderer({
+        sidepanelTab: sidepanelTab.tab,
+        getScriptSettings: () => ({}),
+      })
+
+      if (!renderer) {
+        throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+      }
+
+      renderer.render({
+        tree: [makeGroupNode("Outer", [makeElementNode("A"), makeElementNode("B")], false)],
+        selectedIds: new Set(),
+        sceneVersion: 11.5,
+        actions,
+      })
+
+      let contentRoot = getContentRoot(sidepanelTab.contentEl)
+      const groupRow = findInteractiveRowByLabel(contentRoot, "[group] Outer")
+      if (!groupRow) {
+        throw new Error("Expected collapsed group row for toolbar grouping test.")
+      }
+
+      groupRow.click()
+      await flushAsync()
+
+      contentRoot = getContentRoot(sidepanelTab.contentEl)
+      const groupButton = findButtonByExactText(contentRoot, "Group selected")
+      if (!groupButton) {
+        throw new Error("Expected toolbar group button to exist for explicit row selection.")
+      }
+
+      groupButton.click()
+      await flushAsync()
+
+      expect(actions.createGroupFromNodeIds).toHaveBeenCalledWith({
+        nodeIds: ["group:Outer"],
+        nameSeed: "Nested Team",
+      })
+      expect(commandSpies.createGroup).not.toHaveBeenCalled()
+    } finally {
+      globalRecord["prompt"] = previousPrompt
+    }
+  })
+
+  it("routes keyboard delete group reorder and ungroup-like through explicit group row selection", async () => {
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    const { actions, commandSpies } = makeUiActions()
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => ({}),
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [makeGroupNode("Outer", [makeElementNode("A"), makeElementNode("B")], false)],
+      selectedIds: new Set(),
+      sceneVersion: 11.75,
+      actions,
+    })
+
+    let contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const groupRow = findInteractiveRowByLabel(contentRoot, "[group] Outer")
+    if (!groupRow) {
+      throw new Error("Expected collapsed group row for explicit keyboard selection test.")
+    }
+
+    groupRow.click()
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "Delete")
+    dispatchKeydown(contentRoot, "g")
+    dispatchKeydown(contentRoot, "f")
+    dispatchKeydown(contentRoot, "u")
+    await flushAsync()
+
+    expect(actions.deleteNode).toHaveBeenCalledWith("group:Outer")
+    expect(actions.createGroupFromNodeIds).toHaveBeenCalledWith({
+      nodeIds: ["group:Outer"],
+    })
+    expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(["group:Outer"], "forward")
+    expect(actions.reparentFromNodeIds).toHaveBeenCalledWith({
+      nodeIds: ["group:Outer"],
+      sourceGroupId: "Outer",
+      targetParentPath: [],
+      targetFrameId: null,
+    })
+    expect(commandSpies.deleteNode).not.toHaveBeenCalled()
+    expect(commandSpies.createGroup).not.toHaveBeenCalled()
+    expect(commandSpies.reorder).not.toHaveBeenCalled()
+    expect(commandSpies.reparent).not.toHaveBeenCalled()
+  })
+
   it("routes toolbar reorder through canonical filtered row ids under active filter", async () => {
     const sidepanelTab = makeSidepanelTab(fakeDocument, null)
-    const { actions } = makeUiActions()
+    const { actions, commandSpies } = makeUiActions()
 
     const renderer = createExcalidrawSidepanelRenderer({
       sidepanelTab: sidepanelTab.tab,
@@ -964,7 +1068,11 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     reorderButton.click()
     await flushAsync()
 
-    expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(["el:Alpha"], "front")
+    expect(commandSpies.reorder).toHaveBeenCalledWith({
+      orderedElementIds: ["Alpha"],
+      mode: "front",
+    })
+    expect(actions.reorderFromNodeIds).not.toHaveBeenCalled()
   })
 
   it("routes drag-drop reorder through the active multi-row structural selection", async () => {
@@ -1061,7 +1169,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
 
   it("keeps canonical selection ahead of focused-row fallback for keyboard reorder", async () => {
     const sidepanelTab = makeSidepanelTab(fakeDocument, null)
-    const { actions } = makeUiActions()
+    const { actions, commandSpies } = makeUiActions()
 
     const renderer = createExcalidrawSidepanelRenderer({
       sidepanelTab: sidepanelTab.tab,
@@ -1098,8 +1206,11 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     dispatchKeydown(contentRoot, "f")
     await flushAsync()
 
-    expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(["el:A"], "forward")
-    expect(actions.reorderFromNodeIds).not.toHaveBeenCalledWith(["el:B"], "forward")
+    expect(commandSpies.reorder).toHaveBeenCalledWith({
+      orderedElementIds: ["A"],
+      mode: "forward",
+    })
+    expect(actions.reorderFromNodeIds).not.toHaveBeenCalled()
   })
 
   it("supports keyboard-only toggle and range selection with Space semantics", async () => {
@@ -1865,8 +1976,11 @@ describe("sidepanel keyboard + lifecycle parity", () => {
         dispatch: (contentRoot) => {
           dispatchKeydown(contentRoot, "f")
         },
-        assert: ({ actions }) => {
-          expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(["el:A"], "forward")
+        assert: ({ commandSpies }) => {
+          expect(commandSpies.reorder).toHaveBeenCalledWith({
+            orderedElementIds: ["A"],
+            mode: "forward",
+          })
         },
       },
       {
@@ -1876,8 +1990,11 @@ describe("sidepanel keyboard + lifecycle parity", () => {
         dispatch: (contentRoot) => {
           dispatchKeydown(contentRoot, "b")
         },
-        assert: ({ actions }) => {
-          expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(["el:A"], "backward")
+        assert: ({ commandSpies }) => {
+          expect(commandSpies.reorder).toHaveBeenCalledWith({
+            orderedElementIds: ["A"],
+            mode: "backward",
+          })
         },
       },
       {
@@ -1887,8 +2004,11 @@ describe("sidepanel keyboard + lifecycle parity", () => {
         dispatch: (contentRoot) => {
           dispatchKeydown(contentRoot, "f", { shiftKey: true })
         },
-        assert: ({ actions }) => {
-          expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(["el:A"], "front")
+        assert: ({ commandSpies }) => {
+          expect(commandSpies.reorder).toHaveBeenCalledWith({
+            orderedElementIds: ["A"],
+            mode: "front",
+          })
         },
       },
       {
@@ -1898,8 +2018,11 @@ describe("sidepanel keyboard + lifecycle parity", () => {
         dispatch: (contentRoot) => {
           dispatchKeydown(contentRoot, "b", { shiftKey: true })
         },
-        assert: ({ actions }) => {
-          expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(["el:A"], "back")
+        assert: ({ commandSpies }) => {
+          expect(commandSpies.reorder).toHaveBeenCalledWith({
+            orderedElementIds: ["A"],
+            mode: "back",
+          })
         },
       },
       {
@@ -2558,7 +2681,11 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     reorderButton.click()
     await flushAsync()
 
-    expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(["el:A"], "front")
+    expect(commandSpies.reorder).toHaveBeenCalledWith({
+      orderedElementIds: ["A"],
+      mode: "front",
+    })
+    expect(actions.reorderFromNodeIds).not.toHaveBeenCalled()
 
     rootButton.click()
     await flushAsync()

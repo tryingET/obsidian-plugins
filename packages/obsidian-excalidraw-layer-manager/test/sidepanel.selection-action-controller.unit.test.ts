@@ -100,6 +100,7 @@ const makeHarness = () => {
   const beginInteraction = vi.fn<() => void>()
   const endInteraction = vi.fn<() => void>()
   const createGroup = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
+  const createGroupFromNodeIds = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
   const reorder = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
   const reorderFromNodeIds = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
   const reparent = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
@@ -108,6 +109,7 @@ const makeHarness = () => {
   const actions = {
     beginInteraction,
     endInteraction,
+    createGroupFromNodeIds,
     reorderFromNodeIds,
     reparentFromNodeIds,
     commands: {
@@ -128,6 +130,7 @@ const makeHarness = () => {
     beginInteraction,
     endInteraction,
     createGroup,
+    createGroupFromNodeIds,
     reorder,
     reorderFromNodeIds,
     reparent,
@@ -139,7 +142,12 @@ describe("sidepanel selection action controller", () => {
   it("fails closed for groupSelected with less than two selected elements", async () => {
     const harness = makeHarness()
 
-    await harness.controller.groupSelected(harness.actions, ["el:A"])
+    await harness.controller.groupSelected(harness.actions, {
+      elementIds: ["el:A"],
+      nodes: [makeElementNode("el:A", "Frame-A")],
+      frameResolution: makeFrameResolution("Frame-A"),
+      explicitSelectedNodes: null,
+    })
 
     expect(harness.notify).toHaveBeenCalledWith(
       "Create group requires at least two selected elements.",
@@ -153,7 +161,12 @@ describe("sidepanel selection action controller", () => {
     await withPatchedGlobalPrompt(
       vi.fn(() => "  New Group  "),
       async () => {
-        await harness.controller.groupSelected(harness.actions, ["el:A", "el:B"])
+        await harness.controller.groupSelected(harness.actions, {
+          elementIds: ["el:A", "el:B"],
+          nodes: [makeElementNode("el:A", "Frame-A"), makeElementNode("el:B", "Frame-A")],
+          frameResolution: makeFrameResolution("Frame-A"),
+          explicitSelectedNodes: null,
+        })
       },
     )
 
@@ -166,7 +179,33 @@ describe("sidepanel selection action controller", () => {
     expect(harness.suppressKeyboardAfterPrompt).toHaveBeenCalledTimes(1)
   })
 
-  it("reorders through canonical selected node ids when row identities are available", async () => {
+  it("groups through explicit selected row ids when explicit row intent is available", async () => {
+    const harness = makeHarness()
+
+    await withPatchedGlobalPrompt(
+      vi.fn(() => "  Team Row  "),
+      async () => {
+        await harness.controller.groupSelected(harness.actions, {
+          elementIds: ["el:A", "el:B"],
+          nodes: [makeGroupNode("G", ["el:A", "el:B"], "Frame-A")],
+          explicitSelectedNodes: [makeGroupNode("G", ["el:A", "el:B"], "Frame-A")],
+          frameResolution: makeFrameResolution("Frame-A"),
+          structuralMove: {
+            nodeIds: ["group:G"],
+            sourceGroupId: "G",
+          },
+        })
+      },
+    )
+
+    expect(harness.createGroupFromNodeIds).toHaveBeenCalledWith({
+      nodeIds: ["group:G"],
+      nameSeed: "Team Row",
+    })
+    expect(harness.createGroup).not.toHaveBeenCalled()
+  })
+
+  it("reorders through explicit selected row ids when explicit row intent is available", async () => {
     const harness = makeHarness()
 
     await harness.controller.reorderSelected(
@@ -174,7 +213,12 @@ describe("sidepanel selection action controller", () => {
       {
         elementIds: ["el:A", "el:B"],
         nodes: [makeGroupNode("G", ["el:A", "el:B"], "Frame-A")],
+        explicitSelectedNodes: [makeGroupNode("G", ["el:A", "el:B"], "Frame-A")],
         frameResolution: makeFrameResolution("Frame-A"),
+        structuralMove: {
+          nodeIds: ["group:G"],
+          sourceGroupId: "G",
+        },
       },
       "front",
     )
@@ -183,14 +227,15 @@ describe("sidepanel selection action controller", () => {
     expect(harness.reorder).not.toHaveBeenCalled()
   })
 
-  it("falls back to raw selected element ids when canonical nodes are unavailable", async () => {
+  it("falls back to raw selected element ids when only canonical element selection is available", async () => {
     const harness = makeHarness()
 
     await harness.controller.reorderSelected(
       harness.actions,
       {
         elementIds: ["el:A"],
-        nodes: [],
+        nodes: [makeElementNode("el:A", "Frame-A")],
+        explicitSelectedNodes: null,
         frameResolution: makeFrameResolution("Frame-A"),
       },
       "forward",

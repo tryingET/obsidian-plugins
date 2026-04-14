@@ -6,6 +6,7 @@ import type { GroupReparentPreset } from "../quickmove/presetHelpers.js"
 import type { LastQuickMoveDestination } from "../quickmove/quickMovePersistenceService.js"
 import type { ResolvedSelection } from "../selection/selectionResolution.js"
 import {
+  resolveExplicitSelectionNodeIds,
   selectionIncludesFrameRows,
   selectionIncludesGroupRows,
 } from "../selection/structuralMoveSelection.js"
@@ -71,15 +72,13 @@ export class SidepanelSelectionActionController {
     this.#host = host
   }
 
-  async groupSelected(
-    actions: LayerManagerUiActions,
-    selectedElementIds: readonly string[],
-  ): Promise<void> {
-    if (selectedElementIds.length < 2) {
+  async groupSelected(actions: LayerManagerUiActions, selection: ResolvedSelection): Promise<void> {
+    if (selection.elementIds.length < 2) {
       this.#host.notify("Create group requires at least two selected elements.")
       return
     }
 
+    const explicitSelectedNodeIds = resolveExplicitSelectionNodeIds(selection)
     const promptResult = this.#host.promptService.promptWithInteraction(
       actions,
       "New group name (optional)",
@@ -93,16 +92,30 @@ export class SidepanelSelectionActionController {
 
     const nameSeed = promptResult.value.trim()
 
+    if (explicitSelectedNodeIds.length > 0) {
+      await actions.createGroupFromNodeIds(
+        nameSeed.length > 0
+          ? {
+              nodeIds: explicitSelectedNodeIds,
+              nameSeed,
+            }
+          : {
+              nodeIds: explicitSelectedNodeIds,
+            },
+      )
+      return
+    }
+
     if (nameSeed.length > 0) {
       await actions.commands.createGroup({
-        elementIds: selectedElementIds,
+        elementIds: selection.elementIds,
         nameSeed,
       })
       return
     }
 
     await actions.commands.createGroup({
-      elementIds: selectedElementIds,
+      elementIds: selection.elementIds,
     })
   }
 
@@ -111,9 +124,9 @@ export class SidepanelSelectionActionController {
     selection: ResolvedSelection,
     mode: ReorderMode,
   ): Promise<void> {
-    const selectedNodeIds = selection.nodes.map((node) => node.id)
-    if (selectedNodeIds.length > 0) {
-      await actions.reorderFromNodeIds(selectedNodeIds, mode)
+    const explicitSelectedNodeIds = resolveExplicitSelectionNodeIds(selection)
+    if (explicitSelectedNodeIds.length > 0) {
+      await actions.reorderFromNodeIds(explicitSelectedNodeIds, mode)
       return
     }
 

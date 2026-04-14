@@ -670,10 +670,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
           return
         }
 
-        await this.#selectionActionController.groupSelected(
-          model.actions,
-          resolvedSelection.elementIds,
-        )
+        await this.#selectionActionController.groupSelected(model.actions, resolvedSelection)
       },
       onReorderSelected: async (mode) => {
         if (!model.actions) {

@@ -299,7 +299,11 @@ describe("sidepanel quick-move + persistence integration", () => {
     reorderButton.click()
     await flushAsync()
 
-    expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(["el:A"], "front")
+    expect(commandSpies.reorder).toHaveBeenCalledWith({
+      orderedElementIds: ["A"],
+      mode: "front",
+    })
+    expect(actions.reorderFromNodeIds).not.toHaveBeenCalled()
 
     rootButton.click()
     await flushAsync()

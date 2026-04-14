@@ -266,8 +266,8 @@ describe("sidepanel keyboard shortcut controller", () => {
     expect(setLastQuickMoveDestinationToRoot).toHaveBeenCalledWith("Frame-A")
   })
 
-  it("keeps canonical selected rows ahead of focused-row fallback for keyboard reorder", async () => {
-    const selectedNode = makeNode("el:A", "Alpha")
+  it("keeps explicit selected rows ahead of focused-row fallback for keyboard reorder", async () => {
+    const selectedNode = makeGroupNode("G", "Frame-A")
     const focusedNode = makeNode("el:B", "Beta")
     const reorderFromNodeIds = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
     const reorder = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
@@ -285,10 +285,16 @@ describe("sidepanel keyboard shortcut controller", () => {
         },
       } as unknown as LayerManagerUiActions,
       selection: {
-        elementIds: ["A"],
+        elementIds: ["A", "B"],
         nodes: [selectedNode],
-        frameResolution: makeFrameResolution(null),
+        explicitSelectedNodes: [selectedNode],
+        frameResolution: makeFrameResolution("Frame-A"),
+        structuralMove: {
+          nodeIds: [selectedNode.id],
+          sourceGroupId: "G",
+        },
       },
+      explicitSelectedNodes: [selectedNode],
       visibleNodes: [selectedNode, focusedNode],
       nodeById: new Map([
         [selectedNode.id, selectedNode],
@@ -331,13 +337,82 @@ describe("sidepanel keyboard shortcut controller", () => {
     expect(reorder).not.toHaveBeenCalled()
   })
 
-  it("routes delete, group, and ungroup-like through canonical selection before focused-row fallback", async () => {
+  it("keeps canonical selected elements ahead of focused-row fallback for keyboard reorder while staying on the command seam", async () => {
     const selectedNode = makeNode("el:A", "Alpha")
     const focusedNode = makeNode("el:B", "Beta")
-    const deleteNode = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
-    const createGroup = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
-    const focusedDeleteFallback = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
-    const focusedGroupFallback = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
+    const reorderFromNodeIds = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
+    const reorder = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
+    const runUiAction = vi.fn<(action: () => Promise<unknown>, fallbackMessage: string) => void>(
+      (action) => {
+        void action()
+      },
+    )
+
+    const context: KeyboardShortcutContext = {
+      actions: {
+        reorderFromNodeIds,
+        commands: {
+          reorder,
+        },
+      } as unknown as LayerManagerUiActions,
+      selection: {
+        elementIds: ["A"],
+        nodes: [selectedNode],
+        explicitSelectedNodes: null,
+        frameResolution: makeFrameResolution(null),
+      },
+      explicitSelectedNodes: null,
+      visibleNodes: [selectedNode, focusedNode],
+      nodeById: new Map([
+        [selectedNode.id, selectedNode],
+        [focusedNode.id, focusedNode],
+      ]),
+      parentById: new Map([
+        [selectedNode.id, null],
+        [focusedNode.id, null],
+      ]),
+    }
+
+    const controller = new SidepanelKeyboardShortcutController({
+      getKeyboardContext: () => context,
+      resolveKeyboardContext: (resolvedContext) => resolvedContext,
+      getFocusedNodeId: () => focusedNode.id,
+      setFocusedNodeIdSilently: () => {},
+      setFocusedNode: () => {},
+      getInlineRenameNodeId: () => null,
+      beginInlineRename: () => {},
+      commitInlineRename: vi.fn(async () => {}),
+      setSelectionOverride: () => {},
+      ensureHostViewContext: () => true,
+      moveSelectionToRoot: vi.fn(async () => {}),
+      setLastQuickMoveDestinationToRoot: () => {},
+      isTextInputTarget: () => false,
+      isKeyboardSuppressed: () => false,
+      releaseKeyboardCapture: () => {},
+      suppressTransientFocusOut: () => {},
+      notify: () => {},
+      runUiAction,
+      requestRenderFromLatestModel: () => {},
+    })
+
+    controller.handleContentKeydown(makeKeyboardEvent("f"))
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(reorder).toHaveBeenCalledWith({
+      orderedElementIds: ["A"],
+      mode: "forward",
+    })
+    expect(reorderFromNodeIds).not.toHaveBeenCalled()
+  })
+
+  it("routes delete, group, and ungroup-like through explicit row selection before focused-row fallback", async () => {
+    const selectedNode = makeGroupNode("G", "Frame-A")
+    const focusedNode = makeNode("el:B", "Beta")
+    const commandDeleteNode = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
+    const commandCreateGroup = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
+    const explicitDeleteAction = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
+    const explicitGroupAction = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
     const focusedUngroupFallback = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
     const moveSelectionToRoot = vi.fn(async () => {})
     const runUiAction = vi.fn<(action: () => Promise<unknown>, fallbackMessage: string) => void>(
@@ -348,19 +423,25 @@ describe("sidepanel keyboard shortcut controller", () => {
 
     const context: KeyboardShortcutContext = {
       actions: {
-        deleteNode: focusedDeleteFallback,
-        createGroupFromNodeIds: focusedGroupFallback,
+        deleteNode: explicitDeleteAction,
+        createGroupFromNodeIds: explicitGroupAction,
         reparentFromNodeIds: focusedUngroupFallback,
         commands: {
-          deleteNode,
-          createGroup,
+          deleteNode: commandDeleteNode,
+          createGroup: commandCreateGroup,
         },
       } as unknown as LayerManagerUiActions,
       selection: {
-        elementIds: ["A"],
+        elementIds: ["A", "B"],
         nodes: [selectedNode],
-        frameResolution: makeFrameResolution(null),
+        explicitSelectedNodes: [selectedNode],
+        frameResolution: makeFrameResolution("Frame-A"),
+        structuralMove: {
+          nodeIds: [selectedNode.id],
+          sourceGroupId: "G",
+        },
       },
+      explicitSelectedNodes: [selectedNode],
       visibleNodes: [selectedNode, focusedNode],
       nodeById: new Map([
         [selectedNode.id, selectedNode],
@@ -400,11 +481,92 @@ describe("sidepanel keyboard shortcut controller", () => {
     await Promise.resolve()
     await Promise.resolve()
 
-    expect(deleteNode).toHaveBeenCalledWith({
+    expect(explicitDeleteAction).toHaveBeenCalledWith(selectedNode.id)
+    expect(commandDeleteNode).not.toHaveBeenCalled()
+    expect(explicitGroupAction).toHaveBeenCalledWith({
+      nodeIds: [selectedNode.id],
+    })
+    expect(commandCreateGroup).not.toHaveBeenCalled()
+    expect(moveSelectionToRoot).toHaveBeenCalledWith(context.actions, context.selection)
+    expect(focusedUngroupFallback).not.toHaveBeenCalled()
+  })
+
+  it("routes delete, group, and ungroup-like through canonical selection before focused-row fallback", async () => {
+    const selectedNode = makeNode("el:A", "Alpha")
+    const focusedNode = makeNode("el:B", "Beta")
+    const commandDeleteNode = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
+    const commandCreateGroup = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
+    const focusedDeleteFallback = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
+    const focusedGroupFallback = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
+    const focusedUngroupFallback = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
+    const moveSelectionToRoot = vi.fn(async () => {})
+    const runUiAction = vi.fn<(action: () => Promise<unknown>, fallbackMessage: string) => void>(
+      (action) => {
+        void action()
+      },
+    )
+
+    const context: KeyboardShortcutContext = {
+      actions: {
+        deleteNode: focusedDeleteFallback,
+        createGroupFromNodeIds: focusedGroupFallback,
+        reparentFromNodeIds: focusedUngroupFallback,
+        commands: {
+          deleteNode: commandDeleteNode,
+          createGroup: commandCreateGroup,
+        },
+      } as unknown as LayerManagerUiActions,
+      selection: {
+        elementIds: ["A"],
+        nodes: [selectedNode],
+        explicitSelectedNodes: null,
+        frameResolution: makeFrameResolution(null),
+      },
+      explicitSelectedNodes: null,
+      visibleNodes: [selectedNode, focusedNode],
+      nodeById: new Map([
+        [selectedNode.id, selectedNode],
+        [focusedNode.id, focusedNode],
+      ]),
+      parentById: new Map([
+        [selectedNode.id, null],
+        [focusedNode.id, null],
+      ]),
+    }
+
+    const controller = new SidepanelKeyboardShortcutController({
+      getKeyboardContext: () => context,
+      resolveKeyboardContext: (resolvedContext) => resolvedContext,
+      getFocusedNodeId: () => focusedNode.id,
+      setFocusedNodeIdSilently: () => {},
+      setFocusedNode: () => {},
+      getInlineRenameNodeId: () => null,
+      beginInlineRename: () => {},
+      commitInlineRename: vi.fn(async () => {}),
+      setSelectionOverride: () => {},
+      ensureHostViewContext: () => true,
+      moveSelectionToRoot,
+      setLastQuickMoveDestinationToRoot: () => {},
+      isTextInputTarget: () => false,
+      isKeyboardSuppressed: () => false,
+      releaseKeyboardCapture: () => {},
+      suppressTransientFocusOut: () => {},
+      notify: () => {},
+      runUiAction,
+      requestRenderFromLatestModel: () => {},
+    })
+
+    controller.handleContentKeydown(makeKeyboardEvent("Delete"))
+    controller.handleContentKeydown(makeKeyboardEvent("g"))
+    controller.handleContentKeydown(makeKeyboardEvent("u"))
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(commandDeleteNode).toHaveBeenCalledWith({
       elementIds: ["A"],
     })
     expect(focusedDeleteFallback).not.toHaveBeenCalled()
-    expect(createGroup).toHaveBeenCalledWith({
+    expect(commandCreateGroup).toHaveBeenCalledWith({
       elementIds: ["A"],
     })
     expect(focusedGroupFallback).not.toHaveBeenCalled()

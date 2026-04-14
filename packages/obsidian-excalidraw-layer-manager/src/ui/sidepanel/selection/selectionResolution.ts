@@ -30,6 +30,8 @@ export interface ResolvedSelection {
    * the full structural tree that owns the selected elements.
    */
   readonly nodes: readonly StructuralLayerNode[]
+  /** Explicit row intent preserved across host/snapshot reconciliation when available. */
+  readonly explicitSelectedNodes?: readonly StructuralLayerNode[] | null
   readonly frameResolution: SharedFrameResolution
   /**
    * Structural move intent is only valid when it came from explicit row intent.
@@ -155,6 +157,7 @@ export const resolveSidepanelSelection = (input: {
     selection: {
       elementIds: input.selectedElementIds,
       nodes: resolvedSelectionNodes,
+      explicitSelectedNodes,
       frameResolution: resolveSharedFrame(resolvedSelectionNodes),
       structuralMove: explicitSelectedNodes
         ? resolveStructuralMoveSelection(explicitSelectedNodes)

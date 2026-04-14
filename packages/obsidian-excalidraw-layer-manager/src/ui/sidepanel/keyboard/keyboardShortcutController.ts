@@ -4,7 +4,10 @@ import { didInteractionApply } from "../../interactionOutcome.js"
 import type { LayerManagerUiActions } from "../../renderer.js"
 import { resolveRowClickSelection } from "../selection/rowClickSelection.js"
 import type { ResolvedSelection } from "../selection/selectionResolution.js"
-import { resolveFocusedNodeStructuralMove } from "../selection/structuralMoveSelection.js"
+import {
+  resolveExplicitSelectionNodeIds,
+  resolveFocusedNodeStructuralMove,
+} from "../selection/structuralMoveSelection.js"
 
 export interface KeyboardShortcutContext {
   readonly actions: LayerManagerUiActions
@@ -624,6 +627,16 @@ export class SidepanelKeyboardShortcutController {
   private async runKeyboardDeleteSelectionOrFocused(
     context: KeyboardShortcutContext,
   ): Promise<void> {
+    const explicitSelectedNodeIds = resolveExplicitSelectionNodeIds({
+      explicitSelectedNodes: context.explicitSelectedNodes,
+    })
+    const explicitSelectedNodeId =
+      explicitSelectedNodeIds.length === 1 ? (explicitSelectedNodeIds[0] ?? null) : null
+    if (explicitSelectedNodeId) {
+      await context.actions.deleteNode(explicitSelectedNodeId)
+      return
+    }
+
     if (context.selection.elementIds.length > 0) {
       await context.actions.commands.deleteNode({
         elementIds: context.selection.elementIds,
@@ -641,6 +654,16 @@ export class SidepanelKeyboardShortcutController {
   }
 
   private async runKeyboardGroupSelection(context: KeyboardShortcutContext): Promise<void> {
+    const explicitSelectedNodeIds = resolveExplicitSelectionNodeIds({
+      explicitSelectedNodes: context.explicitSelectedNodes,
+    })
+    if (explicitSelectedNodeIds.length > 0) {
+      await context.actions.createGroupFromNodeIds({
+        nodeIds: explicitSelectedNodeIds,
+      })
+      return
+    }
+
     if (context.selection.elementIds.length > 0) {
       await context.actions.commands.createGroup({
         elementIds: context.selection.elementIds,
@@ -665,9 +688,11 @@ export class SidepanelKeyboardShortcutController {
     context: KeyboardShortcutContext,
     mode: ReorderMode,
   ): Promise<void> {
-    const selectedNodeIds = context.selection.nodes.map((node) => node.id)
-    if (selectedNodeIds.length > 0) {
-      await context.actions.reorderFromNodeIds(selectedNodeIds, mode)
+    const explicitSelectedNodeIds = resolveExplicitSelectionNodeIds({
+      explicitSelectedNodes: context.explicitSelectedNodes,
+    })
+    if (explicitSelectedNodeIds.length > 0) {
+      await context.actions.reorderFromNodeIds(explicitSelectedNodeIds, mode)
       return
     }
 

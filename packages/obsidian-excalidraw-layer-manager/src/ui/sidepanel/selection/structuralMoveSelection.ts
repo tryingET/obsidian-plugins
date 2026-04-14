@@ -9,6 +9,7 @@ export interface StructuralMoveSelection {
 interface StructuralSelectionLike {
   readonly elementIds: readonly string[]
   readonly nodes: readonly LayerNode[]
+  readonly explicitSelectedNodes?: readonly LayerNode[] | null | undefined
   readonly frameResolution: SharedFrameResolution
   readonly structuralMove?: StructuralMoveSelection | null
 }
@@ -54,6 +55,12 @@ export const resolveStructuralMoveSelection = (
     nodeIds: nodes.map((node) => node.id),
     sourceGroupId: null,
   }
+}
+
+export const resolveExplicitSelectionNodeIds = (
+  selection: Pick<StructuralSelectionLike, "explicitSelectedNodes">,
+): readonly string[] => {
+  return (selection.explicitSelectedNodes ?? []).map((node) => node.id)
 }
 
 export const resolveSelectionStructuralMove = (
