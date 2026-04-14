@@ -60,6 +60,7 @@ import {
   type SidepanelSelectionOverrideState,
   type SidepanelSelectionResolution,
   makeSidepanelSelectionNodeRef,
+  resolveCurrentSidepanelSelectionNodes,
   resolveSidepanelSelection,
 } from "./sidepanel/selection/selectionResolution.js"
 import { resolveStructuralSelectionIssue } from "./sidepanel/selection/structuralMoveSelection.js"
@@ -475,6 +476,12 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       setSelectionOverrideWithNodes: (elementIds, nodes) => {
         this.setSelectionOverrideFromNodes(elementIds, nodes)
       },
+      setSelectionAnchorNodeId: (nodeId) => {
+        this.#selectionAnchorNodeId = nodeId
+      },
+      mirrorSelectionToHost: (elementIds) => {
+        this.#hostSelectionBridge.mirrorSelectionToHost(elementIds)
+      },
       ensureHostViewContext: () => ensureHostViewContext(this.#host),
       ...(this.#host.selectElementsInView
         ? { selectElementsInView: this.#host.selectElementsInView }
@@ -540,8 +547,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     const selectionResolution = this.resolveSelection(structuralTree, selectedElementIds)
     this.#latestSelectionResolution = selectionResolution
     const resolvedSelection = selectionResolution.selection
-    const currentSelectedNodes =
-      selectionResolution.explicitSelectedNodes ?? resolvedSelection.nodes
+    const currentSelectedNodes = resolveCurrentSidepanelSelectionNodes(selectionResolution)
     const selectedNodeIds = new Set(currentSelectedNodes.map((node) => node.id))
     this.reconcileSelectionAnchor(currentSelectedNodes)
 
@@ -609,6 +615,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         actions: model.actions,
         selection: resolvedSelection,
         explicitSelectedNodes: selectionResolution.explicitSelectedNodes,
+        anchorNodeId: this.#selectionAnchorNodeId,
         visibleNodes,
         nodeById,
         parentById,
@@ -635,7 +642,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     keyboardHint.style.fontSize = "11px"
     keyboardHint.style.marginBottom = "8px"
     keyboardHint.textContent =
-      "Shortcuts: ↑/↓ focus · Shift+↑/↓ extend selection · ←/→ collapse/expand · Enter rename · Del delete · F/B reorder · Shift+F/B front/back · G/U structural"
+      "Shortcuts: ↑/↓ focus · Shift+↑/↓ extend selection · Space toggle · Shift+Space range · ←/→ collapse/expand · Enter rename · Del delete · F/B reorder · Shift+F/B front/back · G/U structural"
     contentRoot.appendChild(keyboardHint)
 
     this.renderRowFilterControls(contentRoot, ownerDocument, rowFilter)
@@ -1292,6 +1299,10 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       return
     }
 
+    if (this.#selectionOverrideState && this.#selectionAnchorNodeId) {
+      return
+    }
+
     if (
       this.#selectionAnchorNodeId &&
       selectedNodes.some((node) => node.id === this.#selectionAnchorNodeId)
@@ -1339,13 +1350,25 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     }
 
     const resolvedElementIds = this.resolveSelectedElementIds(new Set(context.selection.elementIds))
-    if (haveSameIdsInSameOrder(resolvedElementIds, context.selection.elementIds)) {
+    const selectionResolution = this.resolveSelection(latestModel.tree, resolvedElementIds)
+    const explicitSelectedNodeIds = (selectionResolution.explicitSelectedNodes ?? []).map(
+      (node) => node.id,
+    )
+    const contextExplicitNodeIds = (context.explicitSelectedNodes ?? []).map((node) => node.id)
+
+    if (
+      haveSameIdsInSameOrder(resolvedElementIds, context.selection.elementIds) &&
+      haveSameIds(explicitSelectedNodeIds, contextExplicitNodeIds) &&
+      context.anchorNodeId === this.#selectionAnchorNodeId
+    ) {
       return context
     }
 
     return {
       ...context,
-      selection: this.resolveSelection(latestModel.tree, resolvedElementIds).selection,
+      selection: selectionResolution.selection,
+      explicitSelectedNodes: selectionResolution.explicitSelectedNodes,
+      anchorNodeId: this.#selectionAnchorNodeId,
     }
   }
 

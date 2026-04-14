@@ -43,6 +43,12 @@ export interface SidepanelSelectionResolution {
   readonly explicitSelectedNodes: readonly StructuralLayerNode[] | null
 }
 
+export const resolveCurrentSidepanelSelectionNodes = (
+  resolution: SidepanelSelectionResolution,
+): readonly StructuralLayerNode[] => {
+  return resolution.explicitSelectedNodes ?? resolution.selection.nodes
+}
+
 const buildLayerNodeLookup = (
   tree: readonly StructuralLayerNode[],
 ): {

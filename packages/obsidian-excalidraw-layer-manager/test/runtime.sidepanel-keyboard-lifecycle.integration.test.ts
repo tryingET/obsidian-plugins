@@ -1102,6 +1102,72 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect(actions.reorderFromNodeIds).not.toHaveBeenCalledWith(["el:B"], "forward")
   })
 
+  it("supports keyboard-only toggle and range selection with Space semantics", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      [
+        { id: "C", type: "rectangle", isDeleted: false },
+        { id: "B", type: "rectangle", isDeleted: false },
+        { id: "A", type: "rectangle", isDeleted: false },
+      ],
+      [],
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+
+    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "Space")
+    await flushAsync()
+
+    let lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
+    let selectedIds = runtime.selectInView.mock.calls[lastSelectCallIndex]?.[0] as
+      | readonly string[]
+      | undefined
+
+    expect(selectedIds).toEqual(["A"])
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowDown")
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowDown")
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const focusedRowBeforeRange = findFocusedInteractiveRow(contentRoot)
+    if (!focusedRowBeforeRange) {
+      throw new Error("Expected a focused row before Shift+Space range selection.")
+    }
+
+    dispatchKeydown(contentRoot, "Space", { shiftKey: true })
+    await flushAsync()
+
+    lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
+    selectedIds = runtime.selectInView.mock.calls[lastSelectCallIndex]?.[0] as
+      | readonly string[]
+      | undefined
+
+    expect([...(selectedIds ?? [])].sort()).toEqual(["A", "B", "C"])
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const focusedRowAfterRange = findFocusedInteractiveRow(contentRoot)
+    if (!focusedRowAfterRange) {
+      throw new Error("Expected focused row to remain available after Shift+Space selection.")
+    }
+
+    dispatchKeydown(contentRoot, "g")
+    await flushAsync()
+
+    const groupA = runtime.elements.find((element) => element.id === "A")?.groupIds ?? []
+    const groupB = runtime.elements.find((element) => element.id === "B")?.groupIds ?? []
+    const groupC = runtime.elements.find((element) => element.id === "C")?.groupIds ?? []
+
+    expect(groupA.length).toBeGreaterThan(0)
+    expect(groupB).toEqual(groupA)
+    expect(groupC).toEqual(groupA)
+  })
+
   it("extends keyboard selection with Shift+Arrow and groups selected rows with G", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,

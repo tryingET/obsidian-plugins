@@ -2,6 +2,7 @@ import type { ReorderMode } from "../../../commands/reorderNode.js"
 import type { LayerNode } from "../../../model/tree.js"
 import { didInteractionApply } from "../../interactionOutcome.js"
 import type { LayerManagerUiActions } from "../../renderer.js"
+import { resolveRowClickSelection } from "../selection/rowClickSelection.js"
 import { appendUniqueIds } from "../selection/selectionIds.js"
 import type { ResolvedSelection } from "../selection/selectionResolution.js"
 import { resolveFocusedNodeStructuralMove } from "../selection/structuralMoveSelection.js"
@@ -10,6 +11,7 @@ export interface KeyboardShortcutContext {
   readonly actions: LayerManagerUiActions
   readonly selection: ResolvedSelection
   readonly explicitSelectedNodes?: readonly LayerNode[] | null
+  readonly anchorNodeId?: string | null
   readonly visibleNodes: readonly LayerNode[]
   readonly nodeById: ReadonlyMap<string, LayerNode>
   readonly parentById: ReadonlyMap<string, string | null>
@@ -36,6 +38,8 @@ interface SidepanelKeyboardShortcutControllerHost {
     elementIds: readonly string[],
     nodes: readonly LayerNode[],
   ) => void
+  setSelectionAnchorNodeId?: (nodeId: string | null) => void
+  mirrorSelectionToHost?: (elementIds: readonly string[]) => void
   ensureHostViewContext: () => boolean
   selectElementsInView?: (ids: string[]) => void
 
@@ -134,6 +138,17 @@ export class SidepanelKeyboardShortcutController {
       this.#host.suppressTransientFocusOut()
       event.preventDefault()
       this.handleArrowLeft(context)
+      return
+    }
+
+    if (event.key === " " || event.key === "Space" || event.key === "Spacebar") {
+      this.#host.suppressTransientFocusOut()
+      event.preventDefault()
+      if (event.shiftKey) {
+        this.selectVisibleRangeToFocusedNode(context)
+      } else {
+        this.toggleFocusedNodeSelection(context)
+      }
       return
     }
 
@@ -276,23 +291,102 @@ export class SidepanelKeyboardShortcutController {
       currentNode,
       nextNode,
     )
-    if (explicitSelectionNodes.length > 0 && this.#host.setSelectionOverrideWithNodes) {
-      this.#host.setSelectionOverrideWithNodes(nextSelectedElementIds, explicitSelectionNodes)
-    } else {
-      this.#host.setSelectionOverride(nextSelectedElementIds)
+
+    this.applyResolvedRowSelection({
+      selectedNodes: explicitSelectionNodes,
+      selectedElementIds: nextSelectedElementIds,
+      anchorNodeId: context.anchorNodeId ?? currentNode?.id ?? nextNode.id,
+    })
+
+    this.#host.setFocusedNode(nextNode.id)
+  }
+
+  private resolveFocusedNodeForSelectionGesture(
+    context: KeyboardShortcutContext,
+  ): LayerNode | null {
+    if (context.visibleNodes.length === 0) {
+      this.#host.setFocusedNodeIdSilently(null)
+      this.#host.notify("Keyboard selection requires at least one visible row.")
+      return null
     }
 
-    if (nextSelectedElementIds.length > 0 && this.#host.selectElementsInView) {
+    return this.resolveFocusedNodeForHorizontalNavigation(context)
+  }
+
+  private resolveCurrentSelectionNodes(context: KeyboardShortcutContext): readonly LayerNode[] {
+    return context.explicitSelectedNodes ?? context.selection.nodes
+  }
+
+  private applyResolvedRowSelection(input: {
+    readonly selectedNodes: readonly LayerNode[]
+    readonly selectedElementIds: readonly string[]
+    readonly anchorNodeId: string | null
+  }): void {
+    this.#host.setSelectionAnchorNodeId?.(input.anchorNodeId)
+
+    if (input.selectedNodes.length > 0 && this.#host.setSelectionOverrideWithNodes) {
+      this.#host.setSelectionOverrideWithNodes(input.selectedElementIds, input.selectedNodes)
+    } else if (input.selectedElementIds.length > 0) {
+      this.#host.setSelectionOverride(input.selectedElementIds)
+    } else {
+      this.#host.setSelectionOverride(null)
+    }
+
+    if (this.#host.mirrorSelectionToHost) {
+      this.#host.mirrorSelectionToHost(input.selectedElementIds)
+    } else if (this.#host.selectElementsInView) {
       this.#host.ensureHostViewContext()
 
       try {
-        this.#host.selectElementsInView(nextSelectedElementIds)
+        this.#host.selectElementsInView([...input.selectedElementIds])
       } catch {
-        // no-op: keep keyboard selection extension fail-soft when host bridge throws
+        // no-op: keep keyboard selection mutation fail-soft when host bridge throws
       }
     }
 
-    this.#host.setFocusedNode(nextNode.id)
+    this.#host.requestRenderFromLatestModel()
+  }
+
+  private toggleFocusedNodeSelection(context: KeyboardShortcutContext): void {
+    const focusedNode = this.resolveFocusedNodeForSelectionGesture(context)
+    if (!focusedNode) {
+      return
+    }
+
+    this.applyResolvedRowSelection(
+      resolveRowClickSelection({
+        clickedNode: focusedNode,
+        visibleNodes: context.visibleNodes,
+        currentSelectedNodes: this.resolveCurrentSelectionNodes(context),
+        currentAnchorNodeId: context.anchorNodeId ?? null,
+        fallbackAnchorNodeId: focusedNode.id,
+        modifiers: {
+          shiftKey: false,
+          toggleKey: true,
+        },
+      }),
+    )
+  }
+
+  private selectVisibleRangeToFocusedNode(context: KeyboardShortcutContext): void {
+    const focusedNode = this.resolveFocusedNodeForSelectionGesture(context)
+    if (!focusedNode) {
+      return
+    }
+
+    this.applyResolvedRowSelection(
+      resolveRowClickSelection({
+        clickedNode: focusedNode,
+        visibleNodes: context.visibleNodes,
+        currentSelectedNodes: this.resolveCurrentSelectionNodes(context),
+        currentAnchorNodeId: context.anchorNodeId ?? null,
+        fallbackAnchorNodeId: focusedNode.id,
+        modifiers: {
+          shiftKey: true,
+          toggleKey: false,
+        },
+      }),
+    )
   }
 
   private collectExplicitSelectionNodes(
