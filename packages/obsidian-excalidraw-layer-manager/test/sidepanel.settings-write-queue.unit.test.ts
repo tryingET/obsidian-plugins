@@ -5,9 +5,10 @@ import {
   SidepanelSettingsWriteQueue,
 } from "../src/ui/sidepanel/settings/settingsWriteQueue.js"
 
-const flushAsync = async (): Promise<void> => {
-  await Promise.resolve()
-  await Promise.resolve()
+const flushAsync = async (turns = 6): Promise<void> => {
+  for (let turn = 0; turn < turns; turn += 1) {
+    await Promise.resolve()
+  }
 }
 
 describe("sidepanel settings write queue", () => {
@@ -99,7 +100,9 @@ describe("sidepanel settings write queue", () => {
     expect(setScriptSettings).toHaveBeenCalledTimes(1)
 
     pendingResolvers.shift()?.()
-    await flushAsync()
+    for (let turn = 0; turn < 20 && setScriptSettings.mock.calls.length < 2; turn += 1) {
+      await flushAsync()
+    }
 
     expect(setScriptSettings).toHaveBeenCalledTimes(2)
 
@@ -130,5 +133,48 @@ describe("sidepanel settings write queue", () => {
 
     await expect(writeResult).resolves.toBe(false)
     expect(notify).toHaveBeenCalledWith("custom write failure")
+  })
+
+  it("resolves in-flight and queued writes as failed when disposed", async () => {
+    let settings: ScriptSettingsLike = {
+      flag: { value: false },
+    }
+
+    const pendingResolvers: Array<() => void> = []
+    const setScriptSettings = vi.fn((nextSettings: ScriptSettingsLike) => {
+      return new Promise<void>((resolve) => {
+        pendingResolvers.push(() => {
+          settings = structuredClone(nextSettings)
+          resolve()
+        })
+      })
+    })
+
+    const queue = new SidepanelSettingsWriteQueue({
+      getScriptSettings: () => settings,
+      setScriptSettings,
+      notify: vi.fn(),
+    })
+
+    const firstWrite = queue.enqueue((nextSettings) => {
+      nextSettings["flag"] = { value: true }
+    }, "write-1 failed")
+
+    const secondWrite = queue.enqueue((nextSettings) => {
+      nextSettings["flag"] = { value: false }
+    }, "write-2 failed")
+
+    expect(setScriptSettings).toHaveBeenCalledTimes(1)
+
+    queue.dispose()
+    await flushAsync()
+
+    await expect(firstWrite).resolves.toBe(false)
+    await expect(secondWrite).resolves.toBe(false)
+    expect(queue.canWrite).toBe(false)
+    expect(settings["flag"]?.value).toBe(false)
+
+    pendingResolvers.shift()?.()
+    await flushAsync()
   })
 })
