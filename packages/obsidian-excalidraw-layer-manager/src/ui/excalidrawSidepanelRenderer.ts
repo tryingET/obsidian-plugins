@@ -205,6 +205,16 @@ const isTextInputTarget = (target: EventTarget | null): boolean => {
   return tagName === "input" || tagName === "textarea" || tagName === "select"
 }
 
+const isSpaceLikeKey = (key: string): boolean => {
+  return key === " " || key === "Space" || key === "Spacebar"
+}
+
+const claimHandledKeyboardEvent = (event: KeyboardEvent): void => {
+  event.preventDefault()
+  event.stopPropagation?.()
+  ;(event as KeyboardEvent & { stopImmediatePropagation?: () => void }).stopImmediatePropagation?.()
+}
+
 const pluralize = (count: number, singular: string, plural = `${singular}s`): string => {
   return count === 1 ? singular : plural
 }
@@ -316,6 +326,38 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.#focusOwnership.activateKeyboardCapture()
 
     this.#keyboardController.handleContentKeydown(event)
+  }
+
+  readonly #documentKeypressHandler = (event: KeyboardEvent): void => {
+    if (!this.#focusOwnership.isKeyboardRoutingActive()) {
+      return
+    }
+
+    if (event.ctrlKey || event.metaKey || event.altKey) {
+      return
+    }
+
+    if (isTextInputTarget(event.target) || !isSpaceLikeKey(event.key)) {
+      return
+    }
+
+    claimHandledKeyboardEvent(event)
+  }
+
+  readonly #documentKeyupHandler = (event: KeyboardEvent): void => {
+    if (!this.#focusOwnership.isKeyboardRoutingActive()) {
+      return
+    }
+
+    if (event.ctrlKey || event.metaKey || event.altKey) {
+      return
+    }
+
+    if (isTextInputTarget(event.target) || !isSpaceLikeKey(event.key)) {
+      return
+    }
+
+    claimHandledKeyboardEvent(event)
   }
 
   readonly #contentFocusOutHandler = (event: FocusEvent): void => {
@@ -1112,6 +1154,17 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     addEventListener.call(ownerDocument, "keydown", this.#documentKeydownHandler as EventListener, {
       capture: true,
     })
+    addEventListener.call(
+      ownerDocument,
+      "keypress",
+      this.#documentKeypressHandler as EventListener,
+      {
+        capture: true,
+      },
+    )
+    addEventListener.call(ownerDocument, "keyup", this.#documentKeyupHandler as EventListener, {
+      capture: true,
+    })
     this.#ownerDocumentWithKeyCapture = ownerDocument
   }
 
@@ -1136,6 +1189,22 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         ownerDocument,
         "keydown",
         this.#documentKeydownHandler as EventListener,
+        {
+          capture: true,
+        },
+      )
+      removeEventListener.call(
+        ownerDocument,
+        "keypress",
+        this.#documentKeypressHandler as EventListener,
+        {
+          capture: true,
+        },
+      )
+      removeEventListener.call(
+        ownerDocument,
+        "keyup",
+        this.#documentKeyupHandler as EventListener,
         {
           capture: true,
         },

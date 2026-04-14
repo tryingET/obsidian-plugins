@@ -455,7 +455,12 @@ describe("sidepanel focus + keyboard integration", () => {
     const scrollTopAfterArrowFocus = sidepanelTab.contentEl.scrollTop
     expect(scrollTopAfterArrowFocus).toBeGreaterThan(0)
 
+    const followupKeypress = new FakeDomEvent("keypress", { key: " " })
+    const followupKeyup = new FakeDomEvent("keyup", { key: " " })
+
     dispatchKeydown(contentRoot, "Space")
+    fakeDocument.dispatchEvent(followupKeypress)
+    fakeDocument.dispatchEvent(followupKeyup)
     await flushAsync()
 
     contentRoot = getContentRoot(sidepanelTab.contentEl)
@@ -463,6 +468,10 @@ describe("sidepanel focus + keyboard integration", () => {
     expect(
       (selectedRow as (FakeDomElement & { ariaSelected?: string }) | undefined)?.ariaSelected,
     ).toBe("true")
+    expect(followupKeypress.defaultPrevented).toBe(true)
+    expect(followupKeypress.propagationStopped).toBe(true)
+    expect(followupKeyup.defaultPrevented).toBe(true)
+    expect(followupKeyup.propagationStopped).toBe(true)
     expect(fakeDocument.activeElement).toBe(findRowTreeRoot(contentRoot) ?? null)
     expect(sidepanelTab.contentEl.scrollTop).toBe(scrollTopAfterArrowFocus)
   })
