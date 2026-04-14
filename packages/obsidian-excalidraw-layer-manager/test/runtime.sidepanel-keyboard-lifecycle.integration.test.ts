@@ -1279,6 +1279,50 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect(groupC).toEqual(groupA)
   })
 
+  it("supports keyboard-only toggle and range selection with N alias semantics", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      [
+        { id: "C", type: "rectangle", isDeleted: false },
+        { id: "B", type: "rectangle", isDeleted: false },
+        { id: "A", type: "rectangle", isDeleted: false },
+      ],
+      [],
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+
+    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "n")
+    await flushAsync()
+
+    let lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
+    let selectedIds = runtime.selectInView.mock.calls[lastSelectCallIndex]?.[0] as
+      | readonly string[]
+      | undefined
+
+    expect(selectedIds).toEqual(["A"])
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowDown")
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowDown")
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "n", { shiftKey: true })
+    await flushAsync()
+
+    lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
+    selectedIds = runtime.selectInView.mock.calls[lastSelectCallIndex]?.[0] as
+      | readonly string[]
+      | undefined
+
+    expect([...(selectedIds ?? [])].sort()).toEqual(["A", "B", "C"])
+  })
+
   it("extends keyboard selection with Shift+Arrow and groups selected rows with G", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,

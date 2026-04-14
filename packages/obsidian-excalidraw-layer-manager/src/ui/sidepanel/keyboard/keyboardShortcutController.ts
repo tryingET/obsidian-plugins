@@ -118,6 +118,7 @@ export class SidepanelKeyboardShortcutController {
     }
 
     const context = this.#host.resolveKeyboardContext(baseContext)
+    const normalizedKey = event.key.length === 1 ? event.key.toLowerCase() : event.key
 
     if (event.key === "ArrowDown") {
       this.#host.suppressTransientFocusOut()
@@ -191,7 +192,12 @@ export class SidepanelKeyboardShortcutController {
       return
     }
 
-    if (event.key === " " || event.key === "Space" || event.key === "Spacebar") {
+    if (
+      event.key === " " ||
+      event.key === "Space" ||
+      event.key === "Spacebar" ||
+      normalizedKey === "n"
+    ) {
       this.#host.suppressTransientFocusOut()
       claimHandledKeyboardEvent(event)
       if (event.shiftKey) {
@@ -218,8 +224,6 @@ export class SidepanelKeyboardShortcutController {
       )
       return
     }
-
-    const normalizedKey = event.key.length === 1 ? event.key.toLowerCase() : event.key
 
     if (normalizedKey === "f") {
       this.#host.suppressTransientFocusOut()
