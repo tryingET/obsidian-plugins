@@ -10,6 +10,6 @@
     "check": "bash ./scripts/ci/smoke.sh && bash ./scripts/ci/package-gate.sh check-fast",
     "test": "bash ./scripts/ci/smoke.sh && bash ./scripts/ci/package-gate.sh test",
     "ci": "bash ./scripts/ci/full.sh",
-    "doctor": "node --version && npm --version && ./scripts/ak.sh --doctor && ./scripts/rocs.sh --doctor"
+    "doctor": "node --version && npm --version && ak --doctor && ./scripts/rocs.sh --doctor"
   }
 }

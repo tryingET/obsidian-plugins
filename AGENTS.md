@@ -53,12 +53,17 @@ governance/      # Optional AK-backed repo projections when they exist
 - Treat `docs/_core/**` as immutable.
 - Packages in `packages/` have no nested `.git` repos.
 - Apps in `apps/` have no nested `.git` repos.
-- If this repo later ships `governance/work-items.json`, treat it as an AK projection via `./scripts/ak.sh`, not as the live authority.
+- If this repo later ships `governance/work-items.json`, treat it as an AK projection via `ak`, not as the live authority.
 
 ## Deterministic tooling
-- Prefer `./scripts/rocs.sh <args...>` and `./scripts/ak.sh <args...>` before ad-hoc inline scripting.
+- Prefer `./scripts/rocs.sh <args...>` and `ak <args...>` before ad-hoc inline scripting.
 - Use inline Python/Node only as explicit escape hatches when no deterministic wrapper exists.
 - Root npm scripts and the root `Justfile` are the repo-wide command surface.
+
+
+## Direction workflow
+- When this repo's direction docs under `docs/project/` change, or when current posture needs verification, use `ak direction import|check|export` from the repo root.
+- Treat `ak direction check` as the authority-reconciliation gate between repo direction docs and AK's structured direction substrate.
 
 ## Read order
 1. `docs/_core/`

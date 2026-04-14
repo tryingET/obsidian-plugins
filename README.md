@@ -63,7 +63,7 @@ npm run ci      # smoke + package full gate
 npm run doctor
 
 # AK / ROCS wrappers
-./scripts/ak.sh --doctor
+ak --doctor
 ./scripts/rocs.sh --doctor
 ```
 

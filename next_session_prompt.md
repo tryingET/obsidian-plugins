@@ -14,7 +14,7 @@ Do not ask for permission to begin.
 ## AUTHORITATIVE ORDER
 Use these in this order:
 
-1. **Agent Kernel** — via `./scripts/ak.sh`, backed by the active AK DB (normally `~/ai-society/society.v2.db`)
+1. **Agent Kernel** — via `ak`, backed by the active AK DB (normally `~/ai-society/society.v2.db`)
 2. **Repo direction + package direction docs**
    - repo root: `README.md`, `docs/project/problem-statement.md`, `docs/project/2026-04-07-plugin-family-topology.md`, `docs/adr/2026-04-07-obsidian-plugin-family-owned-monorepo.md`, `docs/tech-stack.local.md`
    - active package surface when working on Layer Manager X: `packages/obsidian-excalidraw-layer-manager/{README.md,docs/project/vision.md,docs/project/strategic_goals.md,docs/project/tactical_goals.md,docs/project/operating_plan.md}`
@@ -26,12 +26,12 @@ Do **not** treat this file as a live status database, history log, or next-task 
 ## STABLE CONTEXT
 - Repo: `/home/tryinget/ai-society/softwareco/owned/obsidian-plugins`
 - Branch: `main`
-- Runtime/task authority: `./scripts/ak.sh` against the active AK DB
+- Runtime/task authority: `ak` against the active AK DB
 - Canonical runtime storage: the active `society.v2.db`; repo files are implementation/doc artifacts, not a second runtime DB
 - Checked-in work-items projection: **absent by design for now**; see `governance/README.md`
 - Current real implementation package: `packages/obsidian-excalidraw-layer-manager`
 - Host-boundary rule: Obsidian/lab-vault artifacts are local workbench/projection surfaces, not canonical AK/ROCS/Prompt Vault truth
-- Use repo-local wrappers before ad-hoc substitutions: `./scripts/ak.sh`, `./scripts/rocs.sh`, root `npm` scripts, root `Justfile`
+- Use repo-local wrappers before ad-hoc substitutions: `ak`, `./scripts/rocs.sh`, root `npm` scripts, root `Justfile`
 - Change this file only when the durable startup contract itself changes
 
 ## CURRENT ORIENTATION DOCS
@@ -62,7 +62,7 @@ Read these in order for fast orientation, then canonical state:
 
 ## DEFAULT READ PATH FOR NEXT SESSION
 1. Read this file.
-2. Run repo-local preflight (`git status --short`, `./scripts/ak.sh --doctor`, `./scripts/rocs.sh --doctor`).
+2. Run repo-local preflight (`git status --short`, `ak --doctor`, `./scripts/rocs.sh --doctor`).
 3. Query repo-local ready tasks.
 4. Read the root orientation docs.
 5. Read the package docs for the active package before touching code.
@@ -76,13 +76,13 @@ Read these in order for fast orientation, then canonical state:
 ```bash
 cd /home/tryinget/ai-society/softwareco/owned/obsidian-plugins
 git status --short
-./scripts/ak.sh --doctor
+ak --doctor
 ./scripts/rocs.sh --doctor
-./scripts/ak.sh task ready
+ak task ready
 find diary -maxdepth 1 -type f ! -name 'README.md' | sort | tail -n1
 
 # if a repo-local actionable task exists, claim it before implementation
-./scripts/ak.sh task claim --agent <agent-id> <task-id>
+ak task claim --agent <agent-id> <task-id>
 
 # package-local validation baseline for Layer Manager X work
 cd /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
@@ -99,7 +99,7 @@ node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs . --strict
 When ending a future session:
 1. write a new diary entry only when it adds durable value
 2. keep AK as the authority for task status / priority / readiness
-3. if this repo later gains `governance/work-items.json`, export/check it through `./scripts/ak.sh`; until then, do not invent one for closeout
+3. if this repo later gains `governance/work-items.json`, export/check it through `ak`; until then, do not invent one for closeout
 4. run the validations truthful to the touched scope
 5. commit resulting repo changes
 6. do **not** edit `next_session_prompt.md` unless the durable startup contract itself changed
