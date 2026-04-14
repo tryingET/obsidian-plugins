@@ -861,6 +861,8 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.#rememberedDestinationReconcileActor.stop()
     this.#promptInteractionService.dispose()
     this.#inlineRenameController.dispose()
+    this.#mountManager.dispose()
+    this.#focusOwnership.dispose()
     this.#latestModel = null
   }
 

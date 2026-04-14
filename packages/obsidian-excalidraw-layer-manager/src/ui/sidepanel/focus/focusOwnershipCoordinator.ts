@@ -1,3 +1,5 @@
+import { assign, createActor, setup } from "xstate"
+
 import { SidepanelFocusOutGuard } from "./focusOutGuard.js"
 
 interface SidepanelFocusOwnershipCoordinatorOptions {
@@ -18,61 +20,223 @@ interface FocusContentRootBestEffortInput {
   readonly isContentRootCurrent?: (contentRoot: HTMLElement) => boolean
 }
 
-export class SidepanelFocusOwnershipCoordinator {
-  readonly #nowMs: () => number
-  readonly #focusOutSuppressionWindowMs: number
-  readonly #keyboardStickyCaptureMs: number
-  readonly #focusOutGuard: SidepanelFocusOutGuard
+interface FocusOwnershipMachineInput {
+  readonly nowMs: () => number
+  readonly focusOutSuppressionWindowMs: number
+  readonly keyboardStickyCaptureMs: number
+}
 
-  #shouldAutofocusContentRoot = true
-  #keyboardCaptureActive = false
-  #keyboardCaptureStickyUntilMs = 0
-  #deferredFocusEpoch = 0
+interface FocusOwnershipMachineContext {
+  readonly nowMs: () => number
+  readonly focusOutSuppressionWindowMs: number
+  readonly keyboardStickyCaptureMs: number
+  readonly focusOutGuard: SidepanelFocusOutGuard
+  readonly shouldAutofocusContentRoot: boolean
+  readonly keyboardCaptureActive: boolean
+  readonly keyboardCaptureStickyUntilMs: number
+  readonly deferredFocusEpoch: number
+}
+
+type FocusOwnershipMachineEvent =
+  | {
+      readonly type: "SET_SHOULD_AUTOFOCUS_CONTENT_ROOT"
+      readonly value: boolean
+    }
+  | {
+      readonly type: "ACTIVATE_KEYBOARD_CAPTURE"
+    }
+  | {
+      readonly type: "RELEASE_KEYBOARD_CAPTURE"
+    }
+  | {
+      readonly type: "SUPPRESS_TRANSIENT_FOCUS_OUT"
+    }
+  | {
+      readonly type: "CANCEL_PENDING_FOCUS_OUT"
+    }
+  | {
+      readonly type: "CANCEL_DEFERRED_FOCUS_RESTORE"
+    }
+  | {
+      readonly type: "SCHEDULE_DEFERRED_FOCUS_RESTORE"
+    }
+  | {
+      readonly type: "CLAIM_AUTOFOCUS_CONTENT_ROOT"
+    }
+  | {
+      readonly type: "RESET"
+    }
+
+const focusOwnershipMachine = setup({
+  types: {
+    context: {} as FocusOwnershipMachineContext,
+    input: {} as FocusOwnershipMachineInput,
+    events: {} as FocusOwnershipMachineEvent,
+  },
+  actions: {
+    setShouldAutofocusContentRootFromEvent: assign({
+      shouldAutofocusContentRoot: ({ context, event }) => {
+        if (event.type !== "SET_SHOULD_AUTOFOCUS_CONTENT_ROOT") {
+          return context.shouldAutofocusContentRoot
+        }
+
+        return event.value
+      },
+    }),
+    activateKeyboardCapture: assign({
+      keyboardCaptureActive: true,
+      keyboardCaptureStickyUntilMs: ({ context }) =>
+        context.nowMs() + context.keyboardStickyCaptureMs,
+    }),
+    releaseKeyboardCapture: assign({
+      keyboardCaptureActive: false,
+    }),
+    suppressTransientFocusOut: ({ context }) => {
+      context.focusOutGuard.suppressFor(context.focusOutSuppressionWindowMs)
+    },
+    cancelPendingFocusOut: ({ context }) => {
+      context.focusOutGuard.cancelPending()
+    },
+    cancelDeferredFocusRestore: assign({
+      deferredFocusEpoch: ({ context }) => context.deferredFocusEpoch + 1,
+    }),
+    scheduleDeferredFocusRestore: assign({
+      deferredFocusEpoch: ({ context }) => context.deferredFocusEpoch + 1,
+    }),
+    claimAutofocusContentRoot: assign({
+      shouldAutofocusContentRoot: false,
+      keyboardCaptureActive: true,
+      keyboardCaptureStickyUntilMs: ({ context }) =>
+        context.nowMs() + context.keyboardStickyCaptureMs,
+    }),
+    resetFocusOutGuard: ({ context }) => {
+      context.focusOutGuard.reset()
+    },
+    resetFocusOwnership: assign({
+      shouldAutofocusContentRoot: true,
+      keyboardCaptureActive: false,
+      keyboardCaptureStickyUntilMs: 0,
+      deferredFocusEpoch: 0,
+    }),
+  },
+}).createMachine({
+  id: "sidepanelFocusOwnership",
+  initial: "active",
+  context: ({ input }) => ({
+    nowMs: input.nowMs,
+    focusOutSuppressionWindowMs: input.focusOutSuppressionWindowMs,
+    keyboardStickyCaptureMs: input.keyboardStickyCaptureMs,
+    focusOutGuard: new SidepanelFocusOutGuard({
+      nowMs: input.nowMs,
+    }),
+    shouldAutofocusContentRoot: true,
+    keyboardCaptureActive: false,
+    keyboardCaptureStickyUntilMs: 0,
+    deferredFocusEpoch: 0,
+  }),
+  states: {
+    active: {
+      on: {
+        SET_SHOULD_AUTOFOCUS_CONTENT_ROOT: {
+          actions: "setShouldAutofocusContentRootFromEvent",
+        },
+        ACTIVATE_KEYBOARD_CAPTURE: {
+          actions: "activateKeyboardCapture",
+        },
+        RELEASE_KEYBOARD_CAPTURE: {
+          actions: "releaseKeyboardCapture",
+        },
+        SUPPRESS_TRANSIENT_FOCUS_OUT: {
+          actions: "suppressTransientFocusOut",
+        },
+        CANCEL_PENDING_FOCUS_OUT: {
+          actions: "cancelPendingFocusOut",
+        },
+        CANCEL_DEFERRED_FOCUS_RESTORE: {
+          actions: "cancelDeferredFocusRestore",
+        },
+        SCHEDULE_DEFERRED_FOCUS_RESTORE: {
+          actions: "scheduleDeferredFocusRestore",
+        },
+        CLAIM_AUTOFOCUS_CONTENT_ROOT: {
+          actions: "claimAutofocusContentRoot",
+        },
+        RESET: {
+          actions: ["resetFocusOutGuard", "resetFocusOwnership"],
+        },
+      },
+    },
+  },
+})
+
+export const createFocusOwnershipActor = (input: FocusOwnershipMachineInput) => {
+  return createActor(focusOwnershipMachine, {
+    input,
+  })
+}
+
+export class SidepanelFocusOwnershipCoordinator {
+  readonly #actor: ReturnType<typeof createFocusOwnershipActor>
 
   constructor(options: SidepanelFocusOwnershipCoordinatorOptions) {
-    this.#nowMs = options.nowMs ?? Date.now
-    this.#focusOutSuppressionWindowMs = options.focusOutSuppressionWindowMs
-    this.#keyboardStickyCaptureMs = options.keyboardStickyCaptureMs
-    this.#focusOutGuard = new SidepanelFocusOutGuard({
-      nowMs: this.#nowMs,
+    this.#actor = createFocusOwnershipActor({
+      nowMs: options.nowMs ?? Date.now,
+      focusOutSuppressionWindowMs: options.focusOutSuppressionWindowMs,
+      keyboardStickyCaptureMs: options.keyboardStickyCaptureMs,
     })
+    this.#actor.start()
+  }
+
+  get #context(): FocusOwnershipMachineContext {
+    return this.#actor.getSnapshot().context
   }
 
   get shouldAutofocusContentRoot(): boolean {
-    return this.#shouldAutofocusContentRoot
+    return this.#context.shouldAutofocusContentRoot
   }
 
   setShouldAutofocusContentRoot(value: boolean): void {
-    this.#shouldAutofocusContentRoot = value
+    this.#actor.send({
+      type: "SET_SHOULD_AUTOFOCUS_CONTENT_ROOT",
+      value,
+    })
   }
 
   isKeyboardCaptureActive(): boolean {
-    return this.#keyboardCaptureActive
+    return this.#context.keyboardCaptureActive
   }
 
   activateKeyboardCapture(): void {
-    this.#keyboardCaptureActive = true
-    this.#keyboardCaptureStickyUntilMs = this.#nowMs() + this.#keyboardStickyCaptureMs
+    this.#actor.send({
+      type: "ACTIVATE_KEYBOARD_CAPTURE",
+    })
   }
 
   releaseKeyboardCapture(): void {
-    this.#keyboardCaptureActive = false
+    this.#actor.send({
+      type: "RELEASE_KEYBOARD_CAPTURE",
+    })
   }
 
   isKeyboardRoutingActive(): boolean {
-    return this.#keyboardCaptureActive || this.#nowMs() < this.#keyboardCaptureStickyUntilMs
+    const context = this.#context
+    return context.keyboardCaptureActive || context.nowMs() < context.keyboardCaptureStickyUntilMs
   }
 
   suppressTransientFocusOut(): void {
-    this.#focusOutGuard.suppressFor(this.#focusOutSuppressionWindowMs)
+    this.#actor.send({
+      type: "SUPPRESS_TRANSIENT_FOCUS_OUT",
+    })
   }
 
   isFocusOutSuppressed(): boolean {
-    return this.#focusOutGuard.isSuppressed()
+    return this.#context.focusOutGuard.isSuppressed()
   }
 
   cancelPendingFocusOut(): void {
-    this.#focusOutGuard.cancelPending()
+    this.#actor.send({
+      type: "CANCEL_PENDING_FOCUS_OUT",
+    })
   }
 
   handleContentFocusOut(input: HandleContentFocusOutInput): void {
@@ -80,7 +244,7 @@ export class SidepanelFocusOwnershipCoordinator {
       return
     }
 
-    this.#focusOutGuard.handleFocusOut(input)
+    this.#context.focusOutGuard.handleFocusOut(input)
   }
 
   focusContentRootImmediate(contentRoot: HTMLElement | null): void {
@@ -96,7 +260,9 @@ export class SidepanelFocusOwnershipCoordinator {
   }
 
   cancelDeferredFocusRestore(): void {
-    this.#deferredFocusEpoch += 1
+    this.#actor.send({
+      type: "CANCEL_DEFERRED_FOCUS_RESTORE",
+    })
   }
 
   focusContentRootBestEffort(input: FocusContentRootBestEffortInput): void {
@@ -107,10 +273,13 @@ export class SidepanelFocusOwnershipCoordinator {
 
     this.focusContentRootImmediate(contentRoot)
 
-    const focusEpoch = ++this.#deferredFocusEpoch
+    this.#actor.send({
+      type: "SCHEDULE_DEFERRED_FOCUS_RESTORE",
+    })
+    const focusEpoch = this.#context.deferredFocusEpoch
 
     Promise.resolve().then(() => {
-      if (this.#deferredFocusEpoch !== focusEpoch) {
+      if (this.#context.deferredFocusEpoch !== focusEpoch) {
         return
       }
 
@@ -126,7 +295,7 @@ export class SidepanelFocusOwnershipCoordinator {
     contentRoot: HTMLElement,
     isTextInputTarget: (target: EventTarget | null) => boolean,
   ): void {
-    if (!this.#shouldAutofocusContentRoot) {
+    if (!this.shouldAutofocusContentRoot) {
       return
     }
 
@@ -134,8 +303,9 @@ export class SidepanelFocusOwnershipCoordinator {
     const activeElement = ownerDocument.activeElement
 
     if (activeElement && contentRoot.contains(activeElement)) {
-      this.#shouldAutofocusContentRoot = false
-      this.activateKeyboardCapture()
+      this.#actor.send({
+        type: "CLAIM_AUTOFOCUS_CONTENT_ROOT",
+      })
       return
     }
 
@@ -147,16 +317,20 @@ export class SidepanelFocusOwnershipCoordinator {
 
     const focusedElement = ownerDocument.activeElement
     if (focusedElement && contentRoot.contains(focusedElement)) {
-      this.#shouldAutofocusContentRoot = false
-      this.activateKeyboardCapture()
+      this.#actor.send({
+        type: "CLAIM_AUTOFOCUS_CONTENT_ROOT",
+      })
     }
   }
 
   reset(): void {
-    this.#shouldAutofocusContentRoot = true
-    this.#keyboardCaptureActive = false
-    this.#keyboardCaptureStickyUntilMs = 0
-    this.#deferredFocusEpoch = 0
-    this.#focusOutGuard.reset()
+    this.#actor.send({
+      type: "RESET",
+    })
+  }
+
+  dispose(): void {
+    this.reset()
+    this.#actor.stop()
   }
 }

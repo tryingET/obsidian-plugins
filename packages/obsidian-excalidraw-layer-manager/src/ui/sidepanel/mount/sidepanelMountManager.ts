@@ -1,3 +1,5 @@
+import { assign, createActor, setup } from "xstate"
+
 export interface SidepanelMountTabLike {
   contentEl?: HTMLElement
   setContent?: (content: HTMLElement | string) => void
@@ -57,17 +59,6 @@ type AttachContentRootOutcome =
       readonly reason: SidepanelMountFailureReason
     }
 
-const ALLOWED_SIDEPANEL_STATE_TRANSITIONS: Readonly<
-  Record<SidepanelMountState, readonly SidepanelMountState[]>
-> = {
-  idle: ["resolvingTab", "closed"],
-  resolvingTab: ["mounting", "failed", "closed"],
-  mounting: ["mounted", "failed", "closed"],
-  mounted: ["resolvingTab", "mounting", "closed"],
-  failed: ["resolvingTab", "closed"],
-  closed: ["resolvingTab"],
-}
-
 const isPromiseLike = <T>(value: unknown): value is PromiseLike<T> => {
   return !!value && typeof value === "object" && "then" in value
 }
@@ -76,6 +67,34 @@ const isTabRenderable = (
   tab: SidepanelMountTabLike | null | undefined,
 ): tab is SidepanelMountTabLike => {
   return !!tab && (!!tab.contentEl || typeof tab.setContent === "function")
+}
+
+const toMountCapabilities = (
+  host: SidepanelMountHostLike,
+  tab: SidepanelMountTabLike,
+): SidepanelMountCapabilities => {
+  return {
+    canUseContentEl: !!tab.contentEl,
+    canUseSetContent: typeof tab.setContent === "function",
+    canClose: typeof tab.close === "function" || !!host.closeSidepanelTab,
+  }
+}
+
+const isLikelyPersistedTab = (
+  host: SidepanelMountHostLike,
+  tab: SidepanelMountTabLike,
+): boolean => {
+  const getHostEA = tab.getHostEA
+  if (!getHostEA) {
+    return false
+  }
+
+  try {
+    const hostEA = getHostEA()
+    return !!hostEA && hostEA !== host
+  } catch {
+    return false
+  }
 }
 
 const createSidepanelMountStrategy = (input: {
@@ -138,7 +157,7 @@ const createSidepanelMountStrategy = (input: {
   return null
 }
 
-interface SidepanelMountManagerInput {
+export interface SidepanelMountManagerInput {
   readonly host: SidepanelMountHostLike
   readonly title: string
   readonly notify: (message: string) => void
@@ -161,87 +180,475 @@ type MountPreparationOutcome =
       readonly ownerDocument: Document
     }
 
+interface SidepanelMountMachineInput extends SidepanelMountManagerInput {}
+
+interface SidepanelMountMachineContext {
+  readonly host: SidepanelMountHostLike
+  readonly notify: (message: string) => void
+  readonly debugLifecycle: (message: string) => void
+  readonly onTabSwitched: () => void
+  readonly onAsyncTabResolved: () => void
+  readonly onPersistedTabDetected: () => void
+  readonly activeTab: SidepanelMountTabLike | null
+  readonly didOpenTab: boolean
+  readonly pendingTabCreation: Promise<SidepanelMountTabLike | null> | null
+  readonly lastMountFailureReason: SidepanelMountFailureReason | null
+  readonly lastNotifiedMountFailureReason: SidepanelMountFailureReason | null
+  readonly mountCapabilities: SidepanelMountCapabilities | null
+  readonly mountTelemetry: MountLifecycleTelemetry
+}
+
+type SidepanelMountMachineEvent =
+  | {
+      readonly type: "START_PREPARE_MOUNT"
+    }
+  | {
+      readonly type: "MARK_ATTACH_RETRY"
+    }
+  | {
+      readonly type: "REGISTER_PENDING_TAB_CREATION"
+      readonly pendingTabCreation: Promise<SidepanelMountTabLike | null>
+    }
+  | {
+      readonly type: "CLEAR_PENDING_TAB_CREATION"
+      readonly pendingTabCreation: Promise<SidepanelMountTabLike | null>
+    }
+  | {
+      readonly type: "REGISTER_ASYNC_RESOLVED_TAB"
+      readonly tab: SidepanelMountTabLike
+      readonly persisted: boolean
+    }
+  | {
+      readonly type: "REGISTER_ACTIVE_TAB"
+      readonly tab: SidepanelMountTabLike
+    }
+  | {
+      readonly type: "MARK_ACTIVE_TAB_OPENED"
+    }
+  | {
+      readonly type: "MARK_ATTACH_ATTEMPT"
+    }
+  | {
+      readonly type: "ATTACH_FAILED"
+      readonly reason: SidepanelMountFailureReason
+    }
+  | {
+      readonly type: "ATTACH_SUCCEEDED"
+    }
+  | {
+      readonly type: "ADOPT_PERSISTED_TAB"
+      readonly tab: SidepanelMountTabLike
+    }
+  | {
+      readonly type: "RESET_AFTER_CLOSE"
+    }
+
+const toMountFailureMessage = (reason: SidepanelMountFailureReason): string | null => {
+  switch (reason) {
+    case "tabUnavailable":
+      return "Layer Manager sidepanel unavailable in this host. Falling back to console renderer."
+    case "tabUnrenderable":
+      return "Layer Manager sidepanel tab is not renderable in this host. Falling back to console renderer."
+    case "ownerDocumentUnavailable":
+      return "Layer Manager sidepanel owner document is unavailable. Falling back to console renderer."
+    case "attachTargetMissing":
+      return "Layer Manager sidepanel has no valid attach target. Falling back to console renderer."
+    case "setContentFailed":
+      return null
+  }
+}
+
+const sidepanelMountMachine = setup({
+  types: {
+    context: {} as SidepanelMountMachineContext,
+    input: {} as SidepanelMountMachineInput,
+    events: {} as SidepanelMountMachineEvent,
+  },
+  actions: {
+    markAttachRetry: assign({
+      mountTelemetry: ({ context }) => ({
+        ...context.mountTelemetry,
+        attachRetryCount: context.mountTelemetry.attachRetryCount + 1,
+      }),
+    }),
+    registerPendingTabCreationFromEvent: assign({
+      pendingTabCreation: ({ context, event }) => {
+        if (event.type !== "REGISTER_PENDING_TAB_CREATION") {
+          return context.pendingTabCreation
+        }
+
+        return event.pendingTabCreation
+      },
+    }),
+    clearPendingTabCreationFromEvent: assign({
+      pendingTabCreation: ({ context, event }) => {
+        if (event.type !== "CLEAR_PENDING_TAB_CREATION") {
+          return context.pendingTabCreation
+        }
+
+        return context.pendingTabCreation === event.pendingTabCreation
+          ? null
+          : context.pendingTabCreation
+      },
+    }),
+    registerAsyncResolvedTabFromEvent: ({ context, event }) => {
+      if (event.type !== "REGISTER_ASYNC_RESOLVED_TAB") {
+        return
+      }
+
+      context.host.sidepanelTab = event.tab
+      if (event.persisted) {
+        context.onPersistedTabDetected()
+      }
+
+      context.onAsyncTabResolved()
+    },
+    registerActiveTabFromEvent: assign(({ context, event }) => {
+      if (event.type !== "REGISTER_ACTIVE_TAB") {
+        return {}
+      }
+
+      context.host.sidepanelTab = event.tab
+
+      const didSwitch = event.tab !== context.activeTab
+      if (didSwitch) {
+        context.onTabSwitched()
+      }
+
+      return {
+        activeTab: event.tab,
+        didOpenTab: didSwitch ? false : context.didOpenTab,
+        mountCapabilities: toMountCapabilities(context.host, event.tab),
+      }
+    }),
+    markActiveTabOpened: assign(({ context }) => {
+      context.activeTab?.open?.()
+      return {
+        didOpenTab: true,
+      }
+    }),
+    markAttachAttempt: assign({
+      mountTelemetry: ({ context }) => ({
+        ...context.mountTelemetry,
+        attachCount: context.mountTelemetry.attachCount + 1,
+      }),
+    }),
+    recordAttachFailureFromEvent: assign(({ context, event }) => {
+      if (event.type !== "ATTACH_FAILED") {
+        return {}
+      }
+
+      context.debugLifecycle(`mount failed with reason=${event.reason}`)
+
+      if (context.lastNotifiedMountFailureReason !== event.reason) {
+        const failureMessage = toMountFailureMessage(event.reason)
+        if (failureMessage) {
+          context.notify(failureMessage)
+        }
+      }
+
+      return {
+        lastMountFailureReason: event.reason,
+        lastNotifiedMountFailureReason: event.reason,
+        mountTelemetry: {
+          ...context.mountTelemetry,
+          attachFailureCount: context.mountTelemetry.attachFailureCount + 1,
+        },
+      }
+    }),
+    clearAttachFailure: assign({
+      lastMountFailureReason: null,
+      lastNotifiedMountFailureReason: null,
+    }),
+    adoptPersistedTabFromEvent: assign(({ context, event }) => {
+      if (event.type !== "ADOPT_PERSISTED_TAB") {
+        return {}
+      }
+
+      context.host.sidepanelTab = event.tab
+
+      const didSwitch = event.tab !== context.activeTab
+      if (didSwitch) {
+        context.onTabSwitched()
+      }
+
+      return {
+        activeTab: event.tab,
+        didOpenTab: didSwitch ? false : context.didOpenTab,
+        mountCapabilities: toMountCapabilities(context.host, event.tab),
+      }
+    }),
+    resetAfterClose: assign(({ context }) => {
+      context.host.sidepanelTab = null
+
+      return {
+        activeTab: null,
+        didOpenTab: false,
+        pendingTabCreation: null,
+        mountCapabilities: null,
+      }
+    }),
+  },
+}).createMachine({
+  id: "sidepanelMount",
+  initial: "idle",
+  context: ({ input }) => ({
+    host: input.host,
+    notify: input.notify,
+    debugLifecycle: input.debugLifecycle,
+    onTabSwitched: input.onTabSwitched,
+    onAsyncTabResolved: input.onAsyncTabResolved,
+    onPersistedTabDetected: input.onPersistedTabDetected,
+    activeTab: null,
+    didOpenTab: false,
+    pendingTabCreation: null,
+    lastMountFailureReason: null,
+    lastNotifiedMountFailureReason: null,
+    mountCapabilities: null,
+    mountTelemetry: {
+      attachCount: 0,
+      attachFailureCount: 0,
+      attachRetryCount: 0,
+    },
+  }),
+  on: {
+    MARK_ATTACH_RETRY: {
+      actions: "markAttachRetry",
+    },
+    REGISTER_PENDING_TAB_CREATION: {
+      actions: "registerPendingTabCreationFromEvent",
+    },
+    CLEAR_PENDING_TAB_CREATION: {
+      actions: "clearPendingTabCreationFromEvent",
+    },
+    REGISTER_ASYNC_RESOLVED_TAB: {
+      actions: "registerAsyncResolvedTabFromEvent",
+    },
+    REGISTER_ACTIVE_TAB: {
+      actions: "registerActiveTabFromEvent",
+    },
+    MARK_ACTIVE_TAB_OPENED: {
+      actions: "markActiveTabOpened",
+    },
+  },
+  states: {
+    idle: {
+      on: {
+        START_PREPARE_MOUNT: {
+          target: "resolvingTab",
+        },
+        ADOPT_PERSISTED_TAB: {
+          target: "mounted",
+          actions: "adoptPersistedTabFromEvent",
+        },
+        RESET_AFTER_CLOSE: {
+          target: "closed",
+          actions: "resetAfterClose",
+        },
+      },
+    },
+    resolvingTab: {
+      on: {
+        START_PREPARE_MOUNT: {
+          target: "resolvingTab",
+        },
+        MARK_ATTACH_ATTEMPT: {
+          target: "mounting",
+          actions: "markAttachAttempt",
+        },
+        ATTACH_FAILED: {
+          target: "failed",
+          actions: "recordAttachFailureFromEvent",
+        },
+        ADOPT_PERSISTED_TAB: {
+          target: "mounted",
+          actions: "adoptPersistedTabFromEvent",
+        },
+        RESET_AFTER_CLOSE: {
+          target: "closed",
+          actions: "resetAfterClose",
+        },
+      },
+    },
+    mounting: {
+      on: {
+        ATTACH_SUCCEEDED: {
+          target: "mounted",
+          actions: "clearAttachFailure",
+        },
+        ATTACH_FAILED: {
+          target: "failed",
+          actions: "recordAttachFailureFromEvent",
+        },
+        ADOPT_PERSISTED_TAB: {
+          target: "mounted",
+          actions: "adoptPersistedTabFromEvent",
+        },
+        RESET_AFTER_CLOSE: {
+          target: "closed",
+          actions: "resetAfterClose",
+        },
+      },
+    },
+    mounted: {
+      on: {
+        START_PREPARE_MOUNT: {
+          target: "resolvingTab",
+        },
+        MARK_ATTACH_ATTEMPT: {
+          target: "mounting",
+          actions: "markAttachAttempt",
+        },
+        ATTACH_FAILED: {
+          target: "failed",
+          actions: "recordAttachFailureFromEvent",
+        },
+        ATTACH_SUCCEEDED: {
+          actions: "clearAttachFailure",
+        },
+        ADOPT_PERSISTED_TAB: {
+          target: "mounted",
+          actions: "adoptPersistedTabFromEvent",
+        },
+        RESET_AFTER_CLOSE: {
+          target: "closed",
+          actions: "resetAfterClose",
+        },
+      },
+    },
+    failed: {
+      on: {
+        START_PREPARE_MOUNT: {
+          target: "resolvingTab",
+        },
+        ADOPT_PERSISTED_TAB: {
+          target: "mounted",
+          actions: "adoptPersistedTabFromEvent",
+        },
+        RESET_AFTER_CLOSE: {
+          target: "closed",
+          actions: "resetAfterClose",
+        },
+      },
+    },
+    closed: {
+      on: {
+        START_PREPARE_MOUNT: {
+          target: "resolvingTab",
+        },
+        ADOPT_PERSISTED_TAB: {
+          target: "mounted",
+          actions: "adoptPersistedTabFromEvent",
+        },
+        RESET_AFTER_CLOSE: {
+          actions: "resetAfterClose",
+        },
+      },
+    },
+  },
+})
+
+export const createSidepanelMountActor = (input: SidepanelMountMachineInput) => {
+  return createActor(sidepanelMountMachine, {
+    input,
+  })
+}
+
 export class SidepanelMountManager {
   readonly #host: SidepanelMountHostLike
   readonly #title: string
   readonly #notify: (message: string) => void
-  readonly #debugLifecycle: (message: string) => void
-  readonly #onTabSwitched: () => void
-  readonly #onAsyncTabResolved: () => void
-  readonly #onPersistedTabDetected: () => void
+  readonly #actor: ReturnType<typeof createSidepanelMountActor>
 
-  #activeTab: SidepanelMountTabLike | null = null
-  #didOpenTab = false
-  #pendingTabCreation: Promise<SidepanelMountTabLike | null> | null = null
-
-  #mountState: SidepanelMountState = "idle"
-  #lastMountFailureReason: SidepanelMountFailureReason | null = null
-  #lastNotifiedMountFailureReason: SidepanelMountFailureReason | null = null
-  #mountCapabilities: SidepanelMountCapabilities | null = null
-  #mountTelemetry: MountLifecycleTelemetry = {
-    attachCount: 0,
-    attachFailureCount: 0,
-    attachRetryCount: 0,
-  }
+  #disposed = false
 
   constructor(input: SidepanelMountManagerInput) {
     this.#host = input.host
     this.#title = input.title
     this.#notify = input.notify
-    this.#debugLifecycle = input.debugLifecycle
-    this.#onTabSwitched = input.onTabSwitched
-    this.#onAsyncTabResolved = input.onAsyncTabResolved
-    this.#onPersistedTabDetected = input.onPersistedTabDetected
+    this.#actor = createSidepanelMountActor(input)
+    this.#actor.start()
+  }
+
+  get #snapshot() {
+    return this.#actor.getSnapshot()
   }
 
   get mountCapabilities(): SidepanelMountCapabilities | null {
-    return this.#mountCapabilities
+    return this.#snapshot.context.mountCapabilities
   }
 
   get mountTelemetry(): Readonly<MountLifecycleTelemetry> {
-    return this.#mountTelemetry
+    return this.#snapshot.context.mountTelemetry
   }
 
   adoptPersistedTab(tab: SidepanelMountTabLike): void {
-    this.#host.sidepanelTab = tab
-    this.#activeTab = tab
-    this.#mountCapabilities = this.toMountCapabilities(tab)
+    if (this.#disposed) {
+      return
+    }
+
+    this.#actor.send({
+      type: "ADOPT_PERSISTED_TAB",
+      tab,
+    })
   }
 
   resetAfterClose(): void {
-    this.#didOpenTab = false
-    this.#host.sidepanelTab = null
-    this.#activeTab = null
-    this.#mountCapabilities = null
-    this.transitionMountState("closed")
+    if (this.#disposed) {
+      return
+    }
+
+    this.#actor.send({
+      type: "RESET_AFTER_CLOSE",
+    })
+  }
+
+  dispose(): void {
+    if (this.#disposed) {
+      return
+    }
+
+    this.#disposed = true
+    this.#actor.stop()
   }
 
   prepareMount(input: {
     readonly resolveExistingContentRoot: () => HTMLElement | null
     readonly onSetContentFailure: () => void
   }): MountPreparationOutcome {
-    if (this.#mountState === "failed") {
-      this.#mountTelemetry.attachRetryCount += 1
-    }
-
-    this.transitionMountState("resolvingTab")
-    const tab = this.ensureSidepanelTab()
-    if (!tab) {
-      if (this.#pendingTabCreation) {
-        return {
-          status: "pending",
-        }
-      }
-
-      this.setMountFailure(
-        this.#lastMountFailureReason === "tabUnrenderable" ? "tabUnrenderable" : "tabUnavailable",
-      )
+    if (this.#disposed) {
       return {
         status: "unavailable",
       }
     }
 
-    this.#mountCapabilities = this.toMountCapabilities(tab)
+    if (this.#snapshot.matches("failed" satisfies SidepanelMountState)) {
+      this.#actor.send({
+        type: "MARK_ATTACH_RETRY",
+      })
+    }
+
+    this.#actor.send({
+      type: "START_PREPARE_MOUNT",
+    })
+
+    const tabResolution = this.ensureSidepanelTab()
+    const tab = tabResolution.tab
+    if (!tab) {
+      if (this.#snapshot.context.pendingTabCreation) {
+        return {
+          status: "pending",
+        }
+      }
+
+      this.#actor.send({
+        type: "ATTACH_FAILED",
+        reason: tabResolution.failureReason ?? "tabUnavailable",
+      })
+      return {
+        status: "unavailable",
+      }
+    }
 
     const mountStrategy = createSidepanelMountStrategy({
       tab,
@@ -250,7 +657,10 @@ export class SidepanelMountManager {
     })
 
     if (!mountStrategy) {
-      this.setMountFailure("attachTargetMissing")
+      this.#actor.send({
+        type: "ATTACH_FAILED",
+        reason: "attachTargetMissing",
+      })
       return {
         status: "unavailable",
       }
@@ -258,14 +668,18 @@ export class SidepanelMountManager {
 
     const ownerDocument = mountStrategy.resolveOwnerDocument()
     if (!ownerDocument) {
-      this.setMountFailure("ownerDocumentUnavailable")
+      this.#actor.send({
+        type: "ATTACH_FAILED",
+        reason: "ownerDocumentUnavailable",
+      })
       return {
         status: "unavailable",
       }
     }
 
-    this.transitionMountState("mounting")
-    this.#mountTelemetry.attachCount += 1
+    this.#actor.send({
+      type: "MARK_ATTACH_ATTEMPT",
+    })
 
     return {
       status: "ready",
@@ -275,98 +689,33 @@ export class SidepanelMountManager {
   }
 
   finalizeMountAttach(outcome: AttachContentRootOutcome): boolean {
-    if (!outcome.ok) {
-      this.setMountFailure(outcome.reason)
+    if (this.#disposed) {
       return false
     }
 
-    this.clearMountFailure()
+    if (!outcome.ok) {
+      this.#actor.send({
+        type: "ATTACH_FAILED",
+        reason: outcome.reason,
+      })
+      return false
+    }
+
+    this.#actor.send({
+      type: "ATTACH_SUCCEEDED",
+    })
     return true
   }
 
-  private transitionMountState(next: SidepanelMountState): void {
-    const current = this.#mountState
-    if (current === next) {
-      return
-    }
-
-    const allowed = ALLOWED_SIDEPANEL_STATE_TRANSITIONS[current] ?? []
-    if (!allowed.includes(next)) {
-      this.#debugLifecycle(`invalid transition ${current} -> ${next}; forcing failed state`)
-      this.#mountState = "failed"
-      return
-    }
-
-    this.#mountState = next
-  }
-
-  private toMountFailureMessage(reason: SidepanelMountFailureReason): string | null {
-    switch (reason) {
-      case "tabUnavailable":
-        return "Layer Manager sidepanel unavailable in this host. Falling back to console renderer."
-      case "tabUnrenderable":
-        return "Layer Manager sidepanel tab is not renderable in this host. Falling back to console renderer."
-      case "ownerDocumentUnavailable":
-        return "Layer Manager sidepanel owner document is unavailable. Falling back to console renderer."
-      case "attachTargetMissing":
-        return "Layer Manager sidepanel has no valid attach target. Falling back to console renderer."
-      case "setContentFailed":
-        return null
-    }
-  }
-
-  private setMountFailure(reason: SidepanelMountFailureReason): void {
-    this.#lastMountFailureReason = reason
-    this.#mountTelemetry.attachFailureCount += 1
-    this.#debugLifecycle(`mount failed with reason=${reason}`)
-
-    if (this.#lastNotifiedMountFailureReason !== reason) {
-      const failureMessage = this.toMountFailureMessage(reason)
-      if (failureMessage) {
-        this.#notify(failureMessage)
-      }
-
-      this.#lastNotifiedMountFailureReason = reason
-    }
-
-    this.transitionMountState("failed")
-  }
-
-  private clearMountFailure(): void {
-    this.#lastMountFailureReason = null
-    this.#lastNotifiedMountFailureReason = null
-    this.transitionMountState("mounted")
-  }
-
-  private toMountCapabilities(tab: SidepanelMountTabLike): SidepanelMountCapabilities {
-    return {
-      canUseContentEl: !!tab.contentEl,
-      canUseSetContent: typeof tab.setContent === "function",
-      canClose: typeof tab.close === "function" || !!this.#host.closeSidepanelTab,
-    }
-  }
-
-  private isLikelyPersistedTab(tab: SidepanelMountTabLike): boolean {
-    const getHostEA = tab.getHostEA
-    if (!getHostEA) {
-      return false
-    }
-
-    try {
-      const hostEA = getHostEA()
-      return !!hostEA && hostEA !== this.#host
-    } catch {
-      return false
-    }
-  }
-
-  private ensureSidepanelTab(): SidepanelMountTabLike | null {
-    let observedUnrenderableCandidate = false
+  private ensureSidepanelTab(): {
+    readonly tab: SidepanelMountTabLike | null
+    readonly failureReason: SidepanelMountFailureReason | null
+  } {
+    let failureReason: SidepanelMountFailureReason | null = null
     let tab = isTabRenderable(this.#host.sidepanelTab) ? this.#host.sidepanelTab : null
 
     if (!tab && this.#host.sidepanelTab && !isTabRenderable(this.#host.sidepanelTab)) {
-      observedUnrenderableCandidate = true
-      this.#lastMountFailureReason = "tabUnrenderable"
+      failureReason = "tabUnrenderable"
       this.#host.sidepanelTab = null
     }
 
@@ -375,74 +724,93 @@ export class SidepanelMountManager {
       if (isTabRenderable(lookedUp)) {
         tab = lookedUp
       } else if (lookedUp) {
-        observedUnrenderableCandidate = true
+        failureReason = "tabUnrenderable"
       }
     }
 
-    if (!tab && this.#host.createSidepanelTab && !this.#pendingTabCreation) {
+    if (!tab && this.#host.createSidepanelTab && !this.#snapshot.context.pendingTabCreation) {
       const created = this.#host.createSidepanelTab(this.#title, false, true)
 
       if (isPromiseLike<SidepanelMountTabLike | null>(created)) {
         const pendingTabCreation = Promise.resolve(created)
-        this.#pendingTabCreation = pendingTabCreation
+        this.#actor.send({
+          type: "REGISTER_PENDING_TAB_CREATION",
+          pendingTabCreation,
+        })
 
         void pendingTabCreation
           .then((resolved) => {
+            if (
+              this.#disposed ||
+              this.#snapshot.context.pendingTabCreation !== pendingTabCreation
+            ) {
+              return
+            }
+
             if (!isTabRenderable(resolved)) {
               return
             }
 
-            this.#host.sidepanelTab = resolved
-            if (this.isLikelyPersistedTab(resolved)) {
-              this.#onPersistedTabDetected()
-            }
-
-            this.#onAsyncTabResolved()
+            this.#actor.send({
+              type: "REGISTER_ASYNC_RESOLVED_TAB",
+              tab: resolved,
+              persisted: isLikelyPersistedTab(this.#host, resolved),
+            })
           })
           .catch(() => {
+            if (this.#disposed) {
+              return
+            }
+
             this.#notify("Failed to create Layer Manager sidepanel tab.")
           })
           .finally(() => {
-            if (this.#pendingTabCreation === pendingTabCreation) {
-              this.#pendingTabCreation = null
+            if (this.#disposed) {
+              return
             }
+
+            this.#actor.send({
+              type: "CLEAR_PENDING_TAB_CREATION",
+              pendingTabCreation,
+            })
           })
       }
 
       if (!isPromiseLike<SidepanelMountTabLike | null>(created) && isTabRenderable(created)) {
         tab = created
       } else if (!isPromiseLike<SidepanelMountTabLike | null>(created) && created) {
-        observedUnrenderableCandidate = true
+        failureReason = "tabUnrenderable"
       } else if (isTabRenderable(this.#host.sidepanelTab)) {
         tab = this.#host.sidepanelTab
       }
     }
 
     if (!tab) {
-      if (observedUnrenderableCandidate) {
-        this.#lastMountFailureReason = "tabUnrenderable"
+      return {
+        tab: null,
+        failureReason,
       }
-
-      return null
     }
 
-    if (tab !== this.#activeTab) {
-      this.#onTabSwitched()
-      this.#activeTab = tab
-      this.#didOpenTab = false
-    }
+    this.#actor.send({
+      type: "REGISTER_ACTIVE_TAB",
+      tab,
+    })
 
-    if (this.isLikelyPersistedTab(tab)) {
-      this.#onPersistedTabDetected()
+    if (isLikelyPersistedTab(this.#host, tab)) {
+      this.#snapshot.context.onPersistedTabDetected()
     }
 
     tab.setTitle?.(this.#title)
-    if (!this.#didOpenTab) {
-      tab.open?.()
-      this.#didOpenTab = true
+    if (!this.#snapshot.context.didOpenTab) {
+      this.#actor.send({
+        type: "MARK_ACTIVE_TAB_OPENED",
+      })
     }
-    this.#host.sidepanelTab = tab
 
-    return tab
+    return {
+      tab,
+      failureReason: null,
+    }
   }
 }
