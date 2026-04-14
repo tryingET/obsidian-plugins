@@ -1,6 +1,8 @@
 node_modules/
 dist/
 build/
+!packages/obsidian-excalidraw-layer-manager/build/
+!packages/obsidian-excalidraw-layer-manager/build/*.mjs
 coverage/
 .tmp/
 .DS_Store
