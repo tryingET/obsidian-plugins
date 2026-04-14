@@ -1,4 +1,5 @@
 ---
+summary: "LayerManager smoke fixture for the lab-vault Excalidraw proving ground."
 excalidraw-plugin: parsed
 tags:
   - excalidraw
@@ -7,6 +8,17 @@ tags:
 
 ==⚠  Switch to EXCALIDRAW VIEW in the MORE OPTIONS menu of this document. ⚠== You can decompress Drawing data with the command palette: 'Decompress current Excalidraw file'. For more info check in plugin settings under 'Saving'
 
+# LayerManager smoke workflow
+
+Use this drawing as the stable lab-vault fixture after `npm --prefix packages/obsidian-excalidraw-layer-manager run build` and `npm --prefix packages/obsidian-excalidraw-layer-manager run sync:vault`.
+
+Manual check:
+1. Open this note in Excalidraw view.
+2. Rerun `LayerManager` so the fresh bundle disposes the previous runtime and mounts the new one.
+3. Confirm the sidepanel mounts cleanly, selection/rename/drag-drop interactions still respond, and remembered quick-move state reloads without stale-runtime behavior.
+4. If the rerun fails, restore the previous bundle using the rollback command from the latest `.tmp/obsidian-excalidraw-layer-manager/deployments/*/deployment-receipt.json`, then rerun `LayerManager`.
+
+The compressed drawing below is the host-side smoke-test scene; keep it stable unless the manual validation fixture itself changes.
 
 # Excalidraw Data
 
