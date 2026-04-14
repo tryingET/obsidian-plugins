@@ -85,6 +85,8 @@ const parseBoxShorthand = (
 
 export class FakeDocument {
   activeElement: FakeDomElement | null = null
+  /** Simulate browser focus-scroll for regression tests when preventScroll is missing. */
+  focusScrollDelta = 0
   defaultView = {
     HTMLElement: FakeDomElement,
   } as unknown as Window
@@ -233,8 +235,27 @@ export class FakeDomElement {
     this.dispatchEvent(new FakeDomEvent("click"))
   }
 
-  focus(): void {
+  focus(options?: FocusOptions): void {
     this.ownerDocument.activeElement = this
+
+    if (options?.preventScroll === true) {
+      return
+    }
+
+    const focusScrollDelta = this.ownerDocument.focusScrollDelta
+    if (!(focusScrollDelta > 0)) {
+      return
+    }
+
+    let current: FakeDomElement | null = this.parentElement
+    while (current) {
+      if (current.clientHeight > 0 && current.scrollHeight > current.clientHeight + 1) {
+        current.scrollTop += focusScrollDelta
+        return
+      }
+
+      current = current.parentElement
+    }
   }
 
   scrollIntoView(): void {

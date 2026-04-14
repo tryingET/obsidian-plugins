@@ -2,6 +2,23 @@ import { assign, createActor, setup } from "xstate"
 
 import { SidepanelFocusOutGuard } from "./focusOutGuard.js"
 
+const focusElementWithoutScroll = (element: HTMLElement): void => {
+  try {
+    element.focus({
+      preventScroll: true,
+    })
+    return
+  } catch {
+    // Older host runtimes may not support FocusOptions; fall through to plain focus.
+  }
+
+  try {
+    element.focus()
+  } catch {
+    // no-op; best-effort focus restoration
+  }
+}
+
 interface SidepanelFocusOwnershipCoordinatorOptions {
   readonly nowMs?: () => number
   readonly focusOutSuppressionWindowMs: number
@@ -252,11 +269,7 @@ export class SidepanelFocusOwnershipCoordinator {
       return
     }
 
-    try {
-      contentRoot.focus()
-    } catch {
-      // no-op; best-effort focus restoration
-    }
+    focusElementWithoutScroll(contentRoot)
   }
 
   cancelDeferredFocusRestore(): void {

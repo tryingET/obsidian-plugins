@@ -15,6 +15,7 @@ import {
   findButtonByTitle,
   findFirstInput,
   findFocusedInteractiveRow,
+  findInteractiveRowByLabel,
   findRowTreeRoot,
   flattenElements,
   flushAsync,
@@ -407,6 +408,59 @@ describe("sidepanel focus + keyboard integration", () => {
     await flushAsync()
 
     expect(reorderFromNodeIdsMock).toHaveBeenNthCalledWith(4, ["el:1"], "forward")
+  })
+
+  it("does not add extra scroll when Space toggles the row selected via arrow-key focus", async () => {
+    fakeDocument.focusScrollDelta = 96
+
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    sidepanelTab.contentEl.clientHeight = 120
+    const { actions } = makeUiActions()
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => ({}),
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: Array.from({ length: 12 }, (_, index) =>
+        makeElementNode(`${index + 1}`, `Row ${index + 1}`),
+      ),
+      selectedIds: new Set(),
+      sceneVersion: 30,
+      actions,
+    })
+
+    let contentRoot = getContentRoot(sidepanelTab.contentEl)
+    for (let step = 0; step < 6; step += 1) {
+      dispatchKeydown(contentRoot, "ArrowDown")
+      await flushAsync()
+      contentRoot = getContentRoot(sidepanelTab.contentEl)
+    }
+
+    const focusedRowBeforeSpace = findFocusedInteractiveRow(contentRoot)
+    if (!focusedRowBeforeSpace) {
+      throw new Error("Expected a focused row before Space selection toggle.")
+    }
+
+    const selectedRowLabelPrefix =
+      (focusedRowBeforeSpace as FakeDomElement & { ariaLabel?: string }).ariaLabel ?? ""
+    const scrollTopAfterArrowFocus = sidepanelTab.contentEl.scrollTop
+    expect(scrollTopAfterArrowFocus).toBeGreaterThan(0)
+
+    dispatchKeydown(contentRoot, "Space")
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const selectedRow = findInteractiveRowByLabel(contentRoot, selectedRowLabelPrefix)
+    expect(
+      (selectedRow as (FakeDomElement & { ariaSelected?: string }) | undefined)?.ariaSelected,
+    ).toBe("true")
+    expect(sidepanelTab.contentEl.scrollTop).toBe(scrollTopAfterArrowFocus)
   })
 
   it("extends row selection by page from the current anchor with Shift+PageDown", async () => {

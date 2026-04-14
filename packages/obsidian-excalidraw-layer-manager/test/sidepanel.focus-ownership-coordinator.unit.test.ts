@@ -24,7 +24,7 @@ const makeFocusHarness = (): FocusHarness => {
     activeElement: null as EventTarget | null,
   }
 
-  const focus = vi.fn<() => void>(() => {
+  const focus = vi.fn<(options?: FocusOptions) => void>(() => {
     ownerDocument.activeElement = insideTarget
   })
 
@@ -128,6 +128,21 @@ describe("sidepanel focus ownership coordinator", () => {
     await flushMicrotask()
 
     expect(harness.focus).toHaveBeenCalledTimes(1)
+  })
+
+  it("focuses content root without scrolling", () => {
+    const harness = makeFocusHarness()
+
+    const coordinator = new SidepanelFocusOwnershipCoordinator({
+      focusOutSuppressionWindowMs: 180,
+      keyboardStickyCaptureMs: 400,
+    })
+
+    coordinator.focusContentRootImmediate(harness.contentRoot)
+
+    expect(harness.focus).toHaveBeenCalledWith({
+      preventScroll: true,
+    })
   })
 
   it("autofocuses content root once and claims keyboard ownership", () => {
