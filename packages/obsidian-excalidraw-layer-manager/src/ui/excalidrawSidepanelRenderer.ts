@@ -33,9 +33,8 @@ import { makePresetKey, makePresetOptionLabel } from "./sidepanel/quickmove/pres
 import {
   type LastQuickMoveDestination,
   SidepanelQuickMovePersistenceService,
-  areEquivalentDestinationLists,
-  areEquivalentDestinations,
 } from "./sidepanel/quickmove/quickMovePersistenceService.js"
+import { createRememberedDestinationReconcileActor } from "./sidepanel/quickmove/rememberedDestinationReconcileMachine.js"
 import { SidepanelInlineRenameController } from "./sidepanel/rename/inlineRenameController.js"
 import { renderSidepanelQuickMove } from "./sidepanel/render/quickMoveRenderer.js"
 import { bindSidepanelRowInteractions } from "./sidepanel/render/rowInteractionBinder.js"
@@ -187,6 +186,9 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   readonly #dragDropController: SidepanelDragDropController
   readonly #settingsWriteQueue: SidepanelSettingsWriteQueue
   readonly #quickMovePersistenceService: SidepanelQuickMovePersistenceService
+  readonly #rememberedDestinationReconcileActor: ReturnType<
+    typeof createRememberedDestinationReconcileActor
+  >
   readonly #promptInteractionService: SidepanelPromptInteractionService
   readonly #selectionActionController: SidepanelSelectionActionController
   readonly #hostSelectionBridge: SidepanelHostSelectionBridge
@@ -217,9 +219,6 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     readonly tree: readonly LayerNode[]
     readonly projection: ReturnType<typeof buildSidepanelQuickMoveDestinationProjection>
   } | null = null
-  #rememberedDestinationReconcileInFlight = false
-  #rememberedDestinationReconcileEpoch = 0
-  #rememberedDestinationReconcileDirtyEpoch = 0
   readonly #rowDomIdPrefix = `lmx-row-${++nextSidepanelRendererInstanceId}`
 
   readonly #contentKeydownHandler = (event: KeyboardEvent): void => {
@@ -304,6 +303,13 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       ...(host.getScriptSettings ? { getScriptSettings: host.getScriptSettings } : {}),
       settingsWriteQueue: this.#settingsWriteQueue,
     })
+    this.#rememberedDestinationReconcileActor = createRememberedDestinationReconcileActor({
+      service: this.#quickMovePersistenceService,
+      notify: (message) => {
+        this.notify(message)
+      },
+    })
+    this.#rememberedDestinationReconcileActor.start()
 
     this.#promptInteractionService = new SidepanelPromptInteractionService({
       getOwnerDocument: () => this.#contentRoot?.ownerDocument ?? null,
@@ -852,6 +858,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
 
   dispose(): void {
     this.clearInteractiveBindings()
+    this.#rememberedDestinationReconcileActor.stop()
     this.#latestModel = null
   }
 
@@ -934,10 +941,13 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     return persisted
   }
 
-  private scheduleRememberedDestinationReconciliation(
+  private buildRememberedDestinationCandidate(
     destinationProjection: ReturnType<typeof buildSidepanelQuickMoveDestinationProjection>,
-  ): void {
-    const preview = this.#quickMovePersistenceService.previewReboundRememberedDestinations({
+  ): {
+    readonly lastQuickMoveDestination: LastQuickMoveDestination | null
+    readonly recentQuickMoveDestinations: readonly LastQuickMoveDestination[]
+  } {
+    return {
       lastQuickMoveDestination: projectQuickMoveDestination(
         this.#quickMovePersistenceService.lastQuickMoveDestination,
         destinationProjection.destinationByKey,
@@ -948,99 +958,16 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         destinationProjection.destinationByKey,
         destinationProjection.liveFrameIds,
       ),
-    })
-
-    if (
-      !preview.changed ||
-      this.#quickMovePersistenceService.shouldSuppressRememberedDestinationRebind(preview)
-    ) {
-      return
     }
-
-    const nextEpoch = this.#rememberedDestinationReconcileEpoch + 1
-    this.#rememberedDestinationReconcileEpoch = nextEpoch
-    this.#rememberedDestinationReconcileDirtyEpoch = nextEpoch
-
-    if (this.#rememberedDestinationReconcileInFlight) {
-      return
-    }
-
-    this.#rememberedDestinationReconcileInFlight = true
-    queueMicrotask(() => {
-      void this.reconcileRememberedDestinations(destinationProjection, nextEpoch)
-    })
   }
 
-  private async reconcileRememberedDestinations(
+  private scheduleRememberedDestinationReconciliation(
     destinationProjection: ReturnType<typeof buildSidepanelQuickMoveDestinationProjection>,
-    reconcileEpoch: number,
-  ): Promise<void> {
-    let shouldReplay = false
-
-    try {
-      const outcome = await this.#quickMovePersistenceService.rebindRememberedDestinations({
-        lastQuickMoveDestination: projectQuickMoveDestination(
-          this.#quickMovePersistenceService.lastQuickMoveDestination,
-          destinationProjection.destinationByKey,
-          destinationProjection.liveFrameIds,
-        ),
-        recentQuickMoveDestinations: projectQuickMoveDestinations(
-          this.#quickMovePersistenceService.recentQuickMoveDestinations,
-          destinationProjection.destinationByKey,
-          destinationProjection.liveFrameIds,
-        ),
-      })
-
-      if (outcome.status === "reconciled" && !outcome.persisted) {
-        this.notify(
-          "Remembered last-move destination reverted because reconciliation could not persist.",
-        )
-      }
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error)
-      this.notify(`Quick-move reconciliation failed: ${message}`)
-      shouldReplay = false
-    } finally {
-      shouldReplay = this.#rememberedDestinationReconcileDirtyEpoch > reconcileEpoch
-      this.#rememberedDestinationReconcileInFlight = false
-    }
-
-    if (!shouldReplay) {
-      return
-    }
-
-    const latestModel = this.#latestModel
-    if (!latestModel) {
-      return
-    }
-
-    const latestProjection = this.getQuickMoveDestinationProjection(latestModel.tree)
-    const projectedLastDestination = projectQuickMoveDestination(
-      this.#quickMovePersistenceService.lastQuickMoveDestination,
-      latestProjection.destinationByKey,
-      latestProjection.liveFrameIds,
-    )
-    const projectedRecentDestinations = projectQuickMoveDestinations(
-      this.#quickMovePersistenceService.recentQuickMoveDestinations,
-      latestProjection.destinationByKey,
-      latestProjection.liveFrameIds,
-    )
-
-    const replayNeeded =
-      !areEquivalentDestinations(
-        this.#quickMovePersistenceService.lastQuickMoveDestination,
-        projectedLastDestination,
-      ) ||
-      !areEquivalentDestinationLists(
-        this.#quickMovePersistenceService.recentQuickMoveDestinations,
-        projectedRecentDestinations,
-      )
-
-    if (!replayNeeded) {
-      return
-    }
-
-    this.scheduleRememberedDestinationReconciliation(latestProjection)
+  ): void {
+    this.#rememberedDestinationReconcileActor.send({
+      type: "PROJECTION_UPDATED",
+      candidate: this.buildRememberedDestinationCandidate(destinationProjection),
+    })
   }
 
   private isLifecycleDebugEnabled(): boolean {

@@ -300,7 +300,7 @@ export const getContentRoot = (contentEl: FakeDomElement): FakeDomElement => {
   return root
 }
 
-export const flushAsync = async (turns = 3): Promise<void> => {
+export const flushAsync = async (turns = 6): Promise<void> => {
   for (let turn = 0; turn < turns; turn += 1) {
     await Promise.resolve()
   }
