@@ -235,6 +235,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   #latestModel: RenderViewModel | null = null
   #focusedNodeId: string | null = null
   #keyboardContext: KeyboardShortcutContext | null = null
+  #lastHandledContentKeydownEvent: KeyboardEvent | null = null
   #didPersistTab = false
   #keyboardSuppressedUntilMs = 0
   #ownerDocumentWithKeyCapture: Document | null = null
@@ -257,11 +258,17 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   readonly #rowDomIdPrefix = `lmx-row-${++nextSidepanelRendererInstanceId}`
 
   readonly #contentKeydownHandler = (event: KeyboardEvent): void => {
+    this.#lastHandledContentKeydownEvent = event
     this.#focusOwnership.activateKeyboardCapture()
     this.#keyboardController.handleContentKeydown(event)
   }
 
   readonly #documentKeydownHandler = (event: KeyboardEvent): void => {
+    if (event === this.#lastHandledContentKeydownEvent) {
+      this.#lastHandledContentKeydownEvent = null
+      return
+    }
+
     if (!this.#focusOwnership.isKeyboardRoutingActive()) {
       return
     }
@@ -1117,6 +1124,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.#selectionAnchorNodeId = null
     this.#latestSelectionResolution = null
     this.#lastSnapshotSelectionIds = []
+    this.#lastHandledContentKeydownEvent = null
     this.#pendingFocusedRowRevealNodeId = null
     this.#cachedRowFilterResult = null
     this.#cachedQuickMoveDestinationProjection = null

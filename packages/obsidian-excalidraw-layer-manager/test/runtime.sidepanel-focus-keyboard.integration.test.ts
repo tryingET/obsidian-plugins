@@ -8,7 +8,7 @@ import type { LayerManagerUiActions } from "../src/ui/renderer.js"
 
 import {
   FakeDocument,
-  FakeDomElement,
+  type FakeDomElement,
   FakeDomEvent,
   dispatchDocumentKeydown,
   dispatchKeydown,
@@ -435,6 +435,49 @@ describe("sidepanel focus + keyboard integration", () => {
     expect(sidepanelTab.contentEl.scrollTop).toBeLessThan(scrollTopAfterDown)
     expect(focusedUpRect.top).toBeGreaterThan(viewportRect.top + 20)
     expect(focusedUpRect.bottom).toBeLessThan(viewportRect.bottom - 20)
+  })
+
+  it("does not double-handle a single bubbled ArrowDown after rerender replaces the focused row tree", async () => {
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    const { actions } = makeUiActions()
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => ({}),
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [makeElementNode("A"), makeElementNode("B"), makeElementNode("C")],
+      selectedIds: new Set(),
+      sceneVersion: 32,
+      actions,
+    })
+
+    const contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const rowTreeRoot = findRowTreeRoot(contentRoot)
+    if (!rowTreeRoot) {
+      throw new Error("Expected row-tree root for keyboard navigation.")
+    }
+
+    const bubbledArrowEvent = new FakeDomEvent("keydown", { key: "ArrowDown" })
+    bubbledArrowEvent.target = rowTreeRoot as unknown as EventTarget
+
+    contentRoot.dispatchEvent(bubbledArrowEvent)
+    fakeDocument.dispatchEvent(bubbledArrowEvent)
+    await flushAsync()
+
+    const refreshedRoot = getContentRoot(sidepanelTab.contentEl)
+    const focusedRow = findFocusedInteractiveRow(refreshedRoot)
+    if (!focusedRow) {
+      throw new Error("Expected a focused row after bubbled keyboard navigation.")
+    }
+
+    expect((focusedRow as FakeDomElement & { ariaLabel?: string }).ariaLabel).toContain("B")
+    expect((focusedRow as FakeDomElement & { ariaLabel?: string }).ariaLabel).not.toContain("C")
   })
 
   it("keeps row focus marker when host emits immediate blur after keyboard arrow navigation", async () => {
