@@ -42,6 +42,7 @@ Provide an architecture-first Layer Manager for Obsidian Excalidraw scripts, wit
 - `docs/project/operating_plan.md`
 - `docs/project/2026-04-08-projection-kernel-recovery.md`
 - `docs/project/2026-04-09-projection-kernel-recovery-blueprint.md`
+- `docs/project/2026-04-14-safe-deployment-and-reload-workflow.md`
 - `docs/project/script-style-package-boundary.md`
 
 ## AK direction (L3 package surface)
@@ -79,11 +80,24 @@ Recovery-wave verification contract:
 Default sync target now points at the repo-local lab vault:
 - `apps/lab-vault/Excalidraw/Scripts/LayerManager.md`
 
-Override with:
+`npm run sync:vault` is now a safe deployment step, not just a blind copy:
+- it preserves the previous target bundle under `.tmp/obsidian-excalidraw-layer-manager/deployments/<timestamp>/previous/`
+- it verifies the copied target hash matches the built bundle
+- it writes a deployment receipt with rollback guidance and the manual reload checklist
+
+Override the target or receipt root with:
 
 ```bash
 LMX_VAULT_TARGET="/custom/path/LayerManager.md" npm run sync:vault
+LMX_DEPLOY_ROOT="/custom/deploy-receipts" npm run sync:vault
 ```
+
+Repo-level CI now also proves the workflow end-to-end by building the bundle and running `node packages/obsidian-excalidraw-layer-manager/build/verifyDeploymentWorkflow.mjs` against a temporary vault target before merge.
+
+Manual reload rule after sync:
+1. open an Excalidraw drawing in the target vault
+2. rerun `LayerManager` so the script disposes the previous runtime and mounts the fresh bundle
+3. if the rerun fails, restore the backup recorded in the deployment receipt and rerun the script
 
 ## Non-goals
 

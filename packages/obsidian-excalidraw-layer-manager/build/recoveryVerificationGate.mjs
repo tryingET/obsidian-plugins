@@ -9,6 +9,16 @@ const scriptPath = fileURLToPath(import.meta.url)
 const buildRoot = dirname(scriptPath)
 export const packageRoot = resolve(buildRoot, "..")
 export const repoRoot = resolve(packageRoot, "..", "..")
+export const LAYER_MANAGER_BUNDLE_FILENAME = "LayerManager.md"
+export const DEFAULT_LAB_VAULT_TARGET_RELATIVE_PATH =
+  "../../apps/lab-vault/Excalidraw/Scripts/LayerManager.md"
+export const DEFAULT_LAB_VAULT_TARGET = resolve(packageRoot, DEFAULT_LAB_VAULT_TARGET_RELATIVE_PATH)
+export const DEFAULT_DEPLOY_RECEIPTS_RELATIVE_PATH =
+  "../../.tmp/obsidian-excalidraw-layer-manager/deployments"
+export const DEFAULT_DEPLOY_RECEIPTS_PATH = resolve(
+  packageRoot,
+  DEFAULT_DEPLOY_RECEIPTS_RELATIVE_PATH,
+)
 
 export const createRecoveryVerificationPlan = ({
   docsTouched = false,
