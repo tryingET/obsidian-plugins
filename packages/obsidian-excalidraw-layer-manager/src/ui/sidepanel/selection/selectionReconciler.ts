@@ -64,8 +64,7 @@ export const reconcileSelectedElementIds = <T extends SelectionElementLike>(
     if (
       input.selectionOverride &&
       input.hasPendingSelectionMirror === true &&
-      liveSelection.length === 0 &&
-      input.snapshotSelection.length === 0
+      !haveSameIds(liveSelection, input.selectionOverride)
     ) {
       return {
         source: "pendingMirrorKeepsOverride",

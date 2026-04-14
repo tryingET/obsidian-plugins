@@ -74,6 +74,28 @@ describe("sidepanel host selection bridge", () => {
     expect(suppressContentFocusOut).not.toHaveBeenCalled()
   })
 
+  it("requires exact live-selection match before clearing pending mirror state", async () => {
+    const suppressContentFocusOut = vi.fn<() => void>()
+    const updateScene = vi.fn<(scene: unknown) => void>()
+    const selectElementsInView = vi.fn<(ids: string[]) => void>()
+
+    const bridge = new SidepanelHostSelectionBridge({
+      host: {
+        targetView: { _loaded: true },
+        selectElementsInView,
+        getViewSelectedElements: () => [{ id: "el:A" }, { id: "el:B" }],
+        getExcalidrawAPI: () => ({ updateScene }),
+      },
+      suppressContentFocusOut,
+    })
+
+    bridge.mirrorSelectionToHost(["el:A"])
+    await Promise.resolve()
+
+    expect(selectElementsInView).toHaveBeenCalledTimes(2)
+    expect(updateScene).toHaveBeenCalledTimes(1)
+  })
+
   it("retries selection bridge once and then falls back to updateScene on verification mismatch", async () => {
     const suppressContentFocusOut = vi.fn<() => void>()
     const updateScene = vi.fn<(scene: unknown) => void>()

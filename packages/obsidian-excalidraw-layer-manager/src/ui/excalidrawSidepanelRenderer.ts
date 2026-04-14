@@ -959,6 +959,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       snapshotSelectionChanged &&
       selectionOverride &&
       snapshotSelection.length > 0 &&
+      !this.#hostSelectionBridge.hasPendingSelectionMirror() &&
       !haveSameIds(selectionOverride, snapshotSelection)
     ) {
       this.#hostSelectionBridge.invalidatePendingSelectionMirror()
@@ -1293,14 +1294,14 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   }
 
   private setSelectionOverride(elementIds: readonly string[] | null): void {
-    if (!elementIds || elementIds.length === 0) {
+    if (!elementIds) {
       this.setSelectionOverrideState(null)
       return
     }
 
     this.setSelectionOverrideState({
       elementIds: [...elementIds],
-      nodeRefs: null,
+      nodeRefs: elementIds.length === 0 ? [] : null,
     })
   }
 
@@ -1799,7 +1800,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
                   nextSelection.selectedNodes,
                 )
               } else {
-                this.setSelectionOverride(null)
+                this.setSelectionOverride([])
               }
 
               // Architecture seam note:

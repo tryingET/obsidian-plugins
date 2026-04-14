@@ -450,7 +450,7 @@ export class SidepanelKeyboardShortcutController {
     } else if (input.selectedElementIds.length > 0) {
       this.#host.setSelectionOverride(input.selectedElementIds)
     } else {
-      this.#host.setSelectionOverride(null)
+      this.#host.setSelectionOverride([])
     }
 
     if (this.#host.mirrorSelectionToHost) {

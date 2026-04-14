@@ -73,6 +73,36 @@ describe("sidepanel selection reconciler", () => {
     expect(result.clearSelectionOverride).toBe(false)
   })
 
+  it("keeps pending local override even when stale live and snapshot selections still disagree", () => {
+    const result = reconcileSelectedElementIds({
+      snapshotSelection: ["a"],
+      selectionOverride: ["x"],
+      getViewSelectedElements: () => [{ id: "a" }],
+      hasSelectionBridge: true,
+      hasPendingSelectionMirror: true,
+      ensureHostViewContext: () => true,
+    })
+
+    expect(result.source).toBe("pendingMirrorKeepsOverride")
+    expect(result.resolvedSelection).toEqual(["x"])
+    expect(result.clearSelectionOverride).toBe(false)
+  })
+
+  it("keeps pending explicit empty selection while host clear is still in flight", () => {
+    const result = reconcileSelectedElementIds({
+      snapshotSelection: ["a"],
+      selectionOverride: [],
+      getViewSelectedElements: () => [{ id: "a" }],
+      hasSelectionBridge: true,
+      hasPendingSelectionMirror: true,
+      ensureHostViewContext: () => true,
+    })
+
+    expect(result.source).toBe("pendingMirrorKeepsOverride")
+    expect(result.resolvedSelection).toEqual([])
+    expect(result.clearSelectionOverride).toBe(false)
+  })
+
   it("prefers snapshot selection when live selection is unexpectedly empty", () => {
     const result = reconcileSelectedElementIds({
       snapshotSelection: ["a", "b"],

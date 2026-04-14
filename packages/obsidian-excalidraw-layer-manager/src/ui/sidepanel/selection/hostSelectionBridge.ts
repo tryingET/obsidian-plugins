@@ -1,4 +1,5 @@
 import { type SidepanelHostViewContextHost, ensureHostViewContext } from "./hostViewContext.js"
+import { collectUniqueSelectionIds, haveSameIds } from "./selectionIds.js"
 
 interface SelectionElementLike {
   readonly id: string
@@ -39,7 +40,7 @@ export class SidepanelHostSelectionBridge {
     const nextElementIds = [...elementIds]
     const mirrorRequestId = this.#latestMirrorRequestId + 1
     this.#latestMirrorRequestId = mirrorRequestId
-    this.#pendingMirrorRequestId = nextElementIds.length > 0 ? mirrorRequestId : null
+    this.#pendingMirrorRequestId = mirrorRequestId
 
     const runSelectAttempt = (): boolean => {
       const selectElementsInView = this.#host.selectElementsInView
@@ -96,7 +97,7 @@ export class SidepanelHostSelectionBridge {
     }
 
     const getViewSelectedElements = this.#host.getViewSelectedElements
-    if (!getViewSelectedElements || nextElementIds.length === 0) {
+    if (!getViewSelectedElements) {
       if (this.#pendingMirrorRequestId === mirrorRequestId) {
         this.#pendingMirrorRequestId = null
       }
@@ -112,10 +113,8 @@ export class SidepanelHostSelectionBridge {
         try {
           ensureHostViewContext(this.#host)
 
-          const liveSelectedIds = new Set(
-            (getViewSelectedElements() ?? []).map((entry) => entry.id),
-          )
-          return nextElementIds.every((elementId) => liveSelectedIds.has(elementId))
+          const liveSelectedIds = collectUniqueSelectionIds(getViewSelectedElements() ?? [])
+          return haveSameIds(liveSelectedIds, nextElementIds)
         } catch {
           return false
         }
