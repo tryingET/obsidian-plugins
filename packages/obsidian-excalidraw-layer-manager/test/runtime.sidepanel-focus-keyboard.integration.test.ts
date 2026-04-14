@@ -207,6 +207,36 @@ describe("sidepanel focus + keyboard integration", () => {
     expect(actions.reorderFromNodeIds).toHaveBeenNthCalledWith(2, ["group:Outer"], "forward")
   })
 
+  it("renders keyboard hint copy in row-selection terms", () => {
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    const { actions } = makeUiActions()
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => ({}),
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [makeElementNode("A")],
+      selectedIds: new Set(),
+      sceneVersion: 29,
+      actions,
+    })
+
+    const contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const textFragments = flattenElements(contentRoot)
+      .map((element) => element.textContent ?? "")
+      .filter((text) => text.length > 0)
+
+    expect(textFragments).toContain(
+      "Shortcuts: ↑/↓ focus rows · Shift+↑/↓ extend row selection · Home/End bounds · PgUp/PgDn page · Shift+PgUp/PgDn extend page · Space toggle row · Shift+Space range rows · ←/→ collapse/expand · Enter rename · Del delete · F/B reorder · Shift+F/B front/back · G/U structural",
+    )
+  })
+
   it("ignores modified shortcuts and text-input event targets", async () => {
     const sidepanelTab = makeSidepanelTab(fakeDocument, null)
     const { actions, commandSpies } = makeUiActions()
@@ -379,7 +409,7 @@ describe("sidepanel focus + keyboard integration", () => {
     expect(reorderFromNodeIdsMock).toHaveBeenNthCalledWith(4, ["el:1"], "forward")
   })
 
-  it("extends selection by page from the current anchor with Shift+PageDown", async () => {
+  it("extends row selection by page from the current anchor with Shift+PageDown", async () => {
     const sidepanelTab = makeSidepanelTab(fakeDocument, null)
     sidepanelTab.contentEl.clientHeight = 120
     const { actions } = makeUiActions()

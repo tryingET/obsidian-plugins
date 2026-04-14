@@ -337,7 +337,7 @@ describe("sidepanel keyboard shortcut controller", () => {
     expect(reorder).not.toHaveBeenCalled()
   })
 
-  it("keeps canonical selected elements ahead of focused-row fallback for keyboard reorder while staying on the command seam", async () => {
+  it("keeps canonical element selection ahead of focused-row fallback for keyboard reorder while staying on the command seam", async () => {
     const selectedNode = makeNode("el:A", "Alpha")
     const focusedNode = makeNode("el:B", "Beta")
     const reorderFromNodeIds = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
@@ -491,7 +491,7 @@ describe("sidepanel keyboard shortcut controller", () => {
     expect(focusedUngroupFallback).not.toHaveBeenCalled()
   })
 
-  it("routes delete, group, and ungroup-like through canonical selection before focused-row fallback", async () => {
+  it("routes delete, group, and ungroup-like through canonical element selection before focused-row fallback", async () => {
     const selectedNode = makeNode("el:A", "Alpha")
     const focusedNode = makeNode("el:B", "Beta")
     const commandDeleteNode = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
@@ -572,6 +572,82 @@ describe("sidepanel keyboard shortcut controller", () => {
     expect(focusedGroupFallback).not.toHaveBeenCalled()
     expect(moveSelectionToRoot).toHaveBeenCalledWith(context.actions, context.selection)
     expect(focusedUngroupFallback).not.toHaveBeenCalled()
+  })
+
+  it("fails closed with active-selection messaging when keyboard commands have no selection or visible focus target", async () => {
+    const deleteNode = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
+    const createGroup = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
+    const reorder = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
+    const moveSelectionToRoot = vi.fn(async () => {})
+    const notify = vi.fn<(message: string) => void>()
+    const runUiAction = vi.fn<(action: () => Promise<unknown>, fallbackMessage: string) => void>(
+      (action) => {
+        void action()
+      },
+    )
+
+    const context: KeyboardShortcutContext = {
+      actions: {
+        deleteNode: vi.fn(async () => ({ status: "applied", attempts: 1 as const })),
+        createGroupFromNodeIds: vi.fn(async () => ({ status: "applied", attempts: 1 as const })),
+        reorderFromNodeIds: vi.fn(async () => ({ status: "applied", attempts: 1 as const })),
+        commands: {
+          deleteNode,
+          createGroup,
+          reorder,
+        },
+      } as unknown as LayerManagerUiActions,
+      selection: {
+        elementIds: [],
+        nodes: [],
+        explicitSelectedNodes: null,
+        frameResolution: makeFrameResolution(null),
+      },
+      explicitSelectedNodes: null,
+      visibleNodes: [],
+      nodeById: new Map(),
+      parentById: new Map(),
+    }
+
+    const controller = new SidepanelKeyboardShortcutController({
+      getKeyboardContext: () => context,
+      resolveKeyboardContext: (resolvedContext) => resolvedContext,
+      getFocusedNodeId: () => null,
+      setFocusedNodeIdSilently: () => {},
+      setFocusedNode: () => {},
+      getInlineRenameNodeId: () => null,
+      beginInlineRename: () => {},
+      commitInlineRename: vi.fn(async () => {}),
+      setSelectionOverride: () => {},
+      ensureHostViewContext: () => true,
+      moveSelectionToRoot,
+      setLastQuickMoveDestinationToRoot: () => {},
+      isTextInputTarget: () => false,
+      isKeyboardSuppressed: () => false,
+      releaseKeyboardCapture: () => {},
+      suppressTransientFocusOut: () => {},
+      notify,
+      runUiAction,
+      requestRenderFromLatestModel: () => {},
+    })
+
+    controller.handleContentKeydown(makeKeyboardEvent("Delete"))
+    controller.handleContentKeydown(makeKeyboardEvent("g"))
+    controller.handleContentKeydown(makeKeyboardEvent("f"))
+    controller.handleContentKeydown(makeKeyboardEvent("u"))
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(notify.mock.calls.map(([message]) => message)).toEqual([
+      "Keyboard delete requires an active selection or a focused row.",
+      "Keyboard group requires an active selection or a focused row.",
+      "Keyboard reorder requires an active selection or a focused row.",
+      "Keyboard ungroup-like requires an active selection or a focused row.",
+    ])
+    expect(deleteNode).not.toHaveBeenCalled()
+    expect(createGroup).not.toHaveBeenCalled()
+    expect(reorder).not.toHaveBeenCalled()
+    expect(moveSelectionToRoot).not.toHaveBeenCalled()
   })
 
   it("toggles the focused row into explicit selection on Space", () => {

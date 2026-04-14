@@ -424,7 +424,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     Reflect.deleteProperty(globalRecord, "document")
   })
 
-  it("keyboard shortcut brings selected elements to front through the sidepanel seam", async () => {
+  it("keyboard shortcut brings canonical element selection to front through the sidepanel seam", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
       [
@@ -1144,7 +1144,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     ).toBe((focusedRow as FakeDomElement & { id?: string }).id)
   })
 
-  it("routes Delete shortcut through command seam for selected elements", async () => {
+  it("routes Delete shortcut through command seam for canonical element selection", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
       [
@@ -1957,7 +1957,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
         },
       },
       {
-        name: "Delete removes selected elements",
+        name: "Delete removes canonical element selection",
         selectedIds: ["A"],
         buildTree: () => [makeElementNode("A"), makeElementNode("B")],
         dispatch: (contentRoot) => {
@@ -1970,7 +1970,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
         },
       },
       {
-        name: "F brings selected elements forward by one step",
+        name: "F brings canonical element selection forward by one step",
         selectedIds: ["A"],
         buildTree: () => [makeElementNode("A"), makeElementNode("B")],
         dispatch: (contentRoot) => {
@@ -1984,7 +1984,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
         },
       },
       {
-        name: "B sends selected elements backward by one step",
+        name: "B sends canonical element selection backward by one step",
         selectedIds: ["A"],
         buildTree: () => [makeElementNode("A"), makeElementNode("B")],
         dispatch: (contentRoot) => {
@@ -1998,7 +1998,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
         },
       },
       {
-        name: "Shift+F brings selected elements to the front",
+        name: "Shift+F brings canonical element selection to the front",
         selectedIds: ["A"],
         buildTree: () => [makeElementNode("A"), makeElementNode("B")],
         dispatch: (contentRoot) => {
@@ -2012,7 +2012,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
         },
       },
       {
-        name: "Shift+B sends selected elements to the back",
+        name: "Shift+B sends canonical element selection to the back",
         selectedIds: ["A"],
         buildTree: () => [makeElementNode("A"), makeElementNode("B")],
         dispatch: (contentRoot) => {
@@ -2026,7 +2026,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
         },
       },
       {
-        name: "G groups selected elements",
+        name: "G groups canonical element selection",
         selectedIds: ["A", "B"],
         buildTree: () => [makeElementNode("A"), makeElementNode("B")],
         dispatch: (contentRoot) => {
@@ -2726,7 +2726,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect(latestReparentCall?.targetFrameId).toBeNull()
   })
 
-  it("keeps planner-error keyboard path fail-closed with zero writes", async () => {
+  it("keeps canonical-element planner errors fail-closed with zero writes", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
       [

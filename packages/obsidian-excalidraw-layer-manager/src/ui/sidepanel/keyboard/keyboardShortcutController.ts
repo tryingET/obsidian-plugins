@@ -23,6 +23,10 @@ interface KeyboardInteractionLogPayload {
   readonly [key: string]: unknown
 }
 
+const renderKeyboardSelectionRequirementMessage = (actionLabel: string): string => {
+  return `Keyboard ${actionLabel} requires an active selection or a focused row.`
+}
+
 interface SidepanelKeyboardShortcutControllerHost {
   getKeyboardContext: () => KeyboardShortcutContext | null
   resolveKeyboardContext: (context: KeyboardShortcutContext) => KeyboardShortcutContext
@@ -579,8 +583,8 @@ export class SidepanelKeyboardShortcutController {
   }
 
   /**
-   * Keyboard commands act on canonical selection first and only fall back to focused-row
-   * targeting when selection is empty.
+   * Keyboard commands act on explicit row selection first, then canonical element selection,
+   * and only fall back to focused-row targeting when selection is empty.
    */
   private resolveFocusedNodeIdOrNotify(
     context: KeyboardShortcutContext,
@@ -646,7 +650,7 @@ export class SidepanelKeyboardShortcutController {
 
     const focusedNodeId = this.#host.getFocusedNodeId()
     if (!focusedNodeId) {
-      this.#host.notify("Keyboard delete requires selected elements or a focused row.")
+      this.#host.notify(renderKeyboardSelectionRequirementMessage("delete"))
       return
     }
 
@@ -673,7 +677,7 @@ export class SidepanelKeyboardShortcutController {
 
     const focusedNodeId = this.resolveFocusedNodeIdOrNotify(
       context,
-      "Keyboard group requires selected elements or a focused row.",
+      renderKeyboardSelectionRequirementMessage("group"),
     )
     if (!focusedNodeId) {
       return
@@ -706,7 +710,7 @@ export class SidepanelKeyboardShortcutController {
 
     const focusedNodeId = this.resolveFocusedNodeIdOrNotify(
       context,
-      "Keyboard reorder requires selected elements or a focused row.",
+      renderKeyboardSelectionRequirementMessage("reorder"),
     )
     if (!focusedNodeId) {
       return
@@ -723,7 +727,7 @@ export class SidepanelKeyboardShortcutController {
 
     const focusedNodeId = this.resolveFocusedNodeIdOrNotify(
       context,
-      "Keyboard ungroup-like requires selected elements or a focused row.",
+      renderKeyboardSelectionRequirementMessage("ungroup-like"),
     )
     if (!focusedNodeId) {
       return

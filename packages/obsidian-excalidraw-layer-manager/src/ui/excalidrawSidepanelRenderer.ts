@@ -111,6 +111,21 @@ const ICON_BUTTON_SIZE_PX = 16
 const TOOLBAR_FONT_SIZE_PX = 11
 const SIDEPANEL_LIFECYCLE_DEBUG_FLAG = "LMX_DEBUG_SIDEPANEL_LIFECYCLE"
 const SIDEPANEL_INTERACTION_DEBUG_FLAG = "LMX_DEBUG_SIDEPANEL_INTERACTION"
+const SIDEPANEL_KEYBOARD_HINT_TEXT = [
+  "Shortcuts: ↑/↓ focus rows",
+  "Shift+↑/↓ extend row selection",
+  "Home/End bounds",
+  "PgUp/PgDn page",
+  "Shift+PgUp/PgDn extend page",
+  "Space toggle row",
+  "Shift+Space range rows",
+  "←/→ collapse/expand",
+  "Enter rename",
+  "Del delete",
+  "F/B reorder",
+  "Shift+F/B front/back",
+  "G/U structural",
+].join(" · ")
 
 let nextSidepanelRendererInstanceId = 0
 
@@ -642,8 +657,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     keyboardHint.style.opacity = "0.65"
     keyboardHint.style.fontSize = "11px"
     keyboardHint.style.marginBottom = "8px"
-    keyboardHint.textContent =
-      "Shortcuts: ↑/↓ focus · Shift+↑/↓ extend selection · Home/End bounds · PgUp/PgDn page · Shift+PgUp/PgDn extend page · Space toggle · Shift+Space range · ←/→ collapse/expand · Enter rename · Del delete · F/B reorder · Shift+F/B front/back · G/U structural"
+    keyboardHint.textContent = SIDEPANEL_KEYBOARD_HINT_TEXT
     contentRoot.appendChild(keyboardHint)
 
     this.renderRowFilterControls(contentRoot, ownerDocument, rowFilter)

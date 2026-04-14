@@ -176,7 +176,7 @@ describe("sidepanel selection-sync integration", () => {
     Reflect.deleteProperty(globalRecord, "document")
   })
 
-  it("uses onChange selectedElementIds hints for canvas-to-sidepanel selection sync", async () => {
+  it("uses onChange selectedElementIds payload for canvas-to-sidepanel selection sync", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
       [

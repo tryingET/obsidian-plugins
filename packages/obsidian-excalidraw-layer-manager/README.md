@@ -32,6 +32,12 @@ Provide an architecture-first Layer Manager for Obsidian Excalidraw scripts, wit
 - safe scene mutations
 - strong runtime/test coverage
 
+## Keyboard interaction contract
+
+- Arrow, Home/End, PageUp/PageDown, and Space shortcuts are described in row-selection terms because sidepanel keyboard navigation builds explicit row intent first.
+- Delete, reorder, group, and ungroup-like shortcuts honor explicit row selection first, then canonical element selection, and only fall back to the focused row when selection is empty.
+- If neither selection nor focus exists, the keyboard command fails closed instead of attempting scene writes.
+
 ## Package docs
 
 - `docs/project/import-origin.md`
