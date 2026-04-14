@@ -27,6 +27,12 @@ const renderKeyboardSelectionRequirementMessage = (actionLabel: string): string 
   return `Keyboard ${actionLabel} requires an active selection or a focused row.`
 }
 
+const claimHandledKeyboardEvent = (event: KeyboardEvent): void => {
+  event.preventDefault()
+  event.stopPropagation?.()
+  ;(event as KeyboardEvent & { stopImmediatePropagation?: () => void }).stopImmediatePropagation?.()
+}
+
 interface SidepanelKeyboardShortcutControllerHost {
   getKeyboardContext: () => KeyboardShortcutContext | null
   resolveKeyboardContext: (context: KeyboardShortcutContext) => KeyboardShortcutContext
@@ -65,6 +71,7 @@ interface SidepanelKeyboardShortcutControllerHost {
   notify: (message: string) => void
   runUiAction: (action: () => Promise<unknown>, fallbackMessage: string) => void
   requestRenderFromLatestModel: () => void
+  requestRowTreeAutofocus?: () => void
 
   debugInteraction?: (message: string, payload?: KeyboardInteractionLogPayload) => void
 }
@@ -114,7 +121,7 @@ export class SidepanelKeyboardShortcutController {
 
     if (event.key === "ArrowDown") {
       this.#host.suppressTransientFocusOut()
-      event.preventDefault()
+      claimHandledKeyboardEvent(event)
       if (event.shiftKey) {
         this.extendSelectionWithKeyboard(context, 1)
       } else {
@@ -125,7 +132,7 @@ export class SidepanelKeyboardShortcutController {
 
     if (event.key === "ArrowUp") {
       this.#host.suppressTransientFocusOut()
-      event.preventDefault()
+      claimHandledKeyboardEvent(event)
       if (event.shiftKey) {
         this.extendSelectionWithKeyboard(context, -1)
       } else {
@@ -136,21 +143,21 @@ export class SidepanelKeyboardShortcutController {
 
     if (event.key === "Home") {
       this.#host.suppressTransientFocusOut()
-      event.preventDefault()
+      claimHandledKeyboardEvent(event)
       this.moveFocusedNodeToBoundary(context, "start")
       return
     }
 
     if (event.key === "End") {
       this.#host.suppressTransientFocusOut()
-      event.preventDefault()
+      claimHandledKeyboardEvent(event)
       this.moveFocusedNodeToBoundary(context, "end")
       return
     }
 
     if (event.key === "PageDown") {
       this.#host.suppressTransientFocusOut()
-      event.preventDefault()
+      claimHandledKeyboardEvent(event)
       if (event.shiftKey) {
         this.extendSelectionByPage(context, 1)
       } else {
@@ -161,7 +168,7 @@ export class SidepanelKeyboardShortcutController {
 
     if (event.key === "PageUp") {
       this.#host.suppressTransientFocusOut()
-      event.preventDefault()
+      claimHandledKeyboardEvent(event)
       if (event.shiftKey) {
         this.extendSelectionByPage(context, -1)
       } else {
@@ -172,21 +179,21 @@ export class SidepanelKeyboardShortcutController {
 
     if (event.key === "ArrowRight") {
       this.#host.suppressTransientFocusOut()
-      event.preventDefault()
+      claimHandledKeyboardEvent(event)
       this.handleArrowRight(context)
       return
     }
 
     if (event.key === "ArrowLeft") {
       this.#host.suppressTransientFocusOut()
-      event.preventDefault()
+      claimHandledKeyboardEvent(event)
       this.handleArrowLeft(context)
       return
     }
 
     if (event.key === " " || event.key === "Space" || event.key === "Spacebar") {
       this.#host.suppressTransientFocusOut()
-      event.preventDefault()
+      claimHandledKeyboardEvent(event)
       if (event.shiftKey) {
         this.selectVisibleRangeToFocusedNode(context)
       } else {
@@ -197,14 +204,14 @@ export class SidepanelKeyboardShortcutController {
 
     if (event.key === "Enter") {
       this.#host.suppressTransientFocusOut()
-      event.preventDefault()
+      claimHandledKeyboardEvent(event)
       this.#host.runUiAction(() => this.runKeyboardRenameFocused(context), "Keyboard rename failed")
       return
     }
 
     if (event.key === "Delete" || event.key === "Backspace") {
       this.#host.suppressTransientFocusOut()
-      event.preventDefault()
+      claimHandledKeyboardEvent(event)
       this.#host.runUiAction(
         () => this.runKeyboardDeleteSelectionOrFocused(context),
         "Keyboard delete failed",
@@ -216,7 +223,7 @@ export class SidepanelKeyboardShortcutController {
 
     if (normalizedKey === "f") {
       this.#host.suppressTransientFocusOut()
-      event.preventDefault()
+      claimHandledKeyboardEvent(event)
       this.#host.runUiAction(
         () => this.runKeyboardReorder(context, event.shiftKey ? "front" : "forward"),
         "Keyboard reorder failed",
@@ -226,7 +233,7 @@ export class SidepanelKeyboardShortcutController {
 
     if (normalizedKey === "b") {
       this.#host.suppressTransientFocusOut()
-      event.preventDefault()
+      claimHandledKeyboardEvent(event)
       this.#host.runUiAction(
         () => this.runKeyboardReorder(context, event.shiftKey ? "back" : "backward"),
         "Keyboard reorder failed",
@@ -236,7 +243,7 @@ export class SidepanelKeyboardShortcutController {
 
     if (normalizedKey === "g") {
       this.#host.suppressTransientFocusOut()
-      event.preventDefault()
+      claimHandledKeyboardEvent(event)
       this.#host.runUiAction(
         () => this.runKeyboardGroupSelection(context),
         "Keyboard grouping failed",
@@ -246,7 +253,7 @@ export class SidepanelKeyboardShortcutController {
 
     if (normalizedKey === "u") {
       this.#host.suppressTransientFocusOut()
-      event.preventDefault()
+      claimHandledKeyboardEvent(event)
       this.#host.runUiAction(
         () => this.runKeyboardUngroupLike(context),
         "Keyboard ungroup-like failed",
@@ -458,6 +465,7 @@ export class SidepanelKeyboardShortcutController {
       }
     }
 
+    this.#host.requestRowTreeAutofocus?.()
     this.#host.requestRenderFromLatestModel()
   }
 

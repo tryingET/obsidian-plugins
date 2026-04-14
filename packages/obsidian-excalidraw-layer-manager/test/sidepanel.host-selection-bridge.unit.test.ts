@@ -3,6 +3,24 @@ import { describe, expect, it, vi } from "vitest"
 import { SidepanelHostSelectionBridge } from "../src/ui/sidepanel/selection/hostSelectionBridge.js"
 
 describe("sidepanel host selection bridge", () => {
+  it("tracks pending mirror state until selection verification completes", async () => {
+    const bridge = new SidepanelHostSelectionBridge({
+      host: {
+        targetView: { _loaded: true },
+        selectElementsInView: () => {},
+        getViewSelectedElements: () => [{ id: "el:A" }],
+      },
+      suppressContentFocusOut: () => {},
+    })
+
+    bridge.mirrorSelectionToHost(["el:A"])
+    expect(bridge.hasPendingSelectionMirror()).toBe(true)
+
+    await Promise.resolve()
+
+    expect(bridge.hasPendingSelectionMirror()).toBe(false)
+  })
+
   it("uses selectElementsInView when available and skips appState fallback on success", async () => {
     const suppressContentFocusOut = vi.fn<() => void>()
     const updateScene = vi.fn<(scene: unknown) => void>()

@@ -447,6 +447,9 @@ describe("sidepanel focus + keyboard integration", () => {
       throw new Error("Expected a focused row before Space selection toggle.")
     }
 
+    const rowTreeRootBeforeSpace = findRowTreeRoot(contentRoot)
+    expect(fakeDocument.activeElement).toBe(rowTreeRootBeforeSpace ?? null)
+
     const selectedRowLabelPrefix =
       (focusedRowBeforeSpace as FakeDomElement & { ariaLabel?: string }).ariaLabel ?? ""
     const scrollTopAfterArrowFocus = sidepanelTab.contentEl.scrollTop
@@ -460,6 +463,7 @@ describe("sidepanel focus + keyboard integration", () => {
     expect(
       (selectedRow as (FakeDomElement & { ariaSelected?: string }) | undefined)?.ariaSelected,
     ).toBe("true")
+    expect(fakeDocument.activeElement).toBe(findRowTreeRoot(contentRoot) ?? null)
     expect(sidepanelTab.contentEl.scrollTop).toBe(scrollTopAfterArrowFocus)
   })
 

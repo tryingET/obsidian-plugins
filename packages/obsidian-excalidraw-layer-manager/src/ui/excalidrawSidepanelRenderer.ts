@@ -531,6 +531,9 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       requestRenderFromLatestModel: () => {
         this.requestRenderFromLatestModel()
       },
+      requestRowTreeAutofocus: () => {
+        this.requestRowTreeAutofocus()
+      },
       debugInteraction: (message, payload) => {
         this.debugInteraction(message, payload)
       },
@@ -980,6 +983,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         ? { getViewSelectedElements: this.#host.getViewSelectedElements }
         : {}),
       hasSelectionBridge: !!this.#host.selectElementsInView,
+      hasPendingSelectionMirror: this.#hostSelectionBridge.hasPendingSelectionMirror(),
       ensureHostViewContext: () => ensureHostViewContext(this.#host),
     })
 
@@ -1095,6 +1099,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         readonly addEventListener?: (
           type: string,
           listener: EventListenerOrEventListenerObject,
+          options?: boolean | AddEventListenerOptions,
         ) => void
       }
     ).addEventListener
@@ -1103,7 +1108,9 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       return
     }
 
-    addEventListener.call(ownerDocument, "keydown", this.#documentKeydownHandler as EventListener)
+    addEventListener.call(ownerDocument, "keydown", this.#documentKeydownHandler as EventListener, {
+      capture: true,
+    })
     this.#ownerDocumentWithKeyCapture = ownerDocument
   }
 
@@ -1118,6 +1125,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         readonly removeEventListener?: (
           type: string,
           listener: EventListenerOrEventListenerObject,
+          options?: boolean | EventListenerOptions,
         ) => void
       }
     ).removeEventListener
@@ -1127,6 +1135,9 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         ownerDocument,
         "keydown",
         this.#documentKeydownHandler as EventListener,
+        {
+          capture: true,
+        },
       )
     }
 
@@ -1566,6 +1577,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
 
     this.#focusedNodeId = nodeId
     this.requestFocusedRowReveal(nodeId)
+    this.requestRowTreeAutofocus()
     this.requestRenderFromLatestModel()
   }
 

@@ -4,6 +4,7 @@ type SelectionResolutionSource =
   | "noLiveSelectionApi"
   | "liveMatchesOverride"
   | "overrideWithoutBridgeFallback"
+  | "pendingMirrorKeepsOverride"
   | "snapshotPreferredOverEmptyLive"
   | "liveDiffersFromSnapshot"
   | "snapshotOrOverrideFallback"
@@ -17,6 +18,7 @@ interface SelectionReconcileInput<T extends SelectionElementLike> {
   readonly selectionOverride: readonly string[] | null
   readonly getViewSelectedElements?: () => readonly T[]
   readonly hasSelectionBridge: boolean
+  readonly hasPendingSelectionMirror?: boolean
   readonly ensureHostViewContext: () => boolean
 }
 
@@ -54,6 +56,19 @@ export const reconcileSelectedElementIds = <T extends SelectionElementLike>(
     if (input.selectionOverride && !input.hasSelectionBridge && liveSelection.length === 0) {
       return {
         source: "overrideWithoutBridgeFallback",
+        resolvedSelection: input.selectionOverride,
+        clearSelectionOverride: false,
+      }
+    }
+
+    if (
+      input.selectionOverride &&
+      input.hasPendingSelectionMirror === true &&
+      liveSelection.length === 0 &&
+      input.snapshotSelection.length === 0
+    ) {
+      return {
+        source: "pendingMirrorKeepsOverride",
         resolvedSelection: input.selectionOverride,
         clearSelectionOverride: false,
       }

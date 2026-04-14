@@ -19,6 +19,7 @@ export class SidepanelHostSelectionBridge {
   readonly #host: SidepanelHostSelectionBridgeHost
   readonly #suppressContentFocusOut: () => void
   #latestMirrorRequestId = 0
+  #pendingMirrorRequestId: number | null = null
 
   constructor(input: SidepanelHostSelectionBridgeInput) {
     this.#host = input.host
@@ -27,12 +28,18 @@ export class SidepanelHostSelectionBridge {
 
   invalidatePendingSelectionMirror(): void {
     this.#latestMirrorRequestId += 1
+    this.#pendingMirrorRequestId = null
+  }
+
+  hasPendingSelectionMirror(): boolean {
+    return this.#pendingMirrorRequestId !== null
   }
 
   mirrorSelectionToHost(elementIds: readonly string[]): void {
     const nextElementIds = [...elementIds]
     const mirrorRequestId = this.#latestMirrorRequestId + 1
     this.#latestMirrorRequestId = mirrorRequestId
+    this.#pendingMirrorRequestId = nextElementIds.length > 0 ? mirrorRequestId : null
 
     const runSelectAttempt = (): boolean => {
       const selectElementsInView = this.#host.selectElementsInView
@@ -90,6 +97,9 @@ export class SidepanelHostSelectionBridge {
 
     const getViewSelectedElements = this.#host.getViewSelectedElements
     if (!getViewSelectedElements || nextElementIds.length === 0) {
+      if (this.#pendingMirrorRequestId === mirrorRequestId) {
+        this.#pendingMirrorRequestId = null
+      }
       return
     }
 
@@ -112,6 +122,9 @@ export class SidepanelHostSelectionBridge {
       }
 
       if (hasAllExpectedSelections()) {
+        if (this.#pendingMirrorRequestId === mirrorRequestId) {
+          this.#pendingMirrorRequestId = null
+        }
         return
       }
 
@@ -121,6 +134,9 @@ export class SidepanelHostSelectionBridge {
 
       const retryApplied = runSelectAttempt()
       if (retryApplied && hasAllExpectedSelections()) {
+        if (this.#pendingMirrorRequestId === mirrorRequestId) {
+          this.#pendingMirrorRequestId = null
+        }
         return
       }
 
@@ -129,6 +145,9 @@ export class SidepanelHostSelectionBridge {
       }
 
       runAppStateFallback()
+      if (this.#pendingMirrorRequestId === mirrorRequestId) {
+        this.#pendingMirrorRequestId = null
+      }
     })
   }
 }
