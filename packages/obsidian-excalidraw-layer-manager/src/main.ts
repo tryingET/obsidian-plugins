@@ -1,6 +1,5 @@
 import type { EaLike } from "./adapter/excalidraw-types.js"
-import { applyPatch, readSnapshot } from "./adapter/excalidrawAdapter.js"
-import type { CommandContext } from "./commands/context.js"
+import { readSnapshot } from "./adapter/excalidrawAdapter.js"
 import { buildLayerTree } from "./domain/treeBuilder.js"
 import { buildSceneIndexes } from "./model/indexes.js"
 import type { ScenePatch } from "./model/patch.js"
@@ -10,16 +9,12 @@ import {
   createLayerManagerCommandFacade,
 } from "./runtime/commandFacade.js"
 import type { CommandPlanner, ExecuteIntentOutcome } from "./runtime/intentExecution.js"
+import { createRuntimeLifecycleActor } from "./runtime/runtimeLifecycleMachine.js"
 import { LayerManagerController } from "./ui/controller.js"
 import { createExcalidrawSidepanelRenderer } from "./ui/excalidrawSidepanelRenderer.js"
 import { ConsoleRenderer, type LayerManagerRenderer } from "./ui/renderer.js"
 
 export type { CommandPlanner, ExecuteIntentOutcome } from "./runtime/intentExecution.js"
-
-interface DeferredVoid {
-  readonly promise: Promise<void>
-  readonly resolve: () => void
-}
 
 const readSelectedIdsFromAppState = (appState: unknown): ReadonlySet<string> | null => {
   if (!appState || typeof appState !== "object") {
@@ -55,22 +50,6 @@ const readSelectedIdsFromAppState = (appState: unknown): ReadonlySet<string> | n
   return new Set(ids)
 }
 
-const createDeferredVoid = (): DeferredVoid => {
-  let resolvePromise: (() => void) | null = null
-
-  const promise = new Promise<void>((resolve) => {
-    resolvePromise = resolve
-  })
-
-  return {
-    promise,
-    resolve: () => {
-      resolvePromise?.()
-      resolvePromise = null
-    },
-  }
-}
-
 const toSceneChangeUnsubscribe = (value: unknown): (() => void) | null => {
   return typeof value === "function" ? (value as () => void) : null
 }
@@ -94,61 +73,106 @@ export const createLayerManagerRuntime = (
   renderer: LayerManagerRenderer = createExcalidrawSidepanelRenderer(ea) ?? new ConsoleRenderer(),
 ): LayerManagerRuntime => {
   let snapshot = readSnapshot(ea)
-  let mutationQueue: Promise<void> = Promise.resolve()
-
-  let interactionDepth = 0
-  let pendingRefreshWhileInteractive = false
-  let interactionIdleDeferred: DeferredVoid | null = null
   let renderLatestSnapshot: () => void = () => {}
   let disposed = false
   let sceneChangeUnsubscribe: (() => void) | null = null
+  let subscribedSceneChangeApi: unknown = null
+  let lifecycleActor: ReturnType<typeof createRuntimeLifecycleActor> | null = null
+
+  const sendLifecycleEvent = (
+    event:
+      | { readonly type: "BEGIN_INTERACTION" }
+      | { readonly type: "END_INTERACTION" }
+      | { readonly type: "REFRESH_REQUEST" }
+      | { readonly type: "SCENE_CHANGE_NOTICED" }
+      | {
+          readonly type: "APPLY_REQUEST"
+          readonly patch: ScenePatch
+          readonly resolve: () => void
+          readonly reject: (error: unknown) => void
+        }
+      | {
+          readonly type: "EXECUTE_INTENT_REQUEST"
+          readonly planner: CommandPlanner
+          readonly resolve: (outcome: ExecuteIntentOutcome) => void
+          readonly reject: (error: unknown) => void
+        }
+      | { readonly type: "DISPOSE" },
+  ): void => {
+    if (disposed || !lifecycleActor) {
+      return
+    }
+
+    lifecycleActor.send(event)
+  }
 
   const isInteractionActive = (): boolean => {
-    return !disposed && interactionDepth > 0
+    if (disposed || !lifecycleActor) {
+      return false
+    }
+
+    return lifecycleActor.getSnapshot().context.interactionDepth > 0
+  }
+
+  const isInteractionLifecycleSettled = (): boolean => {
+    if (!lifecycleActor) {
+      return true
+    }
+
+    const lifecycleSnapshot = lifecycleActor.getSnapshot()
+
+    if (lifecycleSnapshot.matches({ active: { lifecycle: "interacting" } })) {
+      return false
+    }
+
+    if (lifecycleSnapshot.matches({ active: { lifecycle: "refreshing" } })) {
+      return false
+    }
+
+    return (
+      lifecycleSnapshot.context.interactionDepth === 0 &&
+      !lifecycleSnapshot.context.pendingRefreshWhileInteractive &&
+      !lifecycleSnapshot.context.refreshRequested
+    )
   }
 
   const waitForInteractionIdle = async (): Promise<void> => {
-    if (!isInteractionActive() || disposed) {
+    if (disposed || !lifecycleActor || isInteractionLifecycleSettled()) {
       return
     }
 
-    if (!interactionIdleDeferred) {
-      interactionIdleDeferred = createDeferredVoid()
-    }
+    await new Promise<void>((resolve) => {
+      const actor = lifecycleActor
+      if (!actor) {
+        resolve()
+        return
+      }
 
-    await interactionIdleDeferred.promise
+      let resolved = false
+      const subscription = actor.subscribe(() => {
+        if (resolved || !isInteractionLifecycleSettled()) {
+          return
+        }
+
+        resolved = true
+        subscription.unsubscribe()
+        resolve()
+      })
+
+      if (!resolved && isInteractionLifecycleSettled()) {
+        resolved = true
+        subscription.unsubscribe()
+        resolve()
+      }
+    })
   }
 
   const beginInteraction = (): void => {
-    if (disposed) {
-      return
-    }
-
-    interactionDepth += 1
-    pendingRefreshWhileInteractive = true
-
-    if (!interactionIdleDeferred) {
-      interactionIdleDeferred = createDeferredVoid()
-    }
+    sendLifecycleEvent({ type: "BEGIN_INTERACTION" })
   }
 
   const endInteraction = (): void => {
-    if (disposed || interactionDepth === 0) {
-      return
-    }
-
-    interactionDepth -= 1
-    if (interactionDepth > 0) {
-      return
-    }
-
-    if (pendingRefreshWhileInteractive) {
-      pendingRefreshWhileInteractive = false
-      renderLatestSnapshot()
-    }
-
-    interactionIdleDeferred?.resolve()
-    interactionIdleDeferred = null
+    sendLifecycleEvent({ type: "END_INTERACTION" })
   }
 
   const withInteraction = async <T>(operation: () => Promise<T> | T): Promise<T> => {
@@ -218,46 +242,6 @@ export const createLayerManagerRuntime = (
     subscribedSceneChangeApi = null
   }
 
-  renderLatestSnapshot = (): void => {
-    if (disposed) {
-      return
-    }
-
-    renderSnapshot(readSnapshot(ea))
-    subscribeToSceneChanges()
-  }
-
-  const refresh = (): void => {
-    if (disposed) {
-      return
-    }
-
-    if (isInteractionActive()) {
-      pendingRefreshWhileInteractive = true
-      return
-    }
-
-    renderLatestSnapshot()
-  }
-
-  let externalRefreshQueued = false
-  let subscribedSceneChangeApi: unknown = null
-
-  const queueExternalRefresh = (): void => {
-    if (disposed || externalRefreshQueued) {
-      return
-    }
-
-    externalRefreshQueued = true
-    Promise.resolve().then(() => {
-      externalRefreshQueued = false
-      if (disposed) {
-        return
-      }
-      refresh()
-    })
-  }
-
   const subscribeToSceneChanges = (): void => {
     let api: unknown
 
@@ -293,7 +277,7 @@ export const createLayerManagerRuntime = (
     try {
       const unsubscribeCandidate = onChange((_elements, appState) => {
         selectedIdsHintFromOnChange = readSelectedIdsFromAppState(appState)
-        queueExternalRefresh()
+        sendLifecycleEvent({ type: "SCENE_CHANGE_NOTICED" })
       })
       sceneChangeUnsubscribe = toSceneChangeUnsubscribe(unsubscribeCandidate)
       subscribedSceneChangeApi = api
@@ -302,84 +286,54 @@ export const createLayerManagerRuntime = (
     }
   }
 
-  const runSerializedMutation = async <T>(operation: () => Promise<T>): Promise<T> => {
-    const scheduled = mutationQueue.then(operation, operation)
-    mutationQueue = scheduled.then(
-      () => undefined,
-      () => undefined,
-    )
+  renderLatestSnapshot = (): void => {
+    if (disposed) {
+      return
+    }
 
-    return scheduled
+    renderSnapshot(readSnapshot(ea))
+    subscribeToSceneChanges()
   }
 
-  const runInteractionAwareMutation = async <T>(operation: () => Promise<T>): Promise<T> => {
-    return runSerializedMutation(async () => {
-      await waitForInteractionIdle()
-      return operation()
-    })
+  lifecycleActor = createRuntimeLifecycleActor({
+    ea,
+    renderLatestSnapshot,
+  })
+  lifecycleActor.start()
+
+  const refresh = (): void => {
+    sendLifecycleEvent({ type: "REFRESH_REQUEST" })
   }
 
   const apply = async (patch: ScenePatch): Promise<void> => {
-    await runInteractionAwareMutation(async () => {
-      await applyPatch(ea, patch)
-      refresh()
+    if (disposed) {
+      return
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      sendLifecycleEvent({
+        type: "APPLY_REQUEST",
+        patch,
+        resolve,
+        reject,
+      })
     })
   }
 
   const executeIntent = async (planner: CommandPlanner): Promise<ExecuteIntentOutcome> => {
+    if (disposed) {
+      throw new Error("Layer Manager runtime disposed.")
+    }
+
     // Canonical write path owner:
     // read snapshot -> build indexes -> plan command -> adapter preflight/apply -> refresh.
-    return runInteractionAwareMutation(async () => {
-      let attempts = 0
-
-      while (attempts < 2) {
-        attempts += 1
-        const attempt = attempts as 1 | 2
-
-        const planningSnapshot = readSnapshot(ea)
-        const planningContext: CommandContext = {
-          snapshot: planningSnapshot,
-          indexes: buildSceneIndexes(planningSnapshot),
-        }
-
-        const planned = planner(planningContext)
-        if (!planned.ok) {
-          refresh()
-          return {
-            status: "plannerError",
-            error: planned.error,
-            attempts: attempt,
-          }
-        }
-
-        const applyOutcome = await applyPatch(ea, planned.value)
-        if (applyOutcome.status === "applied") {
-          refresh()
-          return {
-            status: "applied",
-            attempts: attempt,
-          }
-        }
-
-        if (applyOutcome.status === "preflightFailed" && attempts < 2) {
-          refresh()
-          continue
-        }
-
-        refresh()
-        return {
-          status: applyOutcome.status,
-          reason: applyOutcome.reason,
-          attempts: attempt,
-        }
-      }
-
-      refresh()
-      return {
-        status: "preflightFailed",
-        reason: "Patch preflight failed after bounded retry.",
-        attempts: 2,
-      }
+    return new Promise<ExecuteIntentOutcome>((resolve, reject) => {
+      sendLifecycleEvent({
+        type: "EXECUTE_INTENT_REQUEST",
+        planner,
+        resolve,
+        reject,
+      })
     })
   }
 
@@ -395,11 +349,10 @@ export const createLayerManagerRuntime = (
       return
     }
 
+    sendLifecycleEvent({ type: "DISPOSE" })
+    lifecycleActor?.stop()
+    lifecycleActor = null
     disposed = true
-    pendingRefreshWhileInteractive = false
-    interactionDepth = 0
-    interactionIdleDeferred?.resolve()
-    interactionIdleDeferred = null
     clearSceneChangeSubscription()
     renderer.dispose?.()
     controller.dispose()
