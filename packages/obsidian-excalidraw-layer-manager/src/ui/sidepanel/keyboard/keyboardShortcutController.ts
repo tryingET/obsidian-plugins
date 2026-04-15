@@ -220,7 +220,7 @@ export class SidepanelKeyboardShortcutController {
       if (event.shiftKey) {
         this.selectVisibleRangeToFocusedNode(context)
       } else {
-        this.toggleFocusedNodeSelection(context)
+        this.selectFocusedNodeLikePlainClick(context)
       }
       return
     }
@@ -500,7 +500,7 @@ export class SidepanelKeyboardShortcutController {
     this.#host.requestRenderFromLatestModel()
   }
 
-  private toggleFocusedNodeSelection(context: KeyboardShortcutContext): void {
+  private selectFocusedNodeLikePlainClick(context: KeyboardShortcutContext): void {
     const focusedNode = this.resolveFocusedNodeForSelectionGesture(context)
     if (!focusedNode) {
       return
@@ -516,7 +516,7 @@ export class SidepanelKeyboardShortcutController {
         fallbackAnchorNodeId: focusedNode.id,
         modifiers: {
           shiftKey: false,
-          toggleKey: true,
+          toggleKey: false,
         },
       }),
     )

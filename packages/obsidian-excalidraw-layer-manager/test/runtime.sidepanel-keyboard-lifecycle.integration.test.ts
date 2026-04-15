@@ -560,7 +560,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect(app.getSnapshot().elements.some((element) => element.id === "C")).toBe(true)
   })
 
-  it("keeps render stable when view rebinding cannot be confirmed and live-selection read throws", () => {
+  it("keeps render stable when view rebinding cannot be confirmed and live-selection read stays unreachable", () => {
     const sidepanelTab = makeSidepanelTab(fakeDocument, null)
     const getViewSelectedElements = vi.fn(() => {
       throw new Error("targetView not set")
@@ -584,7 +584,13 @@ describe("sidepanel keyboard + lifecycle parity", () => {
       sceneVersion: 1,
     })
 
-    expect(getViewSelectedElements).toHaveBeenCalledTimes(1)
+    expect(getViewSelectedElements).not.toHaveBeenCalled()
+
+    const contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const selectedRows = flattenElements(contentRoot).filter(
+      (element) => element.tagName === "DIV" && (element.style["background"]?.length ?? 0) > 0,
+    )
+    expect(selectedRows).toHaveLength(1)
   })
 
   it("autofocuses sidepanel content root on initial mount and after close/reopen", async () => {
@@ -1213,7 +1219,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect(actions.reorderFromNodeIds).not.toHaveBeenCalled()
   })
 
-  it("supports keyboard-only toggle and range selection with Space semantics", async () => {
+  it("supports keyboard-only replace-and-range selection with Space semantics", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
       [
@@ -1243,6 +1249,25 @@ describe("sidepanel keyboard + lifecycle parity", () => {
 
     contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
     dispatchKeydown(contentRoot, "ArrowDown")
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "Space")
+    await flushAsync()
+
+    lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
+    selectedIds = runtime.selectInView.mock.calls[lastSelectCallIndex]?.[0] as
+      | readonly string[]
+      | undefined
+
+    expect(selectedIds).toEqual(["C"])
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowUp")
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowUp")
     await flushAsync()
 
     contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
@@ -1279,7 +1304,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect(groupC).toEqual(groupA)
   })
 
-  it("supports keyboard-only toggle and range selection with M alias semantics", async () => {
+  it("supports keyboard-only replace-and-range selection with M alias semantics", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
       [
@@ -1309,6 +1334,25 @@ describe("sidepanel keyboard + lifecycle parity", () => {
 
     contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
     dispatchKeydown(contentRoot, "ArrowDown")
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "m")
+    await flushAsync()
+
+    lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
+    selectedIds = runtime.selectInView.mock.calls[lastSelectCallIndex]?.[0] as
+      | readonly string[]
+      | undefined
+
+    expect(selectedIds).toEqual(["C"])
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowUp")
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowUp")
     await flushAsync()
 
     contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)

@@ -125,7 +125,7 @@ const SIDEPANEL_KEYBOARD_HINT_TEXT = [
   "Home/End bounds",
   "PgUp/PgDn page",
   "Shift+PgUp/PgDn extend page",
-  "Space/M/N toggle row",
+  "Space/M/N select row",
   "Shift+Space/M/N range rows",
   "←/→ collapse/expand",
   "Enter rename",

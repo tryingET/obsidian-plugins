@@ -236,7 +236,7 @@ describe("sidepanel focus + keyboard integration", () => {
       .filter((text) => text.length > 0)
 
     expect(textFragments).toContain(
-      "Shortcuts: ↑/↓ focus rows · Shift+↑/↓ extend row selection · Home/End bounds · PgUp/PgDn page · Shift+PgUp/PgDn extend page · Space/M/N toggle row · Shift+Space/M/N range rows · ←/→ collapse/expand · Enter rename · Del delete · F/B reorder · Shift+F/B front/back · G/U structural",
+      "Shortcuts: ↑/↓ focus rows · Shift+↑/↓ extend row selection · Home/End bounds · PgUp/PgDn page · Shift+PgUp/PgDn extend page · Space/M/N select row · Shift+Space/M/N range rows · ←/→ collapse/expand · Enter rename · Del delete · F/B reorder · Shift+F/B front/back · G/U structural",
     )
   })
 
@@ -529,7 +529,7 @@ describe("sidepanel focus + keyboard integration", () => {
     expect(reorderFromNodeIdsMock).toHaveBeenNthCalledWith(4, ["el:1"], "forward")
   })
 
-  it("does not add extra scroll when Space toggles the row selected via arrow-key focus", async () => {
+  it("does not add extra scroll when Space selects the row focused via arrow-key navigation", async () => {
     fakeDocument.focusScrollDelta = 96
 
     const sidepanelTab = makeSidepanelTab(fakeDocument, null)
@@ -563,7 +563,7 @@ describe("sidepanel focus + keyboard integration", () => {
 
     const focusedRowBeforeSpace = findFocusedInteractiveRow(contentRoot)
     if (!focusedRowBeforeSpace) {
-      throw new Error("Expected a focused row before Space selection toggle.")
+      throw new Error("Expected a focused row before Space selection.")
     }
 
     const rowTreeRootBeforeSpace = findRowTreeRoot(contentRoot)
