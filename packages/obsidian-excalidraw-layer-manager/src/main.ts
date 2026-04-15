@@ -54,6 +54,23 @@ const toSceneChangeUnsubscribe = (value: unknown): (() => void) | null => {
   return typeof value === "function" ? (value as () => void) : null
 }
 
+const resolveTargetViewContextKey = (targetView: unknown): string => {
+  if (!targetView || typeof targetView !== "object") {
+    return "target:null"
+  }
+
+  const targetViewRecord = targetView as Record<string, unknown>
+  const fileCandidate = targetViewRecord["file"]
+  const filePath =
+    fileCandidate &&
+    typeof fileCandidate === "object" &&
+    typeof (fileCandidate as Record<string, unknown>)["path"] === "string"
+      ? ((fileCandidate as Record<string, unknown>)["path"] as string)
+      : null
+
+  return filePath ? `target:file:${filePath}` : "target:unknown-file"
+}
+
 export interface LayerManagerRuntime {
   refresh: () => void
   apply: (patch: ScenePatch) => Promise<void>
@@ -77,6 +94,8 @@ export const createLayerManagerRuntime = (
   let disposed = false
   let sceneChangeUnsubscribe: (() => void) | null = null
   let subscribedSceneChangeApi: unknown = null
+  let activeViewContextKey = resolveTargetViewContextKey(ea.targetView ?? null)
+  let subscribedViewContextKey: string | null = null
   let lifecycleActor: ReturnType<typeof createRuntimeLifecycleActor> | null = null
 
   const sendLifecycleEvent = (
@@ -200,6 +219,17 @@ export const createLayerManagerRuntime = (
 
   let selectedIdsHintFromOnChange: ReadonlySet<string> | null = null
 
+  const syncActiveViewContext = (): boolean => {
+    const nextViewContextKey = resolveTargetViewContextKey(ea.targetView ?? null)
+    if (nextViewContextKey === activeViewContextKey) {
+      return false
+    }
+
+    activeViewContextKey = nextViewContextKey
+    selectedIdsHintFromOnChange = null
+    return true
+  }
+
   const renderSnapshot = (nextSnapshot: SceneSnapshot): void => {
     const elementIds = new Set(nextSnapshot.elements.map((element) => element.id))
 
@@ -247,6 +277,7 @@ export const createLayerManagerRuntime = (
 
     sceneChangeUnsubscribe = null
     subscribedSceneChangeApi = null
+    subscribedViewContextKey = null
   }
 
   const subscribeToSceneChanges = (): void => {
@@ -258,16 +289,25 @@ export const createLayerManagerRuntime = (
       return
     }
 
+    const currentViewContextKey = activeViewContextKey
+    const viewContextChanged = currentViewContextKey !== subscribedViewContextKey
+
+    if (viewContextChanged) {
+      selectedIdsHintFromOnChange = null
+    }
+
     if (!api) {
       clearSceneChangeSubscription()
       return
     }
 
-    if (api === subscribedSceneChangeApi) {
+    if (api === subscribedSceneChangeApi && !viewContextChanged) {
       return
     }
 
     clearSceneChangeSubscription()
+    subscribedSceneChangeApi = api
+    subscribedViewContextKey = currentViewContextKey
 
     const onChange = (
       api as {
@@ -287,7 +327,6 @@ export const createLayerManagerRuntime = (
         sendLifecycleEvent({ type: "SCENE_CHANGE_NOTICED" })
       })
       sceneChangeUnsubscribe = toSceneChangeUnsubscribe(unsubscribeCandidate)
-      subscribedSceneChangeApi = api
     } catch {
       // no-op: host may expose a partial API without change subscriptions
     }
@@ -298,7 +337,10 @@ export const createLayerManagerRuntime = (
       return
     }
 
-    renderSnapshot(readSnapshot(ea))
+    syncActiveViewContext()
+    const nextSnapshot = readSnapshot(ea)
+    syncActiveViewContext()
+    renderSnapshot(nextSnapshot)
     subscribeToSceneChanges()
   }
 

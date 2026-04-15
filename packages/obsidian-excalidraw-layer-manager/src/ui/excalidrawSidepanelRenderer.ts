@@ -226,6 +226,23 @@ const resolveElementScrollTop = (element: HTMLElement): number => {
   return readNumericDimension((element as unknown as { readonly scrollTop?: unknown }).scrollTop)
 }
 
+const resolveTargetViewContextKey = (targetView: unknown): string => {
+  if (!targetView || typeof targetView !== "object") {
+    return "target:null"
+  }
+
+  const targetViewRecord = targetView as Record<string, unknown>
+  const fileCandidate = targetViewRecord["file"]
+  const filePath =
+    fileCandidate &&
+    typeof fileCandidate === "object" &&
+    typeof (fileCandidate as Record<string, unknown>)["path"] === "string"
+      ? ((fileCandidate as Record<string, unknown>)["path"] as string)
+      : null
+
+  return filePath ? `target:file:${filePath}` : "target:unknown-file"
+}
+
 const runUiAction = (
   action: () => Promise<unknown>,
   onError: (message: string) => void,
@@ -324,6 +341,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   #latestSelectionResolution: SidepanelSelectionResolution | null = null
   #lastSnapshotSelectionIds: readonly string[] = []
   #pendingFocusedRowRevealNodeId: string | null = null
+  #lastHostViewContextKey: string | null = null
   #rowFilterQuery = ""
   #shouldAutofocusRowFilterInput = false
   #cachedRowFilterResult: {
@@ -637,6 +655,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
 
   render(model: RenderViewModel): void {
     this.#latestModel = model
+    this.reconcileHostViewContextBeforeRender()
 
     const contentRoot = this.ensureContentRoot()
     if (!contentRoot) {
@@ -1344,6 +1363,48 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     if (this.#latestModel) {
       this.render(this.#latestModel)
     }
+  }
+
+  private resetForHostViewContextChange(): void {
+    this.#hostSelectionBridge.invalidatePendingSelectionMirror()
+    this.cancelDeferredFocusRestore()
+    this.#keyboardContext = null
+    this.#focusedNodeId = null
+    this.#selectionOverrideState = null
+    this.#selectionAnchorNodeId = null
+    this.#latestSelectionResolution = null
+    this.#lastSnapshotSelectionIds = []
+    this.#pendingFocusedRowRevealNodeId = null
+    this.#rowFilterQuery = ""
+    this.#shouldAutofocusRowFilterInput = false
+    this.#cachedRowFilterResult = null
+    this.#cachedQuickMoveDestinationProjection = null
+    this.#lastHandledContentKeydownEvent = null
+    this.#keyboardSuppressedUntilMs = 0
+    this.#inlineRenameController.clear()
+    this.#dragDropController.clear()
+    this.#focusOwnership.reset()
+    this.requestRowTreeAutofocus()
+  }
+
+  private reconcileHostViewContextBeforeRender(): void {
+    const nextHostViewContextKey = resolveTargetViewContextKey(this.#host.targetView ?? null)
+
+    if (this.#lastHostViewContextKey === null) {
+      this.#lastHostViewContextKey = nextHostViewContextKey
+      return
+    }
+
+    if (this.#lastHostViewContextKey === nextHostViewContextKey) {
+      return
+    }
+
+    this.#lastHostViewContextKey = nextHostViewContextKey
+    this.resetForHostViewContextChange()
+
+    this.debugInteraction("host view context changed", {
+      ...this.buildHostViewDebugPayload(),
+    })
   }
 
   private getRowFilterResult(

@@ -87,6 +87,98 @@ describe("runtime scene-change subscription lifecycle", () => {
     expect([...runtime.getSnapshot().selectedIds]).toEqual(["A"])
   })
 
+  it("resubscribes and clears stale selection hints when the targetView changes under a stable API", async () => {
+    const elementsByView: Record<string, RawExcalidrawElement[]> = {
+      "A.excalidraw": [{ id: "A", type: "rectangle", isDeleted: false }],
+      "B.excalidraw": [{ id: "A", type: "rectangle", isDeleted: false }],
+    }
+    const selectedIdsByView = new Map<string, Set<string>>([
+      ["A.excalidraw", new Set<string>()],
+      ["B.excalidraw", new Set<string>()],
+    ])
+    const listenersByView = new Map<
+      string,
+      Set<(elements: readonly RawExcalidrawElement[], appState: unknown, files: unknown) => void>
+    >()
+
+    const getListenersForView = (viewPath: string) => {
+      let listeners = listenersByView.get(viewPath)
+      if (!listeners) {
+        listeners = new Set()
+        listenersByView.set(viewPath, listeners)
+      }
+
+      return listeners
+    }
+
+    const makeTargetView = (viewPath: string) => ({
+      id: viewPath,
+      _loaded: true,
+      file: {
+        path: viewPath,
+      },
+    })
+
+    let currentView = makeTargetView("A.excalidraw")
+    const getCurrentViewPath = () => currentView.file.path
+
+    const api = {
+      onChange: (
+        callback: (
+          elements: readonly RawExcalidrawElement[],
+          appState: unknown,
+          files: unknown,
+        ) => void,
+      ) => {
+        const listeners = getListenersForView(getCurrentViewPath())
+        listeners.add(callback)
+        return () => {
+          listeners.delete(callback)
+        }
+      },
+    }
+
+    const renderer = {
+      render: vi.fn(),
+      dispose: vi.fn(),
+    }
+
+    const ea: EaLike = {
+      targetView: currentView,
+      setView: vi.fn(() => currentView),
+      getViewElements: () => elementsByView[getCurrentViewPath()] ?? [],
+      getViewSelectedElements: () => {
+        const selectedIds = selectedIdsByView.get(getCurrentViewPath()) ?? new Set<string>()
+        return (elementsByView[getCurrentViewPath()] ?? []).filter((element) =>
+          selectedIds.has(element.id),
+        )
+      },
+      getScriptSettings: () => ({}),
+      getExcalidrawAPI: () => api,
+    }
+
+    const runtime = createLayerManagerRuntime(ea, renderer)
+    expect(getListenersForView("A.excalidraw").size).toBe(1)
+
+    for (const callback of getListenersForView("A.excalidraw")) {
+      callback(elementsByView["A.excalidraw"] ?? [], { selectedElementIds: { A: true } }, {})
+    }
+
+    await flushAsync()
+    expect([...runtime.getSnapshot().selectedIds]).toEqual(["A"])
+
+    currentView = makeTargetView("B.excalidraw")
+    ea.targetView = currentView
+    selectedIdsByView.set("B.excalidraw", new Set<string>())
+
+    runtime.refresh()
+    await flushAsync()
+
+    expect(getListenersForView("A.excalidraw").size).toBe(0)
+    expect(getListenersForView("B.excalidraw").size).toBe(1)
+    expect([...runtime.getSnapshot().selectedIds]).toEqual([])
+  })
+
   it("detaches the active subscription and disposes the renderer when the runtime is disposed", () => {
     const elements: RawExcalidrawElement[] = [{ id: "A", type: "rectangle", isDeleted: false }]
     const listeners = new Set<
