@@ -78,44 +78,19 @@ export class SidepanelSelectionActionController {
       return
     }
 
-    const explicitSelectedNodeIds = resolveExplicitSelectionNodeIds(selection)
-    const promptResult = this.#host.promptService.promptWithInteraction(
-      actions,
-      "New group name (optional)",
-      "Group",
-      "Create group prompt unavailable: prompt API is missing in this host.",
-    )
+    await this.#host.promptService.withPromptlessInteraction(actions, async () => {
+      const explicitSelectedNodeIds = resolveExplicitSelectionNodeIds(selection)
 
-    if (promptResult.cancelled) {
-      return
-    }
+      if (explicitSelectedNodeIds.length > 0) {
+        await actions.createGroupFromNodeIds({
+          nodeIds: explicitSelectedNodeIds,
+        })
+        return
+      }
 
-    const nameSeed = promptResult.value.trim()
-
-    if (explicitSelectedNodeIds.length > 0) {
-      await actions.createGroupFromNodeIds(
-        nameSeed.length > 0
-          ? {
-              nodeIds: explicitSelectedNodeIds,
-              nameSeed,
-            }
-          : {
-              nodeIds: explicitSelectedNodeIds,
-            },
-      )
-      return
-    }
-
-    if (nameSeed.length > 0) {
       await actions.commands.createGroup({
         elementIds: selection.elementIds,
-        nameSeed,
       })
-      return
-    }
-
-    await actions.commands.createGroup({
-      elementIds: selection.elementIds,
     })
   }
 
@@ -213,22 +188,8 @@ export class SidepanelSelectionActionController {
       return
     }
 
-    const promptResult = this.#host.promptService.promptWithInteraction(
-      actions,
-      'Type "UNGROUP" to clear group nesting for selected elements',
-      "",
-      "Ungroup confirmation unavailable: prompt API is missing in this host.",
-    )
-
-    if (promptResult.cancelled) {
-      return
-    }
-
-    if (promptResult.value.trim().toUpperCase() !== "UNGROUP") {
-      this.#host.notify("Ungroup-like cancelled.")
-      return
-    }
-
-    await this.moveSelectionToRoot(actions, selection)
+    await this.#host.promptService.withPromptlessInteraction(actions, async () => {
+      await this.moveSelectionToRoot(actions, selection)
+    })
   }
 }

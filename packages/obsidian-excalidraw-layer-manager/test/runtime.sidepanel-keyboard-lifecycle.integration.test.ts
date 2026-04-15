@@ -931,11 +931,14 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(["group:Outer"], "front")
   })
 
-  it("routes toolbar grouping through explicit group row selection", async () => {
+  it("routes promptless toolbar grouping through explicit group row selection", async () => {
     const sidepanelTab = makeSidepanelTab(fakeDocument, null)
     const { actions, commandSpies } = makeUiActions()
     const previousPrompt = globalRecord["prompt"]
-    globalRecord["prompt"] = vi.fn(() => "  Nested Team  ")
+    const promptSpy = vi.fn(() => {
+      throw new Error("prompt should not be called")
+    })
+    globalRecord["prompt"] = promptSpy
 
     try {
       const renderer = createExcalidrawSidepanelRenderer({
@@ -974,8 +977,8 @@ describe("sidepanel keyboard + lifecycle parity", () => {
 
       expect(actions.createGroupFromNodeIds).toHaveBeenCalledWith({
         nodeIds: ["group:Outer"],
-        nameSeed: "Nested Team",
       })
+      expect(promptSpy).not.toHaveBeenCalled()
       expect(commandSpies.createGroup).not.toHaveBeenCalled()
     } finally {
       globalRecord["prompt"] = previousPrompt
@@ -2025,7 +2028,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect(runtime.elements.find((element) => element.id === "B")?.isDeleted).toBe(true)
   })
 
-  it("suppresses immediate keyboard shortcuts right after prompt interactions", async () => {
+  it("suppresses immediate keyboard shortcuts right after promptless toolbar interactions", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
       [{ id: "A", type: "rectangle", isDeleted: false, name: "old" }],
@@ -2035,11 +2038,14 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     createLayerManagerRuntime(runtime.ea)
 
     const previousPrompt = globalRecord["prompt"]
+    const promptSpy = vi.fn(() => {
+      throw new Error("prompt should not be called")
+    })
     const nowSpy = vi.spyOn(Date, "now")
     let now = 10_000
 
     nowSpy.mockImplementation(() => now)
-    globalRecord["prompt"] = vi.fn().mockReturnValueOnce("")
+    globalRecord["prompt"] = promptSpy
 
     try {
       const contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
@@ -2050,6 +2056,8 @@ describe("sidepanel keyboard + lifecycle parity", () => {
 
       ungroupButton.click()
       await flushAsync()
+
+      expect(promptSpy).not.toHaveBeenCalled()
 
       dispatchKeydown(contentRoot, "Delete")
       await flushAsync()

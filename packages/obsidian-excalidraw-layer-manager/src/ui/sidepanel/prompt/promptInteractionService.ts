@@ -276,6 +276,10 @@ export class SidepanelPromptInteractionService {
     return result as T
   }
 
+  withPromptlessInteraction<T>(actions: LayerManagerUiActions, operation: () => T): T {
+    return this.withInteractionWindow(actions, operation)
+  }
+
   promptWithInteraction(
     actions: LayerManagerUiActions,
     message: string,

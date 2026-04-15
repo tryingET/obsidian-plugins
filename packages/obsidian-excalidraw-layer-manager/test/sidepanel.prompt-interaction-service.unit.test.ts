@@ -139,6 +139,28 @@ describe("sidepanel prompt interaction service", () => {
     })
   })
 
+  it("runs promptless interactions without consulting host prompt sources", async () => {
+    const promptSpy = vi.fn(() => {
+      throw new Error("prompt should not be called")
+    })
+
+    await withPatchedGlobalPrompt(promptSpy, async () => {
+      const harness = makeHostHarness(null)
+      const { actions, beginInteraction, endInteraction } = makeActions()
+
+      const result = harness.service.withPromptlessInteraction(actions, () => "ok")
+
+      expect(result).toBe("ok")
+      expect(promptSpy).not.toHaveBeenCalled()
+      expect(harness.notify).not.toHaveBeenCalled()
+      expect(beginInteraction).toHaveBeenCalledTimes(1)
+      expect(endInteraction).toHaveBeenCalledTimes(1)
+      expect(harness.suppressKeyboardAfterPrompt).toHaveBeenCalledTimes(1)
+      expect(harness.setShouldAutofocusContentRoot).toHaveBeenCalledWith(true)
+      expect(harness.focusContentRoot).toHaveBeenCalledTimes(1)
+    })
+  })
+
   it("always executes interaction-finalizer when operation throws", () => {
     const harness = makeHostHarness(null)
     const { actions, beginInteraction, endInteraction } = makeActions()

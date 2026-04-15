@@ -155,54 +155,57 @@ describe("sidepanel selection action controller", () => {
     expect(harness.createGroup).not.toHaveBeenCalled()
   })
 
-  it("groups selected elements with trimmed prompt name seed", async () => {
+  it("groups selected elements promptlessly without consulting host prompt sources", async () => {
     const harness = makeHarness()
+    const promptSpy = vi.fn(() => {
+      throw new Error("prompt should not be called")
+    })
 
-    await withPatchedGlobalPrompt(
-      vi.fn(() => "  New Group  "),
-      async () => {
-        await harness.controller.groupSelected(harness.actions, {
-          elementIds: ["el:A", "el:B"],
-          nodes: [makeElementNode("el:A", "Frame-A"), makeElementNode("el:B", "Frame-A")],
-          frameResolution: makeFrameResolution("Frame-A"),
-          explicitSelectedNodes: null,
-        })
-      },
-    )
+    await withPatchedGlobalPrompt(promptSpy, async () => {
+      await harness.controller.groupSelected(harness.actions, {
+        elementIds: ["el:A", "el:B"],
+        nodes: [makeElementNode("el:A", "Frame-A"), makeElementNode("el:B", "Frame-A")],
+        frameResolution: makeFrameResolution("Frame-A"),
+        explicitSelectedNodes: null,
+      })
+    })
 
     expect(harness.createGroup).toHaveBeenCalledWith({
       elementIds: ["el:A", "el:B"],
-      nameSeed: "New Group",
     })
+    expect(promptSpy).not.toHaveBeenCalled()
+    expect(harness.notify).not.toHaveBeenCalled()
     expect(harness.beginInteraction).toHaveBeenCalledTimes(1)
     expect(harness.endInteraction).toHaveBeenCalledTimes(1)
     expect(harness.suppressKeyboardAfterPrompt).toHaveBeenCalledTimes(1)
   })
 
-  it("groups through explicit selected row ids when explicit row intent is available", async () => {
+  it("groups through explicit selected row ids promptlessly when explicit row intent is available", async () => {
     const harness = makeHarness()
+    const promptSpy = vi.fn(() => {
+      throw new Error("prompt should not be called")
+    })
 
-    await withPatchedGlobalPrompt(
-      vi.fn(() => "  Team Row  "),
-      async () => {
-        await harness.controller.groupSelected(harness.actions, {
-          elementIds: ["el:A", "el:B"],
-          nodes: [makeGroupNode("G", ["el:A", "el:B"], "Frame-A")],
-          explicitSelectedNodes: [makeGroupNode("G", ["el:A", "el:B"], "Frame-A")],
-          frameResolution: makeFrameResolution("Frame-A"),
-          structuralMove: {
-            nodeIds: ["group:G"],
-            sourceGroupId: "G",
-          },
-        })
-      },
-    )
+    await withPatchedGlobalPrompt(promptSpy, async () => {
+      await harness.controller.groupSelected(harness.actions, {
+        elementIds: ["el:A", "el:B"],
+        nodes: [makeGroupNode("G", ["el:A", "el:B"], "Frame-A")],
+        explicitSelectedNodes: [makeGroupNode("G", ["el:A", "el:B"], "Frame-A")],
+        frameResolution: makeFrameResolution("Frame-A"),
+        structuralMove: {
+          nodeIds: ["group:G"],
+          sourceGroupId: "G",
+        },
+      })
+    })
 
     expect(harness.createGroupFromNodeIds).toHaveBeenCalledWith({
       nodeIds: ["group:G"],
-      nameSeed: "Team Row",
     })
+    expect(promptSpy).not.toHaveBeenCalled()
     expect(harness.createGroup).not.toHaveBeenCalled()
+    expect(harness.beginInteraction).toHaveBeenCalledTimes(1)
+    expect(harness.endInteraction).toHaveBeenCalledTimes(1)
   })
 
   it("reorders through explicit selected row ids when explicit row intent is available", async () => {
@@ -487,19 +490,19 @@ describe("sidepanel selection action controller", () => {
     expect(harness.reparentFromNodeIds).not.toHaveBeenCalled()
   })
 
-  it("executes ungroupLikeSelection confirmation and routes to move-to-root", async () => {
+  it("executes ungroupLikeSelection promptlessly and routes to move-to-root", async () => {
     const harness = makeHarness()
+    const promptSpy = vi.fn(() => {
+      throw new Error("prompt should not be called")
+    })
 
-    await withPatchedGlobalPrompt(
-      vi.fn(() => "UNGROUP"),
-      async () => {
-        await harness.controller.ungroupLikeSelection(harness.actions, {
-          elementIds: ["el:A"],
-          nodes: [makeElementNode("el:A", "Frame-A")],
-          frameResolution: makeFrameResolution("Frame-A"),
-        })
-      },
-    )
+    await withPatchedGlobalPrompt(promptSpy, async () => {
+      await harness.controller.ungroupLikeSelection(harness.actions, {
+        elementIds: ["el:A"],
+        nodes: [makeElementNode("el:A", "Frame-A")],
+        frameResolution: makeFrameResolution("Frame-A"),
+      })
+    })
 
     expect(harness.reparent).toHaveBeenCalledWith({
       elementIds: ["el:A"],
@@ -507,6 +510,10 @@ describe("sidepanel selection action controller", () => {
       targetParentPath: [],
       targetFrameId: "Frame-A",
     })
+    expect(promptSpy).not.toHaveBeenCalled()
+    expect(harness.beginInteraction).toHaveBeenCalledTimes(1)
+    expect(harness.endInteraction).toHaveBeenCalledTimes(1)
+    expect(harness.suppressKeyboardAfterPrompt).toHaveBeenCalledTimes(1)
 
     expect(harness.setLastQuickMoveDestination).toHaveBeenCalledWith({
       kind: "root",
