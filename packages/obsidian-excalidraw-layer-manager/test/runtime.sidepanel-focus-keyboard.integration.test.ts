@@ -297,6 +297,8 @@ describe("sidepanel focus + keyboard integration", () => {
         expect.arrayContaining([
           expect.objectContaining({
             source: "mouseRange",
+            selectionOrigin: "mouse",
+            selectionSemantics: "range",
             selectedElementIds: ["A", "B", "C"],
             selectedNodeIds: ["el:A", "el:B", "el:C"],
           }),
@@ -336,11 +338,22 @@ describe("sidepanel focus + keyboard integration", () => {
         expect.arrayContaining([
           expect.objectContaining({
             source: "mouseRange",
+            selectionOrigin: "mouse",
+            selectionSemantics: "range",
             selectedElementIds: ["A", "B", "C"],
             selectedNodeIds: ["el:A", "el:B", "el:C"],
           }),
           expect.objectContaining({
+            source: "keyboardToggle",
+            selectionOrigin: "keyboard",
+            selectionSemantics: "replace",
+            selectedElementIds: ["A"],
+            selectedNodeIds: ["el:A"],
+          }),
+          expect.objectContaining({
             source: "keyboardExtend",
+            selectionOrigin: "keyboard",
+            selectionSemantics: "extend",
             selectedElementIds: ["A", "B", "C"],
             selectedNodeIds: ["el:A", "el:B", "el:C"],
           }),

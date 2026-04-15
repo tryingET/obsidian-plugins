@@ -135,6 +135,46 @@ const SIDEPANEL_KEYBOARD_HINT_TEXT = [
   "G/U structural",
 ].join(" · ")
 
+const resolveRowSelectionDebugSemantics = (
+  source: RowSelectionGesture["source"],
+): {
+  readonly selectionOrigin: "keyboard" | "mouse"
+  readonly selectionSemantics: "replace" | "toggle" | "range" | "extend"
+} => {
+  switch (source) {
+    case "keyboardToggle":
+      return {
+        selectionOrigin: "keyboard",
+        selectionSemantics: "replace",
+      }
+    case "keyboardRange":
+      return {
+        selectionOrigin: "keyboard",
+        selectionSemantics: "range",
+      }
+    case "keyboardExtend":
+      return {
+        selectionOrigin: "keyboard",
+        selectionSemantics: "extend",
+      }
+    case "mouseClick":
+      return {
+        selectionOrigin: "mouse",
+        selectionSemantics: "replace",
+      }
+    case "mouseToggle":
+      return {
+        selectionOrigin: "mouse",
+        selectionSemantics: "toggle",
+      }
+    case "mouseRange":
+      return {
+        selectionOrigin: "mouse",
+        selectionSemantics: "range",
+      }
+  }
+}
+
 let nextSidepanelRendererInstanceId = 0
 
 const ROW_STYLE_CONFIG = {
@@ -1417,6 +1457,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
 
     this.debugInteraction("row selection gesture", {
       source: input.source,
+      ...resolveRowSelectionDebugSemantics(input.source),
       selectedNodeIds: input.selectedNodes.map((node) => node.id),
       selectedElementIds: [...input.selectedElementIds],
       anchorNodeId: input.anchorNodeId,

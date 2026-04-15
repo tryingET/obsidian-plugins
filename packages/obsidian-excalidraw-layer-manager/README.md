@@ -35,6 +35,7 @@ Provide an architecture-first Layer Manager for Obsidian Excalidraw scripts, wit
 ## Keyboard-first tree selection model
 
 - Arrow, Home/End, PageUp/PageDown, and Space shortcuts build and extend explicit row selection first, so sidepanel tree selection stays anchored in row intent instead of being inferred only from host element selection.
+- Space, `M`, and `N` are the same replace-selection command at the sidepanel surface; interaction debug keeps the legacy low-level source tags for controller compatibility, but now also records stable `selectionOrigin` / `selectionSemantics` fields so post-hoc triage does not drift back to the old toggle wording.
 - Delete, reorder, group, and ungroup-like shortcuts honor explicit row selection first, then canonical element selection, and only fall back to the focused row when selection is empty.
 - If neither selection nor focus exists, the keyboard command fails closed instead of attempting scene writes.
 
@@ -83,10 +84,10 @@ Recovery-wave verification contract:
 - if package docs differ from `HEAD` (including working-tree changes), the same gate also runs `node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs packages/obsidian-excalidraw-layer-manager/docs --strict`
 - `npm run check:full` is the ship-ready gate for the recovery wave and now routes through `verify:recovery` before `npm run deadcode`
 
-Default sync target now points at the repo-local lab vault:
+Default sync target now points at the repo-local lab vault's Obsidian Excalidraw scripts path:
 - `apps/lab-vault/Excalidraw/Scripts/LayerManager.md`
 
-`npm run sync:vault` is now a safe deployment step, not just a blind copy:
+`npm run sync:vault` is now a safe deployment step, not just a blind copy, and verifies that the exported bundle landed at that scripts path with the same hash as `dist/LayerManager.md`:
 - it preserves the previous target bundle under `.tmp/obsidian-excalidraw-layer-manager/deployments/<timestamp>/previous/`
 - it verifies the copied target hash matches the built bundle
 - it writes a deployment receipt with rollback guidance and the manual reload checklist

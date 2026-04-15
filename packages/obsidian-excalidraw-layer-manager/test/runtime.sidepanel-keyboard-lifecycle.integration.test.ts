@@ -1367,6 +1367,84 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect([...(selectedIds ?? [])].sort()).toEqual(["A", "B", "C"])
   })
 
+  it("keeps Space/M/N aliases on stable replace-selection debug semantics", async () => {
+    const debugFlagKey = "LMX_DEBUG_SIDEPANEL_INTERACTION"
+    const hadDebugFlag = Object.prototype.hasOwnProperty.call(globalRecord, debugFlagKey)
+    const previousDebugFlag = globalRecord[debugFlagKey]
+    globalRecord[debugFlagKey] = true
+
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {})
+
+    try {
+      const runtime = makeRuntimeWithSidepanel(
+        fakeDocument,
+        [
+          { id: "C", type: "rectangle", isDeleted: false },
+          { id: "B", type: "rectangle", isDeleted: false },
+          { id: "A", type: "rectangle", isDeleted: false },
+        ],
+        [],
+      )
+
+      createLayerManagerRuntime(runtime.ea)
+
+      let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+      dispatchKeydown(contentRoot, "Space")
+      await flushAsync()
+
+      contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+      dispatchKeydown(contentRoot, "ArrowDown")
+      await flushAsync()
+
+      contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+      dispatchKeydown(contentRoot, "m")
+      await flushAsync()
+
+      contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+      dispatchKeydown(contentRoot, "ArrowDown")
+      await flushAsync()
+
+      contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+      dispatchKeydown(contentRoot, "n")
+      await flushAsync()
+
+      const gesturePayloads = logSpy.mock.calls
+        .filter(([message]) => message === "[LMX:interaction] row selection gesture")
+        .map(([, payload]) => (payload ?? {}) as Record<string, unknown>)
+
+      expect(gesturePayloads).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            source: "keyboardToggle",
+            selectionOrigin: "keyboard",
+            selectionSemantics: "replace",
+            selectedElementIds: ["A"],
+          }),
+          expect.objectContaining({
+            source: "keyboardToggle",
+            selectionOrigin: "keyboard",
+            selectionSemantics: "replace",
+            selectedElementIds: ["B"],
+          }),
+          expect.objectContaining({
+            source: "keyboardToggle",
+            selectionOrigin: "keyboard",
+            selectionSemantics: "replace",
+            selectedElementIds: ["C"],
+          }),
+        ]),
+      )
+    } finally {
+      if (hadDebugFlag) {
+        globalRecord[debugFlagKey] = previousDebugFlag
+      } else {
+        Reflect.deleteProperty(globalRecord, debugFlagKey)
+      }
+
+      logSpy.mockRestore()
+    }
+  })
+
   it("extends keyboard selection with Shift+Arrow and groups selected rows with G", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
