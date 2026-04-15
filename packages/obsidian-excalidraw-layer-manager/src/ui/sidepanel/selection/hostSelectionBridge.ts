@@ -1,4 +1,4 @@
-import { type SidepanelHostViewContextHost, ensureHostViewContext } from "./hostViewContext.js"
+import { type SidepanelHostViewContextHost, ensureHostViewContextState } from "./hostViewContext.js"
 import { collectUniqueSelectionIds, haveSameIds } from "./selectionIds.js"
 
 interface SelectionElementLike {
@@ -49,14 +49,7 @@ export class SidepanelHostSelectionBridge {
       }
 
       this.#suppressContentFocusOut()
-
-      try {
-        this.#host.setView?.("active", false)
-      } catch {
-        // no-op: force-rebind is best-effort only
-      }
-
-      ensureHostViewContext(this.#host)
+      ensureHostViewContextState(this.#host)
 
       try {
         selectElementsInView([...nextElementIds])
@@ -111,7 +104,10 @@ export class SidepanelHostSelectionBridge {
 
       const hasAllExpectedSelections = (): boolean => {
         try {
-          ensureHostViewContext(this.#host)
+          const hostViewContext = ensureHostViewContextState(this.#host)
+          if (!hostViewContext.ok) {
+            return false
+          }
 
           const liveSelectedIds = collectUniqueSelectionIds(getViewSelectedElements() ?? [])
           return haveSameIds(liveSelectedIds, nextElementIds)

@@ -2,6 +2,7 @@ import { collectUniqueSelectionIds, haveSameIds } from "./selectionIds.js"
 
 type SelectionResolutionSource =
   | "noLiveSelectionApi"
+  | "hostViewUnavailable"
   | "liveMatchesOverride"
   | "overrideWithoutBridgeFallback"
   | "pendingMirrorKeepsOverride"
@@ -40,7 +41,14 @@ export const reconcileSelectedElementIds = <T extends SelectionElementLike>(
     }
   }
 
-  input.ensureHostViewContext()
+  const hostViewReady = input.ensureHostViewContext()
+  if (!hostViewReady) {
+    return {
+      source: "hostViewUnavailable",
+      resolvedSelection: input.selectionOverride ?? input.snapshotSelection,
+      clearSelectionOverride: false,
+    }
+  }
 
   try {
     const liveSelection = collectUniqueSelectionIds(input.getViewSelectedElements() ?? [])

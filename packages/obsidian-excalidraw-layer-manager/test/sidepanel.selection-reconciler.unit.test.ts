@@ -27,6 +27,23 @@ describe("sidepanel selection reconciler", () => {
     expect(withoutOverride.clearSelectionOverride).toBe(false)
   })
 
+  it("returns snapshot or override without consulting live reads when host view cannot be rebound", () => {
+    const getViewSelectedElements = vi.fn(() => [{ id: "a" }])
+
+    const result = reconcileSelectedElementIds({
+      snapshotSelection: ["a"],
+      selectionOverride: ["x"],
+      getViewSelectedElements,
+      hasSelectionBridge: true,
+      ensureHostViewContext: () => false,
+    })
+
+    expect(result.source).toBe("hostViewUnavailable")
+    expect(result.resolvedSelection).toEqual(["x"])
+    expect(result.clearSelectionOverride).toBe(false)
+    expect(getViewSelectedElements).not.toHaveBeenCalled()
+  })
+
   it("returns live selection when it matches local override", () => {
     const ensureHostViewContext = vi.fn(() => true)
 

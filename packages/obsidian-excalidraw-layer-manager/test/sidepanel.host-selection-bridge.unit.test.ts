@@ -24,6 +24,7 @@ describe("sidepanel host selection bridge", () => {
   it("uses selectElementsInView when available and skips appState fallback on success", async () => {
     const suppressContentFocusOut = vi.fn<() => void>()
     const updateScene = vi.fn<(scene: unknown) => void>()
+    const setView = vi.fn<(view?: unknown, reveal?: boolean) => unknown>()
 
     let liveSelectionIds: readonly string[] = []
 
@@ -34,6 +35,7 @@ describe("sidepanel host selection bridge", () => {
     const bridge = new SidepanelHostSelectionBridge({
       host: {
         targetView: { _loaded: true },
+        setView,
         selectElementsInView,
         getViewSelectedElements: () => liveSelectionIds.map((id) => ({ id })),
         getExcalidrawAPI: () => ({ updateScene }),
@@ -44,9 +46,49 @@ describe("sidepanel host selection bridge", () => {
     bridge.mirrorSelectionToHost(["el:A", "el:B"])
     await Promise.resolve()
 
+    expect(setView).not.toHaveBeenCalled()
     expect(selectElementsInView).toHaveBeenCalledTimes(1)
     expect(selectElementsInView).toHaveBeenCalledWith(["el:A", "el:B"])
     expect(suppressContentFocusOut).toHaveBeenCalledTimes(1)
+    expect(updateScene).not.toHaveBeenCalled()
+  })
+
+  it("accepts targetView rebinding when setView mutates host targetView but returns null", async () => {
+    const suppressContentFocusOut = vi.fn<() => void>()
+    const updateScene = vi.fn<(scene: unknown) => void>()
+
+    let liveSelectionIds: readonly string[] = []
+
+    const host: {
+      targetView: unknown | null
+      setView: ReturnType<typeof vi.fn>
+      selectElementsInView: ReturnType<typeof vi.fn>
+      getViewSelectedElements: () => readonly { id: string }[]
+      getExcalidrawAPI: () => { updateScene: typeof updateScene }
+    } = {
+      targetView: null,
+      setView: vi.fn(() => {
+        host.targetView = { id: "rebound-view", _loaded: true }
+        return null
+      }),
+      selectElementsInView: vi.fn((ids: readonly string[]) => {
+        liveSelectionIds = [...ids]
+      }),
+      getViewSelectedElements: () => liveSelectionIds.map((id) => ({ id })),
+      getExcalidrawAPI: () => ({ updateScene }),
+    }
+
+    const bridge = new SidepanelHostSelectionBridge({
+      host,
+      suppressContentFocusOut,
+    })
+
+    bridge.mirrorSelectionToHost(["el:A"])
+    await Promise.resolve()
+
+    expect(host.setView).toHaveBeenCalledTimes(1)
+    expect(host.selectElementsInView).toHaveBeenCalledTimes(1)
+    expect(host.selectElementsInView).toHaveBeenCalledWith(["el:A"])
     expect(updateScene).not.toHaveBeenCalled()
   })
 

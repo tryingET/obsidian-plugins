@@ -10,6 +10,11 @@ export interface SidepanelHostViewContextDescription {
   readonly hasSetView: boolean
 }
 
+export interface SidepanelHostViewContextEnsureResult {
+  readonly ok: boolean
+  readonly rebound: boolean
+}
+
 const getCurrentHostTargetView = (host: SidepanelHostViewContextHost): unknown => {
   return host.targetView ?? null
 }
@@ -46,14 +51,22 @@ export const describeHostViewContext = (
   }
 }
 
-export const ensureHostViewContext = (host: SidepanelHostViewContextHost): boolean => {
+export const ensureHostViewContextState = (
+  host: SidepanelHostViewContextHost,
+): SidepanelHostViewContextEnsureResult => {
   if (isUsableTargetView(getCurrentHostTargetView(host))) {
-    return true
+    return {
+      ok: true,
+      rebound: false,
+    }
   }
 
   const setView = host.setView
   if (!setView) {
-    return true
+    return {
+      ok: true,
+      rebound: false,
+    }
   }
 
   const strategies: readonly {
@@ -71,12 +84,22 @@ export const ensureHostViewContext = (host: SidepanelHostViewContextHost): boole
     try {
       const resolved = setView(strategy.viewArg, strategy.reveal)
       if (isUsableTargetView(resolved) || isUsableTargetView(getCurrentHostTargetView(host))) {
-        return true
+        return {
+          ok: true,
+          rebound: true,
+        }
       }
     } catch {
       // keep trying fallback strategies
     }
   }
 
-  return isUsableTargetView(getCurrentHostTargetView(host))
+  return {
+    ok: isUsableTargetView(getCurrentHostTargetView(host)),
+    rebound: false,
+  }
+}
+
+export const ensureHostViewContext = (host: SidepanelHostViewContextHost): boolean => {
+  return ensureHostViewContextState(host).ok
 }

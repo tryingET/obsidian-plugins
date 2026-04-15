@@ -230,7 +230,7 @@ describe("sidepanel selection-sync integration", () => {
     expect(selectedRows.length).toBe(1)
   })
 
-  it("mirrors sidepanel row clicks to host selection bridge", async () => {
+  it("mirrors sidepanel row clicks to host selection bridge without churning a healthy targetView binding", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
       [
@@ -254,6 +254,7 @@ describe("sidepanel selection-sync integration", () => {
     row.click()
     await flushAsync()
 
+    expect(runtime.setView).not.toHaveBeenCalled()
     expect(runtime.selectInView).toHaveBeenCalledTimes(1)
     const selectedIds = runtime.selectInView.mock.calls[0]?.[0] as readonly string[] | undefined
     expect(selectedIds?.length ?? 0).toBeGreaterThan(0)
