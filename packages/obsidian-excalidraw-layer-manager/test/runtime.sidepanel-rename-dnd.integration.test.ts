@@ -11,6 +11,7 @@ import {
   findButtonByTitle,
   findFirstInput,
   findInteractiveRowByLabel,
+  flattenElements,
   flushAsync,
   getContentRoot,
   makeSidepanelTab,
@@ -420,6 +421,91 @@ describe("sidepanel rename + drag-drop integration", () => {
     expect(runtime.elements.find((element) => element.id === "C")?.groupIds ?? []).toEqual([
       "Outer",
     ])
+  })
+
+  it("shows contain-style drag preview when the drop will reparent into a group", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      [
+        { id: "A", type: "rectangle", name: "Source", groupIds: ["H"] },
+        { id: "H-anchor", type: "rectangle", groupIds: ["H"] },
+        { id: "B", type: "rectangle", groupIds: ["G"] },
+      ],
+      [],
+    )
+
+    const app = createLayerManagerRuntime(runtime.ea)
+    app.toggleExpanded("group:H")
+    await flushAsync()
+
+    const contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const sourceRow = findInteractiveRowByLabel(contentRoot, "[element] Source")
+    const targetRow = findInteractiveRowByLabel(contentRoot, "[group] G")
+
+    if (!sourceRow || !targetRow) {
+      throw new Error("Expected source/target rows for contain-preview drag-drop test.")
+    }
+
+    sourceRow.dispatchEvent(new FakeDomEvent("dragstart"))
+    targetRow.dispatchEvent(new FakeDomEvent("dragover"))
+    await flushAsync()
+
+    const refreshedTargetRow = findInteractiveRowByLabel(
+      getContentRoot(runtime.sidepanelTab.contentEl),
+      "[group] G",
+    )
+    if (!refreshedTargetRow) {
+      throw new Error("Expected refreshed group row after contain-preview dragover.")
+    }
+
+    const previewText = flattenElements(refreshedTargetRow)
+      .map((element) => element.textContent ?? "")
+      .filter((text) => text.length > 0)
+
+    expect(refreshedTargetRow.style["boxShadow"]).toContain("inset 0 0 0 2px")
+    expect(refreshedTargetRow.style["background"]).toContain("interactive-accent-hover")
+    expect(previewText).toContain("drop into group")
+  })
+
+  it("shows reorder-style drag preview when the drop will reorder within one parent scope", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      [
+        { id: "A", type: "rectangle", name: "Alpha" },
+        { id: "B", type: "rectangle", name: "Beta" },
+        { id: "C", type: "rectangle", name: "Gamma" },
+      ],
+      [],
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+
+    const contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const sourceRow = findInteractiveRowByLabel(contentRoot, "[element] Alpha")
+    const targetRow = findInteractiveRowByLabel(contentRoot, "[element] Beta")
+
+    if (!sourceRow || !targetRow) {
+      throw new Error("Expected source/target rows for reorder-preview drag-drop test.")
+    }
+
+    sourceRow.dispatchEvent(new FakeDomEvent("dragstart"))
+    targetRow.dispatchEvent(new FakeDomEvent("dragover"))
+    await flushAsync()
+
+    const refreshedTargetRow = findInteractiveRowByLabel(
+      getContentRoot(runtime.sidepanelTab.contentEl),
+      "[element] Beta",
+    )
+    if (!refreshedTargetRow) {
+      throw new Error("Expected refreshed element row after reorder-preview dragover.")
+    }
+
+    const previewText = flattenElements(refreshedTargetRow)
+      .map((element) => element.textContent ?? "")
+      .filter((text) => text.length > 0)
+
+    expect(refreshedTargetRow.style["boxShadow"]).toContain("inset 0 2px 0 0")
+    expect(previewText).toContain("reorder before row")
   })
 
   it("reparents rows through drag and drop using the command seam", async () => {

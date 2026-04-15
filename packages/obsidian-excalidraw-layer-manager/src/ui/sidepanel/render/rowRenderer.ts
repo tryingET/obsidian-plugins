@@ -27,6 +27,8 @@ interface SidepanelRowActionIcon {
   readonly title?: string
 }
 
+export type SidepanelRowDropHintKind = "reorderBefore" | "reorderAfter" | "reparent"
+
 interface SidepanelRowRenderInput {
   readonly ownerDocument: Document
   readonly rowDomId: string
@@ -34,7 +36,7 @@ interface SidepanelRowRenderInput {
   readonly depth: number
   readonly selected: boolean
   readonly focused: boolean
-  readonly dropHinted: boolean
+  readonly dropHintKind: SidepanelRowDropHintKind | null
   readonly dropHintLabel: string | null
   readonly actions: LayerManagerUiActions | undefined
   readonly styleConfig: SidepanelRowStyleConfig
@@ -112,7 +114,10 @@ const createMetaBadge = (
   return badge
 }
 
-const resolveRowShellBoxShadow = (state: SidepanelRowVisualState, dropHinted: boolean): string => {
+const resolveRowShellBoxShadow = (
+  state: SidepanelRowVisualState,
+  dropHintKind: SidepanelRowDropHintKind | null,
+): string => {
   const shadows: string[] = []
 
   if (state.visibility === "hidden") {
@@ -127,8 +132,16 @@ const resolveRowShellBoxShadow = (state: SidepanelRowVisualState, dropHinted: bo
     shadows.push("inset -3px 0 0 0 var(--background-secondary-alt, rgba(120,120,120,0.45))")
   }
 
-  if (dropHinted) {
-    shadows.push("inset 0 0 0 1px var(--interactive-accent, rgba(120,120,120,0.6))")
+  if (dropHintKind === "reparent") {
+    shadows.push("inset 0 0 0 2px var(--interactive-accent, rgba(120,120,120,0.68))")
+  }
+
+  if (dropHintKind === "reorderBefore") {
+    shadows.push("inset 0 2px 0 0 var(--interactive-accent, rgba(120,120,120,0.7))")
+  }
+
+  if (dropHintKind === "reorderAfter") {
+    shadows.push("inset 0 -2px 0 0 var(--interactive-accent, rgba(120,120,120,0.7))")
   }
 
   return shadows.join(", ")
@@ -211,7 +224,7 @@ export const renderSidepanelRow = (input: SidepanelRowRenderInput): SidepanelRow
   }
   row.tabIndex = -1
 
-  const rowBoxShadow = resolveRowShellBoxShadow(input.nodeVisualState, input.dropHinted)
+  const rowBoxShadow = resolveRowShellBoxShadow(input.nodeVisualState, input.dropHintKind)
   if (rowBoxShadow.length > 0) {
     row.style.boxShadow = rowBoxShadow
   }
@@ -222,6 +235,11 @@ export const renderSidepanelRow = (input: SidepanelRowRenderInput): SidepanelRow
 
   if (input.selected) {
     row.style.background = "var(--interactive-accent-hover, rgba(120,120,120,0.2))"
+  }
+
+  if (input.dropHintKind === "reparent" && !input.selected) {
+    row.style.background = "var(--interactive-accent-hover, rgba(120,120,120,0.16))"
+    row.style.borderColor = "var(--interactive-accent, rgba(120,120,120,0.68))"
   }
 
   if (input.focused) {
@@ -384,12 +402,16 @@ const appendMetaBadges = (
 
   let didAppendDropHint = false
   const appendDropHintBadge = (): void => {
-    if (!input.dropHinted || didAppendDropHint) {
+    if (!input.dropHintKind || didAppendDropHint) {
       return
     }
 
     metaHost.appendChild(
-      createMetaBadge(input.ownerDocument, input.dropHintLabel ?? "drop target", "match"),
+      createMetaBadge(
+        input.ownerDocument,
+        input.dropHintLabel ?? "drop target",
+        input.dropHintKind === "reparent" ? "structure" : "match",
+      ),
     )
     didAppendDropHint = true
   }

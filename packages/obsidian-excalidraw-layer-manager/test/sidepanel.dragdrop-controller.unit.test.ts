@@ -473,10 +473,34 @@ describe("sidepanel drag-drop controller", () => {
     const dragEnter = makeDragEvent()
     controller.handleDragEnter("el:target", targetDrop, dragEnter.event)
     expect(controller.dropHintNodeId).toBe("el:target")
+    expect(controller.dropHint).toEqual({
+      nodeId: "el:target",
+      kind: "reparent",
+    })
     expect(dragEnter.preventDefault).toHaveBeenCalledTimes(1)
 
-    controller.handleDragLeave("el:target", false)
+    const reorderDragOver = makeDragEvent()
+    controller.handleDragOver(
+      "el:before-target",
+      makeDropTarget({
+        targetParentPath: [],
+        targetFrameId: "frame:A",
+        rowScope: makeScope("frame:A"),
+        siblingIndex: 0,
+      }),
+      reorderDragOver.event,
+    )
+    expect(controller.dropHintNodeId).toBe("el:before-target")
+    expect(controller.dropHint).toEqual({
+      nodeId: "el:before-target",
+      kind: "reorder",
+      placement: "before",
+    })
+    expect(reorderDragOver.preventDefault).toHaveBeenCalledTimes(1)
+
+    controller.handleDragLeave("el:before-target", false)
     expect(controller.dropHintNodeId).toBeNull()
+    expect(controller.dropHint).toBeNull()
 
     controller.endRowDrag()
     expect(controller.dropHintNodeId).toBeNull()

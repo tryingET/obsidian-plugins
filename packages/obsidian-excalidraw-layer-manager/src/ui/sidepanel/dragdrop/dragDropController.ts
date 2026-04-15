@@ -110,6 +110,17 @@ type QualifiedDropResolution =
       readonly intent: QualifiedDropIntent
     }
 
+export type DragDropHint =
+  | {
+      readonly nodeId: string
+      readonly kind: "reorder"
+      readonly placement: ReorderPlacement
+    }
+  | {
+      readonly nodeId: string
+      readonly kind: "reparent"
+    }
+
 const haveSamePath = (left: readonly string[], right: readonly string[]): boolean => {
   if (left.length !== right.length) {
     return false
@@ -168,19 +179,23 @@ const resolveStructuralNodePosition = (
 export class SidepanelDragDropController {
   readonly #host: SidepanelDragDropControllerHost
   #draggedNodeState: DraggedNodeState | null = null
-  #dropHintNodeId: string | null = null
+  #dropHint: DragDropHint | null = null
 
   constructor(host: SidepanelDragDropControllerHost) {
     this.#host = host
   }
 
+  get dropHint(): DragDropHint | null {
+    return this.#dropHint
+  }
+
   get dropHintNodeId(): string | null {
-    return this.#dropHintNodeId
+    return this.#dropHint?.nodeId ?? null
   }
 
   clear(): void {
     this.#draggedNodeState = null
-    this.#dropHintNodeId = null
+    this.#dropHint = null
   }
 
   resolveNodeFrameId(node: LayerNode, branchContext: DragDropBranchContext): string | null {
@@ -283,16 +298,24 @@ export class SidepanelDragDropController {
   }
 
   handleDragEnter(targetNodeId: string, dropTarget: NodeDropTarget, event: DragEvent): void {
-    if (!this.canDropDraggedNode(targetNodeId, dropTarget)) {
+    const nextDropHint = this.resolveDropHint(targetNodeId, dropTarget)
+    if (!nextDropHint) {
+      if (this.#dropHint?.nodeId === targetNodeId) {
+        this.updateDropHint(null)
+      }
       return
     }
 
     event.preventDefault()
-    this.updateDropHint(targetNodeId)
+    this.updateDropHint(nextDropHint)
   }
 
   handleDragOver(targetNodeId: string, dropTarget: NodeDropTarget, event: DragEvent): void {
-    if (!this.canDropDraggedNode(targetNodeId, dropTarget)) {
+    const nextDropHint = this.resolveDropHint(targetNodeId, dropTarget)
+    if (!nextDropHint) {
+      if (this.#dropHint?.nodeId === targetNodeId) {
+        this.updateDropHint(null)
+      }
       return
     }
 
@@ -302,7 +325,7 @@ export class SidepanelDragDropController {
       event.dataTransfer.dropEffect = "move"
     }
 
-    this.updateDropHint(targetNodeId)
+    this.updateDropHint(nextDropHint)
   }
 
   handleDragLeave(targetNodeId: string, relatedTargetInsideRow: boolean): void {
@@ -310,7 +333,7 @@ export class SidepanelDragDropController {
       return
     }
 
-    if (this.#dropHintNodeId === targetNodeId) {
+    if (this.#dropHint?.nodeId === targetNodeId) {
       this.updateDropHint(null)
     }
   }
@@ -592,12 +615,38 @@ export class SidepanelDragDropController {
     )
   }
 
-  private updateDropHint(nodeId: string | null): void {
-    if (this.#dropHintNodeId === nodeId) {
+  private resolveDropHint(targetNodeId: string, dropTarget: NodeDropTarget): DragDropHint | null {
+    const preview = this.previewDropIntent(targetNodeId, dropTarget)
+    if (!preview) {
+      return null
+    }
+
+    if (preview.kind === "reorder") {
+      return {
+        nodeId: targetNodeId,
+        kind: "reorder",
+        placement: preview.placement,
+      }
+    }
+
+    return {
+      nodeId: targetNodeId,
+      kind: "reparent",
+    }
+  }
+
+  private updateDropHint(nextDropHint: DragDropHint | null): void {
+    if (
+      this.#dropHint?.nodeId === nextDropHint?.nodeId &&
+      this.#dropHint?.kind === nextDropHint?.kind &&
+      (this.#dropHint?.kind !== "reorder" ||
+        nextDropHint?.kind !== "reorder" ||
+        this.#dropHint.placement === nextDropHint.placement)
+    ) {
       return
     }
 
-    this.#dropHintNodeId = nodeId
+    this.#dropHint = nextDropHint
     this.#host.requestRenderFromLatestModel()
   }
 }

@@ -9,6 +9,7 @@ import { SidepanelSelectionActionController } from "./sidepanel/actions/selectio
 import {
   type DragDropBranchContext,
   type DragDropDestination,
+  type DragDropHint,
   type NodeDropTarget,
   SidepanelDragDropController,
 } from "./sidepanel/dragdrop/dragDropController.js"
@@ -1809,12 +1810,11 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   }
 
   private describeDropHint(
-    targetNodeId: string,
+    preview: DragDropHint,
     node: LayerNode,
     dropTarget: NodeDropTarget,
   ): string {
-    const preview = this.#dragDropController.previewDropIntent(targetNodeId, dropTarget)
-    if (preview?.kind === "reorder") {
+    if (preview.kind === "reorder") {
       return preview.placement === "before" ? "reorder before row" : "reorder after row"
     }
 
@@ -1931,6 +1931,10 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         nodeFrameId,
       }) => {
         const nodeDropTarget = this.resolveDropTargetForNode(node, nodeBranchContext, siblingIndex)
+        const activeDropHint =
+          this.#dragDropController.dropHint?.nodeId === node.id
+            ? this.#dragDropController.dropHint
+            : null
 
         const currentInlineRenameState = this.#inlineRenameController.state
         const inlineRenameState: SidepanelInlineRenameRenderState | null =
@@ -1947,11 +1951,17 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
           depth: nodeDepth,
           selected: selectedNodeIds.has(node.id),
           focused: this.#focusedNodeId === node.id,
-          dropHinted: this.#dragDropController.dropHintNodeId === node.id,
-          dropHintLabel:
-            this.#dragDropController.dropHintNodeId === node.id
-              ? this.describeDropHint(node.id, node, nodeDropTarget)
-              : null,
+          dropHintKind:
+            activeDropHint?.kind === "reorder"
+              ? activeDropHint.placement === "before"
+                ? "reorderBefore"
+                : "reorderAfter"
+              : activeDropHint
+                ? "reparent"
+                : null,
+          dropHintLabel: activeDropHint
+            ? this.describeDropHint(activeDropHint, node, nodeDropTarget)
+            : null,
           actions,
           styleConfig: ROW_STYLE_CONFIG,
           nodeVisualState,

@@ -193,7 +193,7 @@ describe("sidepanel row renderer", () => {
       depth: 2,
       selected: true,
       focused: true,
-      dropHinted: true,
+      dropHintKind: "reparent",
       dropHintLabel: "drop to root",
       actions,
       styleConfig: rowStyleConfig,
@@ -252,8 +252,54 @@ describe("sidepanel row renderer", () => {
     expect(label?.title).toBe("Alpha")
     expect(textFragments).toContain("drop to root")
 
+    expect(renderedRow.style["boxShadow"]).toContain("inset 0 0 0 2px")
+
     expandButton?.dispatchEvent(new FakeDomEvent("click"))
     expect(toggleExpanded).toHaveBeenCalledWith("A")
+  })
+
+  it("renders stronger reorder preview cues without implying contain-style targeting", () => {
+    const document = new FakeDocument()
+    const actions = makeActions()
+
+    const { row } = renderSidepanelRow({
+      ownerDocument: document as unknown as Document,
+      rowDomId: "row-reorder-preview",
+      node: makeNode("A", { label: "Alpha" }),
+      depth: 0,
+      selected: false,
+      focused: false,
+      dropHintKind: "reorderBefore",
+      dropHintLabel: "reorder before row",
+      actions,
+      styleConfig: rowStyleConfig,
+      nodeVisualState: {
+        visibility: "visible",
+        lock: "unlocked",
+      },
+      filterMatchKind: "none",
+      inlineRenameState: null,
+      onToggleExpanded: () => {},
+      onInlineRenameDraftChange: () => {},
+      onInlineRenameCommit: () => {},
+      onInlineRenameCancel: () => {},
+      isInlineRenameActiveForNode: () => false,
+      onRenameNodeFromAction: () => {},
+      createIconActionButton: (ownerDocument: Document, _icon, _action): HTMLButtonElement => {
+        return (ownerDocument as unknown as FakeDocument).createElement(
+          "button",
+        ) as unknown as HTMLButtonElement
+      },
+    })
+
+    const renderedRow = row as unknown as FakeDomElement
+    const textFragments = flattenElements(renderedRow)
+      .map((child) => child.textContent ?? "")
+      .filter((text) => text.length > 0)
+
+    expect(renderedRow.style["boxShadow"]).toContain("inset 0 2px 0 0")
+    expect(renderedRow.style["background"] ?? "").not.toContain("interactive-accent-hover")
+    expect(textFragments).toContain("reorder before row")
   })
 
   it("wires inline rename input draft/commit/cancel handlers", () => {
@@ -270,7 +316,7 @@ describe("sidepanel row renderer", () => {
       depth: 0,
       selected: false,
       focused: false,
-      dropHinted: false,
+      dropHintKind: null,
       dropHintLabel: null,
       actions,
       styleConfig: rowStyleConfig,
@@ -343,7 +389,7 @@ describe("sidepanel row renderer", () => {
       depth: 0,
       selected: false,
       focused: false,
-      dropHinted: false,
+      dropHintKind: null,
       dropHintLabel: null,
       actions,
       styleConfig: rowStyleConfig,
@@ -403,7 +449,7 @@ describe("sidepanel row renderer", () => {
       depth: 0,
       selected: false,
       focused: false,
-      dropHinted: false,
+      dropHintKind: null,
       dropHintLabel: null,
       actions,
       styleConfig: rowStyleConfig,
@@ -477,7 +523,7 @@ describe("sidepanel row renderer", () => {
       depth: 0,
       selected: false,
       focused: false,
-      dropHinted: false,
+      dropHintKind: null,
       dropHintLabel: null,
       actions,
       styleConfig: rowStyleConfig,
@@ -539,7 +585,7 @@ describe("sidepanel row renderer", () => {
       depth: 0,
       selected: false,
       focused: false,
-      dropHinted: false,
+      dropHintKind: null,
       dropHintLabel: null,
       actions,
       styleConfig: rowStyleConfig,
