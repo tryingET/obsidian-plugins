@@ -42,14 +42,17 @@ const makeKeyboardEvent = (
   key: string,
   options?: {
     readonly shiftKey?: boolean
+    readonly ctrlKey?: boolean
+    readonly metaKey?: boolean
+    readonly altKey?: boolean
   },
 ): KeyboardEvent => {
   return {
     key,
     shiftKey: options?.shiftKey ?? false,
-    ctrlKey: false,
-    metaKey: false,
-    altKey: false,
+    ctrlKey: options?.ctrlKey ?? false,
+    metaKey: options?.metaKey ?? false,
+    altKey: options?.altKey ?? false,
     target: null,
     preventDefault: vi.fn(),
     stopPropagation: vi.fn(),
@@ -894,6 +897,78 @@ describe("sidepanel keyboard shortcut controller", () => {
     expect(setSelectionAnchorNodeId).toHaveBeenCalledWith(focusedNode.id)
     expect(setSelectionOverrideWithNodes).toHaveBeenCalledWith([focusedNode.id], [focusedNode])
     expect(mirrorSelectionToHost).toHaveBeenCalledWith([focusedNode.id])
+    expect(requestRowTreeAutofocus).toHaveBeenCalledTimes(1)
+    expect(requestRenderFromLatestModel).toHaveBeenCalledTimes(1)
+  })
+
+  it("adds or removes the focused row on Ctrl+Space to mirror mouse toggle semantics", () => {
+    const selectedNode = makeNode("el:A", "Alpha")
+    const focusedNode = makeNode("el:B", "Beta")
+    const applyResolvedRowSelection =
+      vi.fn<
+        (input: {
+          source: string
+          selectedNodes: readonly LayerNode[]
+          selectedElementIds: readonly string[]
+          anchorNodeId: string | null
+        }) => void
+      >()
+    const requestRowTreeAutofocus = vi.fn<() => void>()
+    const requestRenderFromLatestModel = vi.fn<() => void>()
+
+    const context: KeyboardShortcutContext = {
+      actions: {} as LayerManagerUiActions,
+      selection: {
+        elementIds: [selectedNode.id],
+        nodes: [selectedNode],
+        explicitSelectedNodes: [selectedNode],
+        frameResolution: makeFrameResolution(null),
+      },
+      explicitSelectedNodes: [selectedNode],
+      anchorNodeId: selectedNode.id,
+      visibleNodes: [selectedNode, focusedNode],
+      nodeById: new Map([
+        [selectedNode.id, selectedNode],
+        [focusedNode.id, focusedNode],
+      ]),
+      parentById: new Map([
+        [selectedNode.id, null],
+        [focusedNode.id, null],
+      ]),
+    }
+
+    const controller = new SidepanelKeyboardShortcutController({
+      getKeyboardContext: () => context,
+      resolveKeyboardContext: (resolvedContext) => resolvedContext,
+      getFocusedNodeId: () => focusedNode.id,
+      setFocusedNodeIdSilently: () => {},
+      setFocusedNode: () => {},
+      getInlineRenameNodeId: () => null,
+      beginInlineRename: () => {},
+      commitInlineRename: vi.fn(async () => {}),
+      setSelectionOverride: () => {},
+      applyResolvedRowSelection,
+      ensureHostViewContext: () => true,
+      moveSelectionToRoot: vi.fn(async () => {}),
+      setLastQuickMoveDestinationToRoot: () => {},
+      isTextInputTarget: () => false,
+      isKeyboardSuppressed: () => false,
+      releaseKeyboardCapture: () => {},
+      suppressTransientFocusOut: () => {},
+      notify: () => {},
+      runUiAction: () => {},
+      requestRowTreeAutofocus,
+      requestRenderFromLatestModel,
+    })
+
+    controller.handleContentKeydown(makeKeyboardEvent("Space", { ctrlKey: true }))
+
+    expect(applyResolvedRowSelection).toHaveBeenCalledWith({
+      source: "keyboardModifierToggle",
+      selectedNodes: [selectedNode, focusedNode],
+      selectedElementIds: [selectedNode.id, focusedNode.id],
+      anchorNodeId: focusedNode.id,
+    })
     expect(requestRowTreeAutofocus).toHaveBeenCalledTimes(1)
     expect(requestRenderFromLatestModel).toHaveBeenCalledTimes(1)
   })

@@ -21,6 +21,7 @@ export interface KeyboardShortcutContext {
 
 export type RowSelectionGestureSource =
   | "keyboardToggle"
+  | "keyboardModifierToggle"
   | "keyboardRange"
   | "keyboardExtend"
   | "mouseClick"
@@ -129,12 +130,24 @@ export class SidepanelKeyboardShortcutController {
       return
     }
 
-    if (event.ctrlKey || event.metaKey || event.altKey) {
+    const normalizedKey = event.key.length === 1 ? event.key.toLowerCase() : event.key
+    const isSelectionAliasKey =
+      event.key === " " ||
+      event.key === "Space" ||
+      event.key === "Spacebar" ||
+      normalizedKey === "n" ||
+      normalizedKey === "m"
+    const hasToggleModifier = event.ctrlKey || event.metaKey
+
+    if (event.altKey) {
+      return
+    }
+
+    if (hasToggleModifier && !isSelectionAliasKey) {
       return
     }
 
     const context = this.#host.resolveKeyboardContext(baseContext)
-    const normalizedKey = event.key.length === 1 ? event.key.toLowerCase() : event.key
 
     if (event.key === "ArrowDown") {
       this.#host.suppressTransientFocusOut()
@@ -208,17 +221,13 @@ export class SidepanelKeyboardShortcutController {
       return
     }
 
-    if (
-      event.key === " " ||
-      event.key === "Space" ||
-      event.key === "Spacebar" ||
-      normalizedKey === "n" ||
-      normalizedKey === "m"
-    ) {
+    if (isSelectionAliasKey) {
       this.#host.suppressTransientFocusOut()
       claimHandledKeyboardEvent(event)
       if (event.shiftKey) {
-        this.selectVisibleRangeToFocusedNode(context)
+        this.selectVisibleRangeToFocusedNode(context, hasToggleModifier)
+      } else if (hasToggleModifier) {
+        this.toggleFocusedNodeSelection(context)
       } else {
         this.selectFocusedNodeLikePlainClick(context)
       }
@@ -522,7 +531,32 @@ export class SidepanelKeyboardShortcutController {
     )
   }
 
-  private selectVisibleRangeToFocusedNode(context: KeyboardShortcutContext): void {
+  private toggleFocusedNodeSelection(context: KeyboardShortcutContext): void {
+    const focusedNode = this.resolveFocusedNodeForSelectionGesture(context)
+    if (!focusedNode) {
+      return
+    }
+
+    this.applyResolvedRowSelection(
+      "keyboardModifierToggle",
+      resolveRowClickSelection({
+        clickedNode: focusedNode,
+        visibleNodes: context.visibleNodes,
+        currentSelectedNodes: this.resolveCurrentSelectionNodes(context),
+        currentAnchorNodeId: context.anchorNodeId ?? null,
+        fallbackAnchorNodeId: focusedNode.id,
+        modifiers: {
+          shiftKey: false,
+          toggleKey: true,
+        },
+      }),
+    )
+  }
+
+  private selectVisibleRangeToFocusedNode(
+    context: KeyboardShortcutContext,
+    toggleKey = false,
+  ): void {
     const focusedNode = this.resolveFocusedNodeForSelectionGesture(context)
     if (!focusedNode) {
       return
@@ -538,7 +572,7 @@ export class SidepanelKeyboardShortcutController {
         fallbackAnchorNodeId: focusedNode.id,
         modifiers: {
           shiftKey: true,
-          toggleKey: false,
+          toggleKey,
         },
       }),
     )

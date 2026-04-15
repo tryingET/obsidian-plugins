@@ -1367,6 +1367,72 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect([...(selectedIds ?? [])].sort()).toEqual(["A", "B", "C"])
   })
 
+  it("supports keyboard-only additive toggle parity with Ctrl+Space/M/N semantics", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      [
+        { id: "C", type: "rectangle", isDeleted: false },
+        { id: "B", type: "rectangle", isDeleted: false },
+        { id: "A", type: "rectangle", isDeleted: false },
+      ],
+      [],
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+
+    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "Space")
+    await flushAsync()
+
+    let lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
+    let selectedIds = runtime.selectInView.mock.calls[lastSelectCallIndex]?.[0] as
+      | readonly string[]
+      | undefined
+
+    expect(selectedIds).toEqual(["A"])
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowDown")
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "m", { ctrlKey: true })
+    await flushAsync()
+
+    lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
+    selectedIds = runtime.selectInView.mock.calls[lastSelectCallIndex]?.[0] as
+      | readonly string[]
+      | undefined
+
+    expect([...(selectedIds ?? [])].sort()).toEqual(["A", "B"])
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowDown")
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "n", { ctrlKey: true })
+    await flushAsync()
+
+    lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
+    selectedIds = runtime.selectInView.mock.calls[lastSelectCallIndex]?.[0] as
+      | readonly string[]
+      | undefined
+
+    expect([...(selectedIds ?? [])].sort()).toEqual(["A", "B", "C"])
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "n", { ctrlKey: true })
+    await flushAsync()
+
+    lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
+    selectedIds = runtime.selectInView.mock.calls[lastSelectCallIndex]?.[0] as
+      | readonly string[]
+      | undefined
+
+    expect([...(selectedIds ?? [])].sort()).toEqual(["A", "B"])
+  })
+
   it("keeps Space/M/N aliases on stable replace-selection debug semantics", async () => {
     const debugFlagKey = "LMX_DEBUG_SIDEPANEL_INTERACTION"
     const hadDebugFlag = Object.prototype.hasOwnProperty.call(globalRecord, debugFlagKey)
@@ -1431,6 +1497,78 @@ describe("sidepanel keyboard + lifecycle parity", () => {
             selectionOrigin: "keyboard",
             selectionSemantics: "replace",
             selectedElementIds: ["C"],
+          }),
+        ]),
+      )
+    } finally {
+      if (hadDebugFlag) {
+        globalRecord[debugFlagKey] = previousDebugFlag
+      } else {
+        Reflect.deleteProperty(globalRecord, debugFlagKey)
+      }
+
+      logSpy.mockRestore()
+    }
+  })
+
+  it("keeps Ctrl+Space/M/N aliases on stable toggle-selection debug semantics", async () => {
+    const debugFlagKey = "LMX_DEBUG_SIDEPANEL_INTERACTION"
+    const hadDebugFlag = Object.prototype.hasOwnProperty.call(globalRecord, debugFlagKey)
+    const previousDebugFlag = globalRecord[debugFlagKey]
+    globalRecord[debugFlagKey] = true
+
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {})
+
+    try {
+      const runtime = makeRuntimeWithSidepanel(
+        fakeDocument,
+        [
+          { id: "C", type: "rectangle", isDeleted: false },
+          { id: "B", type: "rectangle", isDeleted: false },
+          { id: "A", type: "rectangle", isDeleted: false },
+        ],
+        [],
+      )
+
+      createLayerManagerRuntime(runtime.ea)
+
+      let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+      dispatchKeydown(contentRoot, "Space")
+      await flushAsync()
+
+      contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+      dispatchKeydown(contentRoot, "ArrowDown")
+      await flushAsync()
+
+      contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+      dispatchKeydown(contentRoot, "m", { ctrlKey: true })
+      await flushAsync()
+
+      contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+      dispatchKeydown(contentRoot, "ArrowDown")
+      await flushAsync()
+
+      contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+      dispatchKeydown(contentRoot, "n", { ctrlKey: true })
+      await flushAsync()
+
+      const gesturePayloads = logSpy.mock.calls
+        .filter(([message]) => message === "[LMX:interaction] row selection gesture")
+        .map(([, payload]) => (payload ?? {}) as Record<string, unknown>)
+
+      expect(gesturePayloads).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            source: "keyboardModifierToggle",
+            selectionOrigin: "keyboard",
+            selectionSemantics: "toggle",
+            selectedElementIds: ["A", "B"],
+          }),
+          expect.objectContaining({
+            source: "keyboardModifierToggle",
+            selectionOrigin: "keyboard",
+            selectionSemantics: "toggle",
+            selectedElementIds: ["A", "B", "C"],
           }),
         ]),
       )

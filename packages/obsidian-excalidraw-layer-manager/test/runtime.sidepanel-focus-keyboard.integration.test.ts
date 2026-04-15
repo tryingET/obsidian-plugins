@@ -236,7 +236,7 @@ describe("sidepanel focus + keyboard integration", () => {
       .filter((text) => text.length > 0)
 
     expect(textFragments).toContain(
-      "Shortcuts: ↑/↓ focus rows · Shift+↑/↓ extend row selection · Home/End bounds · PgUp/PgDn page · Shift+PgUp/PgDn extend page · Space/M/N select row · Shift+Space/M/N range rows · ←/→ collapse/expand · Enter rename · Del delete · F/B reorder · Shift+F/B front/back · G/U structural",
+      "Shortcuts: ↑/↓ focus rows · Shift+↑/↓ extend row selection · Home/End bounds · PgUp/PgDn page · Shift+PgUp/PgDn extend page · Space/M/N select row · Ctrl/Cmd+Space/M/N toggle row · Shift+Space/M/N range rows · ←/→ collapse/expand · Enter rename · Del delete · F/B reorder · Shift+F/B front/back · G/U structural",
     )
   })
 

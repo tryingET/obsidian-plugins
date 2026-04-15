@@ -126,6 +126,7 @@ const SIDEPANEL_KEYBOARD_HINT_TEXT = [
   "PgUp/PgDn page",
   "Shift+PgUp/PgDn extend page",
   "Space/M/N select row",
+  "Ctrl/Cmd+Space/M/N toggle row",
   "Shift+Space/M/N range rows",
   "←/→ collapse/expand",
   "Enter rename",
@@ -146,6 +147,11 @@ const resolveRowSelectionDebugSemantics = (
       return {
         selectionOrigin: "keyboard",
         selectionSemantics: "replace",
+      }
+    case "keyboardModifierToggle":
+      return {
+        selectionOrigin: "keyboard",
+        selectionSemantics: "toggle",
       }
     case "keyboardRange":
       return {

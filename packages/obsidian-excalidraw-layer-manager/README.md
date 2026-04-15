@@ -35,7 +35,7 @@ Provide an architecture-first Layer Manager for Obsidian Excalidraw scripts, wit
 ## Keyboard-first tree selection model
 
 - Arrow, Home/End, PageUp/PageDown, and Space shortcuts build and extend explicit row selection first, so sidepanel tree selection stays anchored in row intent instead of being inferred only from host element selection.
-- Space, `M`, and `N` are the same replace-selection command at the sidepanel surface; interaction debug keeps the legacy low-level source tags for controller compatibility, but now also records stable `selectionOrigin` / `selectionSemantics` fields so post-hoc triage does not drift back to the old toggle wording.
+- Space, `M`, and `N` are the same replace-selection command at the sidepanel surface, while `Ctrl/Cmd+Space`, `Ctrl/Cmd+M`, and `Ctrl/Cmd+N` mirror mouse additive-toggle behavior for the focused row; interaction debug keeps stable `selectionOrigin` / `selectionSemantics` fields so post-hoc triage can distinguish replace, toggle, range, and extend gestures.
 - Delete, reorder, group, and ungroup-like shortcuts honor explicit row selection first, then canonical element selection, and only fall back to the focused row when selection is empty.
 - If neither selection nor focus exists, the keyboard command fails closed instead of attempting scene writes.
 
