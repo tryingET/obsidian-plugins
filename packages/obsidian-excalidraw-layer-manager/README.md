@@ -84,8 +84,8 @@ Recovery-wave verification contract:
 - if package docs differ from `HEAD` (including working-tree changes), the same gate also runs `node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs packages/obsidian-excalidraw-layer-manager/docs --strict`
 - `npm run check:full` is the ship-ready gate for the recovery wave and now routes through `verify:recovery` before `npm run deadcode`
 
-Default sync target now points at the repo-local lab vault's Obsidian Excalidraw scripts path:
-- `apps/lab-vault/Excalidraw/Scripts/LayerManager.md`
+Default sync target now points at the primary personal Obsidian Excalidraw Skripte path:
+- `~/Documents/Obsidian/00-09_meta/02_HardwareSoftwareTools/02.01_Obsidian/Excalidraw/Skripte/LayerManager.md`
 
 `npm run sync:vault` is now a safe deployment step, not just a blind copy, and verifies that the exported bundle landed at that scripts path with the same hash as `dist/LayerManager.md`:
 - it preserves the previous target bundle under `.tmp/obsidian-excalidraw-layer-manager/deployments/<timestamp>/previous/`

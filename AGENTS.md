@@ -60,6 +60,9 @@ governance/      # Optional AK-backed repo projections when they exist
 - Use inline Python/Node only as explicit escape hatches when no deterministic wrapper exists.
 - Root npm scripts and the root `Justfile` are the repo-wide command surface.
 
+## Stable local operator defaults
+- For `packages/obsidian-excalidraw-layer-manager`, `npm run sync:vault` defaults to `~/Documents/Obsidian/00-09_meta/02_HardwareSoftwareTools/02.01_Obsidian/Excalidraw/Skripte/LayerManager.md`.
+- Keep package build files and package README as the implementation authority for that deployment behavior; this repo-level note exists so repo-root sessions target the right local Obsidian scripts path by default.
 
 ## Direction workflow
 - When this repo's direction docs under `docs/project/` change, or when current posture needs verification, use `ak direction import|check|export` from the repo root.

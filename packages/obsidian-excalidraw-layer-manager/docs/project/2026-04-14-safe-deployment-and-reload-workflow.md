@@ -32,7 +32,7 @@ It must do more than copy bytes:
    - manual reload checklist
 
 Default target:
-- `apps/lab-vault/Excalidraw/Scripts/LayerManager.md`
+- `~/Documents/Obsidian/00-09_meta/02_HardwareSoftwareTools/02.01_Obsidian/Excalidraw/Skripte/LayerManager.md`
 
 Default receipt root:
 - `.tmp/obsidian-excalidraw-layer-manager/deployments/`
@@ -69,7 +69,7 @@ If the freshly deployed bundle fails on rerun:
 
 ## CI contract
 
-Repo-level CI must verify the deployment workflow without touching the real lab-vault target.
+Repo-level CI must verify the deployment workflow without touching the real personal Obsidian target.
 `scripts/ci/full.sh` now does that by:
 
 1. running the normal package gate

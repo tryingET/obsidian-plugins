@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url"
 
 import {
   DEFAULT_DEPLOY_RECEIPTS_RELATIVE_PATH,
-  DEFAULT_LAB_VAULT_TARGET_RELATIVE_PATH,
+  DEFAULT_OBSIDIAN_SKRIPTE_TARGET_PATH,
   LAYER_MANAGER_BUNDLE_FILENAME,
 } from "./recoveryVerificationGate.mjs"
 
@@ -87,7 +87,7 @@ const backupExistingTarget = async ({ target, workspaceDir }) => {
 export const syncBundleToVault = async ({
   projectRootOverride = projectRoot,
   sourceRelativePath = defaultSourceRelativePath,
-  targetRaw = process.env.LMX_VAULT_TARGET ?? DEFAULT_LAB_VAULT_TARGET_RELATIVE_PATH,
+  targetRaw = process.env.LMX_VAULT_TARGET ?? DEFAULT_OBSIDIAN_SKRIPTE_TARGET_PATH,
   deployRootRaw = process.env.LMX_DEPLOY_ROOT ?? DEFAULT_DEPLOY_RECEIPTS_RELATIVE_PATH,
   now = new Date(),
   log = console.log,
