@@ -774,6 +774,71 @@ describe("sidepanel keyboard shortcut controller", () => {
     expect(requestRenderFromLatestModel).toHaveBeenCalledTimes(1)
   })
 
+  it("delegates keyboard row-selection mutations with source provenance when the host provides a shared selection applicator", () => {
+    const focusedNode = makeNode("el:B", "Beta")
+    const applyResolvedRowSelection =
+      vi.fn<
+        (input: {
+          source: string
+          selectedNodes: readonly LayerNode[]
+          selectedElementIds: readonly string[]
+          anchorNodeId: string | null
+        }) => void
+      >()
+    const requestRowTreeAutofocus = vi.fn<() => void>()
+    const requestRenderFromLatestModel = vi.fn<() => void>()
+
+    const context: KeyboardShortcutContext = {
+      actions: {} as LayerManagerUiActions,
+      selection: {
+        elementIds: [],
+        nodes: [],
+        explicitSelectedNodes: null,
+        frameResolution: makeFrameResolution(null),
+      },
+      explicitSelectedNodes: null,
+      anchorNodeId: null,
+      visibleNodes: [focusedNode],
+      nodeById: new Map([[focusedNode.id, focusedNode]]),
+      parentById: new Map([[focusedNode.id, null]]),
+    }
+
+    const controller = new SidepanelKeyboardShortcutController({
+      getKeyboardContext: () => context,
+      resolveKeyboardContext: (resolvedContext) => resolvedContext,
+      getFocusedNodeId: () => focusedNode.id,
+      setFocusedNodeIdSilently: () => {},
+      setFocusedNode: () => {},
+      getInlineRenameNodeId: () => null,
+      beginInlineRename: () => {},
+      commitInlineRename: vi.fn(async () => {}),
+      setSelectionOverride: () => {},
+      applyResolvedRowSelection,
+      ensureHostViewContext: () => true,
+      moveSelectionToRoot: vi.fn(async () => {}),
+      setLastQuickMoveDestinationToRoot: () => {},
+      isTextInputTarget: () => false,
+      isKeyboardSuppressed: () => false,
+      releaseKeyboardCapture: () => {},
+      suppressTransientFocusOut: () => {},
+      notify: () => {},
+      runUiAction: () => {},
+      requestRowTreeAutofocus,
+      requestRenderFromLatestModel,
+    })
+
+    controller.handleContentKeydown(makeKeyboardEvent("Space"))
+
+    expect(applyResolvedRowSelection).toHaveBeenCalledWith({
+      source: "keyboardToggle",
+      selectedNodes: [focusedNode],
+      selectedElementIds: [focusedNode.id],
+      anchorNodeId: focusedNode.id,
+    })
+    expect(requestRowTreeAutofocus).toHaveBeenCalledTimes(1)
+    expect(requestRenderFromLatestModel).toHaveBeenCalledTimes(1)
+  })
+
   it("toggles the last explicitly selected row off on Space without dropping local empty-selection intent", () => {
     const focusedNode = makeNode("el:A", "Alpha")
     const setSelectionOverride = vi.fn<(elementIds: readonly string[] | null) => void>()

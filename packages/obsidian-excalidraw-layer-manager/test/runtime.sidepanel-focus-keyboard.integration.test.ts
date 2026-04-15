@@ -10,6 +10,7 @@ import {
   FakeDocument,
   type FakeDomElement,
   FakeDomEvent,
+  dispatchClick,
   dispatchDocumentKeydown,
   dispatchKeydown,
   findButtonByTitle,
@@ -20,6 +21,7 @@ import {
   flattenElements,
   flushAsync,
   getContentRoot,
+  getSelectedRows,
   makeSidepanelTab,
 } from "./sidepanelTestHarness.js"
 import type { DispatchKeydownOptions, SidepanelTabHarness } from "./sidepanelTestHarness.js"
@@ -236,6 +238,123 @@ describe("sidepanel focus + keyboard integration", () => {
     expect(textFragments).toContain(
       "Shortcuts: ↑/↓ focus rows · Shift+↑/↓ extend row selection · Home/End bounds · PgUp/PgDn page · Shift+PgUp/PgDn extend page · Space/M/N toggle row · Shift+Space/M/N range rows · ←/→ collapse/expand · Enter rename · Del delete · F/B reorder · Shift+F/B front/back · G/U structural",
     )
+  })
+
+  it("interaction debug tags mouse and keyboard row-selection provenance while converging on the same rows", async () => {
+    const debugFlagKey = "LMX_DEBUG_SIDEPANEL_INTERACTION"
+    const hadDebugFlag = Object.prototype.hasOwnProperty.call(globalRecord, debugFlagKey)
+    const previousDebugFlag = globalRecord[debugFlagKey]
+    globalRecord[debugFlagKey] = true
+
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {})
+    const readGesturePayloads = (): Record<string, unknown>[] => {
+      return logSpy.mock.calls
+        .filter(([message]) => message === "[LMX:interaction] row selection gesture")
+        .map(([, payload]) => (payload ?? {}) as Record<string, unknown>)
+    }
+
+    try {
+      const { actions: mouseActions } = makeUiActions()
+      const mouseSidepanelTab = makeSidepanelTab(fakeDocument, null)
+      const mouseRenderer = createExcalidrawSidepanelRenderer({
+        sidepanelTab: mouseSidepanelTab.tab,
+        getScriptSettings: () => ({}),
+      })
+
+      if (!mouseRenderer) {
+        throw new Error("Expected sidepanel renderer for mouse provenance test.")
+      }
+
+      mouseRenderer.render({
+        tree: [makeElementNode("A"), makeElementNode("B"), makeElementNode("C")],
+        selectedIds: new Set(),
+        sceneVersion: 291,
+        actions: mouseActions,
+      })
+
+      let mouseContentRoot = getContentRoot(mouseSidepanelTab.contentEl)
+      const mouseAnchorRow = findInteractiveRowByLabel(mouseContentRoot, "[element] A")
+      if (!mouseAnchorRow) {
+        throw new Error("Expected mouse anchor row.")
+      }
+
+      dispatchClick(mouseAnchorRow)
+      await flushAsync()
+
+      mouseContentRoot = getContentRoot(mouseSidepanelTab.contentEl)
+      const mouseTargetRow = findInteractiveRowByLabel(mouseContentRoot, "[element] C")
+      if (!mouseTargetRow) {
+        throw new Error("Expected mouse target row after initial click.")
+      }
+
+      dispatchClick(mouseTargetRow, { shiftKey: true })
+      await flushAsync()
+
+      expect(getSelectedRows(mouseContentRoot)).toHaveLength(3)
+
+      const mouseGesturePayloads = readGesturePayloads()
+      expect(mouseGesturePayloads).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            source: "mouseRange",
+            selectedElementIds: ["A", "B", "C"],
+            selectedNodeIds: ["el:A", "el:B", "el:C"],
+          }),
+        ]),
+      )
+
+      const { actions: keyboardActions } = makeUiActions()
+      const keyboardSidepanelTab = makeSidepanelTab(fakeDocument, null)
+      const keyboardRenderer = createExcalidrawSidepanelRenderer({
+        sidepanelTab: keyboardSidepanelTab.tab,
+        getScriptSettings: () => ({}),
+      })
+
+      if (!keyboardRenderer) {
+        throw new Error("Expected sidepanel renderer for keyboard provenance test.")
+      }
+
+      keyboardRenderer.render({
+        tree: [makeElementNode("A"), makeElementNode("B"), makeElementNode("C")],
+        selectedIds: new Set(),
+        sceneVersion: 292,
+        actions: keyboardActions,
+      })
+
+      const keyboardContentRoot = getContentRoot(keyboardSidepanelTab.contentEl)
+      dispatchKeydown(keyboardContentRoot, "Space")
+      await flushAsync()
+      dispatchKeydown(keyboardContentRoot, "ArrowDown", { shiftKey: true })
+      await flushAsync()
+      dispatchKeydown(keyboardContentRoot, "ArrowDown", { shiftKey: true })
+      await flushAsync()
+
+      expect(getSelectedRows(keyboardContentRoot)).toHaveLength(3)
+
+      const finalGesturePayloads = readGesturePayloads()
+      expect(finalGesturePayloads).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            source: "mouseRange",
+            selectedElementIds: ["A", "B", "C"],
+            selectedNodeIds: ["el:A", "el:B", "el:C"],
+          }),
+          expect.objectContaining({
+            source: "keyboardExtend",
+            selectedElementIds: ["A", "B", "C"],
+            selectedNodeIds: ["el:A", "el:B", "el:C"],
+          }),
+        ]),
+      )
+    } finally {
+      if (hadDebugFlag) {
+        globalRecord[debugFlagKey] = previousDebugFlag
+      } else {
+        Reflect.deleteProperty(globalRecord, debugFlagKey)
+      }
+
+      logSpy.mockRestore()
+    }
   })
 
   it("ignores modified shortcuts and text-input event targets", async () => {

@@ -3,6 +3,13 @@ export interface SidepanelHostViewContextHost {
   readonly setView?: (view?: unknown, reveal?: boolean) => unknown
 }
 
+export interface SidepanelHostViewContextDescription {
+  readonly hasTargetView: boolean
+  readonly targetViewLoaded: boolean | null
+  readonly targetViewUsable: boolean
+  readonly hasSetView: boolean
+}
+
 const getCurrentHostTargetView = (host: SidepanelHostViewContextHost): unknown => {
   return host.targetView ?? null
 }
@@ -18,6 +25,25 @@ const isUsableTargetView = (value: unknown): boolean => {
   }
 
   return true
+}
+
+export const describeHostViewContext = (
+  host: SidepanelHostViewContextHost,
+): SidepanelHostViewContextDescription => {
+  const targetView = getCurrentHostTargetView(host)
+  const targetViewLoaded =
+    targetView &&
+    typeof targetView === "object" &&
+    "_loaded" in (targetView as Record<string, unknown>)
+      ? (targetView as Record<string, unknown>)["_loaded"] === true
+      : null
+
+  return {
+    hasTargetView: targetView !== null,
+    targetViewLoaded,
+    targetViewUsable: isUsableTargetView(targetView),
+    hasSetView: typeof host.setView === "function",
+  }
 }
 
 export const ensureHostViewContext = (host: SidepanelHostViewContextHost): boolean => {

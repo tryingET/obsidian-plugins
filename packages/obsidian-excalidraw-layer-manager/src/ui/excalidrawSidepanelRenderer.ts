@@ -15,6 +15,7 @@ import {
 import { SidepanelFocusOwnershipCoordinator } from "./sidepanel/focus/focusOwnershipCoordinator.js"
 import {
   type KeyboardShortcutContext,
+  type RowSelectionGesture,
   SidepanelKeyboardShortcutController,
 } from "./sidepanel/keyboard/keyboardShortcutController.js"
 import {
@@ -50,7 +51,10 @@ import {
 import { renderSidepanelRowTree } from "./sidepanel/render/rowTreeRenderer.js"
 import { renderSidepanelToolbar } from "./sidepanel/render/toolbarRenderer.js"
 import { SidepanelHostSelectionBridge } from "./sidepanel/selection/hostSelectionBridge.js"
-import { ensureHostViewContext } from "./sidepanel/selection/hostViewContext.js"
+import {
+  describeHostViewContext,
+  ensureHostViewContext,
+} from "./sidepanel/selection/hostViewContext.js"
 import { collectVisibleNodeContext } from "./sidepanel/selection/nodeContext.js"
 import { resolveRowClickSelection } from "./sidepanel/selection/rowClickSelection.js"
 import { haveSameIds, haveSameIdsInSameOrder } from "./sidepanel/selection/selectionIds.js"
@@ -540,6 +544,9 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       setSelectionAnchorNodeId: (nodeId) => {
         this.#selectionAnchorNodeId = nodeId
       },
+      applyResolvedRowSelection: (input) => {
+        this.applyResolvedRowSelectionGesture(input)
+      },
       mirrorSelectionToHost: (elementIds) => {
         this.#hostSelectionBridge.mirrorSelectionToHost(elementIds)
       },
@@ -1014,6 +1021,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         overrideSize: selectionOverride.length,
         resolvedSize: snapshotSelection.length,
         clearSelectionOverride: true,
+        ...this.buildHostViewDebugPayload(),
       })
 
       return snapshotSelection
@@ -1038,6 +1046,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     if (result.readErrorMessage) {
       this.debugInteraction("selection read failed", {
         errorMessage: result.readErrorMessage,
+        ...this.buildHostViewDebugPayload(),
       })
     }
 
@@ -1047,6 +1056,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       overrideSize: selectionOverride?.length ?? 0,
       resolvedSize: result.resolvedSelection.length,
       clearSelectionOverride: result.clearSelectionOverride,
+      ...this.buildHostViewDebugPayload(),
     })
 
     this.#lastSnapshotSelectionIds = snapshotSelection
@@ -1388,6 +1398,33 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       elementIds: [...elementIds],
       nodeRefs,
     })
+  }
+
+  private buildHostViewDebugPayload(): Record<string, unknown> {
+    return {
+      ...describeHostViewContext(this.#host),
+    }
+  }
+
+  private applyResolvedRowSelectionGesture(input: RowSelectionGesture): void {
+    this.#selectionAnchorNodeId = input.anchorNodeId
+
+    if (input.selectedNodes.length > 0) {
+      this.setSelectionOverrideFromNodes(input.selectedElementIds, input.selectedNodes)
+    } else {
+      this.setSelectionOverride([])
+    }
+
+    this.debugInteraction("row selection gesture", {
+      source: input.source,
+      selectedNodeIds: input.selectedNodes.map((node) => node.id),
+      selectedElementIds: [...input.selectedElementIds],
+      anchorNodeId: input.anchorNodeId,
+      focusedNodeId: this.#focusedNodeId,
+      ...this.buildHostViewDebugPayload(),
+    })
+
+    this.#hostSelectionBridge.mirrorSelectionToHost(input.selectedElementIds)
   }
 
   private reconcileSelectionAnchor(selectedNodes: readonly LayerNode[]): void {
@@ -1862,20 +1899,14 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
                 },
               })
 
-              this.#selectionAnchorNodeId = nextSelection.anchorNodeId
-              if (nextSelection.selectedNodes.length > 0) {
-                this.setSelectionOverrideFromNodes(
-                  nextSelection.selectedElementIds,
-                  nextSelection.selectedNodes,
-                )
-              } else {
-                this.setSelectionOverride([])
-              }
-
-              // Architecture seam note:
-              // This bridge mirrors UI selection intent to the host selection model.
-              // It must never mutate scene element fields directly.
-              this.#hostSelectionBridge.mirrorSelectionToHost(nextSelection.selectedElementIds)
+              this.applyResolvedRowSelectionGesture({
+                source: event.shiftKey
+                  ? "mouseRange"
+                  : event.ctrlKey || event.metaKey
+                    ? "mouseToggle"
+                    : "mouseClick",
+                ...nextSelection,
+              })
 
               this.focusContentRootBestEffort()
               this.requestRenderFromLatestModel()

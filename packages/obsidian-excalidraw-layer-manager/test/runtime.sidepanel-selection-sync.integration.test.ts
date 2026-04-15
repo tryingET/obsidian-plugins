@@ -8,6 +8,7 @@ import {
   FakeDomElement,
   FakeDomEvent,
   dispatchClick,
+  dispatchKeydown,
   findInteractiveRowByLabel,
   flattenElements,
   flushAsync,
@@ -37,6 +38,7 @@ interface RuntimeWithSidepanel {
 
 interface MakeRuntimeWithSidepanelOptions {
   readonly requireSetViewForSelectCalls?: boolean
+  readonly requireSetViewForReadCalls?: boolean
 }
 
 const makeRuntimeWithSidepanel = (
@@ -96,34 +98,31 @@ const makeRuntimeWithSidepanel = (
   })
 
   let viewBound = true
-
-  const setView = vi.fn(() => {
-    viewBound = true
-
+  let targetViewGeneration = 0
+  const bindTargetView = (loaded: boolean): { id: string; _loaded: boolean } => {
+    targetViewGeneration += 1
     return {
-      id: "fake-view",
+      id: `fake-view-${targetViewGeneration}`,
+      _loaded: loaded,
     }
-  })
-
-  const clearViewBinding = (): void => {
-    viewBound = false
   }
 
-  const selectInView = vi.fn((ids: readonly string[]) => {
-    if (options.requireSetViewForSelectCalls === true && !viewBound) {
-      throw new Error("targetView not set")
-    }
-
-    setSelectedIds(ids)
-  })
-
   const ea: EaLike = {
-    setView,
+    targetView: bindTargetView(true),
+    setView: () => {
+      throw new Error("setView not initialized")
+    },
     getViewElements: () => elements,
     getViewSelectedElements: () => {
+      if (options.requireSetViewForReadCalls === true && !viewBound) {
+        throw new Error("targetView not set")
+      }
+
       return elements.filter((element) => selectedIdSet.has(element.id))
     },
-    selectElementsInView: selectInView,
+    selectElementsInView: () => {
+      throw new Error("selectElementsInView not initialized")
+    },
     getScriptSettings: () => ({}),
     getExcalidrawAPI: () => ({
       updateScene,
@@ -137,6 +136,30 @@ const makeRuntimeWithSidepanel = (
     sidepanelTab: null,
     createSidepanelTab: () => sidepanelTab.tab,
   }
+
+  const setView = vi.fn(() => {
+    viewBound = true
+    const nextTargetView = bindTargetView(true)
+    ea.targetView = nextTargetView
+
+    return nextTargetView
+  })
+
+  const clearViewBinding = (): void => {
+    viewBound = false
+    ea.targetView = bindTargetView(false)
+  }
+
+  const selectInView = vi.fn((ids: readonly string[]) => {
+    if (options.requireSetViewForSelectCalls === true && !viewBound) {
+      throw new Error("targetView not set")
+    }
+
+    setSelectedIds(ids)
+  })
+
+  ea.setView = setView
+  ea.selectElementsInView = selectInView
 
   sidepanelTab.tab.getHostEA = () => ea
 
@@ -266,6 +289,105 @@ describe("sidepanel selection-sync integration", () => {
 
     expect(runtime.setView).toHaveBeenCalled()
     expect(runtime.selectInView).toHaveBeenCalledTimes(1)
+  })
+
+  it("interaction debug captures stale targetView churn before mouse and keyboard row-selection writes", async () => {
+    const debugFlagKey = "LMX_DEBUG_SIDEPANEL_INTERACTION"
+    const hadDebugFlag = Object.prototype.hasOwnProperty.call(globalRecord, debugFlagKey)
+    const previousDebugFlag = globalRecord[debugFlagKey]
+    globalRecord[debugFlagKey] = true
+
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {})
+    const readInteractionPayloads = (message: string): Record<string, unknown>[] => {
+      return logSpy.mock.calls
+        .filter(([entry]) => entry === `[LMX:interaction] ${message}`)
+        .map(([, payload]) => (payload ?? {}) as Record<string, unknown>)
+    }
+
+    try {
+      const mouseRuntime = makeRuntimeWithSidepanel(
+        fakeDocument,
+        [
+          { id: "A", type: "rectangle", name: "A", isDeleted: false },
+          { id: "B", type: "rectangle", name: "B", isDeleted: false },
+        ],
+        [],
+        {
+          requireSetViewForSelectCalls: true,
+          requireSetViewForReadCalls: true,
+        },
+      )
+
+      createLayerManagerRuntime(mouseRuntime.ea)
+      mouseRuntime.setView.mockClear()
+      mouseRuntime.clearViewBinding()
+
+      let mouseContentRoot = getContentRoot(mouseRuntime.sidepanelTab.contentEl)
+      const mouseRow = findInteractiveRowByLabel(mouseContentRoot, "[element] A")
+      if (!mouseRow) {
+        throw new Error("Expected mouse row under stale targetView churn test.")
+      }
+
+      dispatchClick(mouseRow)
+      await flushAsync()
+
+      mouseContentRoot = getContentRoot(mouseRuntime.sidepanelTab.contentEl)
+      expect(getSelectedRows(mouseContentRoot)).toHaveLength(1)
+      expect(mouseRuntime.setView).toHaveBeenCalled()
+
+      const keyboardRuntime = makeRuntimeWithSidepanel(
+        fakeDocument,
+        [
+          { id: "A", type: "rectangle", name: "A", isDeleted: false },
+          { id: "B", type: "rectangle", name: "B", isDeleted: false },
+        ],
+        [],
+        {
+          requireSetViewForSelectCalls: true,
+          requireSetViewForReadCalls: true,
+        },
+      )
+
+      createLayerManagerRuntime(keyboardRuntime.ea)
+      keyboardRuntime.setView.mockClear()
+      keyboardRuntime.clearViewBinding()
+
+      const keyboardContentRoot = getContentRoot(keyboardRuntime.sidepanelTab.contentEl)
+      dispatchKeydown(keyboardContentRoot, "Space")
+      await flushAsync()
+
+      expect(getSelectedRows(getContentRoot(keyboardRuntime.sidepanelTab.contentEl))).toHaveLength(
+        1,
+      )
+      expect(keyboardRuntime.setView).toHaveBeenCalled()
+
+      expect(readInteractionPayloads("row selection gesture")).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            source: "mouseClick",
+            hasTargetView: true,
+            targetViewLoaded: false,
+            targetViewUsable: false,
+            hasSetView: true,
+          }),
+          expect.objectContaining({
+            source: "keyboardToggle",
+            hasTargetView: true,
+            targetViewLoaded: true,
+            targetViewUsable: true,
+            hasSetView: true,
+          }),
+        ]),
+      )
+    } finally {
+      if (hadDebugFlag) {
+        globalRecord[debugFlagKey] = previousDebugFlag
+      } else {
+        Reflect.deleteProperty(globalRecord, debugFlagKey)
+      }
+
+      logSpy.mockRestore()
+    }
   })
 
   it("keeps row focus marker when host selection bridge emits immediate blur on row click", async () => {

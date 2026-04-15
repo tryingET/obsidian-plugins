@@ -19,6 +19,21 @@ export interface KeyboardShortcutContext {
   readonly parentById: ReadonlyMap<string, string | null>
 }
 
+export type RowSelectionGestureSource =
+  | "keyboardToggle"
+  | "keyboardRange"
+  | "keyboardExtend"
+  | "mouseClick"
+  | "mouseToggle"
+  | "mouseRange"
+
+export interface RowSelectionGesture {
+  readonly source: RowSelectionGestureSource
+  readonly selectedNodes: readonly LayerNode[]
+  readonly selectedElementIds: readonly string[]
+  readonly anchorNodeId: string | null
+}
+
 interface KeyboardInteractionLogPayload {
   readonly [key: string]: unknown
 }
@@ -51,6 +66,7 @@ interface SidepanelKeyboardShortcutControllerHost {
     nodes: readonly LayerNode[],
   ) => void
   setSelectionAnchorNodeId?: (nodeId: string | null) => void
+  applyResolvedRowSelection?: (input: RowSelectionGesture) => void
   mirrorSelectionToHost?: (elementIds: readonly string[]) => void
   getPageNavigationStep?: () => number
   ensureHostViewContext: () => boolean
@@ -380,7 +396,7 @@ export class SidepanelKeyboardShortcutController {
       },
     })
 
-    this.applyResolvedRowSelection(nextSelection)
+    this.applyResolvedRowSelection("keyboardExtend", nextSelection)
     this.#host.setFocusedNode(navigationTarget.nextNode.id)
   }
 
@@ -443,30 +459,40 @@ export class SidepanelKeyboardShortcutController {
     return context.explicitSelectedNodes ?? context.selection.nodes
   }
 
-  private applyResolvedRowSelection(input: {
-    readonly selectedNodes: readonly LayerNode[]
-    readonly selectedElementIds: readonly string[]
-    readonly anchorNodeId: string | null
-  }): void {
-    this.#host.setSelectionAnchorNodeId?.(input.anchorNodeId)
-
-    if (input.selectedNodes.length > 0 && this.#host.setSelectionOverrideWithNodes) {
-      this.#host.setSelectionOverrideWithNodes(input.selectedElementIds, input.selectedNodes)
-    } else if (input.selectedElementIds.length > 0) {
-      this.#host.setSelectionOverride(input.selectedElementIds)
+  private applyResolvedRowSelection(
+    source: RowSelectionGestureSource,
+    input: {
+      readonly selectedNodes: readonly LayerNode[]
+      readonly selectedElementIds: readonly string[]
+      readonly anchorNodeId: string | null
+    },
+  ): void {
+    if (this.#host.applyResolvedRowSelection) {
+      this.#host.applyResolvedRowSelection({
+        source,
+        ...input,
+      })
     } else {
-      this.#host.setSelectionOverride([])
-    }
+      this.#host.setSelectionAnchorNodeId?.(input.anchorNodeId)
 
-    if (this.#host.mirrorSelectionToHost) {
-      this.#host.mirrorSelectionToHost(input.selectedElementIds)
-    } else if (this.#host.selectElementsInView) {
-      this.#host.ensureHostViewContext()
+      if (input.selectedNodes.length > 0 && this.#host.setSelectionOverrideWithNodes) {
+        this.#host.setSelectionOverrideWithNodes(input.selectedElementIds, input.selectedNodes)
+      } else if (input.selectedElementIds.length > 0) {
+        this.#host.setSelectionOverride(input.selectedElementIds)
+      } else {
+        this.#host.setSelectionOverride([])
+      }
 
-      try {
-        this.#host.selectElementsInView([...input.selectedElementIds])
-      } catch {
-        // no-op: keep keyboard selection mutation fail-soft when host bridge throws
+      if (this.#host.mirrorSelectionToHost) {
+        this.#host.mirrorSelectionToHost(input.selectedElementIds)
+      } else if (this.#host.selectElementsInView) {
+        this.#host.ensureHostViewContext()
+
+        try {
+          this.#host.selectElementsInView([...input.selectedElementIds])
+        } catch {
+          // no-op: keep keyboard selection mutation fail-soft when host bridge throws
+        }
       }
     }
 
@@ -481,6 +507,7 @@ export class SidepanelKeyboardShortcutController {
     }
 
     this.applyResolvedRowSelection(
+      "keyboardToggle",
       resolveRowClickSelection({
         clickedNode: focusedNode,
         visibleNodes: context.visibleNodes,
@@ -502,6 +529,7 @@ export class SidepanelKeyboardShortcutController {
     }
 
     this.applyResolvedRowSelection(
+      "keyboardRange",
       resolveRowClickSelection({
         clickedNode: focusedNode,
         visibleNodes: context.visibleNodes,
