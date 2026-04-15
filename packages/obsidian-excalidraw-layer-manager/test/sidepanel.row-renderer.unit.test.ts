@@ -239,6 +239,7 @@ describe("sidepanel row renderer", () => {
     expect(renderedRow.style["border"]).toBe("1px solid transparent")
     expect(renderedRow.style["cursor"]).toBe("pointer")
     expect(renderedRow.style["background"]).toContain("interactive-accent-hover")
+    expect(renderedRow.style["borderColor"]).toContain("interactive-accent")
     expect(renderedRow.style["outline"]).toContain("1px solid")
     expect(renderedRow.style["boxShadow"]).toContain("inset")
     expect(renderedRow.ariaLabel).toBe("[element] Alpha")
@@ -299,6 +300,7 @@ describe("sidepanel row renderer", () => {
 
     expect(renderedRow.style["boxShadow"]).toContain("inset 0 2px 0 0")
     expect(renderedRow.style["background"] ?? "").not.toContain("interactive-accent-hover")
+    expect(renderedRow.style["borderColor"] ?? "").not.toContain("interactive-accent")
     expect(textFragments).toContain("reorder before row")
   })
 
@@ -503,6 +505,13 @@ describe("sidepanel row renderer", () => {
     expect(actionTitles).toContain("Collapse row Group Alpha")
     expect(actionTitles).toContain("Show hidden items")
     expect(actionTitles).toContain("Lock unlocked items")
+    const actionButtons = renderedRow.children.filter(
+      (child) => child.tagName === "BUTTON" && !child.title.startsWith("Collapse row"),
+    )
+    for (const button of actionButtons) {
+      expect(button.style["background"]).toContain("background-primary-alt")
+      expect(button.style["border"]).toContain("background-modifier-border")
+    }
   })
 
   it("keeps rendered hierarchy semantics when filter projection exposes descendants", () => {
@@ -625,6 +634,11 @@ describe("sidepanel row renderer", () => {
     expect(renderedRow.style["boxShadow"]).toContain("inset -3px 0 0 0")
     expect(renderedRow.ariaLabel).toBe("[element] Alpha · hidden · locked")
     expect(createIconActionButton).toHaveBeenCalledTimes(4)
+    for (const button of buttons) {
+      expect(button.style["background"]).toContain("background-primary-alt")
+      expect(button.style["border"]).toContain("background-modifier-border")
+      expect(button.style["opacity"]).toBe("0.85")
+    }
     expect(actions.toggleVisibilityNode).toHaveBeenCalledWith("A")
     expect(actions.toggleLockNode).toHaveBeenCalledWith("A")
     expect(onRenameNodeFromAction).toHaveBeenCalledWith("A", "Alpha")

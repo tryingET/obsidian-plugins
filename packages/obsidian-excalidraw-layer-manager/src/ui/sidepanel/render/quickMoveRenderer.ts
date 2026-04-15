@@ -62,6 +62,45 @@ interface SidepanelQuickMoveRenderState {
 
 const RECENT_TARGET_BUTTON_MAX = 2
 
+const styleQuickMoveButton = (
+  button: HTMLButtonElement,
+  tone: "neutral" | "primary" = "neutral",
+): void => {
+  button.style.fontSize = "11px"
+  button.style.lineHeight = "1.2"
+  button.style.minHeight = "20px"
+  button.style.padding = "2px 7px"
+  button.style.borderRadius = "5px"
+  button.style.border = "1px solid var(--background-modifier-border, rgba(120,120,120,0.18))"
+  button.style.boxShadow = "none"
+  button.style.background =
+    tone === "primary"
+      ? "var(--background-secondary-alt, rgba(120,120,120,0.1))"
+      : "var(--background-primary-alt, rgba(120,120,120,0.04))"
+}
+
+const styleQuickMoveSelect = (select: HTMLSelectElement, maxWidthPx: number): void => {
+  select.style.fontSize = "11px"
+  select.style.minHeight = "20px"
+  select.style.padding = "1px 4px"
+  select.style.maxWidth = `${maxWidthPx}px`
+  select.style.borderRadius = "5px"
+  select.style.border = "1px solid var(--background-modifier-border, rgba(120,120,120,0.18))"
+  select.style.boxShadow = "none"
+  select.style.background = "var(--background-primary, transparent)"
+}
+
+const createQuickMoveButton = (
+  input: SidepanelQuickMoveRenderInput,
+  label: string,
+  action: () => Promise<unknown>,
+  tone: "neutral" | "primary" = "neutral",
+): HTMLButtonElement => {
+  const button = input.createToolbarButton(input.ownerDocument, label, action)
+  styleQuickMoveButton(button, tone)
+  return button
+}
+
 const resolveSelectionIssue = (
   selection: SidepanelQuickMoveSelection,
   _frameResolution: SharedFrameResolution,
@@ -271,6 +310,10 @@ const createControlRow = (input: SidepanelQuickMoveRenderInput): HTMLDivElement 
   row.style.alignItems = "center"
   row.style.gap = "4px"
   row.style.marginBottom = "6px"
+  row.style.padding = "4px 6px"
+  row.style.borderRadius = "6px"
+  row.style.border = "1px solid var(--background-modifier-border, rgba(120,120,120,0.16))"
+  row.style.background = "var(--background-primary-alt, rgba(120,120,120,0.04))"
   input.container.appendChild(row)
   return row
 }
@@ -283,6 +326,7 @@ const appendRowTitle = (
   const title = input.ownerDocument.createElement("span")
   title.textContent = label
   title.style.fontSize = "11px"
+  title.style.fontWeight = "600"
   title.style.opacity = "0.75"
   title.style.paddingRight = "2px"
 
@@ -304,7 +348,7 @@ const appendRootMoveControl = (
     isRootFrameCompatible(renderState.frameResolution, input.lastQuickMoveDestination)
       ? "Root ★"
       : "Root"
-  const rootButton = input.createToolbarButton(input.ownerDocument, rootLabel, async () => {
+  const rootButton = createQuickMoveButton(input, rootLabel, async () => {
     await input.onMoveSelectionToRoot(renderState.frameResolution.frameId)
   })
 
@@ -343,8 +387,8 @@ const appendLastQuickMoveControl = (
       ? `↺ Last: ${describeRootDestination(lastDestination, input.destinationProjection.frameLabelById)}`
       : `↺ Last: ${lastDestination.preset.label}`
 
-  const repeatButton = input.createToolbarButton(
-    input.ownerDocument,
+  const repeatButton = createQuickMoveButton(
+    input,
     truncateLabel(label, input.lastMoveLabelMax),
     async () => {
       if (lastDestination.kind === "root") {
@@ -437,7 +481,7 @@ const appendRecentDestinationControls = (
         ? describeRootDestination(destination, input.destinationProjection.frameLabelById)
         : truncateLabel(destination.preset.label, input.lastMoveLabelMax)
 
-    const button = input.createToolbarButton(input.ownerDocument, buttonLabel, async () => {
+    const button = createQuickMoveButton(input, buttonLabel, async () => {
       if (destination.kind === "root") {
         await input.onMoveSelectionToRoot(destination.targetFrameId)
         return
@@ -486,7 +530,7 @@ const appendInlinePresetButtons = (
       lastDestination?.kind === "preset" && lastDestination.preset.key === preset.key
 
     const presetLabel = isLastPreset ? `${preset.label} ★` : preset.label
-    const presetButton = input.createToolbarButton(input.ownerDocument, presetLabel, async () => {
+    const presetButton = createQuickMoveButton(input, presetLabel, async () => {
       await input.onApplyGroupPreset(preset)
     })
 
@@ -524,12 +568,7 @@ const appendPresetDropdown = (
       : null
 
   const select = input.ownerDocument.createElement("select")
-  select.style.fontSize = "11px"
-  select.style.padding = "0"
-  select.style.maxWidth = "180px"
-  select.style.border = "none"
-  select.style.boxShadow = "none"
-  select.style.background = "transparent"
+  styleQuickMoveSelect(select, 180)
 
   const placeholder = input.ownerDocument.createElement("option")
   placeholder.value = ""
@@ -582,17 +621,22 @@ const appendPresetDropdown = (
       "Review-scope move targets. Labels include frame context while commands still target canonical selected rows."
   }
 
-  const applyButton = input.createToolbarButton(input.ownerDocument, "Move", async () => {
-    const selectedKey = select.value
-    const preset = presetByKey.get(selectedKey)
+  const applyButton = createQuickMoveButton(
+    input,
+    "Move",
+    async () => {
+      const selectedKey = select.value
+      const preset = presetByKey.get(selectedKey)
 
-    if (!preset) {
-      input.onNotify("Choose a top-level group preset first.")
-      return
-    }
+      if (!preset) {
+        input.onNotify("Choose a top-level group preset first.")
+        return
+      }
 
-    await input.onApplyGroupPreset(preset)
-  })
+      await input.onApplyGroupPreset(preset)
+    },
+    "primary",
+  )
 
   const updateApplyState = (): void => {
     const selectedKey = select.value
@@ -650,12 +694,7 @@ const appendDestinationPicker = (
       : null
 
   const select = input.ownerDocument.createElement("select")
-  select.style.fontSize = "11px"
-  select.style.padding = "0"
-  select.style.maxWidth = "220px"
-  select.style.border = "none"
-  select.style.boxShadow = "none"
-  select.style.background = "transparent"
+  styleQuickMoveSelect(select, 220)
 
   const placeholder = input.ownerDocument.createElement("option")
   placeholder.value = ""
@@ -708,17 +747,22 @@ const appendDestinationPicker = (
       "Review-scope destination picker. Labels include frame context and canonical path while commands still target canonical selected rows."
   }
 
-  const applyButton = input.createToolbarButton(input.ownerDocument, "Move to picked", async () => {
-    const selectedKey = select.value
-    const preset = presetByKey.get(selectedKey)
+  const applyButton = createQuickMoveButton(
+    input,
+    "Move to picked",
+    async () => {
+      const selectedKey = select.value
+      const preset = presetByKey.get(selectedKey)
 
-    if (!preset) {
-      input.onNotify("Choose a destination from the picker first.")
-      return
-    }
+      if (!preset) {
+        input.onNotify("Choose a destination from the picker first.")
+        return
+      }
 
-    await input.onApplyGroupPreset(preset)
-  })
+      await input.onApplyGroupPreset(preset)
+    },
+    "primary",
+  )
 
   const updateApplyState = (): void => {
     const preset = presetByKey.get(select.value)

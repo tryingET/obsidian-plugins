@@ -2158,7 +2158,13 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     button.type = "button"
     button.textContent = label
     button.style.fontSize = `${TOOLBAR_FONT_SIZE_PX}px`
-    button.style.padding = "2px 6px"
+    button.style.lineHeight = "1.2"
+    button.style.minHeight = "20px"
+    button.style.padding = "2px 7px"
+    button.style.borderRadius = "5px"
+    button.style.border = "1px solid var(--background-modifier-border, rgba(120,120,120,0.18))"
+    button.style.background = "var(--background-primary-alt, rgba(120,120,120,0.04))"
+    button.style.boxShadow = "none"
     button.addEventListener("click", () => {
       runUiAction(action, (message) => this.notify(message), "LayerManager toolbar action failed")
     })

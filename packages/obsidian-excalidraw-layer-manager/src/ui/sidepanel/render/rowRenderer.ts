@@ -195,6 +195,13 @@ const resolveLockActionIcon = (state: SidepanelRowVisualState): SidepanelRowActi
   }
 }
 
+const styleRowActionButton = (button: HTMLButtonElement): void => {
+  button.style.flexShrink = "0"
+  button.style.border = "1px solid var(--background-modifier-border, rgba(120,120,120,0.16))"
+  button.style.background = "var(--background-primary-alt, rgba(120,120,120,0.04))"
+  button.style.opacity = "0.85"
+}
+
 export const renderSidepanelRow = (input: SidepanelRowRenderInput): SidepanelRowRenderResult => {
   const rowDescriptors = buildSidepanelRowDescriptors({
     node: input.node,
@@ -208,6 +215,8 @@ export const renderSidepanelRow = (input: SidepanelRowRenderInput): SidepanelRow
   row.style.alignItems = "center"
   row.style.gap = "3px"
   row.style.minHeight = `${input.styleConfig.rowMinHeightPx}px`
+  row.style.paddingTop = "1px"
+  row.style.paddingBottom = "1px"
   row.style.paddingLeft = `${input.depth * input.styleConfig.indentStepPx}px`
   row.style.paddingRight = "2px"
   row.style.borderRadius = "4px"
@@ -231,10 +240,12 @@ export const renderSidepanelRow = (input: SidepanelRowRenderInput): SidepanelRow
 
   if (input.filterMatchKind === "self") {
     row.style.background = "var(--background-modifier-hover, rgba(120,120,120,0.12))"
+    row.style.borderColor = "var(--background-modifier-border, rgba(120,120,120,0.16))"
   }
 
   if (input.selected) {
     row.style.background = "var(--interactive-accent-hover, rgba(120,120,120,0.2))"
+    row.style.borderColor = "var(--interactive-accent, rgba(120,120,120,0.32))"
   }
 
   if (input.dropHintKind === "reparent" && !input.selected) {
@@ -373,6 +384,7 @@ const appendLabelOrRenameInput = (
   label.style.fontSize = `${input.styleConfig.rowFontSizePx}px`
   label.style.color = "var(--text-normal, inherit)"
   label.style.fontWeight = input.filterMatchKind === "self" ? "600" : "500"
+  label.style.paddingRight = "2px"
   label.style.overflow = "hidden"
   label.style.textOverflow = "ellipsis"
   label.style.whiteSpace = "nowrap"
@@ -397,8 +409,10 @@ const appendMetaBadges = (
   const metaHost = input.ownerDocument.createElement("div")
   metaHost.style.display = "inline-flex"
   metaHost.style.alignItems = "center"
+  metaHost.style.justifyContent = "flex-end"
   metaHost.style.flexWrap = "wrap"
   metaHost.style.gap = "3px"
+  metaHost.style.rowGap = "2px"
 
   let didAppendDropHint = false
   const appendDropHintBadge = (): void => {
@@ -439,45 +453,45 @@ const appendRowActionButtons = (input: SidepanelRowRenderInput, row: HTMLDivElem
     return
   }
 
-  row.appendChild(
-    input.createIconActionButton(
-      input.ownerDocument,
-      resolveVisibilityActionIcon(input.nodeVisualState),
-      () => actions.toggleVisibilityNode(input.node.id),
-    ),
+  const visibilityButton = input.createIconActionButton(
+    input.ownerDocument,
+    resolveVisibilityActionIcon(input.nodeVisualState),
+    () => actions.toggleVisibilityNode(input.node.id),
   )
+  styleRowActionButton(visibilityButton)
+  row.appendChild(visibilityButton)
 
-  row.appendChild(
-    input.createIconActionButton(
-      input.ownerDocument,
-      resolveLockActionIcon(input.nodeVisualState),
-      () => actions.toggleLockNode(input.node.id),
-    ),
+  const lockButton = input.createIconActionButton(
+    input.ownerDocument,
+    resolveLockActionIcon(input.nodeVisualState),
+    () => actions.toggleLockNode(input.node.id),
   )
+  styleRowActionButton(lockButton)
+  row.appendChild(lockButton)
 
-  row.appendChild(
-    input.createIconActionButton(
-      input.ownerDocument,
-      {
-        iconName: "edit-3",
-        fallbackLabel: "✎",
-        title: "Rename layer",
-      },
-      async () => {
-        input.onRenameNodeFromAction(input.node.id, input.node.label)
-      },
-    ),
+  const renameButton = input.createIconActionButton(
+    input.ownerDocument,
+    {
+      iconName: "edit-3",
+      fallbackLabel: "✎",
+      title: "Rename layer",
+    },
+    async () => {
+      input.onRenameNodeFromAction(input.node.id, input.node.label)
+    },
   )
+  styleRowActionButton(renameButton)
+  row.appendChild(renameButton)
 
-  row.appendChild(
-    input.createIconActionButton(
-      input.ownerDocument,
-      {
-        iconName: "trash-2",
-        fallbackLabel: "🗑",
-        title: "Delete layer",
-      },
-      () => actions.deleteNode(input.node.id),
-    ),
+  const deleteButton = input.createIconActionButton(
+    input.ownerDocument,
+    {
+      iconName: "trash-2",
+      fallbackLabel: "🗑",
+      title: "Delete layer",
+    },
+    () => actions.deleteNode(input.node.id),
   )
+  styleRowActionButton(deleteButton)
+  row.appendChild(deleteButton)
 }

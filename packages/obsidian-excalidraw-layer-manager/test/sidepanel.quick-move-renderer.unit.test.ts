@@ -302,6 +302,16 @@ describe("sidepanel quick-move renderer", () => {
       throw new Error("Expected root/dropdown quick-move controls to exist.")
     }
 
+    expect((renderedContainer.children[0] as FakeDomElement | undefined)?.style["padding"]).toBe(
+      "4px 6px",
+    )
+    expect(
+      (renderedContainer.children[0] as FakeDomElement | undefined)?.style["borderRadius"],
+    ).toBe("6px")
+    expect(rootButton.style["minHeight"]).toBe("20px")
+    expect(rootButton.style["borderRadius"]).toBe("5px")
+    expect(topLevelSelect.style["borderRadius"]).toBe("5px")
+    expect(moveButton.style["background"]).toContain("background-secondary-alt")
     expect(moveButton.disabled).toBe(true)
 
     rootButton.click()

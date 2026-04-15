@@ -175,6 +175,16 @@ describe("sidepanel toolbar renderer", () => {
     const bringToFrontButton = findButtonByText(renderedContainer, "Bring to front")
     const ungroupButton = findButtonByText(renderedContainer, "Ungroup-like")
 
+    expect((renderedContainer.children[0] as FakeDomElement | undefined)?.style["padding"]).toBe(
+      "4px 6px",
+    )
+    expect(
+      (renderedContainer.children[0] as FakeDomElement | undefined)?.style["borderRadius"],
+    ).toBe("6px")
+    expect(groupButton?.style["minHeight"]).toBe("20px")
+    expect(groupButton?.style["borderRadius"]).toBe("5px")
+    expect(groupButton?.style["background"]).toContain("background-secondary-alt")
+
     persistButton?.click()
     closeButton?.click()
     rememberButton?.click()
@@ -253,6 +263,7 @@ describe("sidepanel toolbar renderer", () => {
     const ungroupButton = findButtonByText(renderedContainer, "Ungroup-like")
 
     expect(persistedBadge).toBeDefined()
+    expect(persistedBadge?.style["background"]).toContain("background-secondary-alt")
     expect(findButtonByText(renderedContainer, "Persist tab")).toBeUndefined()
     expect(findButtonByText(renderedContainer, "Close tab")).toBeUndefined()
     expect(findButtonByText(renderedContainer, "Remember last move: off")).toBeUndefined()

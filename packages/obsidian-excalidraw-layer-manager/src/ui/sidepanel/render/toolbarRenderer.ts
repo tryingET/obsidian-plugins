@@ -32,12 +32,41 @@ const qualifyReviewScopeActionTitle = (baseTitle: string, reviewScopeActive: boo
     : baseTitle
 }
 
+const styleToolbarButton = (button: HTMLButtonElement, tone: "neutral" | "primary" = "neutral") => {
+  button.style.fontSize = "11px"
+  button.style.lineHeight = "1.2"
+  button.style.minHeight = "20px"
+  button.style.padding = "2px 7px"
+  button.style.borderRadius = "5px"
+  button.style.border = "1px solid var(--background-modifier-border, rgba(120,120,120,0.18))"
+  button.style.boxShadow = "none"
+  button.style.background =
+    tone === "primary"
+      ? "var(--background-secondary-alt, rgba(120,120,120,0.1))"
+      : "var(--background-primary-alt, rgba(120,120,120,0.04))"
+}
+
+const createStyledToolbarButton = (
+  input: SidepanelToolbarRenderInput,
+  label: string,
+  action: () => Promise<unknown>,
+  tone: "neutral" | "primary" = "neutral",
+): HTMLButtonElement => {
+  const button = input.createToolbarButton(input.ownerDocument, label, action)
+  styleToolbarButton(button, tone)
+  return button
+}
+
 export const renderSidepanelToolbar = (input: SidepanelToolbarRenderInput): HTMLDivElement => {
   const toolbar = input.ownerDocument.createElement("div")
   toolbar.style.display = "flex"
   toolbar.style.flexWrap = "wrap"
   toolbar.style.gap = "4px"
   toolbar.style.marginBottom = "6px"
+  toolbar.style.padding = "4px 6px"
+  toolbar.style.borderRadius = "6px"
+  toolbar.style.border = "1px solid var(--background-modifier-border, rgba(120,120,120,0.16))"
+  toolbar.style.background = "var(--background-primary-alt, rgba(120,120,120,0.04))"
   input.container.appendChild(toolbar)
 
   appendPersistenceControl(input, toolbar)
@@ -48,9 +77,14 @@ export const renderSidepanelToolbar = (input: SidepanelToolbarRenderInput): HTML
     return toolbar
   }
 
-  const groupButton = input.createToolbarButton(input.ownerDocument, "Group selected", async () => {
-    await input.onGroupSelected()
-  })
+  const groupButton = createStyledToolbarButton(
+    input,
+    "Group selected",
+    async () => {
+      await input.onGroupSelected()
+    },
+    "primary",
+  )
   groupButton.disabled = input.selectedElementCount < 2
   if (groupButton.disabled) {
     groupButton.title = qualifyReviewScopeActionTitle(
@@ -67,13 +101,9 @@ export const renderSidepanelToolbar = (input: SidepanelToolbarRenderInput): HTML
 
   appendReorderControls(input, toolbar)
 
-  const ungroupLikeButton = input.createToolbarButton(
-    input.ownerDocument,
-    "Ungroup-like",
-    async () => {
-      await input.onUngroupLikeSelection()
-    },
-  )
+  const ungroupLikeButton = createStyledToolbarButton(input, "Ungroup-like", async () => {
+    await input.onUngroupLikeSelection()
+  })
   ungroupLikeButton.disabled = input.selectedElementCount === 0 || !!input.ungroupLikeIssue
   if (input.ungroupLikeIssue) {
     ungroupLikeButton.title = qualifyReviewScopeActionTitle(
@@ -120,7 +150,7 @@ const appendReorderControls = (input: SidepanelToolbarRenderInput, toolbar: HTML
   ]
 
   for (const control of controls) {
-    const button = input.createToolbarButton(input.ownerDocument, control.label, async () => {
+    const button = createStyledToolbarButton(input, control.label, async () => {
       await input.onReorderSelected(control.mode)
     })
     button.disabled = input.selectedElementCount === 0
@@ -153,7 +183,7 @@ const appendLastMovePersistenceControl = (
 
   let toggleInFlight = false
 
-  const toggleButton = input.createToolbarButton(input.ownerDocument, label, async () => {
+  const toggleButton = createStyledToolbarButton(input, label, async () => {
     if (toggleInFlight) {
       return
     }
@@ -201,15 +231,17 @@ const appendPersistenceControl = (
     const badge = input.ownerDocument.createElement("span")
     badge.textContent = "Persisted ✓"
     badge.style.fontSize = "11px"
-    badge.style.opacity = "0.75"
+    badge.style.fontWeight = "600"
+    badge.style.opacity = "0.78"
     badge.style.padding = "2px 6px"
     badge.style.border = "1px solid var(--background-modifier-border, rgba(120,120,120,0.35))"
-    badge.style.borderRadius = "4px"
+    badge.style.borderRadius = "5px"
+    badge.style.background = "var(--background-secondary-alt, rgba(120,120,120,0.08))"
     toolbar.appendChild(badge)
     return
   }
 
-  const persistButton = input.createToolbarButton(input.ownerDocument, "Persist tab", async () => {
+  const persistButton = createStyledToolbarButton(input, "Persist tab", async () => {
     const persisted = input.onPersistTab()
     if (!persisted) {
       input.onNotify("Could not persist sidepanel tab.")
@@ -227,7 +259,7 @@ const appendCloseControl = (input: SidepanelToolbarRenderInput, toolbar: HTMLEle
     return
   }
 
-  const closeButton = input.createToolbarButton(input.ownerDocument, "Close tab", async () => {
+  const closeButton = createStyledToolbarButton(input, "Close tab", async () => {
     input.onCloseTab()
   })
 
