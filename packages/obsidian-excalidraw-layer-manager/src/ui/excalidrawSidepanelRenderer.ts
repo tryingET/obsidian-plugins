@@ -1891,6 +1891,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.resetForHostViewContextChange()
 
     this.debugInteraction("host view context changed", {
+      hostViewContextKey: nextHostViewContextKey,
       ...this.buildHostViewDebugPayload(),
     })
   }

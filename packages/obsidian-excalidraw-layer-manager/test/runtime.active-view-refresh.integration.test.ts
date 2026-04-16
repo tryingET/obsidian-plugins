@@ -57,6 +57,8 @@ type DrawingFixture =
   | {
       readonly elements: readonly RawExcalidrawElement[]
       readonly frontmatter?: Record<string, unknown>
+      readonly filePath?: string
+      readonly viewId?: string
     }
 
 const isArrayDrawingFixture = (
@@ -66,10 +68,13 @@ const isArrayDrawingFixture = (
 }
 
 const normalizeDrawingFixture = (
+  viewPath: string,
   fixture: DrawingFixture,
 ): {
   readonly elements: readonly RawExcalidrawElement[]
   readonly frontmatter: Record<string, unknown>
+  readonly filePath: string
+  readonly viewId: string
 } => {
   if (isArrayDrawingFixture(fixture)) {
     return {
@@ -77,12 +82,16 @@ const normalizeDrawingFixture = (
       frontmatter: {
         "excalidraw-plugin": "parsed",
       },
+      filePath: viewPath,
+      viewId: viewPath,
     }
   }
 
   return {
     elements: fixture.elements,
     frontmatter: fixture.frontmatter ?? {},
+    filePath: fixture.filePath ?? viewPath,
+    viewId: fixture.viewId ?? viewPath,
   }
 }
 
@@ -102,9 +111,16 @@ const makeRuntimeWithSidepanel = (
   const normalizedByPath = new Map(
     Object.entries(input).map(([viewPath, fixture]) => [
       viewPath,
-      normalizeDrawingFixture(fixture),
+      normalizeDrawingFixture(viewPath, fixture),
     ]),
   )
+  const fixtureByFilePath = new Map<string, ReturnType<typeof normalizeDrawingFixture>>()
+  for (const fixture of normalizedByPath.values()) {
+    if (!fixtureByFilePath.has(fixture.filePath)) {
+      fixtureByFilePath.set(fixture.filePath, fixture)
+    }
+  }
+
   const drawingByPath = new Map(
     [...normalizedByPath.entries()].map(([viewPath, fixture]) => [
       viewPath,
@@ -114,6 +130,17 @@ const makeRuntimeWithSidepanel = (
       },
     ]),
   )
+
+  let activeViewPath = initialViewPath
+  const workspaceListeners = new Map<string, Set<(...args: unknown[]) => unknown>>()
+  const sidepanelTab = makeSidepanelTab(document, null)
+  const sceneChangeListeners = new Set<
+    (elements: readonly RawExcalidrawElement[], appState: unknown, files: unknown) => void
+  >()
+  const viewPathById = new Map(
+    [...normalizedByPath.entries()].map(([viewPath, fixture]) => [fixture.viewId, viewPath]),
+  )
+
   const app = {
     metadataCache: {
       getFileCache: (file: unknown) => {
@@ -126,7 +153,7 @@ const makeRuntimeWithSidepanel = (
           return null
         }
 
-        const fixture = normalizedByPath.get(path)
+        const fixture = fixtureByFilePath.get(path)
         if (!fixture) {
           return null
         }
@@ -168,40 +195,52 @@ const makeRuntimeWithSidepanel = (
             },
           }),
       getActiveFile: () => ({
-        path: activeViewPath,
+        path: normalizedByPath.get(activeViewPath)?.filePath ?? activeViewPath,
       }),
     },
   }
+
   const viewByPath = new Map(
-    [...normalizedByPath.keys()].map((viewPath) => [
+    [...normalizedByPath.entries()].map(([viewPath, fixture]) => [
       viewPath,
       {
-        id: viewPath,
+        id: fixture.viewId,
         _loaded: true,
         file: {
-          path: viewPath,
+          path: fixture.filePath,
         },
         app,
       },
     ]),
   )
 
-  let activeViewPath = initialViewPath
-  const workspaceListeners = new Map<string, Set<(...args: unknown[]) => unknown>>()
-  const sidepanelTab = makeSidepanelTab(document, null)
-  const sceneChangeListeners = new Set<
-    (elements: readonly RawExcalidrawElement[], appState: unknown, files: unknown) => void
-  >()
-
   const getBoundViewPath = (): string => {
-    const path =
-      ea.targetView &&
-      typeof ea.targetView === "object" &&
-      typeof (ea.targetView as { file?: { path?: unknown } }).file?.path === "string"
-        ? ((ea.targetView as { file: { path: string } }).file.path as string)
-        : activeViewPath
+    const targetView = ea.targetView
+    if (targetView && typeof targetView === "object") {
+      const targetViewRecord = targetView as Record<string, unknown>
+      const viewId = typeof targetViewRecord["id"] === "string" ? targetViewRecord["id"] : null
+      if (viewId) {
+        const resolvedViewPath = viewPathById.get(viewId)
+        if (resolvedViewPath) {
+          return resolvedViewPath
+        }
+      }
 
-    return path
+      const targetViewFile = targetViewRecord["file"] as { path?: unknown } | undefined
+      const path = typeof targetViewFile?.path === "string" ? targetViewFile.path : null
+
+      if (path) {
+        const matchingViewPaths = [...normalizedByPath.entries()]
+          .filter(([, fixture]) => fixture.filePath === path)
+          .map(([viewPath]) => viewPath)
+
+        if (matchingViewPaths.length === 1) {
+          return matchingViewPaths[0] ?? activeViewPath
+        }
+      }
+    }
+
+    return activeViewPath
   }
 
   const hasFreshViewBinding = (): boolean => {
@@ -430,6 +469,84 @@ describe("runtime active-view refresh", () => {
     expect(refreshedSearchInput?.value).toBe("")
     expect(findInteractiveRowByLabel(contentRoot, "[element] Gamma")).toBeDefined()
     expect(findInteractiveRowByLabel(contentRoot, "[element] Delta")).toBeDefined()
+    expect(getSelectedRows(contentRoot)).toHaveLength(0)
+
+    const focusedRow = findFocusedInteractiveRow(contentRoot)
+    const focusedRowLabel = (focusedRow as (FakeDomElement & { ariaLabel?: string }) | undefined)
+      ?.ariaLabel
+
+    expect(focusedRowLabel).toBeDefined()
+    expect([focusedRowLabel]).toEqual(
+      expect.arrayContaining([expect.stringMatching(/Gamma|Delta/)]),
+    )
+    expect(focusedRowLabel).not.toContain("Alpha")
+  })
+
+  it("treats same-file targetView identity switches as active-view changes", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      {
+        front: {
+          filePath: "Card.excalidraw",
+          viewId: "Card.excalidraw#front",
+          frontmatter: {
+            "excalidraw-plugin": "parsed",
+          },
+          elements: [
+            { id: "A", type: "rectangle", name: "Alpha", isDeleted: false },
+            { id: "B", type: "rectangle", name: "Beta", isDeleted: false },
+          ],
+        },
+        back: {
+          filePath: "Card.excalidraw",
+          viewId: "Card.excalidraw#back",
+          frontmatter: {
+            "excalidraw-plugin": "parsed",
+          },
+          elements: [
+            { id: "C", type: "rectangle", name: "Gamma", isDeleted: false },
+            { id: "D", type: "rectangle", name: "Delta", isDeleted: false },
+          ],
+        },
+      },
+      "front",
+    )
+
+    const app = createLayerManagerRuntime(runtime.ea)
+
+    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const searchInput = findRowFilterInput(contentRoot)
+    if (!searchInput) {
+      throw new Error("Expected row filter input in the initial card face.")
+    }
+
+    searchInput.focus()
+    searchInput.value = "Alpha"
+    searchInput.dispatchEvent(new FakeDomEvent("input"))
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const alphaRow = findInteractiveRowByLabel(contentRoot, "[element] Alpha")
+    if (!alphaRow) {
+      throw new Error("Expected Alpha row while the front card face filter is active.")
+    }
+
+    alphaRow.click()
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    expect(getSelectedRows(contentRoot)).toHaveLength(1)
+
+    runtime.switchToView("back")
+    app.refresh()
+    await flushAsync(12)
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const refreshedSearchInput = findRowFilterInput(contentRoot)
+    expect(refreshedSearchInput?.value).toBe("")
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Gamma")).toBeDefined()
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Delta")).toBeDefined()
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Alpha")).toBeUndefined()
     expect(getSelectedRows(contentRoot)).toHaveLength(0)
 
     const focusedRow = findFocusedInteractiveRow(contentRoot)
