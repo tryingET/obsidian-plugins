@@ -2,21 +2,52 @@ import { assign, createActor, setup } from "xstate"
 
 import { SidepanelFocusOutGuard } from "./focusOutGuard.js"
 
+interface FocusScrollPosition {
+  readonly element: HTMLElement
+  readonly top: number
+  readonly left: number
+}
+
+const captureFocusScrollPositions = (element: HTMLElement): readonly FocusScrollPosition[] => {
+  const positions: FocusScrollPosition[] = []
+  let current: HTMLElement | null = element
+
+  while (current) {
+    positions.push({
+      element: current,
+      top: current.scrollTop,
+      left: current.scrollLeft,
+    })
+    current = current.parentElement
+  }
+
+  return positions
+}
+
+const restoreFocusScrollPositions = (positions: readonly FocusScrollPosition[]): void => {
+  for (const position of positions) {
+    position.element.scrollTop = position.top
+    position.element.scrollLeft = position.left
+  }
+}
+
 const focusElementWithoutScroll = (element: HTMLElement): void => {
+  const scrollPositions = captureFocusScrollPositions(element)
+
   try {
     element.focus({
       preventScroll: true,
     })
-    return
   } catch {
     // Older host runtimes may not support FocusOptions; fall through to plain focus.
+    try {
+      element.focus()
+    } catch {
+      // no-op; best-effort focus restoration
+    }
   }
 
-  try {
-    element.focus()
-  } catch {
-    // no-op; best-effort focus restoration
-  }
+  restoreFocusScrollPositions(scrollPositions)
 }
 
 interface SidepanelFocusOwnershipCoordinatorOptions {

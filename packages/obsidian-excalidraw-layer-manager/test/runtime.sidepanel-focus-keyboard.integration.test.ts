@@ -608,6 +608,59 @@ describe("sidepanel focus + keyboard integration", () => {
     expect(sidepanelTab.contentEl.scrollTop).toBe(scrollTopAfterArrowFocus)
   })
 
+  it("keeps the review cursor stable when the host ignores preventScroll and applies focus scroll after rerender", async () => {
+    fakeDocument.ignorePreventScrollOnFocus = true
+    fakeDocument.focusScrollsAncestorToTop = true
+    fakeDocument.deferFocusScrollToMicrotask = true
+
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    sidepanelTab.contentEl.clientHeight = 120
+    const { actions } = makeUiActions()
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => ({}),
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: Array.from({ length: 12 }, (_, index) =>
+        makeElementNode(`${index + 1}`, `Row ${index + 1}`),
+      ),
+      selectedIds: new Set(),
+      sceneVersion: 30.5,
+      actions,
+    })
+
+    let contentRoot = getContentRoot(sidepanelTab.contentEl)
+    for (let step = 0; step < 7; step += 1) {
+      dispatchKeydown(contentRoot, "ArrowDown")
+      await flushAsync()
+      contentRoot = getContentRoot(sidepanelTab.contentEl)
+    }
+
+    const scrollTopBeforeExtraArrow = sidepanelTab.contentEl.scrollTop
+    expect(scrollTopBeforeExtraArrow).toBeGreaterThan(0)
+
+    dispatchKeydown(contentRoot, "ArrowDown")
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const focusedRow = findFocusedInteractiveRow(contentRoot)
+    if (!focusedRow) {
+      throw new Error("Expected focused row after deferred focus-scroll regression step.")
+    }
+
+    const focusedLabel = (focusedRow as FakeDomElement & { ariaLabel?: string }).ariaLabel ?? ""
+
+    expect(sidepanelTab.contentEl.scrollTop).toBeGreaterThan(0)
+    expect(sidepanelTab.contentEl.scrollTop).toBeGreaterThanOrEqual(scrollTopBeforeExtraArrow)
+    expect(focusedLabel).toContain("Row 9")
+  })
+
   it("extends row selection by page from the current anchor with Shift+PageDown", async () => {
     const sidepanelTab = makeSidepanelTab(fakeDocument, null)
     sidepanelTab.contentEl.clientHeight = 120

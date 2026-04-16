@@ -87,6 +87,12 @@ export class FakeDocument {
   activeElement: FakeDomElement | null = null
   /** Simulate browser focus-scroll for regression tests when preventScroll is missing. */
   focusScrollDelta = 0
+  /** Simulate host runtimes that ignore preventScroll on focus(). */
+  ignorePreventScrollOnFocus = false
+  /** Simulate host focus behavior that snaps the nearest scroll container back to top. */
+  focusScrollsAncestorToTop = false
+  /** Defer synthetic focus scroll until the microtask queue drains. */
+  deferFocusScrollToMicrotask = false
   defaultView = {
     HTMLElement: FakeDomElement,
   } as unknown as Window
@@ -238,24 +244,38 @@ export class FakeDomElement {
   focus(options?: FocusOptions): void {
     this.ownerDocument.activeElement = this
 
-    if (options?.preventScroll === true) {
+    if (options?.preventScroll === true && !this.ownerDocument.ignorePreventScrollOnFocus) {
       return
     }
 
-    const focusScrollDelta = this.ownerDocument.focusScrollDelta
-    if (!(focusScrollDelta > 0)) {
-      return
-    }
+    const applyFocusScroll = (): void => {
+      const focusScrollDelta = this.ownerDocument.focusScrollDelta
+      let current: FakeDomElement | null = this.parentElement
+      while (current) {
+        if (current.clientHeight > 0 && current.scrollHeight > current.clientHeight + 1) {
+          if (this.ownerDocument.focusScrollsAncestorToTop) {
+            current.scrollTop = 0
+            return
+          }
 
-    let current: FakeDomElement | null = this.parentElement
-    while (current) {
-      if (current.clientHeight > 0 && current.scrollHeight > current.clientHeight + 1) {
-        current.scrollTop += focusScrollDelta
-        return
+          if (focusScrollDelta !== 0) {
+            current.scrollTop += focusScrollDelta
+          }
+          return
+        }
+
+        current = current.parentElement
       }
-
-      current = current.parentElement
     }
+
+    if (this.ownerDocument.deferFocusScrollToMicrotask) {
+      Promise.resolve().then(() => {
+        applyFocusScroll()
+      })
+      return
+    }
+
+    applyFocusScroll()
   }
 
   scrollIntoView(): void {

@@ -1182,6 +1182,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
 
     this.#lastRenderedDragDropHint = cloneDragDropHint(this.#dragDropController.dropHint)
     this.revealFocusedRowWithinComfortBandIfNeeded()
+    this.scheduleDeferredFocusedRowReveal(contentRoot)
   }
 
   private renderRowFilterControls(
@@ -2344,6 +2345,23 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
 
   private requestFocusedRowReveal(nodeId: string | null): void {
     this.#pendingFocusedRowRevealNodeId = nodeId
+  }
+
+  private scheduleDeferredFocusedRowReveal(contentRoot: HTMLElement): void {
+    const focusedNodeId = this.#focusedNodeId
+    if (!focusedNodeId) {
+      return
+    }
+
+    this.requestFocusedRowReveal(focusedNodeId)
+
+    Promise.resolve().then(() => {
+      if (this.#contentRoot !== contentRoot || this.#focusedNodeId !== focusedNodeId) {
+        return
+      }
+
+      this.revealFocusedRowWithinComfortBandIfNeeded()
+    })
   }
 
   private resolveKeyboardPageNavigationStep(): number {
