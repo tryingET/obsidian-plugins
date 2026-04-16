@@ -300,6 +300,58 @@ describe("sidepanel mount-focused integration", () => {
     expect(secondTab.contentEl.children.length).toBeGreaterThan(0)
   })
 
+  it("detaches the whole sidepanel leaf when targetView becomes unusable without a host close callback", async () => {
+    vi.useFakeTimers()
+
+    try {
+      const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+      const detachLeaf = vi.fn()
+      const eligibleBinding = makeHostViewBinding("eligible.excalidraw", {
+        "excalidraw-plugin": "parsed",
+      })
+
+      const host: {
+        sidepanelTab: typeof sidepanelTab.tab | null
+        createSidepanelTab: () => typeof sidepanelTab.tab
+        getSidepanelLeaf: () => { detach: ReturnType<typeof vi.fn> }
+        getScriptSettings: () => ScriptSettings
+        targetView: typeof eligibleBinding.targetView | null
+        app: typeof eligibleBinding.app
+      } = {
+        sidepanelTab: sidepanelTab.tab,
+        createSidepanelTab: () => sidepanelTab.tab,
+        getSidepanelLeaf: () => ({
+          detach: detachLeaf,
+        }),
+        getScriptSettings: () => ({}),
+        ...eligibleBinding,
+      }
+
+      const renderer = createExcalidrawSidepanelRenderer(host)
+      if (!renderer) {
+        throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+      }
+
+      renderer.render({
+        tree: [makeElementNode("A")],
+        selectedIds: new Set(),
+        sceneVersion: 1,
+      })
+
+      expect(sidepanelTab.contentEl.children.length).toBeGreaterThan(0)
+
+      host.targetView = null
+      await vi.advanceTimersByTimeAsync(700)
+      await flushAsync()
+
+      expect(detachLeaf).toHaveBeenCalledTimes(1)
+      expect(host.sidepanelTab).toBeNull()
+      expect(sidepanelTab.contentEl.children).toHaveLength(0)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   for (const mountCase of SIDEPANEL_MOUNT_MODE_CASES) {
     it(`mount mode parity (${mountCase.label}): attaches through expected host path`, () => {
       const sidepanelTab = makeSidepanelTabForMountMode(fakeDocument, null, mountCase.mountMode)

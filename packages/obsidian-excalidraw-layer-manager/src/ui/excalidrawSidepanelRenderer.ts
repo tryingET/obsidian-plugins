@@ -125,6 +125,8 @@ const LAST_MOVE_LABEL_MAX = 26
 const KEYBOARD_PROMPT_SUPPRESSION_MS = 160
 const FOCUSOUT_SUPPRESSION_WINDOW_MS = 420
 const KEYBOARD_STICKY_CAPTURE_MS = 1400
+const TARGET_VIEW_LOSS_POLL_MS = 250
+const TARGET_VIEW_LOSS_CLOSE_DEBOUNCE_MS = 350
 const ROW_MIN_HEIGHT_PX = 20
 const REVIEW_CURSOR_COMFORT_MIN_MARGIN_ROWS = 2
 const REVIEW_CURSOR_COMFORT_VIEWPORT_RATIO = 0.18
@@ -481,6 +483,9 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   #lastSnapshotSelectionIds: readonly string[] = []
   #pendingFocusedRowRevealNodeId: string | null = null
   #lastHostViewContextKey: string | null = null
+  #targetViewLossMonitor: ReturnType<typeof setInterval> | null = null
+  #targetViewLossMonitorArmed = false
+  #targetViewLossConsecutivePolls = 0
   #rowFilterQuery = ""
   #shouldAutofocusRowFilterInput = false
   #cachedRowFilterResult: {
@@ -816,6 +821,10 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     if (!contentRoot) {
       this.#fallbackRenderer.render(model)
       return
+    }
+
+    if (hostViewContext.targetViewUsable) {
+      this.armTargetViewLossMonitor()
     }
 
     const ownerDocument = contentRoot.ownerDocument
@@ -1455,12 +1464,66 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.#lastRenderedDragDropHint = null
   }
 
+  private hasExplicitTargetViewProperty(): boolean {
+    return Object.prototype.hasOwnProperty.call(this.#host, "targetView")
+  }
+
+  private stopTargetViewLossMonitor(): void {
+    if (this.#targetViewLossMonitor !== null) {
+      clearInterval(this.#targetViewLossMonitor)
+      this.#targetViewLossMonitor = null
+    }
+
+    this.#targetViewLossMonitorArmed = false
+    this.#targetViewLossConsecutivePolls = 0
+  }
+
+  private startTargetViewLossMonitor(): void {
+    if (!this.hasExplicitTargetViewProperty() || this.#targetViewLossMonitor !== null) {
+      return
+    }
+
+    this.#targetViewLossMonitor = setInterval(() => {
+      if (!this.#targetViewLossMonitorArmed) {
+        return
+      }
+
+      const hostViewContext = describeHostViewContext(this.#host)
+      if (hostViewContext.targetViewUsable) {
+        this.#targetViewLossConsecutivePolls = 0
+        return
+      }
+
+      this.#targetViewLossConsecutivePolls += 1
+      if (
+        this.#targetViewLossConsecutivePolls <
+        Math.ceil(TARGET_VIEW_LOSS_CLOSE_DEBOUNCE_MS / TARGET_VIEW_LOSS_POLL_MS)
+      ) {
+        return
+      }
+
+      this.debugLifecycle("host targetView became unusable")
+      this.handleHostExcalidrawViewClosed()
+    }, TARGET_VIEW_LOSS_POLL_MS)
+  }
+
+  private armTargetViewLossMonitor(): void {
+    if (!this.hasExplicitTargetViewProperty()) {
+      return
+    }
+
+    this.startTargetViewLossMonitor()
+    this.#targetViewLossMonitorArmed = true
+    this.#targetViewLossConsecutivePolls = 0
+  }
+
   private clearInteractiveBindings(): void {
     this.#contentRoot?.removeEventListener("keydown", this.#contentKeydownHandler)
     this.#contentRoot?.removeEventListener("focusout", this.#contentFocusOutHandler)
     this.#contentRoot?.removeEventListener("focusin", this.#contentFocusInHandler)
     this.#contentRoot?.removeEventListener("pointerdown", this.#contentPointerDownHandler)
     this.detachOwnerDocumentKeyCapture()
+    this.stopTargetViewLossMonitor()
     this.#contentRoot = null
     this.#rowTreeRoot = null
     this.clearRenderedRowPreviewState()
