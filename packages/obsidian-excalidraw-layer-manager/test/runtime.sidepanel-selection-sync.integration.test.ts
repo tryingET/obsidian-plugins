@@ -99,13 +99,32 @@ const makeRuntimeWithSidepanel = (
     emitSceneChange(scene.appState ?? {})
   })
 
+  const api = {
+    updateScene,
+    onChange: (
+      callback: (
+        elements: readonly RawExcalidrawElement[],
+        appState: unknown,
+        files: unknown,
+      ) => void,
+    ) => {
+      sceneChangeListeners.add(callback)
+      return () => {
+        sceneChangeListeners.delete(callback)
+      }
+    },
+  }
+
   let viewBound = true
   let targetViewGeneration = 0
-  const bindTargetView = (loaded: boolean): { id: string; _loaded: boolean } => {
+  const bindTargetView = (
+    loaded: boolean,
+  ): { id: string; _loaded: boolean; excalidrawAPI?: typeof api } => {
     targetViewGeneration += 1
     return {
       id: `fake-view-${targetViewGeneration}`,
       _loaded: loaded,
+      ...(loaded ? { excalidrawAPI: api } : {}),
     }
   }
 
@@ -133,15 +152,7 @@ const makeRuntimeWithSidepanel = (
       throw new Error("selectElementsInView not initialized")
     },
     getScriptSettings: () => ({}),
-    getExcalidrawAPI: () => ({
-      updateScene,
-      onChange: (callback) => {
-        sceneChangeListeners.add(callback)
-        return () => {
-          sceneChangeListeners.delete(callback)
-        }
-      },
-    }),
+    getExcalidrawAPI: () => api,
     sidepanelTab: null,
     createSidepanelTab: () => sidepanelTab.tab,
   }

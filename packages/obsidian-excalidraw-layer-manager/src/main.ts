@@ -146,15 +146,7 @@ const resolveLiveExcalidrawApiFromTargetView = (ea: EaLike): unknown => {
     return null
   }
 
-  if (targetViewRecord["excalidrawAPI"] !== undefined) {
-    return targetViewRecord["excalidrawAPI"] ?? null
-  }
-
-  try {
-    return ea.getExcalidrawAPI?.() ?? null
-  } catch {
-    return null
-  }
+  return targetViewRecord["excalidrawAPI"] ?? null
 }
 
 export interface LayerManagerRuntime {

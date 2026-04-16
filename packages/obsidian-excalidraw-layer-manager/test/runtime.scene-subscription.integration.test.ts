@@ -150,6 +150,33 @@ describe("runtime scene-change subscription lifecycle", () => {
     expect(listeners.size).toBe(0)
   })
 
+  it("does not call getExcalidrawAPI wrapper when explicit targetView is loaded but lacks direct api access", async () => {
+    const elements: RawExcalidrawElement[] = [{ id: "A", type: "rectangle", isDeleted: false }]
+
+    const renderer = {
+      render: vi.fn(),
+      dispose: vi.fn(),
+    }
+
+    const ea: EaLike = {
+      targetView: {
+        id: "A.excalidraw",
+        _loaded: true,
+      },
+      setView: vi.fn(() => null),
+      getViewElements: () => elements,
+      getViewSelectedElements: () => [],
+      getScriptSettings: () => ({}),
+      getExcalidrawAPI: vi.fn(() => {
+        throw new Error("targetView not set")
+      }),
+    }
+
+    createLayerManagerRuntime(ea, renderer)
+
+    expect(ea.getExcalidrawAPI as ReturnType<typeof vi.fn>).not.toHaveBeenCalled()
+  })
+
   it("resubscribes when the workspace active file changes eligibility under a stable targetView", async () => {
     const elementsByView: Record<string, RawExcalidrawElement[]> = {
       "A.excalidraw": [{ id: "A", type: "rectangle", isDeleted: false }],
@@ -193,15 +220,6 @@ describe("runtime scene-change subscription lifecycle", () => {
       },
     }
 
-    const currentView = {
-      id: "A.excalidraw",
-      _loaded: true,
-      file: {
-        path: "A.excalidraw",
-      },
-      app,
-    }
-
     const listeners = new Set<
       (elements: readonly RawExcalidrawElement[], appState: unknown, files: unknown) => void
     >()
@@ -221,6 +239,16 @@ describe("runtime scene-change subscription lifecycle", () => {
           listeners.delete(callback)
         }
       },
+    }
+
+    const currentView = {
+      id: "A.excalidraw",
+      _loaded: true,
+      file: {
+        path: "A.excalidraw",
+      },
+      app,
+      excalidrawAPI: api,
     }
 
     const renderer = {
@@ -293,12 +321,13 @@ describe("runtime scene-change subscription lifecycle", () => {
       return listeners
     }
 
-    const makeTargetView = (viewPath: string) => ({
+    const makeTargetView = (viewPath: string, excalidrawAPI?: unknown) => ({
       id: viewPath,
       _loaded: true,
       file: {
         path: viewPath,
       },
+      ...(excalidrawAPI ? { excalidrawAPI } : {}),
     })
 
     let currentView = makeTargetView("A.excalidraw")
@@ -319,6 +348,8 @@ describe("runtime scene-change subscription lifecycle", () => {
         }
       },
     }
+
+    currentView = makeTargetView("A.excalidraw", api)
 
     const renderer = {
       render: vi.fn(),
@@ -349,7 +380,7 @@ describe("runtime scene-change subscription lifecycle", () => {
     await flushAsync()
     expect([...runtime.getSnapshot().selectedIds]).toEqual(["A"])
 
-    currentView = makeTargetView("B.excalidraw")
+    currentView = makeTargetView("B.excalidraw", api)
     ea.targetView = currentView
     selectedIdsByView.set("B.excalidraw", new Set<string>())
 
