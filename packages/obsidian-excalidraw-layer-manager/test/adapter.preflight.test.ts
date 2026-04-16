@@ -173,6 +173,37 @@ describe("applyPatch adapter preflight", () => {
     expect(snapshot.selectedIds.size).toBe(0)
   })
 
+  it("does not rescue snapshot reads through first-view fallback", () => {
+    const getViewElements = vi.fn(() => {
+      throw new Error("targetView not set")
+    })
+    const getViewSelectedElements = vi.fn(() => {
+      throw new Error("targetView not set")
+    })
+
+    const ea: EaLike = {
+      targetView: null,
+      setView: vi.fn((viewArg?: unknown) => {
+        if (viewArg === "first") {
+          ea.targetView = {
+            _loaded: true,
+          }
+        }
+
+        return ea.targetView
+      }),
+      getViewElements,
+      getViewSelectedElements,
+    }
+
+    const snapshot = readSnapshot(ea)
+
+    expect(snapshot.elements).toEqual([])
+    expect(snapshot.selectedIds.size).toBe(0)
+    expect(ea.setView).not.toHaveBeenCalledWith("first", false)
+    expect(ea.setView).not.toHaveBeenCalledWith("first", true)
+  })
+
   it("R01 — aborts before writes when patch references missing IDs", async () => {
     const runtime = makeMockEa([
       { id: "A", type: "rectangle" },

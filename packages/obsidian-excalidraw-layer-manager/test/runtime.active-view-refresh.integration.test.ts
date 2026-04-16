@@ -27,6 +27,8 @@ interface RuntimeWithSidepanel {
   readonly ea: EaLike
   readonly sidepanelTab: SidepanelTabHarness
   readonly switchToView: (viewPath: string) => void
+  readonly switchWorkspaceToView: (viewPath: string) => void
+  readonly emitWorkspaceEvent: (eventName?: string) => void
 }
 
 type DrawingFixture =
@@ -105,6 +107,37 @@ const makeRuntimeWithSidepanel = (
         }
       },
     },
+    workspace: {
+      on: (eventName: string, callback: (...args: unknown[]) => unknown) => {
+        let listeners = workspaceListeners.get(eventName)
+        if (!listeners) {
+          listeners = new Set()
+          workspaceListeners.set(eventName, listeners)
+        }
+
+        listeners.add(callback)
+        return {
+          eventName,
+          callback,
+        }
+      },
+      offref: (ref: unknown) => {
+        if (!ref || typeof ref !== "object") {
+          return
+        }
+
+        const eventName = (ref as { eventName?: unknown }).eventName
+        const callback = (ref as { callback?: unknown }).callback
+        if (typeof eventName !== "string" || typeof callback !== "function") {
+          return
+        }
+
+        workspaceListeners.get(eventName)?.delete(callback as (...args: unknown[]) => unknown)
+      },
+      getActiveFile: () => ({
+        path: activeViewPath,
+      }),
+    },
   }
   const viewByPath = new Map(
     [...normalizedByPath.keys()].map((viewPath) => [
@@ -120,16 +153,29 @@ const makeRuntimeWithSidepanel = (
     ]),
   )
 
-  let currentViewPath = initialViewPath
+  let activeViewPath = initialViewPath
+  const workspaceListeners = new Map<string, Set<(...args: unknown[]) => unknown>>()
   const sidepanelTab = makeSidepanelTab(document, null)
   const sceneChangeListeners = new Set<
     (elements: readonly RawExcalidrawElement[], appState: unknown, files: unknown) => void
   >()
 
+  const getBoundViewPath = (): string => {
+    const path =
+      ea.targetView &&
+      typeof ea.targetView === "object" &&
+      typeof (ea.targetView as { file?: { path?: unknown } }).file?.path === "string"
+        ? ((ea.targetView as { file: { path: string } }).file.path as string)
+        : activeViewPath
+
+    return path
+  }
+
   const getCurrentDrawing = () => {
-    const drawing = drawingByPath.get(currentViewPath)
+    const boundViewPath = getBoundViewPath()
+    const drawing = drawingByPath.get(boundViewPath)
     if (!drawing) {
-      throw new Error(`Missing drawing state for ${currentViewPath}.`)
+      throw new Error(`Missing drawing state for ${boundViewPath}.`)
     }
 
     return drawing
@@ -182,8 +228,14 @@ const makeRuntimeWithSidepanel = (
 
   const ea: EaLike = {
     app,
-    targetView: viewByPath.get(currentViewPath) ?? null,
-    setView: vi.fn(() => ea.targetView),
+    targetView: viewByPath.get(activeViewPath) ?? null,
+    setView: vi.fn((viewArg?: unknown) => {
+      if (viewArg === "active" || viewArg === undefined) {
+        ea.targetView = viewByPath.get(activeViewPath) ?? null
+      }
+
+      return ea.targetView
+    }),
     getViewElements: () => getCurrentDrawing().elements,
     getViewSelectedElements: () => {
       const drawing = getCurrentDrawing()
@@ -222,8 +274,20 @@ const makeRuntimeWithSidepanel = (
         throw new Error(`Cannot switch to unknown drawing ${viewPath}.`)
       }
 
-      currentViewPath = viewPath
+      activeViewPath = viewPath
       ea.targetView = viewByPath.get(viewPath) ?? null
+    },
+    switchWorkspaceToView: (viewPath: string) => {
+      if (!drawingByPath.has(viewPath)) {
+        throw new Error(`Cannot switch to unknown drawing ${viewPath}.`)
+      }
+
+      activeViewPath = viewPath
+    },
+    emitWorkspaceEvent: (eventName = "file-open") => {
+      for (const listener of [...(workspaceListeners.get(eventName) ?? [])]) {
+        listener()
+      }
     },
   }
 }
@@ -340,6 +404,38 @@ describe("runtime active-view refresh", () => {
 
     expect(runtime.sidepanelTab.close).toHaveBeenCalledTimes(1)
     expect(runtime.sidepanelTab.contentEl.children).toHaveLength(0)
+  })
+
+  it("auto-refreshes host applicability from workspace note changes", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      {
+        "A.excalidraw": [{ id: "A", type: "rectangle", name: "Alpha", isDeleted: false }],
+        "plain.md": {
+          elements: [],
+          frontmatter: {},
+        },
+      },
+      "A.excalidraw",
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+
+    expect(runtime.sidepanelTab.contentEl.children.length).toBeGreaterThan(0)
+
+    runtime.switchWorkspaceToView("plain.md")
+    runtime.emitWorkspaceEvent("file-open")
+    await flushAsync()
+
+    expect(runtime.sidepanelTab.close).toHaveBeenCalledTimes(1)
+    expect(runtime.sidepanelTab.contentEl.children).toHaveLength(0)
+
+    runtime.switchWorkspaceToView("A.excalidraw")
+    runtime.emitWorkspaceEvent("active-leaf-change")
+    await flushAsync()
+
+    const contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Alpha")).toBeDefined()
   })
 
   it("remounts cleanly after tearing down an ineligible host view", async () => {

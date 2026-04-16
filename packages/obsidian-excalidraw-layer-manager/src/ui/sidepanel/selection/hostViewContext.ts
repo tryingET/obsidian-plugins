@@ -1,4 +1,8 @@
-import type { ObsidianAppLike, ObsidianLike } from "../../../adapter/excalidraw-types.js"
+import type {
+  ObsidianAppLike,
+  ObsidianLike,
+  WorkspaceLike,
+} from "../../../adapter/excalidraw-types.js"
 
 export interface SidepanelHostViewContextHost {
   readonly targetView?: unknown | null
@@ -15,6 +19,10 @@ export interface SidepanelHostViewContextDescription {
   readonly targetViewMetadataAvailable: boolean
   readonly targetViewExcalidrawPlugin: string | null
   readonly targetViewExcalidrawCapable: boolean | null
+  readonly activeFilePath: string | null
+  readonly activeFileMetadataAvailable: boolean
+  readonly activeFileExcalidrawPlugin: string | null
+  readonly activeFileExcalidrawCapable: boolean | null
   readonly hostEligible: boolean
   readonly hasSetView: boolean
 }
@@ -33,9 +41,8 @@ const VIEW_BIND_STRATEGIES: readonly {
 }[] = [
   { viewArg: "active", reveal: false },
   { viewArg: undefined, reveal: false },
-  { viewArg: "first", reveal: false },
   { viewArg: "active", reveal: true },
-  { viewArg: "first", reveal: true },
+  { viewArg: undefined, reveal: true },
 ]
 
 const hasExplicitTargetViewProperty = (host: SidepanelHostViewContextHost): boolean => {
@@ -98,14 +105,13 @@ const resolveMetadataApp = (
   return null
 }
 
-const resolveTargetViewExcalidrawMetadata = (
-  host: SidepanelHostViewContextHost,
-  targetView: unknown,
+const resolveFileExcalidrawMetadata = (
+  app: ObsidianAppLike | null,
+  file: unknown,
 ): {
   readonly available: boolean
   readonly value: string | null
 } => {
-  const file = resolveTargetViewFile(targetView)
   if (!file) {
     return {
       available: false,
@@ -113,7 +119,6 @@ const resolveTargetViewExcalidrawMetadata = (
     }
   }
 
-  const app = resolveMetadataApp(host, targetView)
   const getFileCache = app?.metadataCache?.getFileCache
   if (!getFileCache) {
     return {
@@ -139,6 +144,56 @@ const resolveTargetViewExcalidrawMetadata = (
   }
 }
 
+const resolveTargetViewExcalidrawMetadata = (
+  host: SidepanelHostViewContextHost,
+  targetView: unknown,
+): {
+  readonly available: boolean
+  readonly value: string | null
+} => {
+  return resolveFileExcalidrawMetadata(
+    resolveMetadataApp(host, targetView),
+    resolveTargetViewFile(targetView),
+  )
+}
+
+const resolveWorkspace = (
+  host: SidepanelHostViewContextHost,
+  targetView: unknown,
+): WorkspaceLike | null => {
+  return resolveMetadataApp(host, targetView)?.workspace ?? null
+}
+
+const resolveActiveWorkspaceFile = (
+  host: SidepanelHostViewContextHost,
+  targetView: unknown,
+): unknown | null => {
+  const getActiveFile = resolveWorkspace(host, targetView)?.getActiveFile
+  if (!getActiveFile) {
+    return null
+  }
+
+  try {
+    return getActiveFile() ?? null
+  } catch {
+    return null
+  }
+}
+
+const resolveActiveWorkspaceFilePath = (
+  host: SidepanelHostViewContextHost,
+  targetView: unknown,
+): string | null => {
+  const file = resolveActiveWorkspaceFile(host, targetView)
+  if (!file || typeof file !== "object") {
+    return null
+  }
+
+  return typeof (file as Record<string, unknown>)["path"] === "string"
+    ? ((file as Record<string, unknown>)["path"] as string)
+    : null
+}
+
 const isExcalidrawCapableMetadataValue = (value: string | null): boolean => {
   return value?.trim().toLowerCase() === EXCALIDRAW_FRONTMATTER_VALUE
 }
@@ -158,7 +213,18 @@ const resolveHostViewContextDescription = (
   const targetViewExcalidrawCapable = targetViewMetadata.available
     ? isExcalidrawCapableMetadataValue(targetViewMetadata.value)
     : null
+  const activeFile = resolveActiveWorkspaceFile(host, targetView)
+  const activeFileMetadata = resolveFileExcalidrawMetadata(
+    resolveMetadataApp(host, targetView),
+    activeFile,
+  )
+  const activeFileExcalidrawCapable = activeFileMetadata.available
+    ? isExcalidrawCapableMetadataValue(activeFileMetadata.value)
+    : null
   const legacyHostWithoutTargetViewProperty = !hasExplicitTargetViewProperty(host)
+  const effectiveExcalidrawCapable = activeFileMetadata.available
+    ? activeFileExcalidrawCapable
+    : targetViewExcalidrawCapable
 
   return {
     hasTargetView: targetView !== null,
@@ -168,9 +234,13 @@ const resolveHostViewContextDescription = (
     targetViewMetadataAvailable: targetViewMetadata.available,
     targetViewExcalidrawPlugin: targetViewMetadata.value,
     targetViewExcalidrawCapable,
+    activeFilePath: resolveActiveWorkspaceFilePath(host, targetView),
+    activeFileMetadataAvailable: activeFileMetadata.available,
+    activeFileExcalidrawPlugin: activeFileMetadata.value,
+    activeFileExcalidrawCapable,
     hostEligible: legacyHostWithoutTargetViewProperty
       ? true
-      : targetViewUsable && (targetViewExcalidrawCapable ?? true),
+      : targetViewUsable && (effectiveExcalidrawCapable ?? true),
     hasSetView: typeof host.setView === "function",
   }
 }
@@ -191,15 +261,18 @@ export const resolveHostViewContextKey = (host: SidepanelHostViewContextHost): s
     return "target:null::eligibility:unbound"
   }
 
-  const targetKey = description.targetViewFilePath
-    ? `target:file:${description.targetViewFilePath}`
-    : "target:unknown-file"
+  const contextFilePath = description.activeFilePath ?? description.targetViewFilePath
+  const targetKey = contextFilePath ? `target:file:${contextFilePath}` : "target:unknown-file"
 
-  const eligibilityKey = description.targetViewMetadataAvailable
-    ? description.targetViewExcalidrawCapable
+  const eligibilityKey = description.activeFileMetadataAvailable
+    ? description.activeFileExcalidrawCapable
       ? "eligible"
       : "ineligible"
-    : "legacy"
+    : description.targetViewMetadataAvailable
+      ? description.targetViewExcalidrawCapable
+        ? "eligible"
+        : "ineligible"
+      : "legacy"
 
   return `${targetKey}::eligibility:${eligibilityKey}`
 }

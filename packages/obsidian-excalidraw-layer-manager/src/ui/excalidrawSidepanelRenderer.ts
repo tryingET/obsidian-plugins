@@ -280,11 +280,11 @@ const resolveRowPreviewBoxShadow = (
   }
 
   if (dropHintKind === "reorderBefore") {
-    shadows.push("inset 0 2px 0 0 var(--interactive-accent, rgba(120,120,120,0.7))")
+    shadows.push("inset 0 3px 0 0 var(--interactive-accent, rgba(120,120,120,0.92))")
   }
 
   if (dropHintKind === "reorderAfter") {
-    shadows.push("inset 0 -2px 0 0 var(--interactive-accent, rgba(120,120,120,0.7))")
+    shadows.push("inset 0 -3px 0 0 var(--interactive-accent, rgba(120,120,120,0.92))")
   }
 
   return shadows.join(", ")
@@ -802,8 +802,10 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.reconcileHostViewContextBeforeRender()
 
     if (
-      hostViewContext.targetViewMetadataAvailable &&
-      hostViewContext.targetViewExcalidrawCapable === false
+      (hostViewContext.activeFileMetadataAvailable &&
+        hostViewContext.activeFileExcalidrawCapable === false) ||
+      (hostViewContext.targetViewMetadataAvailable &&
+        hostViewContext.targetViewExcalidrawCapable === false)
     ) {
       this.failClosedForIneligibleHost()
       return
@@ -2488,8 +2490,10 @@ export const createExcalidrawSidepanelRenderer = (
   const hostViewContext = describeHostViewContext(host)
 
   if (
-    hostViewContext.targetViewMetadataAvailable &&
-    hostViewContext.targetViewExcalidrawCapable === false
+    (hostViewContext.activeFileMetadataAvailable &&
+      hostViewContext.activeFileExcalidrawCapable === false) ||
+    (hostViewContext.targetViewMetadataAvailable &&
+      hostViewContext.targetViewExcalidrawCapable === false)
   ) {
     return null
   }

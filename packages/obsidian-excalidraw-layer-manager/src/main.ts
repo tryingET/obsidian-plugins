@@ -1,4 +1,4 @@
-import type { EaLike } from "./adapter/excalidraw-types.js"
+import type { EaLike, ObsidianAppLike } from "./adapter/excalidraw-types.js"
 import { readSnapshot } from "./adapter/excalidrawAdapter.js"
 import { buildLayerTree } from "./domain/treeBuilder.js"
 import { buildSceneIndexes } from "./model/indexes.js"
@@ -58,6 +58,44 @@ const toSceneChangeUnsubscribe = (value: unknown): (() => void) | null => {
   return typeof value === "function" ? (value as () => void) : null
 }
 
+const ACTIVE_VIEW_BIND_STRATEGIES: readonly {
+  readonly viewArg: unknown
+  readonly reveal: boolean
+}[] = [
+  { viewArg: "active", reveal: false },
+  { viewArg: undefined, reveal: false },
+  { viewArg: "active", reveal: true },
+  { viewArg: undefined, reveal: true },
+]
+
+const resolveRuntimeApp = (ea: EaLike): ObsidianAppLike | null => {
+  const candidates = [ea.app, ea.obsidian?.app, (globalThis as Record<string, unknown>)["app"]]
+
+  for (const candidate of candidates) {
+    if (candidate && typeof candidate === "object") {
+      return candidate as ObsidianAppLike
+    }
+  }
+
+  return null
+}
+
+const bindEaToActiveWorkspaceView = (ea: EaLike): void => {
+  const workspace = resolveRuntimeApp(ea)?.workspace
+  const setView = ea.setView
+  if (!workspace || !setView) {
+    return
+  }
+
+  for (const strategy of ACTIVE_VIEW_BIND_STRATEGIES) {
+    try {
+      setView(strategy.viewArg, strategy.reveal)
+    } catch {
+      // keep trying bounded active-view strategies
+    }
+  }
+}
+
 export interface LayerManagerRuntime {
   refresh: () => void
   apply: (patch: ScenePatch) => Promise<void>
@@ -84,6 +122,8 @@ export const createLayerManagerRuntime = (
   let activeViewContextKey = resolveHostViewContextKey(ea)
   let subscribedViewContextKey: string | null = null
   let lifecycleActor: ReturnType<typeof createRuntimeLifecycleActor> | null = null
+  let workspaceRefreshRefs: unknown[] = []
+  let workspaceRefreshScheduled = false
 
   const sendLifecycleEvent = (
     event:
@@ -267,6 +307,75 @@ export const createLayerManagerRuntime = (
     subscribedViewContextKey = null
   }
 
+  const clearWorkspaceRefreshSubscriptions = (): void => {
+    const workspace = resolveRuntimeApp(ea)?.workspace
+
+    for (const ref of workspaceRefreshRefs) {
+      if (typeof ref === "function") {
+        try {
+          ref()
+        } catch {
+          // no-op: best-effort cleanup only
+        }
+        continue
+      }
+
+      try {
+        workspace?.offref?.(ref)
+      } catch {
+        // no-op: best-effort cleanup only
+      }
+    }
+
+    workspaceRefreshRefs = []
+    workspaceRefreshScheduled = false
+  }
+
+  const scheduleWorkspaceDrivenRefresh = (): void => {
+    if (disposed || workspaceRefreshScheduled) {
+      return
+    }
+
+    workspaceRefreshScheduled = true
+
+    Promise.resolve().then(() => {
+      workspaceRefreshScheduled = false
+
+      if (disposed) {
+        return
+      }
+
+      bindEaToActiveWorkspaceView(ea)
+      sendLifecycleEvent({ type: "REFRESH_REQUEST" })
+    })
+  }
+
+  const subscribeToWorkspaceRefresh = (): void => {
+    if (workspaceRefreshRefs.length > 0) {
+      return
+    }
+
+    const workspace = resolveRuntimeApp(ea)?.workspace
+    const on = workspace?.on
+    if (!on) {
+      return
+    }
+
+    for (const eventName of ["file-open", "active-leaf-change"]) {
+      try {
+        const ref = on.call(workspace, eventName, () => {
+          scheduleWorkspaceDrivenRefresh()
+        })
+
+        if (ref !== undefined) {
+          workspaceRefreshRefs.push(ref)
+        }
+      } catch {
+        // keep subscribing to remaining bounded workspace events
+      }
+    }
+  }
+
   const subscribeToSceneChanges = (): void => {
     let api: unknown
 
@@ -390,6 +499,7 @@ export const createLayerManagerRuntime = (
     lifecycleActor = null
     disposed = true
     clearSceneChangeSubscription()
+    clearWorkspaceRefreshSubscriptions()
     renderer.dispose?.()
     controller.dispose()
   }
@@ -400,6 +510,8 @@ export const createLayerManagerRuntime = (
     controller.toggleExpanded(nodeId)
   }
 
+  subscribeToWorkspaceRefresh()
+  bindEaToActiveWorkspaceView(ea)
   refresh()
 
   return {

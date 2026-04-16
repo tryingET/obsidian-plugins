@@ -92,9 +92,8 @@ const ensureTargetView = (ea: EaLike): boolean => {
   }[] = [
     { viewArg: "active", reveal: false },
     { viewArg: undefined, reveal: false },
-    { viewArg: "first", reveal: false },
     { viewArg: "active", reveal: true },
-    { viewArg: "first", reveal: true },
+    { viewArg: undefined, reveal: true },
   ]
 
   for (const strategy of strategies) {

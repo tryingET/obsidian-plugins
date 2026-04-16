@@ -137,11 +137,11 @@ const resolveRowShellBoxShadow = (
   }
 
   if (dropHintKind === "reorderBefore") {
-    shadows.push("inset 0 2px 0 0 var(--interactive-accent, rgba(120,120,120,0.7))")
+    shadows.push("inset 0 3px 0 0 var(--interactive-accent, rgba(120,120,120,0.92))")
   }
 
   if (dropHintKind === "reorderAfter") {
-    shadows.push("inset 0 -2px 0 0 var(--interactive-accent, rgba(120,120,120,0.7))")
+    shadows.push("inset 0 -3px 0 0 var(--interactive-accent, rgba(120,120,120,0.92))")
   }
 
   return shadows.join(", ")

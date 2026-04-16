@@ -108,6 +108,77 @@ describe("sidepanel mount-focused integration", () => {
     expect(renderer).toBeNull()
   })
 
+  it("does not rescue host eligibility through first-view fallback when the active note is plain markdown", () => {
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    const app = {
+      metadataCache: {
+        getFileCache: (file: unknown) => {
+          const path =
+            file &&
+            typeof file === "object" &&
+            typeof (file as { path?: unknown }).path === "string"
+              ? ((file as { path: string }).path as string)
+              : null
+
+          if (path === "plain.md") {
+            return {
+              frontmatter: {},
+            }
+          }
+
+          if (path === "eligible.excalidraw") {
+            return {
+              frontmatter: {
+                "excalidraw-plugin": "parsed",
+              },
+            }
+          }
+
+          return null
+        },
+      },
+      workspace: {
+        getActiveFile: () => ({
+          path: "plain.md",
+        }),
+      },
+    }
+
+    const host: {
+      sidepanelTab: typeof sidepanelTab.tab
+      targetView: unknown | null
+      app: typeof app
+      setView: ReturnType<typeof vi.fn>
+      createSidepanelTab: () => typeof sidepanelTab.tab
+      getScriptSettings: () => ScriptSettings
+    } = {
+      sidepanelTab: sidepanelTab.tab,
+      targetView: null,
+      app,
+      setView: vi.fn((viewArg?: unknown) => {
+        if (viewArg === "first") {
+          host.targetView = {
+            _loaded: true,
+            file: {
+              path: "eligible.excalidraw",
+            },
+            app,
+          }
+        }
+
+        return host.targetView
+      }),
+      createSidepanelTab: () => sidepanelTab.tab,
+      getScriptSettings: () => ({}),
+    }
+
+    const renderer = createExcalidrawSidepanelRenderer(host)
+
+    expect(renderer).toBeNull()
+    expect(host.setView).not.toHaveBeenCalledWith("first", false)
+    expect(host.setView).not.toHaveBeenCalledWith("first", true)
+  })
+
   it("lifecycle debug channel tags hostIneligible and clears mounted output on render-time teardown", async () => {
     const debugFlagKey = "LMX_DEBUG_SIDEPANEL_LIFECYCLE"
     const hadDebugFlag = Object.prototype.hasOwnProperty.call(globalRecord, debugFlagKey)

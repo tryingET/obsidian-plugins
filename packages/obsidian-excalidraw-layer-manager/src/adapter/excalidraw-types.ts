@@ -49,8 +49,15 @@ export interface MetadataCacheLike {
   getFileCache?: (file: unknown) => FileCacheLike | null | undefined
 }
 
+export interface WorkspaceLike {
+  on?: (eventName: string, callback: (...args: unknown[]) => unknown) => unknown
+  offref?: (ref: unknown) => void
+  getActiveFile?: () => unknown | null
+}
+
 export interface ObsidianAppLike {
   metadataCache?: MetadataCacheLike
+  workspace?: WorkspaceLike
 }
 
 export interface ObsidianLike {

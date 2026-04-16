@@ -512,7 +512,7 @@ describe("sidepanel rename + drag-drop integration", () => {
     expect(rowTreeRootAfterDragover).toBe(rowTreeRoot)
     expect(sourceRowAfterDragover).toBe(sourceRow)
     expect(targetRowAfterDragover).toBe(targetRow)
-    expect(targetRowAfterDragover.style["boxShadow"]).toContain("inset 0 2px 0 0")
+    expect(targetRowAfterDragover.style["boxShadow"]).toContain("inset 0 3px 0 0")
 
     const previewText = flattenElements(targetRowAfterDragover)
       .map((element) => element.textContent ?? "")
@@ -558,7 +558,7 @@ describe("sidepanel rename + drag-drop integration", () => {
       .map((element) => element.textContent ?? "")
       .filter((text) => text.length > 0)
 
-    expect(refreshedTargetRow.style["boxShadow"]).toContain("inset 0 2px 0 0")
+    expect(refreshedTargetRow.style["boxShadow"]).toContain("inset 0 3px 0 0")
     expect(previewText).toContain("reorder before row")
   })
 

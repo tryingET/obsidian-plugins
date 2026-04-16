@@ -307,7 +307,7 @@ describe("sidepanel row renderer", () => {
       .map((child) => child.textContent ?? "")
       .filter((text) => text.length > 0)
 
-    expect(renderedRow.style["boxShadow"]).toContain("inset 0 2px 0 0")
+    expect(renderedRow.style["boxShadow"]).toContain("inset 0 3px 0 0")
     expect(renderedRow.style["background"] ?? "").not.toContain("interactive-accent-hover")
     expect(renderedRow.style["borderColor"] ?? "").not.toContain("interactive-accent")
     expect(reorderAssistiveLabel?.style["position"]).toBe("absolute")
