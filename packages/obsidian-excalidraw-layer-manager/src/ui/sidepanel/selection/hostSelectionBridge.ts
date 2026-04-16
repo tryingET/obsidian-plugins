@@ -46,8 +46,7 @@ export class SidepanelHostSelectionBridge {
     this.#pendingMirrorRequestId = mirrorRequestId
 
     const runSelectAttempt = (): SelectionMirrorAttemptResult => {
-      const selectElementsInView = this.#host.selectElementsInView
-      if (!selectElementsInView) {
+      if (!this.#host.selectElementsInView) {
         return "failed"
       }
 
@@ -58,7 +57,7 @@ export class SidepanelHostSelectionBridge {
       }
 
       try {
-        selectElementsInView([...nextElementIds])
+        this.#host.selectElementsInView([...nextElementIds])
         return "applied"
       } catch {
         return "failed"
@@ -102,7 +101,9 @@ export class SidepanelHostSelectionBridge {
           return "hostUnavailable"
         }
 
-        const liveSelectedIds = collectUniqueSelectionIds(getViewSelectedElements?.() ?? [])
+        const liveSelectedIds = collectUniqueSelectionIds(
+          this.#host.getViewSelectedElements?.() ?? [],
+        )
         return haveSameIds(liveSelectedIds, nextElementIds) ? "match" : "mismatch"
       } catch {
         return "mismatch"
@@ -118,8 +119,7 @@ export class SidepanelHostSelectionBridge {
       runAppStateFallback()
     }
 
-    const getViewSelectedElements = this.#host.getViewSelectedElements
-    if (!getViewSelectedElements) {
+    if (!this.#host.getViewSelectedElements) {
       if (this.#pendingMirrorRequestId === mirrorRequestId) {
         this.#pendingMirrorRequestId = null
       }

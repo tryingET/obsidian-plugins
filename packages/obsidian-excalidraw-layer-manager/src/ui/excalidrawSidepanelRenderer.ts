@@ -1270,7 +1270,11 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       snapshotSelection,
       selectionOverride,
       ...(this.#host.getViewSelectedElements
-        ? { getViewSelectedElements: this.#host.getViewSelectedElements }
+        ? {
+            getViewSelectedElements: () => {
+              return this.#host.getViewSelectedElements?.() ?? []
+            },
+          }
         : {}),
       hasSelectionBridge: !!this.#host.selectElementsInView,
       hasPendingSelectionMirror: this.#hostSelectionBridge.hasPendingSelectionMirror(),

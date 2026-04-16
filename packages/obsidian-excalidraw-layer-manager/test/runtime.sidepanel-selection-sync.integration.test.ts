@@ -109,8 +109,13 @@ const makeRuntimeWithSidepanel = (
     }
   }
 
-  const getViewSelectedElements = vi.fn(() => {
-    if (options.requireSetViewForReadCalls === true && !viewBound) {
+  const getViewSelectedElements = vi.fn(function (this: EaLike) {
+    const targetViewLoaded =
+      this.targetView &&
+      typeof this.targetView === "object" &&
+      (this.targetView as { _loaded?: unknown })._loaded === true
+
+    if (options.requireSetViewForReadCalls === true && !targetViewLoaded) {
       throw new Error("targetView not set")
     }
 
@@ -160,8 +165,13 @@ const makeRuntimeWithSidepanel = (
     ea.targetView = bindTargetView(false)
   }
 
-  const selectInView = vi.fn((ids: readonly string[]) => {
-    if (options.requireSetViewForSelectCalls === true && !viewBound) {
+  const selectInView = vi.fn(function (this: EaLike, ids: readonly string[]) {
+    const targetViewLoaded =
+      this.targetView &&
+      typeof this.targetView === "object" &&
+      (this.targetView as { _loaded?: unknown })._loaded === true
+
+    if (options.requireSetViewForSelectCalls === true && !targetViewLoaded) {
       throw new Error("targetView not set")
     }
 
