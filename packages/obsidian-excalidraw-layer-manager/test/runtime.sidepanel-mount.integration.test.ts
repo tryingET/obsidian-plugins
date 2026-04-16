@@ -108,6 +108,68 @@ describe("sidepanel mount-focused integration", () => {
     expect(renderer).toBeNull()
   })
 
+  it("lifecycle debug channel tags hostIneligible and clears mounted output on render-time teardown", async () => {
+    const debugFlagKey = "LMX_DEBUG_SIDEPANEL_LIFECYCLE"
+    const hadDebugFlag = Object.prototype.hasOwnProperty.call(globalRecord, debugFlagKey)
+    const previousDebugFlag = globalRecord[debugFlagKey]
+    globalRecord[debugFlagKey] = true
+
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {})
+
+    try {
+      for (const mountCase of SIDEPANEL_MOUNT_MODE_CASES) {
+        const sidepanelTab = makeSidepanelTabForMountMode(fakeDocument, null, mountCase.mountMode)
+        const eligibleBinding = makeHostViewBinding("eligible.excalidraw", {
+          "excalidraw-plugin": "parsed",
+        })
+        const host = {
+          sidepanelTab: sidepanelTab.tab,
+          createSidepanelTab: () => sidepanelTab.tab,
+          getScriptSettings: () => ({}),
+          ...eligibleBinding,
+        }
+
+        const renderer = createExcalidrawSidepanelRenderer(host)
+        if (!renderer) {
+          throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+        }
+
+        renderer.render({
+          tree: [makeElementNode("A")],
+          selectedIds: new Set(),
+          sceneVersion: 1,
+        })
+
+        expect(sidepanelTab.contentEl.children.length).toBeGreaterThan(0)
+
+        const ineligibleBinding = makeHostViewBinding("plain.md", {})
+        host.targetView = ineligibleBinding.targetView
+        host.app = ineligibleBinding.app
+
+        renderer.render({
+          tree: [makeElementNode("A")],
+          selectedIds: new Set(),
+          sceneVersion: 2,
+        })
+
+        await flushAsync()
+
+        expect(sidepanelTab.close).toHaveBeenCalledTimes(1)
+        expect(sidepanelTab.contentEl.children).toHaveLength(0)
+      }
+
+      expect(logSpy).toHaveBeenCalledWith("[LMX:lifecycle] mount failed with reason=hostIneligible")
+    } finally {
+      if (hadDebugFlag) {
+        globalRecord[debugFlagKey] = previousDebugFlag
+      } else {
+        Reflect.deleteProperty(globalRecord, debugFlagKey)
+      }
+
+      logSpy.mockRestore()
+    }
+  })
+
   for (const mountCase of SIDEPANEL_MOUNT_MODE_CASES) {
     it(`mount mode parity (${mountCase.label}): attaches through expected host path`, () => {
       const sidepanelTab = makeSidepanelTabForMountMode(fakeDocument, null, mountCase.mountMode)

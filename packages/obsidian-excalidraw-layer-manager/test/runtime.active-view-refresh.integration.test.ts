@@ -341,4 +341,58 @@ describe("runtime active-view refresh", () => {
     expect(runtime.sidepanelTab.close).toHaveBeenCalledTimes(1)
     expect(runtime.sidepanelTab.contentEl.children).toHaveLength(0)
   })
+
+  it("remounts cleanly after tearing down an ineligible host view", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      {
+        "A.excalidraw": [
+          { id: "A", type: "rectangle", name: "Alpha", isDeleted: false },
+          { id: "B", type: "rectangle", name: "Beta", isDeleted: false },
+        ],
+        "plain.md": {
+          elements: [],
+          frontmatter: {},
+        },
+      },
+      "A.excalidraw",
+    )
+
+    const app = createLayerManagerRuntime(runtime.ea)
+
+    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const alphaRow = findInteractiveRowByLabel(contentRoot, "[element] Alpha")
+    if (!alphaRow) {
+      throw new Error("Expected Alpha row before ineligible-host teardown.")
+    }
+
+    alphaRow.click()
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    expect(getSelectedRows(contentRoot)).toHaveLength(1)
+
+    runtime.switchToView("plain.md")
+    app.refresh()
+    await flushAsync()
+
+    expect(runtime.sidepanelTab.close).toHaveBeenCalledTimes(1)
+    expect(runtime.sidepanelTab.contentEl.children).toHaveLength(0)
+
+    runtime.switchToView("A.excalidraw")
+    app.refresh()
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Alpha")).toBeDefined()
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Beta")).toBeDefined()
+    expect(getSelectedRows(contentRoot).length).toBeLessThanOrEqual(1)
+
+    const focusedRow = findFocusedInteractiveRow(contentRoot)
+    const focusedRowLabel = (focusedRow as (FakeDomElement & { ariaLabel?: string }) | undefined)
+      ?.ariaLabel
+
+    expect(focusedRowLabel).toBeDefined()
+    expect([focusedRowLabel]).toEqual(expect.arrayContaining([expect.stringMatching(/Alpha|Beta/)]))
+  })
 })

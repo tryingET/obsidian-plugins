@@ -2008,6 +2008,58 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect(findFirstInput(contentRoot)).toBeUndefined()
   })
 
+  it("keeps document routing released across runtime refresh after confirmed outside blur", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      [
+        { id: "A", type: "rectangle", name: "Alpha" },
+        { id: "B", type: "rectangle", name: "Beta" },
+      ],
+      [],
+    )
+
+    const app = createLayerManagerRuntime(runtime.ea)
+
+    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const alphaRow = findInteractiveRowByLabel(contentRoot, "[element] Alpha")
+    if (!alphaRow) {
+      throw new Error("Expected Alpha row before confirmed outside blur.")
+    }
+
+    alphaRow.click()
+    await flushAsync()
+
+    await new Promise<void>((resolve) => {
+      setTimeout(() => {
+        resolve()
+      }, 520)
+    })
+
+    const outsideTarget = fakeDocument.createElement("div")
+    fakeDocument.activeElement = outsideTarget
+
+    const focusOutEvent = new FakeDomEvent("focusout")
+    ;(focusOutEvent as unknown as { relatedTarget?: EventTarget | null }).relatedTarget =
+      outsideTarget as unknown as EventTarget
+
+    contentRoot.dispatchEvent(focusOutEvent)
+    await flushAsync()
+
+    app.refresh()
+    await flushAsync()
+
+    dispatchDocumentKeydown(fakeDocument, "ArrowDown", { eventTarget: outsideTarget })
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const focusedRowAfterRefresh = findFocusedInteractiveRow(contentRoot)
+
+    expect(fakeDocument.activeElement).toBe(outsideTarget)
+    expect(
+      (focusedRowAfterRefresh as FakeDomElement & { ariaLabel?: string })?.ariaLabel,
+    ).toContain("Alpha")
+  })
+
   it("keeps Shift+Arrow selection extension usable when host selection bridge is unavailable", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
