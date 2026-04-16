@@ -227,6 +227,9 @@ describe("sidepanel row renderer", () => {
     const label = renderedRow.children.find(
       (child) => child.tagName === "SPAN" && child.textContent === "Alpha",
     )
+    const dropHintAssistiveLabel = renderedRow.children.find(
+      (child) => child.tagName === "SPAN" && child.textContent === "drop to root",
+    )
     const textFragments = flattenElements(renderedRow)
       .map((child) => child.textContent ?? "")
       .filter((text) => text.length > 0)
@@ -235,6 +238,7 @@ describe("sidepanel row renderer", () => {
     expect((renderedRow as FakeDomElement & { id?: string; role?: string }).role).toBe("treeitem")
     expect(renderedRow.style["paddingLeft"]).toBe("24px")
     expect(renderedRow.style["paddingRight"]).toBe("2px")
+    expect(renderedRow.style["position"]).toBe("relative")
     expect(renderedRow.style["gap"]).toBe("3px")
     expect(renderedRow.style["border"]).toBe("1px solid transparent")
     expect(renderedRow.style["cursor"]).toBe("pointer")
@@ -252,6 +256,8 @@ describe("sidepanel row renderer", () => {
     expect(typeBadge).toBeDefined()
     expect(label?.title).toBe("Alpha")
     expect(textFragments).toContain("drop to root")
+    expect(dropHintAssistiveLabel?.style["position"]).toBe("absolute")
+    expect(dropHintAssistiveLabel?.style["clipPath"]).toBe("inset(50%)")
 
     expect(renderedRow.style["boxShadow"]).toContain("inset 0 0 0 2px")
 
@@ -294,6 +300,9 @@ describe("sidepanel row renderer", () => {
     })
 
     const renderedRow = row as unknown as FakeDomElement
+    const reorderAssistiveLabel = renderedRow.children.find(
+      (child) => child.tagName === "SPAN" && child.textContent === "reorder before row",
+    )
     const textFragments = flattenElements(renderedRow)
       .map((child) => child.textContent ?? "")
       .filter((text) => text.length > 0)
@@ -301,6 +310,8 @@ describe("sidepanel row renderer", () => {
     expect(renderedRow.style["boxShadow"]).toContain("inset 0 2px 0 0")
     expect(renderedRow.style["background"] ?? "").not.toContain("interactive-accent-hover")
     expect(renderedRow.style["borderColor"] ?? "").not.toContain("interactive-accent")
+    expect(reorderAssistiveLabel?.style["position"]).toBe("absolute")
+    expect(reorderAssistiveLabel?.style["width"]).toBe("1px")
     expect(textFragments).toContain("reorder before row")
   })
 

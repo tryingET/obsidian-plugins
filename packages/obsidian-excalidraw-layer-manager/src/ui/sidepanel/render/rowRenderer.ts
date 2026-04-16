@@ -212,6 +212,7 @@ export const renderSidepanelRow = (input: SidepanelRowRenderInput): SidepanelRow
   row.id = input.rowDomId
   row.role = "treeitem"
   row.style.display = "flex"
+  row.style.position = "relative"
   row.style.alignItems = "center"
   row.style.gap = "3px"
   row.style.minHeight = `${input.styleConfig.rowMinHeightPx}px`
@@ -271,6 +272,7 @@ export const renderSidepanelRow = (input: SidepanelRowRenderInput): SidepanelRow
   )
   appendMetaBadges(input, row, rowDescriptors.metaBadges)
   appendRowActionButtons(input, row)
+  appendDropHintAssistiveLabel(input, row)
 
   return {
     row,
@@ -406,6 +408,10 @@ const appendMetaBadges = (
   row: HTMLDivElement,
   metaBadges: readonly SidepanelRowBadgeDescriptor[],
 ): void => {
+  if (metaBadges.length === 0) {
+    return
+  }
+
   const metaHost = input.ownerDocument.createElement("div")
   metaHost.style.display = "inline-flex"
   metaHost.style.alignItems = "center"
@@ -414,37 +420,34 @@ const appendMetaBadges = (
   metaHost.style.gap = "3px"
   metaHost.style.rowGap = "2px"
 
-  let didAppendDropHint = false
-  const appendDropHintBadge = (): void => {
-    if (!input.dropHintKind || didAppendDropHint) {
-      return
-    }
-
-    metaHost.appendChild(
-      createMetaBadge(
-        input.ownerDocument,
-        input.dropHintLabel ?? "drop target",
-        input.dropHintKind === "reparent" ? "structure" : "match",
-      ),
-    )
-    didAppendDropHint = true
-  }
-
   for (const badge of metaBadges) {
-    if (!didAppendDropHint && badge.emphasis !== "structure" && badge.emphasis !== "default") {
-      appendDropHintBadge()
-    }
-
     metaHost.appendChild(createMetaBadge(input.ownerDocument, badge.text, badge.emphasis))
   }
 
-  appendDropHintBadge()
+  row.appendChild(metaHost)
+}
 
-  if (metaHost.children.length === 0) {
+const appendDropHintAssistiveLabel = (
+  input: SidepanelRowRenderInput,
+  row: HTMLDivElement,
+): void => {
+  if (!input.dropHintKind) {
     return
   }
 
-  row.appendChild(metaHost)
+  const assistiveLabel = input.ownerDocument.createElement("span")
+  assistiveLabel.textContent = input.dropHintLabel ?? "drop target"
+  assistiveLabel.style.position = "absolute"
+  assistiveLabel.style.width = "1px"
+  assistiveLabel.style.height = "1px"
+  assistiveLabel.style.padding = "0"
+  assistiveLabel.style.margin = "-1px"
+  assistiveLabel.style.overflow = "hidden"
+  assistiveLabel.style.clip = "rect(0 0 0 0)"
+  assistiveLabel.style.clipPath = "inset(50%)"
+  assistiveLabel.style.whiteSpace = "nowrap"
+  assistiveLabel.style.border = "0"
+  row.appendChild(assistiveLabel)
 }
 
 const appendRowActionButtons = (input: SidepanelRowRenderInput, row: HTMLDivElement): void => {
