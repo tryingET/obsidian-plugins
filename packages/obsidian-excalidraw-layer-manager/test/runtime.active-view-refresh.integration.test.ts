@@ -27,6 +27,7 @@ interface RuntimeWithSidepanel {
   readonly ea: EaLike
   readonly sidepanelTab: SidepanelTabHarness
   readonly getExcalidrawAPI: ReturnType<typeof vi.fn>
+  readonly detachLeaf: ReturnType<typeof vi.fn>
   readonly switchToView: (viewPath: string) => void
   readonly switchWorkspaceToView: (viewPath: string) => void
   readonly emitWorkspaceEvent: (eventName?: string) => void
@@ -265,6 +266,8 @@ const makeRuntimeWithSidepanel = (
     }
   })
 
+  const detachLeaf = vi.fn()
+
   const ea: EaLike = {
     ...(options.omitEaApp ? {} : { app }),
     targetView: viewByPath.get(activeViewPath) ?? null,
@@ -297,6 +300,9 @@ const makeRuntimeWithSidepanel = (
     getExcalidrawAPI,
     sidepanelTab: null,
     createSidepanelTab: () => sidepanelTab.tab,
+    getSidepanelLeaf: () => ({
+      detach: detachLeaf,
+    }),
   }
 
   sidepanelTab.tab.getHostEA = () => ea
@@ -305,6 +311,7 @@ const makeRuntimeWithSidepanel = (
     ea,
     sidepanelTab,
     getExcalidrawAPI,
+    detachLeaf,
     switchToView: (viewPath: string) => {
       if (!drawingByPath.has(viewPath)) {
         throw new Error(`Cannot switch to unknown drawing ${viewPath}.`)
@@ -438,7 +445,7 @@ describe("runtime active-view refresh", () => {
     app.refresh()
     await flushAsync()
 
-    expect(runtime.sidepanelTab.close).toHaveBeenCalledTimes(1)
+    expect(runtime.detachLeaf).toHaveBeenCalledTimes(1)
     expect(runtime.sidepanelTab.contentEl.children).toHaveLength(0)
   })
 
@@ -466,7 +473,7 @@ describe("runtime active-view refresh", () => {
     runtime.emitWorkspaceEvent("file-open")
     await flushAsync()
 
-    expect(runtime.sidepanelTab.close).toHaveBeenCalledTimes(1)
+    expect(runtime.detachLeaf).toHaveBeenCalledTimes(1)
     expect(runtime.sidepanelTab.contentEl.children).toHaveLength(0)
 
     runtime.switchWorkspaceToView("A.excalidraw")
@@ -504,7 +511,7 @@ describe("runtime active-view refresh", () => {
       await vi.advanceTimersByTimeAsync(500)
       await flushAsync()
 
-      expect(runtime.sidepanelTab.close).toHaveBeenCalledTimes(1)
+      expect(runtime.detachLeaf).toHaveBeenCalledTimes(1)
       expect(runtime.sidepanelTab.contentEl.children).toHaveLength(0)
 
       runtime.switchWorkspaceToView("A.excalidraw")
@@ -542,7 +549,7 @@ describe("runtime active-view refresh", () => {
     runtime.emitWorkspaceEvent("file-open")
     await flushAsync()
 
-    expect(runtime.sidepanelTab.close).toHaveBeenCalledTimes(1)
+    expect(runtime.detachLeaf).toHaveBeenCalledTimes(1)
     expect(runtime.sidepanelTab.contentEl.children).toHaveLength(0)
   })
 
@@ -603,7 +610,7 @@ describe("runtime active-view refresh", () => {
     app.refresh()
     await flushAsync()
 
-    expect(runtime.sidepanelTab.close).toHaveBeenCalledTimes(1)
+    expect(runtime.detachLeaf).toHaveBeenCalledTimes(1)
     expect(runtime.sidepanelTab.contentEl.children).toHaveLength(0)
 
     runtime.switchToView("A.excalidraw")

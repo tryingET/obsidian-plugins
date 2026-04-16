@@ -1567,6 +1567,33 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     sidepanelTab?.setContent?.("")
   }
 
+  private closeSidepanelPresentation(): void {
+    const sidepanelLeaf = this.#host.getSidepanelLeaf?.()
+    if (sidepanelLeaf?.detach) {
+      try {
+        sidepanelLeaf.detach()
+        return
+      } catch {
+        // fall back to tab-level close below
+      }
+    }
+
+    if (this.#host.closeSidepanelTab) {
+      try {
+        this.#host.closeSidepanelTab()
+        return
+      } catch {
+        // best-effort close only
+      }
+    }
+
+    try {
+      this.#host.sidepanelTab?.close?.()
+    } catch {
+      // best-effort close only
+    }
+  }
+
   private handleHostExcalidrawViewClosed(): void {
     if (this.#handlingHostViewClose) {
       return
@@ -1578,34 +1605,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       this.debugLifecycle("host excalidraw view closed")
       this.clearMountedOutput()
       this.#mountManager.releaseLifecycleBinding()
-
-      let closedWholeSidepanelLeaf = false
-      const sidepanelLeaf = this.#host.getSidepanelLeaf?.()
-      if (sidepanelLeaf?.detach) {
-        try {
-          sidepanelLeaf.detach()
-          closedWholeSidepanelLeaf = true
-        } catch {
-          // fall back to tab-level close below
-        }
-      }
-
-      if (!closedWholeSidepanelLeaf) {
-        if (this.#host.closeSidepanelTab) {
-          try {
-            this.#host.closeSidepanelTab()
-          } catch {
-            // best-effort close only
-          }
-        } else {
-          try {
-            this.#host.sidepanelTab?.close?.()
-          } catch {
-            // best-effort close only
-          }
-        }
-      }
-
+      this.closeSidepanelPresentation()
       this.#mountManager.resetAfterClose()
       this.clearInteractiveBindings()
     } finally {
@@ -1617,21 +1617,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.debugLifecycle("mount failed with reason=hostIneligible")
     this.clearMountedOutput()
     this.#mountManager.releaseLifecycleBinding()
-
-    if (this.#host.closeSidepanelTab) {
-      try {
-        this.#host.closeSidepanelTab()
-      } catch {
-        // best-effort fail-closed visibility only
-      }
-    } else {
-      try {
-        this.#host.sidepanelTab?.close?.()
-      } catch {
-        // best-effort fail-closed visibility only
-      }
-    }
-
+    this.closeSidepanelPresentation()
     this.#mountManager.resetAfterClose()
     this.clearInteractiveBindings()
   }
