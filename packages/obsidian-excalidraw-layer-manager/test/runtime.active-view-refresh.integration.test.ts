@@ -424,6 +424,63 @@ describe("runtime active-view refresh", () => {
     expect(focusedRowLabel).not.toContain("Alpha")
   })
 
+  it("rebinds to the active workspace Excalidraw view before manual refresh reads", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      {
+        "A.excalidraw": [
+          { id: "A", type: "rectangle", name: "Alpha", isDeleted: false },
+          { id: "B", type: "rectangle", name: "Beta", isDeleted: false },
+        ],
+        "B.excalidraw": [
+          { id: "C", type: "rectangle", name: "Gamma", isDeleted: false },
+          { id: "D", type: "rectangle", name: "Delta", isDeleted: false },
+        ],
+      },
+      "A.excalidraw",
+      {
+        requireSetViewForReadCalls: true,
+      },
+    )
+
+    const app = createLayerManagerRuntime(runtime.ea)
+
+    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const searchInput = findRowFilterInput(contentRoot)
+    if (!searchInput) {
+      throw new Error("Expected row filter input in the initial drawing.")
+    }
+
+    searchInput.focus()
+    searchInput.value = "Alpha"
+    searchInput.dispatchEvent(new FakeDomEvent("input"))
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const alphaRow = findInteractiveRowByLabel(contentRoot, "[element] Alpha")
+    if (!alphaRow) {
+      throw new Error("Expected Alpha row while the first drawing filter is active.")
+    }
+
+    alphaRow.click()
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    expect(getSelectedRows(contentRoot)).toHaveLength(1)
+
+    runtime.switchWorkspaceToView("B.excalidraw")
+    app.refresh()
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const refreshedSearchInput = findRowFilterInput(contentRoot)
+    expect(refreshedSearchInput?.value).toBe("")
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Gamma")).toBeDefined()
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Delta")).toBeDefined()
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Alpha")).toBeUndefined()
+    expect(getSelectedRows(contentRoot)).toHaveLength(0)
+  })
+
   it("closes and clears the sidepanel when the active note is not Excalidraw-capable", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,

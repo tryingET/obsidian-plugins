@@ -127,6 +127,39 @@ const bindEaToActiveWorkspaceView = (ea: EaLike): void => {
   }
 }
 
+const shouldBindEaToActiveWorkspaceView = (ea: EaLike): boolean => {
+  const hostViewContext = describeHostViewContext(ea)
+
+  if (!hostViewContext.hasSetView) {
+    return false
+  }
+
+  if (!hostViewContext.targetViewUsable) {
+    return true
+  }
+
+  if (!hostViewContext.activeFilePath) {
+    return false
+  }
+
+  if (
+    hostViewContext.activeFileMetadataAvailable &&
+    hostViewContext.activeFileExcalidrawCapable === false
+  ) {
+    return false
+  }
+
+  return hostViewContext.targetViewFilePath !== hostViewContext.activeFilePath
+}
+
+const bindEaToActiveWorkspaceViewIfNeeded = (ea: EaLike): void => {
+  if (!shouldBindEaToActiveWorkspaceView(ea)) {
+    return
+  }
+
+  bindEaToActiveWorkspaceView(ea)
+}
+
 const resolveLiveExcalidrawApiFromTargetView = (ea: EaLike): unknown => {
   if (!Object.prototype.hasOwnProperty.call(ea, "targetView")) {
     try {
@@ -405,7 +438,7 @@ export const createLayerManagerRuntime = (
         return
       }
 
-      bindEaToActiveWorkspaceView(ea)
+      bindEaToActiveWorkspaceViewIfNeeded(ea)
       sendLifecycleEvent({ type: "REFRESH_REQUEST" })
     })
   }
@@ -500,6 +533,7 @@ export const createLayerManagerRuntime = (
       return
     }
 
+    bindEaToActiveWorkspaceViewIfNeeded(ea)
     syncActiveViewContext()
     const nextSnapshot = readSnapshot(ea)
     syncActiveViewContext()
@@ -579,7 +613,7 @@ export const createLayerManagerRuntime = (
   }
 
   subscribeToWorkspaceRefresh()
-  bindEaToActiveWorkspaceView(ea)
+  bindEaToActiveWorkspaceViewIfNeeded(ea)
   refresh()
 
   return {

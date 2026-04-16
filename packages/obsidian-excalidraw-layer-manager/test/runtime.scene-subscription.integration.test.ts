@@ -392,6 +392,141 @@ describe("runtime scene-change subscription lifecycle", () => {
     expect([...runtime.getSnapshot().selectedIds]).toEqual([])
   })
 
+  it("rebinds scene subscriptions to the active workspace Excalidraw view before manual refresh", async () => {
+    const elementsByView: Record<string, RawExcalidrawElement[]> = {
+      "A.excalidraw": [{ id: "A", type: "rectangle", isDeleted: false }],
+      "B.excalidraw": [{ id: "B", type: "rectangle", isDeleted: false }],
+    }
+    const selectedIdsByView = new Map<string, Set<string>>([
+      ["A.excalidraw", new Set<string>()],
+      ["B.excalidraw", new Set<string>()],
+    ])
+    const listenersByView = new Map<
+      string,
+      Set<(elements: readonly RawExcalidrawElement[], appState: unknown, files: unknown) => void>
+    >()
+    let workspaceActiveFilePath = "A.excalidraw"
+    let currentViewPath = "A.excalidraw"
+
+    const getListenersForView = (viewPath: string) => {
+      let listeners = listenersByView.get(viewPath)
+      if (!listeners) {
+        listeners = new Set()
+        listenersByView.set(viewPath, listeners)
+      }
+
+      return listeners
+    }
+
+    const app = {
+      metadataCache: {
+        getFileCache: (file: unknown) => {
+          const path =
+            file &&
+            typeof file === "object" &&
+            typeof (file as { path?: unknown }).path === "string"
+              ? ((file as { path: string }).path as string)
+              : null
+
+          if (path === "A.excalidraw" || path === "B.excalidraw") {
+            return {
+              frontmatter: {
+                "excalidraw-plugin": "parsed",
+              },
+            }
+          }
+
+          return null
+        },
+      },
+      workspace: {
+        getActiveFile: () => ({
+          path: workspaceActiveFilePath,
+        }),
+      },
+    }
+
+    const api = {
+      onChange: (
+        callback: (
+          elements: readonly RawExcalidrawElement[],
+          appState: unknown,
+          files: unknown,
+        ) => void,
+      ) => {
+        const listeners = getListenersForView(currentViewPath)
+        listeners.add(callback)
+        return () => {
+          listeners.delete(callback)
+        }
+      },
+    }
+
+    const makeTargetView = (viewPath: string) => ({
+      id: viewPath,
+      _loaded: true,
+      file: {
+        path: viewPath,
+      },
+      app,
+      excalidrawAPI: api,
+    })
+
+    let currentView = makeTargetView(currentViewPath)
+
+    const renderer = {
+      render: vi.fn(),
+      dispose: vi.fn(),
+    }
+
+    const ea: EaLike = {
+      app,
+      targetView: currentView,
+      setView: vi.fn((viewArg?: unknown) => {
+        if (viewArg === "active" || viewArg === undefined) {
+          currentViewPath = workspaceActiveFilePath
+          currentView = makeTargetView(currentViewPath)
+          ea.targetView = currentView
+        }
+
+        return currentView
+      }),
+      getViewElements: () => elementsByView[currentViewPath] ?? [],
+      getViewSelectedElements: () => {
+        const selectedIds = selectedIdsByView.get(currentViewPath) ?? new Set<string>()
+        return (elementsByView[currentViewPath] ?? []).filter((element) =>
+          selectedIds.has(element.id),
+        )
+      },
+      getScriptSettings: () => ({}),
+      getExcalidrawAPI: () => api,
+    }
+
+    const runtime = createLayerManagerRuntime(ea, renderer)
+    const setView = ea.setView as ReturnType<typeof vi.fn>
+    setView.mockClear()
+    expect(getListenersForView("A.excalidraw").size).toBe(1)
+
+    for (const callback of getListenersForView("A.excalidraw")) {
+      callback(elementsByView["A.excalidraw"] ?? [], { selectedElementIds: { A: true } }, {})
+    }
+
+    await flushAsync()
+    expect([...runtime.getSnapshot().selectedIds]).toEqual(["A"])
+
+    workspaceActiveFilePath = "B.excalidraw"
+    selectedIdsByView.set("B.excalidraw", new Set<string>())
+
+    runtime.refresh()
+    await flushAsync()
+
+    expect(setView).toHaveBeenCalled()
+    expect(getListenersForView("A.excalidraw").size).toBe(0)
+    expect(getListenersForView("B.excalidraw").size).toBe(1)
+    expect(runtime.getSnapshot().elements.map((element) => element.id)).toEqual(["B"])
+    expect([...runtime.getSnapshot().selectedIds]).toEqual([])
+  })
+
   it("detaches the active subscription and disposes the renderer when the runtime is disposed", () => {
     const elements: RawExcalidrawElement[] = [{ id: "A", type: "rectangle", isDeleted: false }]
     const listeners = new Set<
