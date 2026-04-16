@@ -50,6 +50,7 @@ interface RuntimeWithSidepanel {
   readonly switchToView: (viewPath: string) => void
   readonly switchWorkspaceToView: (viewPath: string) => void
   readonly emitWorkspaceEvent: (eventName?: string) => void
+  readonly emitSceneChange: (appState?: unknown) => void
 }
 
 type DrawingFixture =
@@ -390,6 +391,7 @@ const makeRuntimeWithSidepanel = (
         listener()
       }
     },
+    emitSceneChange,
   }
 }
 
@@ -482,7 +484,7 @@ describe("runtime active-view refresh", () => {
     expect(focusedRowLabel).not.toContain("Alpha")
   })
 
-  it("treats same-file targetView identity switches as active-view changes", async () => {
+  it("treats same-file targetView identity switches in both directions as active-view changes", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
       {
@@ -549,15 +551,107 @@ describe("runtime active-view refresh", () => {
     expect(findInteractiveRowByLabel(contentRoot, "[element] Alpha")).toBeUndefined()
     expect(getSelectedRows(contentRoot)).toHaveLength(0)
 
-    const focusedRow = findFocusedInteractiveRow(contentRoot)
-    const focusedRowLabel = (focusedRow as (FakeDomElement & { ariaLabel?: string }) | undefined)
-      ?.ariaLabel
+    const focusedBackRow = findFocusedInteractiveRow(contentRoot)
+    const focusedBackRowLabel = (
+      focusedBackRow as (FakeDomElement & { ariaLabel?: string }) | undefined
+    )?.ariaLabel
 
-    expect(focusedRowLabel).toBeDefined()
-    expect([focusedRowLabel]).toEqual(
+    expect(focusedBackRowLabel).toBeDefined()
+    expect([focusedBackRowLabel]).toEqual(
       expect.arrayContaining([expect.stringMatching(/Gamma|Delta/)]),
     )
-    expect(focusedRowLabel).not.toContain("Alpha")
+    expect(focusedBackRowLabel).not.toContain("Alpha")
+
+    if (!refreshedSearchInput) {
+      throw new Error("Expected row filter input after switching to the back card face.")
+    }
+
+    refreshedSearchInput.focus()
+    refreshedSearchInput.value = "Gamma"
+    refreshedSearchInput.dispatchEvent(new FakeDomEvent("input"))
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const gammaRow = findInteractiveRowByLabel(contentRoot, "[element] Gamma")
+    if (!gammaRow) {
+      throw new Error("Expected Gamma row while the back card face filter is active.")
+    }
+
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Delta")).toBeUndefined()
+
+    gammaRow.click()
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    expect(getSelectedRows(contentRoot)).toHaveLength(1)
+
+    runtime.switchToView("front")
+    app.refresh()
+    await flushAsync(12)
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const restoredFrontSearchInput = findRowFilterInput(contentRoot)
+    expect(restoredFrontSearchInput?.value).toBe("")
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Alpha")).toBeDefined()
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Beta")).toBeDefined()
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Gamma")).toBeUndefined()
+
+    const selectedFrontRows = getSelectedRows(contentRoot)
+    expect(selectedFrontRows.length).toBeLessThanOrEqual(1)
+    expect(
+      selectedFrontRows.every(
+        (row) =>
+          !((row as FakeDomElement & { ariaLabel?: string }).ariaLabel ?? "").includes("Gamma"),
+      ),
+    ).toBe(true)
+
+    const focusedFrontRow = findFocusedInteractiveRow(contentRoot)
+    const focusedFrontRowLabel = (
+      focusedFrontRow as (FakeDomElement & { ariaLabel?: string }) | undefined
+    )?.ariaLabel
+
+    expect(focusedFrontRowLabel).toBeDefined()
+    expect([focusedFrontRowLabel]).toEqual(
+      expect.arrayContaining([expect.stringMatching(/Alpha|Beta/)]),
+    )
+    expect(focusedFrontRowLabel).not.toContain("Gamma")
+  })
+
+  it("keeps the shell inactive when stale scene changes arrive after a workspace switch to markdown", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      {
+        "A.excalidraw": [{ id: "A", type: "rectangle", name: "Alpha", isDeleted: false }],
+        "plain.md": {
+          elements: [],
+          frontmatter: {},
+        },
+      },
+      "A.excalidraw",
+      {
+        requireSetViewForReadCalls: true,
+      },
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+
+    runtime.switchWorkspaceToView("plain.md")
+    runtime.emitWorkspaceEvent("file-open")
+    await flushAsync()
+
+    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    expectInactiveSidepanelState(contentRoot, "Active leaf is not Excalidraw.")
+
+    runtime.emitSceneChange({
+      selectedElementIds: {
+        A: true,
+      },
+    })
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    expectInactiveSidepanelState(contentRoot, "Active leaf is not Excalidraw.")
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Alpha")).toBeUndefined()
   })
 
   it("rebinds to the active workspace Excalidraw view before manual refresh reads", async () => {
