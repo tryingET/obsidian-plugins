@@ -10,148 +10,130 @@ type: "reference"
 
 ## Scope
 
-This note summarizes the gap between:
-- the **current** LayerManager switching / binding model
-- and the **target** architecture implied by:
+This note now compares:
+- the **original target architecture** described in:
   - `2026-04-16-evidence-layer-manager-host-context-authority-and-focus-routing.md`
   - `2026-04-16-problem-intent-layer-manager-host-context-authority-and-focus-routing.md`
   - `2026-04-16-rfc-layer-manager-host-context-authority-and-focus-routing.md`
+- against the **current packet status** after the coordinator/focus-routing implementation wave closed through AK tasks `1522-1525`
 
-It is the shortest operator/developer comparison note for the current regression cluster.
+Use this as the shortest fresh-session answer to:
+- what changed
+- what is now authoritative
+- and what still remains intentionally bounded fallback rather than primary truth
 
 ## One-sentence summary
 
-Current LayerManager still reconstructs host truth from several bounded seams; target LayerManager should derive shell state, rebinding, and focus-routing ownership from **one canonical host-context authority surface** built around cached `ea.targetView`, leaf-change, and sidepanel `onViewChange`.
+LayerManager now routes host rebinding, shell state, and document-level keyboard ownership through a coordinator-centered host-context model; the remaining polling and target-loss checks are bounded safety nets, not the primary source of truth.
 
-## Current model
+## Original target in brief
 
-### 1. Host truth is fragmented
-Different modules infer overlapping parts of reality:
-- `src/main.ts` handles workspace refresh + polling + pre-read rebinding
-- `src/ui/sidepanel/selection/hostViewContext.ts` derives target identity, active file, leaf identity, view type, and eligibility
-- `src/ui/excalidrawSidepanelRenderer.ts` reacts to targetView loss and renders live/inactive/unbound shell states
-- `src/ui/sidepanel/focus/focusOwnershipCoordinator.ts` governs keyboard sticky capture and autofocus ownership
+The target architecture required five durable outcomes:
+1. one canonical host-context coordinator
+2. primary host signals based on cached `ea.targetView`, workspace leaf-change, and sidepanel `onViewChange`
+3. persistent but truthful shell states: `live`, `inactive`, `unbound`
+4. document-level focus/keyboard routing derived from live host authority
+5. polling only as bounded fallback
 
-Result:
-- locally helpful fixes land
-- but switching and focus behavior can still contradict each other
+## Current packet status
 
-### 2. Shell persistence is already accepted
-The package already allows the sidepanel shell to remain mounted even when live Excalidraw authority is absent.
-That is good and aligned with maintainer intent.
-
-### 3. Binding truth is still too heuristic
-The package has improved from file-path-only checks, but it still relies on a mix of:
-- workspace events
-- polling
-- targetView usability checks
-- renderer-side fallback behavior
+### 1. Host truth is now coordinator-centered
+Current runtime boot now creates one `createSidepanelHostContextCoordinator(ea)` owner in `src/main.ts`.
+That coordinator snapshot carries the binding key, shell state, active scene API, and rebinding decisions used by the runtime refresh path.
 
 Result:
-- switching can stay stale
-- switching can stay unbound
-- focus routing can remain active longer than the active host context justifies
+- runtime refresh no longer explains host truth through several unrelated local heuristics
+- selection/filter reset is keyed to coordinator-observed binding changes
+- renderer and runtime now consume the same normalized host-context description
 
-### 4. Focus-routing ownership is not yet fully derived from host truth
-Document-level keyboard capture is managed separately from host-binding truth.
-That means the shell can be truthful visually while keyboard ownership is still wrong.
+### 2. Primary host signals now match the intended contract
+The active packet now prioritizes the signals that the RFC asked for:
+1. cached / current `ea.targetView`
+2. workspace `file-open` and `active-leaf-change`
+3. sidepanel `onViewChange`
+4. polling only when host events are unavailable or recovery needs bounded fallback
 
 Result:
-- tabbing can get trapped in the sidepanel region
-- typing in non-Excalidraw contexts can break
-- shell visibility and interaction ownership can drift apart
+- cross-file Excalidraw switching refreshes against the active host view rather than stale file-path inference
+- same-file note-card front/back switches can be treated as real view-identity changes even when file path remains stable
+- sidepanel host rebinding no longer depends on force-closing the persistent shell
 
-## Target model
+### 3. Shell persistence stays, but shell meaning is stricter
+The sidepanel still remains mounted when the host keeps it visible.
+But shell visibility no longer implies live interaction authority.
 
-### 1. One host-context coordinator
-Introduce one canonical authority surface that owns:
-- cached `ea.targetView`
-- active workspace leaf identity
-- active workspace view type
-- targetView identity/usability
-- Excalidraw eligibility
-- bounded rebinding attempts
-- derived shell state
-
-This coordinator becomes the only place allowed to say:
-- what the package is bound to
-- whether it is `live`, `inactive`, or `unbound`
-- whether rebinding should occur
-
-### 2. Primary host signals, not heuristic reconstruction
-The target model should prioritize the maintainer-provided host contract:
-1. cached `ea.targetView`
-2. workspace leaf-change handling
-3. Excalidraw sidepanel `onViewChange`
-4. polling only as bounded fallback
-
-That means file path is supporting context, not the primary binding authority.
-
-### 3. Shell persistence stays, but shell truth gets stricter
-The sidepanel may remain visible outside active Excalidraw.
-But visibility alone must not imply:
-- live scene authority
-- continued selection bridge authority
-- continued document-level keyboard capture
-
-Shell states should remain explicit:
+Current shell states are explicit:
 - `live`
 - `inactive`
 - `unbound`
 
-### 4. Focus routing derives from host authority
-Document-level keyboard/focus routing should be allowed only while the coordinator says LayerManager legitimately owns it.
+Result:
+- leaving Excalidraw can keep the shell visible without pretending the old scene is still live
+- stale scene pressure does not repopulate inactive shells as if nothing changed
+- unbound/inactive copy is now a truthful product state, not just a presentation fallback
 
-That implies:
-- leaving live Excalidraw releases routing fail-safe
-- inactive/unbound shell states do not retain global-ish keyboard ownership
-- returning to live Excalidraw reacquires routing only through the canonical binding path
+### 4. Document-level focus routing now derives from host authority
+Focus/keyboard ownership is no longer allowed to float independently of host truth.
+The focus-ownership coordinator now drops document routing when host authority becomes inactive and only reacquires it through the same canonical live-binding path.
 
-## Current vs Target table
+Result:
+- typing outside live Excalidraw does not keep triggering LayerManager document shortcuts
+- tabbing outside live Excalidraw no longer gets trapped by sticky sidepanel capture
+- confirmed outside blur and inactive/unbound transitions keep routing released until real live authority returns
 
-| Concern | Current | Target |
+## Current packet vs original target table
+
+| Concern | Original target | Current packet status |
 |---|---|---|
-| Source of host truth | Distributed across runtime, hostViewContext, renderer, and focus ownership | One host-context coordinator |
-| Primary binding signal | Mixed inference from events, polling, file path, target usability | Cached `ea.targetView` + leaf-change + `onViewChange` |
-| File path role | Often treated as stronger than it should be | Supporting context only |
-| Same-file mode switching | Partially handled, still fragile | First-class host-context transition |
-| Shell persistence | Allowed | Still allowed |
-| Shell meaning | Sometimes truthful visually but not interactionally | Truthful both visually and interactionally |
-| Focus routing ownership | Partly independent of binding truth | Derived from binding truth |
-| Polling | Significant runtime role | Fallback only |
-| Future non-Excalidraw sidepanel uses | Accidentally preserved | Explicitly preserved as possible scope |
+| Source of host truth | One host-context coordinator | Landed in runtime via `createSidepanelHostContextCoordinator(ea)` |
+| Primary binding signal | Cached `ea.targetView` + leaf-change + `onViewChange` | Landed; polling remains bounded fallback only |
+| File path role | Supporting context only | Reduced to supporting context rather than primary truth |
+| Cross-file switching | First-class active-view transition | Covered by coordinator-driven refresh + regression tests |
+| Same-file note-card switching | First-class view-identity transition | Covered by targetView identity handling even when file path stays stable |
+| Persistent shell | Allowed | Preserved |
+| Shell meaning | Truthful visually and interactionally | Landed via explicit `live` / `inactive` / `unbound` rendering |
+| Focus-routing ownership | Derived from live authority | Landed via focus-ownership gating + release/reacquire contract |
+| Typing/tabbing outside live Excalidraw | Must stay outside LayerManager routing | Landed and regression-covered |
+| Polling | Fallback only | Still present, but now bounded safety net |
 
-## What must change to reach target
+## What is still intentionally bounded fallback
 
-### Replace
-- distributed host-truth inference
-- file-path-heavy switching heuristics
-- focus capture rules that can outlive binding truth
+A few fallback paths remain on purpose:
+- workspace polling when host workspace events are unavailable
+- renderer-side targetView loss monitoring when the host silently drops the bound view
+- cached usable targetView reinstatement when a live handoff needs one bounded recovery attempt
 
-### Introduce
-- one normalized host-context snapshot/event surface
-- explicit ownership of cached view reinstatement
-- one release/reacquire contract for document-level keyboard routing
+These are still acceptable because they now serve **recovery** rather than **primary authority**.
+A fresh session should not describe the model as "distributed truth with patches" anymore.
+The truthful description is:
+- one coordinator owns host-context truth
+- renderer/runtime consume that truth
+- fallback paths only ask the coordinator to reconcile again
 
-### Preserve
-- persistent sidepanel shell
-- truthful inactive/unbound rendering
-- same-file view identity awareness
-- the value already landed in recent fixes
+## Verification packet to treat as current proof
 
-## Non-goals
+### Automated
+```bash
+cd packages/obsidian-excalidraw-layer-manager
+npm run typecheck
+npm run lint
+npx vitest run \
+  test/runtime.active-view-refresh.integration.test.ts \
+  test/runtime.scene-subscription.integration.test.ts \
+  test/runtime.sidepanel-focus-keyboard.integration.test.ts \
+  test/runtime.sidepanel-keyboard-lifecycle.integration.test.ts \
+  test/sidepanel.focus-ownership-coordinator.unit.test.ts
+node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs docs/project --strict
+```
 
-This target does **not** require:
-- a second unrelated global lifecycle machine
-- replacing shell persistence with close-on-leave behavior
-- making markdown support fully productized immediately
-- reopening unrelated row-rendering or structural command work
+### Manual
+- `packages/obsidian-excalidraw-layer-manager/docs/project/2026-04-16-layer-manager-manual-verification-matrix.md`
 
 ## Smallest truthful conclusion
 
-Current LayerManager is patch-improved but still authority-fragmented.
-Target LayerManager should be **authority-centralized**:
-- one host-context coordinator
-- one truthful shell-state model
-- one focus-routing ownership contract
-- one primary binding contract based on cached `ea.targetView`, leaf-change, and `onViewChange`
+The original target is now substantially the current model.
+LayerManager should be understood as:
+- coordinator-centered for host context
+- explicit about `live` / `inactive` / `unbound` shell truth
+- fail-safe about document-level routing outside live Excalidraw
+- and backed by one bounded verification packet rather than a pile of local patch claims

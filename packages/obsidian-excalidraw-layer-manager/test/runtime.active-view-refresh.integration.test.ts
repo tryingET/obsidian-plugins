@@ -530,13 +530,85 @@ describe("runtime active-view refresh", () => {
     expect(focusedRowLabel).not.toContain("Alpha")
   })
 
-  it("treats same-file targetView identity switches in both directions as active-view changes", async () => {
+  it("auto-refreshes cross-file Excalidraw switches from workspace leaf-change events", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      {
+        "A.excalidraw": [
+          { id: "A", type: "rectangle", name: "Alpha", isDeleted: false },
+          { id: "B", type: "rectangle", name: "Beta", isDeleted: false },
+        ],
+        "B.excalidraw": [
+          { id: "C", type: "rectangle", name: "Gamma", isDeleted: false },
+          { id: "D", type: "rectangle", name: "Delta", isDeleted: false },
+        ],
+      },
+      "A.excalidraw",
+      {
+        requireSetViewForReadCalls: true,
+      },
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+    const setView = runtime.ea.setView as ReturnType<typeof vi.fn>
+    setView.mockClear()
+
+    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const searchInput = findRowFilterInput(contentRoot)
+    if (!searchInput) {
+      throw new Error("Expected row filter input in the initial drawing.")
+    }
+
+    searchInput.focus()
+    searchInput.value = "Alpha"
+    searchInput.dispatchEvent(new FakeDomEvent("input"))
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const alphaRow = findInteractiveRowByLabel(contentRoot, "[element] Alpha")
+    if (!alphaRow) {
+      throw new Error("Expected Alpha row while the first drawing filter is active.")
+    }
+
+    alphaRow.click()
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    expect(getSelectedRows(contentRoot)).toHaveLength(1)
+
+    runtime.switchWorkspaceToView("B.excalidraw")
+    runtime.emitWorkspaceEvent("active-leaf-change")
+    await flushAsync()
+
+    expect(setView).toHaveBeenCalledTimes(1)
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const refreshedSearchInput = findRowFilterInput(contentRoot)
+    expect(refreshedSearchInput?.value).toBe("")
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Gamma")).toBeDefined()
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Delta")).toBeDefined()
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Alpha")).toBeUndefined()
+    expect(getSelectedRows(contentRoot)).toHaveLength(0)
+
+    const focusedRow = findFocusedInteractiveRow(contentRoot)
+    const focusedRowLabel = (focusedRow as (FakeDomElement & { ariaLabel?: string }) | undefined)
+      ?.ariaLabel
+
+    expect(focusedRowLabel).toBeDefined()
+    expect([focusedRowLabel]).toEqual(
+      expect.arrayContaining([expect.stringMatching(/Gamma|Delta/)]),
+    )
+    expect(focusedRowLabel).not.toContain("Alpha")
+  })
+
+  it("treats same-file targetView identity switches in both directions as active-view changes even when file path and leaf stay stable", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
       {
         front: {
           filePath: "Card.excalidraw",
           viewId: "Card.excalidraw#front",
+          leafId: "card-leaf",
           frontmatter: {
             "excalidraw-plugin": "parsed",
           },
@@ -548,6 +620,7 @@ describe("runtime active-view refresh", () => {
         back: {
           filePath: "Card.excalidraw",
           viewId: "Card.excalidraw#back",
+          leafId: "card-leaf",
           frontmatter: {
             "excalidraw-plugin": "parsed",
           },
