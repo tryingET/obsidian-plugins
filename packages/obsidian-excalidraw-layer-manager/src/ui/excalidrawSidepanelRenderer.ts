@@ -60,6 +60,8 @@ import {
   describeHostViewContext,
   ensureHostViewContext,
   ensureHostViewContextState,
+  getCurrentHostTargetView,
+  isUsableTargetView,
   resolveHostViewContextKey,
 } from "./sidepanel/selection/hostViewContext.js"
 import { collectVisibleNodeContext } from "./sidepanel/selection/nodeContext.js"
@@ -80,7 +82,11 @@ import {
   SidepanelSettingsWriteQueue,
 } from "./sidepanel/settings/settingsWriteQueue.js"
 
-type SidepanelTabLike = SidepanelMountTabLike
+type SidepanelTabViewChangeHandler = (targetView?: unknown | null) => void
+
+type SidepanelTabLike = SidepanelMountTabLike & {
+  onViewChange?: SidepanelTabViewChangeHandler | undefined
+}
 
 interface ObsidianLike {
   Notice?: new (message: string, timeout?: number) => unknown
@@ -104,6 +110,12 @@ interface SelectedElementLike {
 }
 
 export interface ExcalidrawSidepanelHost extends SidepanelMountHostLike {
+  sidepanelTab?: SidepanelTabLike | null
+  createSidepanelTab?: (
+    title: string,
+    persist?: boolean,
+    reveal?: boolean,
+  ) => SidepanelTabLike | Promise<SidepanelTabLike | null> | undefined
   persistSidepanelTab?: () => SidepanelTabLike | null
   getSidepanelLeaf?: () => SidepanelLeafLike | null
   getViewSelectedElements?: () => readonly SelectedElementLike[]
@@ -138,6 +150,7 @@ const ICON_BUTTON_SIZE_PX = 16
 const TOOLBAR_FONT_SIZE_PX = 11
 const SIDEPANEL_LIFECYCLE_DEBUG_FLAG = "LMX_DEBUG_SIDEPANEL_LIFECYCLE"
 const SIDEPANEL_INTERACTION_DEBUG_FLAG = "LMX_DEBUG_SIDEPANEL_INTERACTION"
+const SIDEPANEL_VIEW_CHANGE_UNSET = Symbol("sidepanel-view-change-unset")
 /**
  * On-panel summary of the keyboard-first tree selection model so the row surface
  * advertises row intent before command fallback behavior.
@@ -476,6 +489,9 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   #keyboardContext: KeyboardShortcutContext | null = null
   #lastHandledContentKeydownEvent: KeyboardEvent | null = null
   #didPersistTab = false
+  #cachedTargetView: unknown | null = null
+  #viewChangeBoundTab: SidepanelTabLike | null = null
+  #previousTabViewChangeHandler: SidepanelTabViewChangeHandler | undefined
   #keyboardSuppressedUntilMs = 0
   #ownerDocumentWithKeyCapture: Document | null = null
   #selectionOverrideState: SidepanelSelectionOverrideState | null = null
@@ -500,6 +516,13 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     readonly projection: ReturnType<typeof buildSidepanelQuickMoveDestinationProjection>
   } | null = null
   readonly #rowDomIdPrefix = `lmx-row-${++nextSidepanelRendererInstanceId}`
+
+  readonly #boundSidepanelViewChangeHandler = (...args: [unknown?]): void => {
+    const nextTargetView =
+      args.length === 0 ? SIDEPANEL_VIEW_CHANGE_UNSET : ((args[0] ?? null) as unknown | null)
+
+    this.handleSidepanelViewChange(nextTargetView)
+  }
 
   readonly #contentKeydownHandler = (event: KeyboardEvent): void => {
     this.#lastHandledContentKeydownEvent = event
@@ -803,13 +826,21 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         this.debugInteraction(message, payload)
       },
     })
+
+    this.rememberUsableTargetView(getCurrentHostTargetView(this.#host))
   }
 
   render(model: RenderViewModel): void {
     this.#latestModel = model
 
+    this.rememberUsableTargetView(getCurrentHostTargetView(this.#host))
+    if (this.shouldAttemptCachedTargetViewReinstatement()) {
+      this.reinstateCachedTargetView()
+    }
+
     ensureHostViewContextState(this.#host)
     const hostViewContext = describeHostViewContext(this.#host)
+    this.rememberUsableTargetView(getCurrentHostTargetView(this.#host))
     this.reconcileHostViewContextBeforeRender()
 
     if (!hostViewContext.hostEligible) {
@@ -1472,6 +1503,124 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     return Object.prototype.hasOwnProperty.call(this.#host, "targetView")
   }
 
+  private rememberUsableTargetView(targetView: unknown | null): void {
+    if (!isUsableTargetView(targetView)) {
+      return
+    }
+
+    this.#cachedTargetView = targetView
+  }
+
+  private assignHostTargetView(targetView: unknown | null): void {
+    if (!this.hasExplicitTargetViewProperty()) {
+      return
+    }
+
+    try {
+      this.#host.targetView = targetView
+    } catch {
+      // best-effort host sync only
+    }
+  }
+
+  private shouldAttemptCachedTargetViewReinstatement(): boolean {
+    if (isUsableTargetView(getCurrentHostTargetView(this.#host))) {
+      return false
+    }
+
+    if (!isUsableTargetView(this.#cachedTargetView)) {
+      return false
+    }
+
+    if (this.#contentRoot && this.#host.sidepanelTab) {
+      return false
+    }
+
+    const hostViewContext = describeHostViewContext(this.#host)
+    return !(
+      hostViewContext.activeFileMetadataAvailable &&
+      hostViewContext.activeFileExcalidrawCapable === false
+    )
+  }
+
+  private reinstateCachedTargetView(): boolean {
+    const cachedTargetView = this.#cachedTargetView
+    if (!isUsableTargetView(cachedTargetView)) {
+      return false
+    }
+
+    const setView = this.#host.setView
+    if (setView) {
+      try {
+        const resolvedTargetView = setView(cachedTargetView, false)
+        if (isUsableTargetView(resolvedTargetView)) {
+          this.assignHostTargetView(resolvedTargetView)
+          this.rememberUsableTargetView(resolvedTargetView)
+          return true
+        }
+      } catch {
+        // fall through to direct host-property reinstatement below
+      }
+    }
+
+    this.assignHostTargetView(cachedTargetView)
+    const currentTargetView = getCurrentHostTargetView(this.#host)
+    if (!isUsableTargetView(currentTargetView)) {
+      return false
+    }
+
+    this.rememberUsableTargetView(currentTargetView)
+    return true
+  }
+
+  private bindSidepanelViewChangeToCurrentTab(): void {
+    const sidepanelTab = this.#host.sidepanelTab
+    if (!sidepanelTab) {
+      this.releaseSidepanelViewChangeBinding()
+      return
+    }
+
+    if (this.#viewChangeBoundTab === sidepanelTab) {
+      return
+    }
+
+    this.releaseSidepanelViewChangeBinding()
+    const previousViewChangeHandler = sidepanelTab.onViewChange
+    this.#previousTabViewChangeHandler = previousViewChangeHandler
+    sidepanelTab.onViewChange = (...args: [unknown?]) => {
+      previousViewChangeHandler?.(...args)
+      this.#boundSidepanelViewChangeHandler(...args)
+    }
+    this.#viewChangeBoundTab = sidepanelTab
+  }
+
+  private releaseSidepanelViewChangeBinding(): void {
+    const sidepanelTab = this.#viewChangeBoundTab
+    if (!sidepanelTab) {
+      return
+    }
+
+    sidepanelTab.onViewChange = this.#previousTabViewChangeHandler
+    this.#viewChangeBoundTab = null
+    this.#previousTabViewChangeHandler = undefined
+  }
+
+  private handleSidepanelViewChange(
+    nextTargetView: unknown | null | typeof SIDEPANEL_VIEW_CHANGE_UNSET,
+  ): void {
+    if (nextTargetView !== SIDEPANEL_VIEW_CHANGE_UNSET) {
+      this.assignHostTargetView(nextTargetView)
+    }
+
+    const resolvedTargetView =
+      nextTargetView === SIDEPANEL_VIEW_CHANGE_UNSET
+        ? getCurrentHostTargetView(this.#host)
+        : nextTargetView
+
+    this.rememberUsableTargetView(resolvedTargetView)
+    this.requestRenderFromLatestModel()
+  }
+
   private stopTargetViewLossMonitor(): void {
     if (this.#targetViewLossMonitor !== null) {
       clearInterval(this.#targetViewLossMonitor)
@@ -1527,6 +1676,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.#contentRoot?.removeEventListener("focusout", this.#contentFocusOutHandler)
     this.#contentRoot?.removeEventListener("focusin", this.#contentFocusInHandler)
     this.#contentRoot?.removeEventListener("pointerdown", this.#contentPointerDownHandler)
+    this.releaseSidepanelViewChangeBinding()
     this.detachOwnerDocumentKeyCapture()
     this.stopTargetViewLossMonitor()
     this.#contentRoot = null
@@ -1741,6 +1891,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       return null
     }
 
+    this.bindSidepanelViewChangeToCurrentTab()
     return this.#contentRoot
   }
 

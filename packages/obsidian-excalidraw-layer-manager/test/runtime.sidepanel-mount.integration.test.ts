@@ -80,6 +80,18 @@ const makeSetCloseCallbackSidepanelTab = (document: FakeDocument) => {
   }
 }
 
+const makeViewChangeAwareSidepanelTab = (document: FakeDocument) => {
+  const harness = makeSidepanelTab(document, null)
+  const tab = harness.tab as typeof harness.tab & {
+    onViewChange?: (targetView?: unknown | null) => void
+  }
+
+  return {
+    ...harness,
+    tab,
+  }
+}
+
 const makeHostViewBinding = (viewPath: string, frontmatter: Record<string, unknown> = {}) => {
   const app = {
     metadataCache: {
@@ -573,6 +585,126 @@ describe("sidepanel mount-focused integration", () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  it("rebinds the persistent shell through sidepanel onViewChange without closing the tab", async () => {
+    const sidepanelTab = makeViewChangeAwareSidepanelTab(fakeDocument)
+    const eligibleBinding = makeHostViewBinding("eligible.excalidraw", {
+      "excalidraw-plugin": "parsed",
+    })
+
+    const host: {
+      sidepanelTab: typeof sidepanelTab.tab
+      createSidepanelTab: () => typeof sidepanelTab.tab
+      getScriptSettings: () => ScriptSettings
+      targetView: typeof eligibleBinding.targetView | null
+      app: typeof eligibleBinding.app
+    } = {
+      sidepanelTab: sidepanelTab.tab,
+      createSidepanelTab: () => sidepanelTab.tab,
+      getScriptSettings: () => ({}),
+      ...eligibleBinding,
+    }
+
+    const renderer = createExcalidrawSidepanelRenderer(host)
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [makeElementNode("A")],
+      selectedIds: new Set(),
+      sceneVersion: 1,
+    })
+
+    expect(typeof sidepanelTab.tab.onViewChange).toBe("function")
+    expect(findRowTreeRoot(getContentRoot(sidepanelTab.contentEl))).toBeDefined()
+
+    host.targetView = null
+    renderer.render({
+      tree: [makeElementNode("A")],
+      selectedIds: new Set(),
+      sceneVersion: 2,
+    })
+
+    expectMountedStatusState(sidepanelTab, [
+      "Layer Manager unbound",
+      "No active Excalidraw view is currently bound.",
+      "Focus an Excalidraw view to resume live Layer Manager interaction.",
+    ])
+
+    sidepanelTab.tab.onViewChange?.(eligibleBinding.targetView)
+    await flushAsync()
+
+    expect(host.targetView).toBe(eligibleBinding.targetView)
+    expect(sidepanelTab.close).not.toHaveBeenCalled()
+    expect(findRowTreeRoot(getContentRoot(sidepanelTab.contentEl))).toBeDefined()
+
+    const textFragments = flattenElements(getContentRoot(sidepanelTab.contentEl)).map(
+      (element) => element.textContent ?? "",
+    )
+    expect(textFragments).not.toEqual(expect.arrayContaining(["Layer Manager unbound"]))
+  })
+
+  it("reinstates the cached targetView during remount before generic active-view fallback runs", () => {
+    const firstTab = makeSidepanelTab(fakeDocument, null)
+    const secondTab = makeSidepanelTab(fakeDocument, null)
+    const eligibleBinding = makeHostViewBinding("eligible.excalidraw", {
+      "excalidraw-plugin": "parsed",
+    })
+
+    const createSidepanelTab = vi.fn(() => secondTab.tab)
+    const host: {
+      sidepanelTab: typeof firstTab.tab | typeof secondTab.tab | null
+      createSidepanelTab: () => typeof secondTab.tab
+      getScriptSettings: () => ScriptSettings
+      targetView: typeof eligibleBinding.targetView | null
+      app: typeof eligibleBinding.app
+      setView: ReturnType<typeof vi.fn>
+    } = {
+      sidepanelTab: firstTab.tab,
+      createSidepanelTab,
+      getScriptSettings: () => ({}),
+      setView: vi.fn((viewArg?: unknown) => {
+        if (viewArg === eligibleBinding.targetView) {
+          host.targetView = eligibleBinding.targetView
+          return host.targetView
+        }
+
+        return null
+      }),
+      ...eligibleBinding,
+    }
+
+    const renderer = createExcalidrawSidepanelRenderer(host)
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [makeElementNode("A")],
+      selectedIds: new Set(),
+      sceneVersion: 1,
+    })
+
+    host.sidepanelTab = null
+    host.targetView = null
+
+    renderer.render({
+      tree: [makeElementNode("A")],
+      selectedIds: new Set(),
+      sceneVersion: 2,
+    })
+
+    expect(createSidepanelTab).toHaveBeenCalledTimes(1)
+    expect(host.setView).toHaveBeenCalledWith(eligibleBinding.targetView, false)
+    expect(host.targetView).toBe(eligibleBinding.targetView)
+    expect(findRowTreeRoot(getContentRoot(secondTab.contentEl))).toBeDefined()
+
+    const textFragments = flattenElements(getContentRoot(secondTab.contentEl)).map(
+      (element) => element.textContent ?? "",
+    )
+    expect(textFragments).not.toEqual(expect.arrayContaining(["Layer Manager unbound"]))
   })
 
   for (const mountCase of SIDEPANEL_MOUNT_MODE_CASES) {
