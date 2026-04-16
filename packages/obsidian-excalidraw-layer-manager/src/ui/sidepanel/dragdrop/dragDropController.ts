@@ -180,6 +180,11 @@ export class SidepanelDragDropController {
   readonly #host: SidepanelDragDropControllerHost
   #draggedNodeState: DraggedNodeState | null = null
   #dropHint: DragDropHint | null = null
+  #hoverDepthByNodeId = new Map<string, number>()
+  #pendingDropHintClear: {
+    readonly targetNodeId: string
+    readonly timeoutId: ReturnType<typeof setTimeout>
+  } | null = null
 
   constructor(host: SidepanelDragDropControllerHost) {
     this.#host = host
@@ -195,6 +200,7 @@ export class SidepanelDragDropController {
 
   clear(): void {
     this.#draggedNodeState = null
+    this.resetHoverTracking()
     this.#dropHint = null
   }
 
@@ -261,6 +267,8 @@ export class SidepanelDragDropController {
   }
 
   startRowDrag(input: StartRowDragInput): void {
+    this.resetHoverTracking()
+
     const structuralMove = this.#host.getActiveStructuralMoveSelection?.(input.node.id) ?? null
     const draggedNodeIds = structuralMove?.nodeIds.includes(input.node.id)
       ? structuralMove.nodeIds
@@ -294,10 +302,12 @@ export class SidepanelDragDropController {
 
   endRowDrag(): void {
     this.#draggedNodeState = null
+    this.resetHoverTracking()
     this.updateDropHint(null)
   }
 
   handleDragEnter(targetNodeId: string, dropTarget: NodeDropTarget, event: DragEvent): void {
+    this.incrementHoverDepth(targetNodeId)
     const nextDropHint = this.resolveDropHint(targetNodeId, dropTarget)
     if (!nextDropHint) {
       if (this.#dropHint?.nodeId === targetNodeId) {
@@ -311,6 +321,7 @@ export class SidepanelDragDropController {
   }
 
   handleDragOver(targetNodeId: string, dropTarget: NodeDropTarget, event: DragEvent): void {
+    this.ensureHoverDepth(targetNodeId)
     const nextDropHint = this.resolveDropHint(targetNodeId, dropTarget)
     if (!nextDropHint) {
       if (this.#dropHint?.nodeId === targetNodeId) {
@@ -333,13 +344,16 @@ export class SidepanelDragDropController {
       return
     }
 
+    this.decrementHoverDepth(targetNodeId)
+
     if (this.#dropHint?.nodeId === targetNodeId) {
-      this.updateDropHint(null)
+      this.scheduleDropHintClear(targetNodeId)
     }
   }
 
   resetDragState(): void {
     this.#draggedNodeState = null
+    this.resetHoverTracking()
     this.updateDropHint(null)
   }
 
@@ -633,6 +647,66 @@ export class SidepanelDragDropController {
       nodeId: targetNodeId,
       kind: "reparent",
     }
+  }
+
+  private incrementHoverDepth(targetNodeId: string): void {
+    this.cancelPendingDropHintClear(targetNodeId)
+    this.#hoverDepthByNodeId.set(targetNodeId, 1)
+  }
+
+  private ensureHoverDepth(targetNodeId: string): void {
+    this.cancelPendingDropHintClear(targetNodeId)
+
+    if ((this.#hoverDepthByNodeId.get(targetNodeId) ?? 0) === 0) {
+      this.#hoverDepthByNodeId.set(targetNodeId, 1)
+    }
+  }
+
+  private decrementHoverDepth(targetNodeId: string): void {
+    this.#hoverDepthByNodeId.delete(targetNodeId)
+  }
+
+  private scheduleDropHintClear(targetNodeId: string): void {
+    this.cancelPendingDropHintClear(targetNodeId)
+
+    this.#pendingDropHintClear = {
+      targetNodeId,
+      timeoutId: setTimeout(() => {
+        if (this.#pendingDropHintClear?.targetNodeId !== targetNodeId) {
+          return
+        }
+
+        this.#pendingDropHintClear = null
+
+        if ((this.#hoverDepthByNodeId.get(targetNodeId) ?? 0) > 0) {
+          return
+        }
+
+        if (this.#dropHint?.nodeId !== targetNodeId) {
+          return
+        }
+
+        this.updateDropHint(null)
+      }, 0),
+    }
+  }
+
+  private cancelPendingDropHintClear(targetNodeId?: string): void {
+    if (!this.#pendingDropHintClear) {
+      return
+    }
+
+    if (targetNodeId && this.#pendingDropHintClear.targetNodeId !== targetNodeId) {
+      return
+    }
+
+    clearTimeout(this.#pendingDropHintClear.timeoutId)
+    this.#pendingDropHintClear = null
+  }
+
+  private resetHoverTracking(): void {
+    this.cancelPendingDropHintClear()
+    this.#hoverDepthByNodeId.clear()
   }
 
   private updateDropHint(nextDropHint: DragDropHint | null): void {

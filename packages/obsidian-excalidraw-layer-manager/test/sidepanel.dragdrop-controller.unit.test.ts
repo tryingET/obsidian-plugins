@@ -499,12 +499,118 @@ describe("sidepanel drag-drop controller", () => {
     expect(reorderDragOver.preventDefault).toHaveBeenCalledTimes(1)
 
     controller.handleDragLeave("el:before-target", false)
-    expect(controller.dropHintNodeId).toBeNull()
-    expect(controller.dropHint).toBeNull()
+    expect(controller.dropHintNodeId).toBe("el:before-target")
+    expect(controller.dropHint).toEqual({
+      nodeId: "el:before-target",
+      kind: "reorder",
+      placement: "before",
+    })
 
     controller.endRowDrag()
     expect(controller.dropHintNodeId).toBeNull()
     expect(requestRenderFromLatestModel).toHaveBeenCalled()
+  })
+
+  it("defers dragleave clearing so same-target dragover can retain the current hint", () => {
+    vi.useFakeTimers()
+
+    try {
+      const notify = vi.fn<(message: string) => void>()
+      const requestRenderFromLatestModel = vi.fn<() => void>()
+      const controller = new SidepanelDragDropController({
+        notify,
+        requestRenderFromLatestModel,
+      })
+      const targetDrop = makeDropTarget({
+        targetParentPath: ["Root"],
+        targetFrameId: "frame:A",
+        rowScope: makeScope("frame:A", ["Root"]),
+        siblingIndex: 0,
+      })
+
+      controller.startRowDrag({
+        node: makeElementNode("el:A", { frameId: "frame:A" }),
+        nodeFrameId: "frame:A",
+        branchGroupPath: [],
+        rowScope: makeScope("frame:A"),
+        siblingIndex: 1,
+        dragEvent: makeDragEvent().event,
+      })
+
+      controller.handleDragOver("el:target", targetDrop, makeDragEvent().event)
+      expect(controller.dropHint).toEqual({
+        nodeId: "el:target",
+        kind: "reparent",
+      })
+      expect(requestRenderFromLatestModel).toHaveBeenCalledTimes(1)
+
+      controller.handleDragLeave("el:target", false)
+      expect(controller.dropHint).toEqual({
+        nodeId: "el:target",
+        kind: "reparent",
+      })
+      expect(requestRenderFromLatestModel).toHaveBeenCalledTimes(1)
+
+      controller.handleDragOver("el:target", targetDrop, makeDragEvent().event)
+      vi.runAllTimers()
+
+      expect(controller.dropHint).toEqual({
+        nodeId: "el:target",
+        kind: "reparent",
+      })
+      expect(requestRenderFromLatestModel).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it("clears the hint after deferred dragleave when hover is not re-established", () => {
+    vi.useFakeTimers()
+
+    try {
+      const notify = vi.fn<(message: string) => void>()
+      const requestRenderFromLatestModel = vi.fn<() => void>()
+      const controller = new SidepanelDragDropController({
+        notify,
+        requestRenderFromLatestModel,
+      })
+      const targetDrop = makeDropTarget({
+        targetParentPath: ["Root"],
+        targetFrameId: "frame:A",
+        rowScope: makeScope("frame:A", ["Root"]),
+        siblingIndex: 0,
+      })
+
+      controller.startRowDrag({
+        node: makeElementNode("el:A", { frameId: "frame:A" }),
+        nodeFrameId: "frame:A",
+        branchGroupPath: [],
+        rowScope: makeScope("frame:A"),
+        siblingIndex: 1,
+        dragEvent: makeDragEvent().event,
+      })
+
+      controller.handleDragOver("el:target", targetDrop, makeDragEvent().event)
+      expect(controller.dropHint).toEqual({
+        nodeId: "el:target",
+        kind: "reparent",
+      })
+      expect(requestRenderFromLatestModel).toHaveBeenCalledTimes(1)
+
+      controller.handleDragLeave("el:target", false)
+      expect(controller.dropHint).toEqual({
+        nodeId: "el:target",
+        kind: "reparent",
+      })
+
+      vi.runAllTimers()
+
+      expect(controller.dropHintNodeId).toBeNull()
+      expect(controller.dropHint).toBeNull()
+      expect(requestRenderFromLatestModel).toHaveBeenCalledTimes(2)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it("applies same-scope drag-drop as reorder relative to the target row", async () => {
