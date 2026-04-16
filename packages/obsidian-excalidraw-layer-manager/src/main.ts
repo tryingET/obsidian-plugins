@@ -127,6 +127,36 @@ const bindEaToActiveWorkspaceView = (ea: EaLike): void => {
   }
 }
 
+const resolveLiveExcalidrawApiFromTargetView = (ea: EaLike): unknown => {
+  if (!Object.prototype.hasOwnProperty.call(ea, "targetView")) {
+    try {
+      return ea.getExcalidrawAPI?.() ?? null
+    } catch {
+      return null
+    }
+  }
+
+  const targetView = ea.targetView
+  if (!targetView || typeof targetView !== "object") {
+    return null
+  }
+
+  const targetViewRecord = targetView as Record<string, unknown>
+  if ("_loaded" in targetViewRecord && targetViewRecord["_loaded"] !== true) {
+    return null
+  }
+
+  if (targetViewRecord["excalidrawAPI"] !== undefined) {
+    return targetViewRecord["excalidrawAPI"] ?? null
+  }
+
+  try {
+    return ea.getExcalidrawAPI?.() ?? null
+  } catch {
+    return null
+  }
+}
+
 export interface LayerManagerRuntime {
   refresh: () => void
   apply: (patch: ScenePatch) => Promise<void>
@@ -428,13 +458,7 @@ export const createLayerManagerRuntime = (
   }
 
   const subscribeToSceneChanges = (): void => {
-    let api: unknown
-
-    try {
-      api = ea.getExcalidrawAPI?.()
-    } catch {
-      return
-    }
+    const api = resolveLiveExcalidrawApiFromTargetView(ea)
 
     const currentViewContextKey = activeViewContextKey
     const viewContextChanged = currentViewContextKey !== subscribedViewContextKey

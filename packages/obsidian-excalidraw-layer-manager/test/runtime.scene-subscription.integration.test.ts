@@ -87,6 +87,69 @@ describe("runtime scene-change subscription lifecycle", () => {
     expect([...runtime.getSnapshot().selectedIds]).toEqual(["A"])
   })
 
+  it("does not call getExcalidrawAPI wrapper when refresh lands on an unavailable targetView", async () => {
+    const elements: RawExcalidrawElement[] = [{ id: "A", type: "rectangle", isDeleted: false }]
+    const listeners = new Set<
+      (elements: readonly RawExcalidrawElement[], appState: unknown, files: unknown) => void
+    >()
+
+    const api = {
+      onChange: (
+        callback: (
+          elements: readonly RawExcalidrawElement[],
+          appState: unknown,
+          files: unknown,
+        ) => void,
+      ) => {
+        listeners.add(callback)
+        return () => {
+          listeners.delete(callback)
+        }
+      },
+    }
+
+    const renderer = {
+      render: vi.fn(),
+      dispose: vi.fn(),
+    }
+
+    const ea: EaLike = {
+      targetView: {
+        id: "A.excalidraw",
+        _loaded: true,
+        excalidrawAPI: api,
+      },
+      setView: vi.fn(() => null),
+      getViewElements: () => elements,
+      getViewSelectedElements: () => [],
+      getScriptSettings: () => ({}),
+      getExcalidrawAPI: vi.fn(function (this: EaLike) {
+        const targetViewLoaded =
+          this.targetView &&
+          typeof this.targetView === "object" &&
+          (this.targetView as { _loaded?: unknown })._loaded === true
+
+        if (!targetViewLoaded) {
+          throw new Error("targetView not set")
+        }
+
+        return api
+      }),
+    }
+
+    const runtime = createLayerManagerRuntime(ea, renderer)
+    const getExcalidrawAPI = ea.getExcalidrawAPI as ReturnType<typeof vi.fn>
+    getExcalidrawAPI.mockClear()
+    expect(listeners.size).toBe(1)
+
+    ea.targetView = null
+    runtime.refresh()
+    await flushAsync()
+
+    expect(getExcalidrawAPI).not.toHaveBeenCalled()
+    expect(listeners.size).toBe(0)
+  })
+
   it("resubscribes when the workspace active file changes eligibility under a stable targetView", async () => {
     const elementsByView: Record<string, RawExcalidrawElement[]> = {
       "A.excalidraw": [{ id: "A", type: "rectangle", isDeleted: false }],

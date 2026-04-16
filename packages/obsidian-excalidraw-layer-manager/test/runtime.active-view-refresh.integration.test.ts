@@ -26,6 +26,7 @@ const cloneElement = (element: RawExcalidrawElement): RawExcalidrawElement => ({
 interface RuntimeWithSidepanel {
   readonly ea: EaLike
   readonly sidepanelTab: SidepanelTabHarness
+  readonly getExcalidrawAPI: ReturnType<typeof vi.fn>
   readonly switchToView: (viewPath: string) => void
   readonly switchWorkspaceToView: (viewPath: string) => void
   readonly emitWorkspaceEvent: (eventName?: string) => void
@@ -69,6 +70,7 @@ interface MakeRuntimeWithSidepanelOptions {
   readonly disableWorkspaceEvents?: boolean
   readonly omitEaApp?: boolean
   readonly requireSetViewForReadCalls?: boolean
+  readonly requireSetViewForApiCalls?: boolean
 }
 
 const makeRuntimeWithSidepanel = (
@@ -241,6 +243,28 @@ const makeRuntimeWithSidepanel = (
     emitSceneChange(scene.appState ?? {})
   })
 
+  const getExcalidrawAPI = vi.fn(function (this: EaLike) {
+    if (options.requireSetViewForApiCalls === true && !hasFreshViewBinding()) {
+      throw new Error("targetView not set")
+    }
+
+    return {
+      updateScene,
+      onChange: (
+        callback: (
+          elements: readonly RawExcalidrawElement[],
+          appState: unknown,
+          files: unknown,
+        ) => void,
+      ) => {
+        sceneChangeListeners.add(callback)
+        return () => {
+          sceneChangeListeners.delete(callback)
+        }
+      },
+    }
+  })
+
   const ea: EaLike = {
     ...(options.omitEaApp ? {} : { app }),
     targetView: viewByPath.get(activeViewPath) ?? null,
@@ -270,21 +294,7 @@ const makeRuntimeWithSidepanel = (
       setSelectedIds(ids)
     }),
     getScriptSettings: () => ({}),
-    getExcalidrawAPI: () => ({
-      updateScene,
-      onChange: (
-        callback: (
-          elements: readonly RawExcalidrawElement[],
-          appState: unknown,
-          files: unknown,
-        ) => void,
-      ) => {
-        sceneChangeListeners.add(callback)
-        return () => {
-          sceneChangeListeners.delete(callback)
-        }
-      },
-    }),
+    getExcalidrawAPI,
     sidepanelTab: null,
     createSidepanelTab: () => sidepanelTab.tab,
   }
@@ -294,6 +304,7 @@ const makeRuntimeWithSidepanel = (
   return {
     ea,
     sidepanelTab,
+    getExcalidrawAPI,
     switchToView: (viewPath: string) => {
       if (!drawingByPath.has(viewPath)) {
         throw new Error(`Cannot switch to unknown drawing ${viewPath}.`)
@@ -533,6 +544,29 @@ describe("runtime active-view refresh", () => {
 
     expect(runtime.sidepanelTab.close).toHaveBeenCalledTimes(1)
     expect(runtime.sidepanelTab.contentEl.children).toHaveLength(0)
+  })
+
+  it("does not call getExcalidrawAPI wrapper when targetView is unavailable during refresh", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      {
+        "A.excalidraw": [{ id: "A", type: "rectangle", name: "Alpha", isDeleted: false }],
+      },
+      "A.excalidraw",
+      {
+        requireSetViewForApiCalls: true,
+      },
+    )
+
+    const app = createLayerManagerRuntime(runtime.ea)
+    runtime.getExcalidrawAPI.mockClear()
+
+    runtime.ea.setView = vi.fn(() => null)
+    runtime.ea.targetView = null
+    app.refresh()
+    await flushAsync()
+
+    expect(runtime.getExcalidrawAPI).not.toHaveBeenCalled()
   })
 
   it("remounts cleanly after tearing down an ineligible host view", async () => {
