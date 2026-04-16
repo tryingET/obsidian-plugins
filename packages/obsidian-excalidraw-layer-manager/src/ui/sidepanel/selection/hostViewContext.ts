@@ -30,6 +30,14 @@ export interface SidepanelHostViewContextDescription {
   readonly hasSetView: boolean
 }
 
+export type SidepanelHostContextShellState = "live" | "inactive" | "unbound"
+
+export interface SidepanelHostViewObservation {
+  readonly hasExplicitTargetViewProperty: boolean
+  readonly targetView: unknown | null
+  readonly description: SidepanelHostViewContextDescription
+}
+
 export interface SidepanelHostViewContextEnsureResult {
   readonly ok: boolean
   readonly rebound: boolean
@@ -48,15 +56,15 @@ const VIEW_BIND_STRATEGIES: readonly {
   { viewArg: undefined, reveal: true },
 ]
 
-const hasExplicitTargetViewProperty = (host: SidepanelHostViewContextHost): boolean => {
+export const hasExplicitTargetViewProperty = (host: SidepanelHostViewContextHost): boolean => {
   return Object.prototype.hasOwnProperty.call(host, "targetView")
 }
 
-const getCurrentHostTargetView = (host: SidepanelHostViewContextHost): unknown => {
+export const getCurrentHostTargetView = (host: SidepanelHostViewContextHost): unknown => {
   return host.targetView ?? null
 }
 
-const isUsableTargetView = (value: unknown): boolean => {
+export const isUsableTargetView = (value: unknown): boolean => {
   if (!value || typeof value !== "object") {
     return false
   }
@@ -94,7 +102,7 @@ const normalizeIdentityToken = (value: unknown): string | null => {
   return typeof value === "number" && Number.isFinite(value) ? `${value}` : null
 }
 
-const resolveTargetViewIdentity = (targetView: unknown): string | null => {
+export const resolveTargetViewIdentity = (targetView: unknown): string | null => {
   if (!targetView || typeof targetView !== "object") {
     return null
   }
@@ -339,8 +347,8 @@ const isExcalidrawCapableMetadataValue = (value: string | null): boolean => {
 
 const resolveHostViewContextDescription = (
   host: SidepanelHostViewContextHost,
+  targetView: unknown = getCurrentHostTargetView(host),
 ): SidepanelHostViewContextDescription => {
-  const targetView = getCurrentHostTargetView(host)
   const targetViewLoaded =
     targetView &&
     typeof targetView === "object" &&
@@ -390,18 +398,76 @@ const resolveHostViewContextDescription = (
   }
 }
 
+export const observeHostViewContext = (
+  host: SidepanelHostViewContextHost,
+): SidepanelHostViewObservation => {
+  const targetView = getCurrentHostTargetView(host)
+
+  return {
+    hasExplicitTargetViewProperty: hasExplicitTargetViewProperty(host),
+    targetView,
+    description: resolveHostViewContextDescription(host, targetView),
+  }
+}
+
 export const describeHostViewContext = (
   host: SidepanelHostViewContextHost,
 ): SidepanelHostViewContextDescription => {
-  return resolveHostViewContextDescription(host)
+  return observeHostViewContext(host).description
 }
 
-export const resolveHostViewContextKey = (host: SidepanelHostViewContextHost): string => {
-  if (!hasExplicitTargetViewProperty(host)) {
+export const resolveHostViewContextShellStateFromObservation = (
+  observation: SidepanelHostViewObservation,
+): SidepanelHostContextShellState => {
+  const { description } = observation
+
+  if (!observation.hasExplicitTargetViewProperty) {
+    return "live"
+  }
+
+  if (description.hostEligible) {
+    return "live"
+  }
+
+  if (
+    description.activeFileMetadataAvailable &&
+    description.activeFileExcalidrawCapable === false
+  ) {
+    return "inactive"
+  }
+
+  if (
+    description.targetViewMetadataAvailable &&
+    description.targetViewExcalidrawCapable === false
+  ) {
+    return "inactive"
+  }
+
+  return "unbound"
+}
+
+const resolveHostViewContextEligibilityKey = (
+  description: SidepanelHostViewContextDescription,
+): string => {
+  return description.activeFileMetadataAvailable
+    ? description.activeFileExcalidrawCapable
+      ? "eligible"
+      : "ineligible"
+    : description.targetViewMetadataAvailable
+      ? description.targetViewExcalidrawCapable
+        ? "eligible"
+        : "ineligible"
+      : "legacy"
+}
+
+export const resolveHostViewContextKeyFromObservation = (
+  observation: SidepanelHostViewObservation,
+): string => {
+  if (!observation.hasExplicitTargetViewProperty) {
     return "target:legacy-host"
   }
 
-  const description = resolveHostViewContextDescription(host)
+  const { description } = observation
   const targetPresenceKey = description.hasTargetView ? "target:present" : "target:null"
   const targetFileKey = description.targetViewFilePath
     ? `target-file:${description.targetViewFilePath}`
@@ -419,17 +485,90 @@ export const resolveHostViewContextKey = (host: SidepanelHostViewContextHost): s
     ? `active-view:${description.activeWorkspaceViewType}`
     : "active-view:none"
 
-  const eligibilityKey = description.activeFileMetadataAvailable
-    ? description.activeFileExcalidrawCapable
-      ? "eligible"
-      : "ineligible"
-    : description.targetViewMetadataAvailable
-      ? description.targetViewExcalidrawCapable
-        ? "eligible"
-        : "ineligible"
-      : "legacy"
+  return `${targetPresenceKey}::${targetFileKey}::${activeFileKey}::${targetViewIdentityKey}::${activeLeafIdentityKey}::${activeWorkspaceViewTypeKey}::eligibility:${resolveHostViewContextEligibilityKey(description)}`
+}
 
-  return `${targetPresenceKey}::${targetFileKey}::${activeFileKey}::${targetViewIdentityKey}::${activeLeafIdentityKey}::${activeWorkspaceViewTypeKey}::eligibility:${eligibilityKey}`
+export const resolveHostViewContextKey = (host: SidepanelHostViewContextHost): string => {
+  return resolveHostViewContextKeyFromObservation(observeHostViewContext(host))
+}
+
+export const shouldRebindHostViewToActiveWorkspaceView = (
+  host: SidepanelHostViewContextHost,
+): boolean => {
+  const { description } = observeHostViewContext(host)
+
+  if (!description.hasSetView) {
+    return false
+  }
+
+  if (!description.targetViewUsable) {
+    return true
+  }
+
+  if (!description.activeFilePath) {
+    return false
+  }
+
+  if (
+    description.activeFileMetadataAvailable &&
+    description.activeFileExcalidrawCapable === false
+  ) {
+    return false
+  }
+
+  return description.targetViewFilePath !== description.activeFilePath
+}
+
+export const bindHostViewToActiveWorkspaceView = (
+  host: SidepanelHostViewContextHost,
+): SidepanelHostViewContextEnsureResult => {
+  if (!shouldRebindHostViewToActiveWorkspaceView(host)) {
+    return {
+      ok: true,
+      rebound: false,
+    }
+  }
+
+  const setView = host.setView
+  if (!setView) {
+    return {
+      ok: !shouldRebindHostViewToActiveWorkspaceView(host),
+      rebound: false,
+    }
+  }
+
+  for (const strategy of VIEW_BIND_STRATEGIES) {
+    try {
+      setView(strategy.viewArg, strategy.reveal)
+    } catch {
+      // keep trying bounded active-view strategies
+    }
+
+    if (!shouldRebindHostViewToActiveWorkspaceView(host)) {
+      return {
+        ok: true,
+        rebound: true,
+      }
+    }
+  }
+
+  return {
+    ok: !shouldRebindHostViewToActiveWorkspaceView(host),
+    rebound: false,
+  }
+}
+
+export const resolveLiveExcalidrawApiFromTargetView = (targetView: unknown): unknown => {
+  if (!targetView || typeof targetView !== "object") {
+    return null
+  }
+
+  const record = targetView as Record<string, unknown>
+  if ("_loaded" in record && record["_loaded"] !== true) {
+    return null
+  }
+
+  return record["excalidrawAPI"] ?? null
 }
 
 export const ensureHostViewContextState = (
