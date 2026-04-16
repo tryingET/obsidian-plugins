@@ -4,10 +4,11 @@ export interface SidepanelMountTabLike {
   contentEl?: HTMLElement
   setContent?: (content: HTMLElement | string) => void
   setTitle?: (title: string) => void
+  setCloseCallback?: (callback: () => void) => void
   open?: () => void
   close?: () => void
   getHostEA?: () => unknown
-  onExcalidrawViewClosed?: () => void
+  onExcalidrawViewClosed?: (() => void) | undefined
 }
 
 export interface SidepanelMountHostLike {
@@ -166,6 +167,7 @@ export interface SidepanelMountManagerInput {
   readonly onTabSwitched: () => void
   readonly onAsyncTabResolved: () => void
   readonly onPersistedTabDetected: () => void
+  readonly onHostViewClosed?: () => void
 }
 
 type MountPreparationOutcome =
@@ -560,13 +562,25 @@ export class SidepanelMountManager {
   readonly #title: string
   readonly #notify: (message: string) => void
   readonly #actor: ReturnType<typeof createSidepanelMountActor>
+  readonly #onHostViewClosed: () => void
+  readonly #noopHostViewClosedHandler = (): void => {}
+  readonly #boundHostViewClosedHandler = (): void => {
+    if (this.#disposed) {
+      return
+    }
 
+    this.releaseLifecycleBinding()
+    this.#onHostViewClosed()
+  }
+
+  #lifecycleBoundTab: SidepanelMountTabLike | null = null
   #disposed = false
 
   constructor(input: SidepanelMountManagerInput) {
     this.#host = input.host
     this.#title = input.title
     this.#notify = input.notify
+    this.#onHostViewClosed = input.onHostViewClosed ?? (() => {})
     this.#actor = createSidepanelMountActor(input)
     this.#actor.start()
   }
@@ -588,10 +602,32 @@ export class SidepanelMountManager {
       return
     }
 
+    this.bindLifecycleToTab(tab)
     this.#actor.send({
       type: "ADOPT_PERSISTED_TAB",
       tab,
     })
+  }
+
+  releaseLifecycleBinding(): void {
+    const lifecycleBoundTab = this.#lifecycleBoundTab
+    if (!lifecycleBoundTab) {
+      return
+    }
+
+    if (lifecycleBoundTab.setCloseCallback) {
+      try {
+        lifecycleBoundTab.setCloseCallback(this.#noopHostViewClosedHandler)
+      } catch {
+        // best-effort cleanup only; property fallback below still applies
+      }
+    }
+
+    if (lifecycleBoundTab.onExcalidrawViewClosed === this.#boundHostViewClosedHandler) {
+      lifecycleBoundTab.onExcalidrawViewClosed = undefined
+    }
+
+    this.#lifecycleBoundTab = null
   }
 
   resetAfterClose(): void {
@@ -599,6 +635,7 @@ export class SidepanelMountManager {
       return
     }
 
+    this.releaseLifecycleBinding()
     this.#actor.send({
       type: "RESET_AFTER_CLOSE",
     })
@@ -609,6 +646,7 @@ export class SidepanelMountManager {
       return
     }
 
+    this.releaseLifecycleBinding()
     this.#disposed = true
     this.#actor.stop()
   }
@@ -708,6 +746,26 @@ export class SidepanelMountManager {
     return true
   }
 
+  private bindLifecycleToTab(tab: SidepanelMountTabLike): void {
+    if (this.#disposed || this.#lifecycleBoundTab === tab) {
+      return
+    }
+
+    this.releaseLifecycleBinding()
+
+    if (tab.setCloseCallback) {
+      try {
+        tab.setCloseCallback(this.#boundHostViewClosedHandler)
+      } catch {
+        tab.onExcalidrawViewClosed = this.#boundHostViewClosedHandler
+      }
+    } else {
+      tab.onExcalidrawViewClosed = this.#boundHostViewClosedHandler
+    }
+
+    this.#lifecycleBoundTab = tab
+  }
+
   private ensureSidepanelTab(): {
     readonly tab: SidepanelMountTabLike | null
     readonly failureReason: SidepanelMountFailureReason | null
@@ -793,6 +851,7 @@ export class SidepanelMountManager {
       }
     }
 
+    this.bindLifecycleToTab(tab)
     this.#actor.send({
       type: "REGISTER_ACTIVE_TAB",
       tab,

@@ -486,6 +486,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   #targetViewLossMonitor: ReturnType<typeof setInterval> | null = null
   #targetViewLossMonitorArmed = false
   #targetViewLossConsecutivePolls = 0
+  #handlingHostViewClose = false
   #rowFilterQuery = ""
   #shouldAutofocusRowFilterInput = false
   #cachedRowFilterResult: {
@@ -679,6 +680,9 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       },
       onPersistedTabDetected: () => {
         this.#didPersistTab = true
+      },
+      onHostViewClosed: () => {
+        this.handleHostExcalidrawViewClosed()
       },
     })
 
@@ -1559,54 +1563,56 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     sidepanelTab?.setContent?.("")
   }
 
-  private installSidepanelTabLifecycleHooks(tab: SidepanelTabLike | null | undefined): void {
-    if (!tab) {
+  private handleHostExcalidrawViewClosed(): void {
+    if (this.#handlingHostViewClose) {
       return
     }
 
-    tab.onExcalidrawViewClosed = () => {
-      this.handleHostExcalidrawViewClosed()
-    }
-  }
+    this.#handlingHostViewClose = true
 
-  private handleHostExcalidrawViewClosed(): void {
-    this.debugLifecycle("host excalidraw view closed")
-    this.clearMountedOutput()
+    try {
+      this.debugLifecycle("host excalidraw view closed")
+      this.clearMountedOutput()
+      this.#mountManager.releaseLifecycleBinding()
 
-    let closedWholeSidepanelLeaf = false
-    const sidepanelLeaf = this.#host.getSidepanelLeaf?.()
-    if (sidepanelLeaf?.detach) {
-      try {
-        sidepanelLeaf.detach()
-        closedWholeSidepanelLeaf = true
-      } catch {
-        // fall back to tab-level close below
-      }
-    }
-
-    if (!closedWholeSidepanelLeaf) {
-      if (this.#host.closeSidepanelTab) {
+      let closedWholeSidepanelLeaf = false
+      const sidepanelLeaf = this.#host.getSidepanelLeaf?.()
+      if (sidepanelLeaf?.detach) {
         try {
-          this.#host.closeSidepanelTab()
+          sidepanelLeaf.detach()
+          closedWholeSidepanelLeaf = true
         } catch {
-          // best-effort close only
-        }
-      } else {
-        try {
-          this.#host.sidepanelTab?.close?.()
-        } catch {
-          // best-effort close only
+          // fall back to tab-level close below
         }
       }
-    }
 
-    this.#mountManager.resetAfterClose()
-    this.clearInteractiveBindings()
+      if (!closedWholeSidepanelLeaf) {
+        if (this.#host.closeSidepanelTab) {
+          try {
+            this.#host.closeSidepanelTab()
+          } catch {
+            // best-effort close only
+          }
+        } else {
+          try {
+            this.#host.sidepanelTab?.close?.()
+          } catch {
+            // best-effort close only
+          }
+        }
+      }
+
+      this.#mountManager.resetAfterClose()
+      this.clearInteractiveBindings()
+    } finally {
+      this.#handlingHostViewClose = false
+    }
   }
 
   private failClosedForIneligibleHost(): void {
     this.debugLifecycle("mount failed with reason=hostIneligible")
     this.clearMountedOutput()
+    this.#mountManager.releaseLifecycleBinding()
 
     if (this.#host.closeSidepanelTab) {
       try {
@@ -1639,7 +1645,6 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     }
 
     const { mountStrategy, ownerDocument } = mountPreparation
-    this.installSidepanelTabLifecycleHooks(this.#host.sidepanelTab)
 
     if (!this.#contentRoot || this.#contentRoot.ownerDocument !== ownerDocument) {
       this.#contentRoot?.removeEventListener("keydown", this.#contentKeydownHandler)

@@ -39,7 +39,7 @@ export interface ExcalidrawSidepanelTabLike {
   open?: () => void
   close?: () => void
   getHostEA?: () => unknown
-  onExcalidrawViewClosed?: () => void
+  onExcalidrawViewClosed?: (() => void) | undefined
 }
 
 export interface SidepanelLeafLike {

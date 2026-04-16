@@ -39,6 +39,36 @@ const expectMountedOutputForMode = (
   expect(sidepanelTab.contentEl.children.length).toBeGreaterThan(0)
 }
 
+const makeSetCloseCallbackSidepanelTab = (document: FakeDocument) => {
+  const contentEl = document.createElement("div")
+  const setTitle = vi.fn()
+  const open = vi.fn()
+  const close = vi.fn()
+  let closeCallback: (() => void) | null = null
+
+  const tab = {
+    contentEl: contentEl as unknown as HTMLElement,
+    setTitle,
+    setCloseCallback: vi.fn((callback: () => void) => {
+      closeCallback = callback
+    }),
+    open,
+    close,
+    getHostEA: () => null,
+  }
+
+  return {
+    tab,
+    contentEl,
+    setTitle,
+    open,
+    close,
+    triggerClose: () => {
+      closeCallback?.()
+    },
+  }
+}
+
 const makeHostViewBinding = (viewPath: string, frontmatter: Record<string, unknown> = {}) => {
   const app = {
     metadataCache: {
@@ -296,6 +326,116 @@ describe("sidepanel mount-focused integration", () => {
     })
 
     expect(createSidepanelTab).toHaveBeenCalledTimes(1)
+    expect(host.sidepanelTab).toBe(secondTab.tab)
+    expect(secondTab.contentEl.children.length).toBeGreaterThan(0)
+  })
+
+  it("uses setCloseCallback host lifecycle wiring and remounts after callback-triggered close", () => {
+    const firstTab = makeSetCloseCallbackSidepanelTab(fakeDocument)
+    const secondTab = makeSidepanelTab(fakeDocument, null)
+    const detachLeaf = vi.fn()
+    const createSidepanelTab = vi.fn(() => secondTab.tab)
+    const eligibleBinding = makeHostViewBinding("eligible.excalidraw", {
+      "excalidraw-plugin": "parsed",
+    })
+
+    const host: {
+      sidepanelTab: typeof firstTab.tab | typeof secondTab.tab | null
+      createSidepanelTab: () => typeof secondTab.tab
+      getSidepanelLeaf: () => { detach: ReturnType<typeof vi.fn> }
+      getScriptSettings: () => ScriptSettings
+      targetView: typeof eligibleBinding.targetView
+      app: typeof eligibleBinding.app
+    } = {
+      sidepanelTab: firstTab.tab,
+      createSidepanelTab,
+      getSidepanelLeaf: () => ({
+        detach: detachLeaf,
+      }),
+      getScriptSettings: () => ({}),
+      ...eligibleBinding,
+    }
+
+    const renderer = createExcalidrawSidepanelRenderer(host)
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [makeElementNode("A")],
+      selectedIds: new Set(),
+      sceneVersion: 1,
+    })
+
+    expect(firstTab.tab.setCloseCallback).toHaveBeenCalledTimes(1)
+    expect(firstTab.contentEl.children.length).toBeGreaterThan(0)
+
+    firstTab.triggerClose()
+
+    expect(detachLeaf).toHaveBeenCalledTimes(1)
+    expect(host.sidepanelTab).toBeNull()
+    expect(firstTab.contentEl.children).toHaveLength(0)
+
+    renderer.render({
+      tree: [makeElementNode("B")],
+      selectedIds: new Set(),
+      sceneVersion: 2,
+    })
+
+    expect(createSidepanelTab).toHaveBeenCalledTimes(1)
+    expect(host.sidepanelTab).toBe(secondTab.tab)
+    expect(secondTab.contentEl.children.length).toBeGreaterThan(0)
+  })
+
+  it("clears host close lifecycle wiring from superseded tabs", () => {
+    const firstTab = makeSetCloseCallbackSidepanelTab(fakeDocument)
+    const secondTab = makeSetCloseCallbackSidepanelTab(fakeDocument)
+    const detachLeaf = vi.fn()
+    const eligibleBinding = makeHostViewBinding("eligible.excalidraw", {
+      "excalidraw-plugin": "parsed",
+    })
+
+    const host: {
+      sidepanelTab: typeof firstTab.tab | typeof secondTab.tab | null
+      getSidepanelLeaf: () => { detach: ReturnType<typeof vi.fn> }
+      getScriptSettings: () => ScriptSettings
+      targetView: typeof eligibleBinding.targetView
+      app: typeof eligibleBinding.app
+    } = {
+      sidepanelTab: firstTab.tab,
+      getSidepanelLeaf: () => ({
+        detach: detachLeaf,
+      }),
+      getScriptSettings: () => ({}),
+      ...eligibleBinding,
+    }
+
+    const renderer = createExcalidrawSidepanelRenderer(host)
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [makeElementNode("A")],
+      selectedIds: new Set(),
+      sceneVersion: 1,
+    })
+
+    expect(firstTab.tab.setCloseCallback).toHaveBeenCalledTimes(1)
+
+    host.sidepanelTab = secondTab.tab
+    renderer.render({
+      tree: [makeElementNode("B")],
+      selectedIds: new Set(),
+      sceneVersion: 2,
+    })
+
+    expect(secondTab.tab.setCloseCallback).toHaveBeenCalledTimes(1)
+    expect(secondTab.contentEl.children.length).toBeGreaterThan(0)
+
+    firstTab.triggerClose()
+
+    expect(detachLeaf).not.toHaveBeenCalled()
     expect(host.sidepanelTab).toBe(secondTab.tab)
     expect(secondTab.contentEl.children.length).toBeGreaterThan(0)
   })
