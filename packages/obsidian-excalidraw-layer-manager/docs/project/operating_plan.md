@@ -23,7 +23,7 @@ Today the panel stands in a different place:
 - **Miro-like movement fluidity** is now the clearest remaining gap: destination reading, large-scene reorganization, and review-oriented board navigation still need richer surface support.
 - **Photoshop-like deliberateness** for layer-state control and operator feedback now has stronger row-shell cues, but those cues should compound into larger-scene workflows rather than becoming an end in themselves.
 
-So the live wave is no longer dense-row polish. Two board-scale organization/review packets are now landed: the first made review scope and quick-move destinations legible at board scale, and the second tightened those same review actions under filtered, mixed, and failure states. The next pressure is cutting the next TG4 slice without reopening the landed interaction grammar, dense row-state packet, or newly tightened review-honesty guardrails.
+So the live wave is no longer dense-row polish. Two board-scale organization/review packets are now landed: the first made review scope and quick-move destinations legible at board scale, and the second tightened those same review actions under filtered, mixed, and failure states. An interrupting host-context authority packet is now also complete: Layer Manager no longer treats cached `targetView`, same-file view identity, shell truth, and document-level routing release as separate local patch seams. The next pressure is cutting the next TG4 slice without reopening the landed interaction grammar, dense row-state packet, newly tightened review-honesty guardrails, or the now-closed host-context coordinator cutover.
 
 Operational note: package-level AK direction commands should target the registered alias path `owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager` for the L3 package surface.
 
@@ -68,6 +68,11 @@ TG4 packet-cutting step `task:1088` is now complete history: it translated the b
 - **State:** done
 - **Outcome:** quick-move titles now keep review-scope actions explicit about canonical selected rows, toolbar controls carry the same filtered-scope honesty and disable ungroup-like when mixed structural selections would fail, and filtered quick-move failure coverage now proves remembered destinations stay unchanged until a move actually applies.
 
+### OP9 — Cut over host-context authority and focus-routing release to the coordinator model
+- **AK task:** `task:1519`
+- **State:** done
+- **Outcome:** Layer Manager now routes rebinding through one coordinator-backed host-context model built around cached `ea.targetView`, workspace leaf-change, and sidepanel `onViewChange`; persistent shell states stay explicit as `live`/`inactive`/`unbound`; same-file note-card switches are treated as real view-identity changes; and document-level typing/tabbing ownership releases outside live Excalidraw instead of lingering as stale sidepanel capture.
+
 ## Guardrails for this wave
 
 - selection, focus, anchor, and movement semantics must stay one shared interaction grammar rather than separate local interpretations
@@ -81,5 +86,6 @@ TG4 packet-cutting step `task:1088` is now complete history: it translated the b
 - reopening the recovery packet as if it were still active
 - reopening the professional interaction grammar packet as if multi-selection, host-sync, and drag/drop coherence were still unproven
 - reopening the dense TG3 row packet as if row-state scanability were still the primary product gap
+- reopening the host-context coordinator / focus-routing release packet as if switching truth and outside-routing release were still unresolved primary work
 - jumping ahead to adaptive assistance
 - treating package-level direction adoption as the live product wave now that it is complete
