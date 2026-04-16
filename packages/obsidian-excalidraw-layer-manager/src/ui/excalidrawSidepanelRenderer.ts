@@ -812,6 +812,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.reconcileHostViewContextBeforeRender()
 
     if (
+      hostViewContext.activeWorkspaceViewExcalidraw === false ||
       (hostViewContext.activeFileMetadataAvailable &&
         hostViewContext.activeFileExcalidrawCapable === false) ||
       (hostViewContext.targetViewMetadataAvailable &&
@@ -2602,6 +2603,7 @@ export const createExcalidrawSidepanelRenderer = (
   const hostViewContext = describeHostViewContext(host)
 
   if (
+    hostViewContext.activeWorkspaceViewExcalidraw === false ||
     (hostViewContext.activeFileMetadataAvailable &&
       hostViewContext.activeFileExcalidrawCapable === false) ||
     (hostViewContext.targetViewMetadataAvailable &&
