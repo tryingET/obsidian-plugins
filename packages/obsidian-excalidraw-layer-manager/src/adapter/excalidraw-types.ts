@@ -39,6 +39,11 @@ export interface ExcalidrawSidepanelTabLike {
   open?: () => void
   close?: () => void
   getHostEA?: () => unknown
+  onExcalidrawViewClosed?: () => void
+}
+
+export interface SidepanelLeafLike {
+  detach?: () => void
 }
 
 export interface FileCacheLike {
@@ -91,6 +96,7 @@ export interface EaLike {
     reveal?: boolean,
   ) => ExcalidrawSidepanelTabLike | Promise<ExcalidrawSidepanelTabLike | null> | undefined
   closeSidepanelTab?: () => void
+  getSidepanelLeaf?: () => SidepanelLeafLike | null
   persistSidepanelTab?: () => ExcalidrawSidepanelTabLike | null
   checkForActiveSidepanelTabForScript?: (scriptName?: string) => ExcalidrawSidepanelTabLike | null
   activeScript?: string

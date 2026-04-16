@@ -7,6 +7,7 @@ export interface SidepanelMountTabLike {
   open?: () => void
   close?: () => void
   getHostEA?: () => unknown
+  onExcalidrawViewClosed?: () => void
 }
 
 export interface SidepanelMountHostLike {

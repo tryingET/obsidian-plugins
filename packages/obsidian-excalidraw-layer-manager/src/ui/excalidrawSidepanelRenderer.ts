@@ -1,4 +1,4 @@
-import type { ObsidianAppLike } from "../adapter/excalidraw-types.js"
+import type { ObsidianAppLike, SidepanelLeafLike } from "../adapter/excalidraw-types.js"
 import type { LayerNode } from "../model/tree.js"
 import {
   ConsoleRenderer,
@@ -104,6 +104,7 @@ interface SelectedElementLike {
 
 export interface ExcalidrawSidepanelHost extends SidepanelMountHostLike {
   persistSidepanelTab?: () => SidepanelTabLike | null
+  getSidepanelLeaf?: () => SidepanelLeafLike | null
   getViewSelectedElements?: () => readonly SelectedElementLike[]
   setView?: (view?: unknown, reveal?: boolean) => unknown
   targetView?: unknown | null
@@ -1478,19 +1479,71 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.#dragDropController.clear()
   }
 
-  private failClosedForIneligibleHost(): void {
-    this.debugLifecycle("mount failed with reason=hostIneligible")
-
+  private clearMountedOutput(): void {
     const sidepanelTab = this.#host.sidepanelTab
     const attachedRootParent = this.#contentRoot?.parentElement as HTMLElement | null
 
     if (attachedRootParent) {
       attachedRootParent.innerHTML = ""
-    } else if (sidepanelTab?.contentEl) {
-      sidepanelTab.contentEl.innerHTML = ""
-    } else {
-      sidepanelTab?.setContent?.("")
+      return
     }
+
+    if (sidepanelTab?.contentEl) {
+      sidepanelTab.contentEl.innerHTML = ""
+      return
+    }
+
+    sidepanelTab?.setContent?.("")
+  }
+
+  private installSidepanelTabLifecycleHooks(tab: SidepanelTabLike | null | undefined): void {
+    if (!tab) {
+      return
+    }
+
+    tab.onExcalidrawViewClosed = () => {
+      this.handleHostExcalidrawViewClosed()
+    }
+  }
+
+  private handleHostExcalidrawViewClosed(): void {
+    this.debugLifecycle("host excalidraw view closed")
+    this.clearMountedOutput()
+
+    let closedWholeSidepanelLeaf = false
+    const sidepanelLeaf = this.#host.getSidepanelLeaf?.()
+    if (sidepanelLeaf?.detach) {
+      try {
+        sidepanelLeaf.detach()
+        closedWholeSidepanelLeaf = true
+      } catch {
+        // fall back to tab-level close below
+      }
+    }
+
+    if (!closedWholeSidepanelLeaf) {
+      if (this.#host.closeSidepanelTab) {
+        try {
+          this.#host.closeSidepanelTab()
+        } catch {
+          // best-effort close only
+        }
+      } else {
+        try {
+          this.#host.sidepanelTab?.close?.()
+        } catch {
+          // best-effort close only
+        }
+      }
+    }
+
+    this.#mountManager.resetAfterClose()
+    this.clearInteractiveBindings()
+  }
+
+  private failClosedForIneligibleHost(): void {
+    this.debugLifecycle("mount failed with reason=hostIneligible")
+    this.clearMountedOutput()
 
     if (this.#host.closeSidepanelTab) {
       try {
@@ -1500,7 +1553,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       }
     } else {
       try {
-        sidepanelTab?.close?.()
+        this.#host.sidepanelTab?.close?.()
       } catch {
         // best-effort fail-closed visibility only
       }
@@ -1523,6 +1576,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     }
 
     const { mountStrategy, ownerDocument } = mountPreparation
+    this.installSidepanelTabLifecycleHooks(this.#host.sidepanelTab)
 
     if (!this.#contentRoot || this.#contentRoot.ownerDocument !== ownerDocument) {
       this.#contentRoot?.removeEventListener("keydown", this.#contentKeydownHandler)

@@ -241,6 +241,65 @@ describe("sidepanel mount-focused integration", () => {
     }
   })
 
+  it("detaches the whole sidepanel leaf when the host Excalidraw view closes and remounts on next render", () => {
+    const firstTab = makeSidepanelTab(fakeDocument, null)
+    const secondTab = makeSidepanelTab(fakeDocument, null)
+    const detachLeaf = vi.fn()
+    const createSidepanelTab = vi.fn(() => secondTab.tab)
+    const eligibleBinding = makeHostViewBinding("eligible.excalidraw", {
+      "excalidraw-plugin": "parsed",
+    })
+
+    const host: {
+      sidepanelTab: typeof firstTab.tab | typeof secondTab.tab | null
+      createSidepanelTab: () => typeof secondTab.tab
+      getSidepanelLeaf: () => { detach: ReturnType<typeof vi.fn> }
+      getScriptSettings: () => ScriptSettings
+      targetView: typeof eligibleBinding.targetView
+      app: typeof eligibleBinding.app
+    } = {
+      sidepanelTab: firstTab.tab,
+      createSidepanelTab,
+      getSidepanelLeaf: () => ({
+        detach: detachLeaf,
+      }),
+      getScriptSettings: () => ({}),
+      ...eligibleBinding,
+    }
+
+    const renderer = createExcalidrawSidepanelRenderer(host)
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [makeElementNode("A")],
+      selectedIds: new Set(),
+      sceneVersion: 1,
+    })
+
+    expect(firstTab.contentEl.children.length).toBeGreaterThan(0)
+
+    const firstSidepanelTab = firstTab.tab as typeof firstTab.tab & {
+      onExcalidrawViewClosed?: () => void
+    }
+    firstSidepanelTab.onExcalidrawViewClosed?.()
+
+    expect(detachLeaf).toHaveBeenCalledTimes(1)
+    expect(host.sidepanelTab).toBeNull()
+    expect(firstTab.contentEl.children).toHaveLength(0)
+
+    renderer.render({
+      tree: [makeElementNode("B")],
+      selectedIds: new Set(),
+      sceneVersion: 2,
+    })
+
+    expect(createSidepanelTab).toHaveBeenCalledTimes(1)
+    expect(host.sidepanelTab).toBe(secondTab.tab)
+    expect(secondTab.contentEl.children.length).toBeGreaterThan(0)
+  })
+
   for (const mountCase of SIDEPANEL_MOUNT_MODE_CASES) {
     it(`mount mode parity (${mountCase.label}): attaches through expected host path`, () => {
       const sidepanelTab = makeSidepanelTabForMountMode(fakeDocument, null, mountCase.mountMode)
