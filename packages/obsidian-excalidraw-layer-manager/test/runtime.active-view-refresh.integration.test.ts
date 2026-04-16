@@ -67,6 +67,7 @@ const normalizeDrawingFixture = (
 
 interface MakeRuntimeWithSidepanelOptions {
   readonly disableWorkspaceEvents?: boolean
+  readonly omitEaApp?: boolean
 }
 
 const makeRuntimeWithSidepanel = (
@@ -236,7 +237,7 @@ const makeRuntimeWithSidepanel = (
   })
 
   const ea: EaLike = {
-    app,
+    ...(options.omitEaApp ? {} : { app }),
     targetView: viewByPath.get(activeViewPath) ?? null,
     setView: vi.fn((viewArg?: unknown) => {
       if (viewArg === "active" || viewArg === undefined) {
@@ -485,6 +486,33 @@ describe("runtime active-view refresh", () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  it("derives workspace refresh app from targetView when ea.app is absent", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      {
+        "A.excalidraw": [{ id: "A", type: "rectangle", name: "Alpha", isDeleted: false }],
+        "plain.md": {
+          elements: [],
+          frontmatter: {},
+        },
+      },
+      "A.excalidraw",
+      {
+        omitEaApp: true,
+      },
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+    expect(runtime.sidepanelTab.contentEl.children.length).toBeGreaterThan(0)
+
+    runtime.switchWorkspaceToView("plain.md")
+    runtime.emitWorkspaceEvent("file-open")
+    await flushAsync()
+
+    expect(runtime.sidepanelTab.close).toHaveBeenCalledTimes(1)
+    expect(runtime.sidepanelTab.contentEl.children).toHaveLength(0)
   })
 
   it("remounts cleanly after tearing down an ineligible host view", async () => {

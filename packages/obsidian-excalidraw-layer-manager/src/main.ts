@@ -70,7 +70,13 @@ const ACTIVE_VIEW_BIND_STRATEGIES: readonly {
 const WORKSPACE_ACTIVE_FILE_POLL_MS = 350
 
 const resolveRuntimeApp = (ea: EaLike): ObsidianAppLike | null => {
+  const targetViewApp =
+    ea.targetView && typeof ea.targetView === "object"
+      ? ((ea.targetView as Record<string, unknown>)["app"] ?? null)
+      : null
+
   const candidates = [
+    targetViewApp,
     ea.app,
     ea.obsidian?.app,
     (globalThis as Record<string, unknown>)["app"],
