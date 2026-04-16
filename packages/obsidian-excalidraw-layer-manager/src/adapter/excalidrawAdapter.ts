@@ -59,6 +59,10 @@ const readSettings = (ea: EaLike): LayerManagerSettings => {
   }
 }
 
+const hasExplicitTargetViewProperty = (ea: EaLike): boolean => {
+  return Object.prototype.hasOwnProperty.call(ea, "targetView")
+}
+
 const getCurrentTargetView = (ea: EaLike): unknown => {
   return ea.targetView ?? null
 }
@@ -83,7 +87,7 @@ const ensureTargetView = (ea: EaLike): boolean => {
 
   const setView = ea.setView
   if (!setView) {
-    return true
+    return !hasExplicitTargetViewProperty(ea)
   }
 
   const strategies: readonly {
@@ -107,11 +111,13 @@ const ensureTargetView = (ea: EaLike): boolean => {
     }
   }
 
-  return isUsableTargetView(getCurrentTargetView(ea))
+  return !hasExplicitTargetViewProperty(ea) || isUsableTargetView(getCurrentTargetView(ea))
 }
 
 const readViewElements = (ea: EaLike): readonly RawExcalidrawElement[] => {
-  ensureTargetView(ea)
+  if (!ensureTargetView(ea)) {
+    return []
+  }
 
   try {
     return ea.getViewElements?.() ?? []
@@ -121,7 +127,9 @@ const readViewElements = (ea: EaLike): readonly RawExcalidrawElement[] => {
 }
 
 const readViewSelectedElements = (ea: EaLike): readonly RawExcalidrawElement[] => {
-  ensureTargetView(ea)
+  if (!ensureTargetView(ea)) {
+    return []
+  }
 
   try {
     return ea.getViewSelectedElements?.() ?? []

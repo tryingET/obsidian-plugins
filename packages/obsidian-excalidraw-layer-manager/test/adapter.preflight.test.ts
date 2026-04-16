@@ -45,15 +45,25 @@ const makeMockEa = (
 
   const withElementEditCapabilities = options.withElementEditCapabilities !== false
   let viewBound = options.requireSetViewForReads !== true
+  let targetView: EaLike["targetView"] = viewBound
+    ? {
+        id: "mock-view",
+        _loaded: true,
+      }
+    : null
 
   const setView = vi.fn(() => {
     viewBound = true
-    return {
+    targetView = {
       id: "mock-view",
+      _loaded: true,
     }
+    ea.targetView = targetView
+    return targetView
   })
 
   const ea: EaLike = {
+    targetView,
     setView,
     getViewElements: () => (viewBound ? elements : []),
     getViewSelectedElements: () => (viewBound ? [] : []),
@@ -149,7 +159,7 @@ describe("applyPatch adapter preflight", () => {
     expect(snapshot.elements.map((element) => element.id)).toEqual(["A"])
   })
 
-  it("returns empty snapshot when setView cannot bind targetView and view reads throw", () => {
+  it("fail-stops snapshot reads when explicit targetView cannot be rebound", () => {
     const getViewElements = vi.fn(() => {
       throw new Error("targetView not set")
     })
@@ -167,10 +177,54 @@ describe("applyPatch adapter preflight", () => {
     const snapshot = readSnapshot(ea)
 
     expect(ea.setView).toHaveBeenCalled()
-    expect(getViewElements).toHaveBeenCalledTimes(1)
-    expect(getViewSelectedElements).toHaveBeenCalledTimes(1)
+    expect(getViewElements).not.toHaveBeenCalled()
+    expect(getViewSelectedElements).not.toHaveBeenCalled()
     expect(snapshot.elements).toEqual([])
     expect(snapshot.selectedIds.size).toBe(0)
+  })
+
+  it("fail-stops snapshot reads when explicit targetView stays unloaded after rebinding attempts", () => {
+    const getViewElements = vi.fn(() => {
+      throw new Error("targetView not loaded")
+    })
+    const getViewSelectedElements = vi.fn(() => {
+      throw new Error("targetView not loaded")
+    })
+
+    const ea: EaLike = {
+      targetView: {
+        _loaded: false,
+      },
+      setView: vi.fn(() => ({
+        _loaded: false,
+      })),
+      getViewElements,
+      getViewSelectedElements,
+    }
+
+    const snapshot = readSnapshot(ea)
+
+    expect(ea.setView).toHaveBeenCalled()
+    expect(getViewElements).not.toHaveBeenCalled()
+    expect(getViewSelectedElements).not.toHaveBeenCalled()
+    expect(snapshot.elements).toEqual([])
+    expect(snapshot.selectedIds.size).toBe(0)
+  })
+
+  it("preserves legacy snapshot reads when no explicit targetView property exists", () => {
+    const getViewElements = vi.fn(() => [{ id: "A", type: "rectangle" }])
+    const getViewSelectedElements = vi.fn(() => [])
+
+    const ea: EaLike = {
+      getViewElements,
+      getViewSelectedElements,
+    }
+
+    const snapshot = readSnapshot(ea)
+
+    expect(getViewElements).toHaveBeenCalledTimes(1)
+    expect(getViewSelectedElements).toHaveBeenCalledTimes(1)
+    expect(snapshot.elements.map((element) => element.id)).toEqual(["A"])
   })
 
   it("does not rescue snapshot reads through first-view fallback", () => {
@@ -202,6 +256,32 @@ describe("applyPatch adapter preflight", () => {
     expect(snapshot.selectedIds.size).toBe(0)
     expect(ea.setView).not.toHaveBeenCalledWith("first", false)
     expect(ea.setView).not.toHaveBeenCalledWith("first", true)
+  })
+
+  it("fail-stops patch preflight reads when explicit targetView cannot be rebound", async () => {
+    const getViewElements = vi.fn(() => {
+      throw new Error("targetView not set")
+    })
+    const updateScene = vi.fn()
+
+    const ea: EaLike = {
+      targetView: null,
+      setView: vi.fn(() => null),
+      getViewElements,
+      getExcalidrawAPI: () => ({ updateScene }),
+    }
+
+    const outcome = await applyPatch(ea, {
+      elementPatches: [],
+      reorder: {
+        orderedElementIds: ["A"],
+      },
+    })
+
+    expect(ea.setView).toHaveBeenCalled()
+    expect(getViewElements).not.toHaveBeenCalled()
+    expect(updateScene).not.toHaveBeenCalled()
+    expect(outcome.status).toBe("preflightFailed")
   })
 
   it("R01 — aborts before writes when patch references missing IDs", async () => {
