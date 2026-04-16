@@ -212,6 +212,41 @@ describe("sidepanel host-context coordinator", () => {
     expect(result.snapshot.shouldAttemptRebind).toBe(false)
   })
 
+  it("keeps the binding key stable when the sidepanel leaf becomes active but the bound targetView and file stay the same", () => {
+    const harness = makeHostHarness(
+      [
+        makeViewFixture("A.excalidraw", {
+          filePath: "A.excalidraw",
+          viewId: "A.excalidraw:view",
+          leafId: "A.excalidraw:leaf",
+        }),
+        makeViewFixture("sidepanel", {
+          filePath: "A.excalidraw",
+          viewId: "sidepanel:view",
+          leafId: "sidepanel:leaf",
+          viewType: "sidepanel",
+        }),
+      ],
+      "A.excalidraw",
+    )
+
+    const coordinator = new SidepanelHostContextCoordinator(harness.host)
+    const before = coordinator.getSnapshot()
+
+    harness.setActiveView("sidepanel")
+    const result = coordinator.handleWorkspaceLeafChange()
+
+    expect(result.rebound).toBe(false)
+    expect(result.changed).toBe(false)
+    expect(harness.setView).not.toHaveBeenCalled()
+    expect(result.snapshot.bindingKey).toBe(before.bindingKey)
+    expect(result.snapshot.targetViewIdentity).toBe(before.targetViewIdentity)
+    expect(result.snapshot.activeFilePath).toBe(before.activeFilePath)
+    expect(result.snapshot.activeLeafIdentity).toBe("sidepanel:leaf")
+    expect(result.snapshot.activeViewType).toBe("sidepanel")
+    expect(result.snapshot.state).toBe("live")
+  })
+
   it("derives an inactive shell state without attempting rebind when the active leaf is not Excalidraw", () => {
     const harness = makeHostHarness(
       [

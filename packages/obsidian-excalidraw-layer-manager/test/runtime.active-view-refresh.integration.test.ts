@@ -7,6 +7,7 @@ import {
   FakeDocument,
   type FakeDomElement,
   FakeDomEvent,
+  dispatchKeydown,
   findFocusedInteractiveRow,
   findInteractiveRowByLabel,
   findRowFilterInput,
@@ -599,6 +600,83 @@ describe("runtime active-view refresh", () => {
       expect.arrayContaining([expect.stringMatching(/Gamma|Delta/)]),
     )
     expect(focusedRowLabel).not.toContain("Alpha")
+  })
+
+  it("does not reset row focus when the sidepanel leaf becomes active but the bound Excalidraw targetView stays the same", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      {
+        "A.excalidraw": [
+          { id: "A", type: "rectangle", name: "Alpha", isDeleted: false },
+          { id: "B", type: "rectangle", name: "Beta", isDeleted: false },
+        ],
+        sidepanel: {
+          filePath: "A.excalidraw",
+          viewId: "sidepanel:view",
+          leafId: "sidepanel:leaf",
+          viewType: "sidepanel",
+          frontmatter: {
+            "excalidraw-plugin": "parsed",
+          },
+          elements: [],
+          bindTargetView: false,
+        },
+      },
+      "A.excalidraw",
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+
+    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const alphaRow = findInteractiveRowByLabel(contentRoot, "[element] Alpha")
+    if (!alphaRow) {
+      throw new Error("Expected Alpha row before sidepanel leaf focus transition.")
+    }
+
+    alphaRow.click()
+    await flushAsync()
+
+    runtime.switchWorkspaceToView("sidepanel")
+    runtime.emitWorkspaceEvent("active-leaf-change")
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const focusedRowBeforeArrow = findFocusedInteractiveRow(contentRoot)
+    const focusedRowBeforeArrowLabel = (
+      focusedRowBeforeArrow as (FakeDomElement & { ariaLabel?: string }) | undefined
+    )?.ariaLabel
+
+    expect(focusedRowBeforeArrowLabel).toContain("Alpha")
+
+    const rowsBeforeArrow = getInteractiveRows(contentRoot)
+    const focusedIndexBeforeArrow = rowsBeforeArrow.findIndex(
+      (row) =>
+        ((row as FakeDomElement & { ariaLabel?: string }).ariaLabel ?? "") ===
+        focusedRowBeforeArrowLabel,
+    )
+    expect(focusedIndexBeforeArrow).toBeGreaterThanOrEqual(0)
+
+    const moveKey = focusedIndexBeforeArrow >= rowsBeforeArrow.length - 1 ? "ArrowUp" : "ArrowDown"
+
+    dispatchKeydown(contentRoot, moveKey)
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const focusedRowAfterArrow = findFocusedInteractiveRow(contentRoot)
+    const focusedRowAfterArrowLabel = (
+      focusedRowAfterArrow as (FakeDomElement & { ariaLabel?: string }) | undefined
+    )?.ariaLabel
+
+    const rowsAfterArrow = getInteractiveRows(contentRoot)
+    const focusedIndexAfterArrow = rowsAfterArrow.findIndex(
+      (row) =>
+        ((row as FakeDomElement & { ariaLabel?: string }).ariaLabel ?? "") ===
+        focusedRowAfterArrowLabel,
+    )
+
+    expect(focusedRowAfterArrowLabel).toBeDefined()
+    expect(focusedIndexAfterArrow).toBeGreaterThanOrEqual(0)
+    expect(focusedIndexAfterArrow).not.toBe(focusedIndexBeforeArrow)
   })
 
   it("treats same-file targetView identity switches in both directions as active-view changes even when file path and leaf stay stable", async () => {

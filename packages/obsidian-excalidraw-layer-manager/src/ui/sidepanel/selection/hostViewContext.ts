@@ -478,14 +478,8 @@ export const resolveHostViewContextKeyFromObservation = (
   const targetViewIdentityKey = description.targetViewIdentity
     ? `view:${description.targetViewIdentity}`
     : "view:none"
-  const activeLeafIdentityKey = description.activeWorkspaceLeafIdentity
-    ? `active-leaf:${description.activeWorkspaceLeafIdentity}`
-    : "active-leaf:none"
-  const activeWorkspaceViewTypeKey = description.activeWorkspaceViewType
-    ? `active-view:${description.activeWorkspaceViewType}`
-    : "active-view:none"
 
-  return `${targetPresenceKey}::${targetFileKey}::${activeFileKey}::${targetViewIdentityKey}::${activeLeafIdentityKey}::${activeWorkspaceViewTypeKey}::eligibility:${resolveHostViewContextEligibilityKey(description)}`
+  return `${targetPresenceKey}::${targetFileKey}::${activeFileKey}::${targetViewIdentityKey}::eligibility:${resolveHostViewContextEligibilityKey(description)}`
 }
 
 export const resolveHostViewContextKey = (host: SidepanelHostViewContextHost): string => {
