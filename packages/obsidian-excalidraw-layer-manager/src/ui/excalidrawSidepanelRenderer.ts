@@ -1506,8 +1506,9 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         return
       }
 
-      this.debugLifecycle("host targetView became unusable")
-      this.handleHostExcalidrawViewClosed()
+      this.#targetViewLossConsecutivePolls = 0
+      this.debugLifecycle("host targetView became unusable; re-rendering latest model")
+      this.requestRenderFromLatestModel()
     }, TARGET_VIEW_LOSS_POLL_MS)
   }
 
