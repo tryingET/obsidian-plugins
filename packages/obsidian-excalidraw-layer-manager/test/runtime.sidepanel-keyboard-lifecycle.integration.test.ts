@@ -560,7 +560,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect(app.getSnapshot().elements.some((element) => element.id === "C")).toBe(true)
   })
 
-  it("keeps render stable when view rebinding cannot be confirmed and live-selection read stays unreachable", () => {
+  it("renders an explicit unbound state when view rebinding cannot be confirmed", () => {
     const sidepanelTab = makeSidepanelTab(fakeDocument, null)
     const getViewSelectedElements = vi.fn(() => {
       throw new Error("targetView not set")
@@ -587,10 +587,17 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect(getViewSelectedElements).not.toHaveBeenCalled()
 
     const contentRoot = getContentRoot(sidepanelTab.contentEl)
-    const selectedRows = flattenElements(contentRoot).filter(
-      (element) => element.tagName === "DIV" && (element.style["background"]?.length ?? 0) > 0,
+    expect(findRowTreeRoot(contentRoot)).toBeUndefined()
+    expect(findRowFilterInput(contentRoot)).toBeUndefined()
+
+    const textFragments = flattenElements(contentRoot).map((element) => element.textContent ?? "")
+    expect(textFragments).toEqual(
+      expect.arrayContaining([
+        "Layer Manager unbound",
+        "No active Excalidraw view is currently bound.",
+        "Focus an Excalidraw view to resume live Layer Manager interaction.",
+      ]),
     )
-    expect(selectedRows).toHaveLength(1)
   })
 
   it("autofocuses sidepanel content root on initial mount and after close/reopen", async () => {

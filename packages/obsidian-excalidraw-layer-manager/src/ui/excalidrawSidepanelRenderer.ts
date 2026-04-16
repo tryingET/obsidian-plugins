@@ -56,6 +56,7 @@ import { renderSidepanelRowTree } from "./sidepanel/render/rowTreeRenderer.js"
 import { renderSidepanelToolbar } from "./sidepanel/render/toolbarRenderer.js"
 import { SidepanelHostSelectionBridge } from "./sidepanel/selection/hostSelectionBridge.js"
 import {
+  type SidepanelHostViewContextDescription,
   describeHostViewContext,
   ensureHostViewContext,
   ensureHostViewContextState,
@@ -811,13 +812,8 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     const hostViewContext = describeHostViewContext(this.#host)
     this.reconcileHostViewContextBeforeRender()
 
-    if (
-      (hostViewContext.activeFileMetadataAvailable &&
-        hostViewContext.activeFileExcalidrawCapable === false) ||
-      (hostViewContext.targetViewMetadataAvailable &&
-        hostViewContext.targetViewExcalidrawCapable === false)
-    ) {
-      this.failClosedForIneligibleHost()
+    if (!hostViewContext.hostEligible) {
+      this.renderInactiveHostState(hostViewContext, model)
       return
     }
 
@@ -1613,13 +1609,91 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     }
   }
 
-  private failClosedForIneligibleHost(): void {
-    this.debugLifecycle("mount failed with reason=hostIneligible")
-    this.clearMountedOutput()
-    this.#mountManager.releaseLifecycleBinding()
-    this.closeSidepanelPresentation()
-    this.#mountManager.resetAfterClose()
-    this.clearInteractiveBindings()
+  private resolveInactiveHostPresentation(hostViewContext: SidepanelHostViewContextDescription): {
+    readonly title: string
+    readonly detail: string
+    readonly hint: string
+  } {
+    if (
+      hostViewContext.activeFileMetadataAvailable &&
+      hostViewContext.activeFileExcalidrawCapable === false
+    ) {
+      return {
+        title: "Layer Manager inactive",
+        detail: "Active leaf is not Excalidraw.",
+        hint: "Focus an Excalidraw view to resume live Layer Manager interaction.",
+      }
+    }
+
+    if (
+      hostViewContext.targetViewMetadataAvailable &&
+      hostViewContext.targetViewExcalidrawCapable === false
+    ) {
+      return {
+        title: "Layer Manager inactive",
+        detail: "Bound host view is not Excalidraw.",
+        hint: "Focus an Excalidraw view to resume live Layer Manager interaction.",
+      }
+    }
+
+    return {
+      title: "Layer Manager unbound",
+      detail: "No active Excalidraw view is currently bound.",
+      hint: "Focus an Excalidraw view to resume live Layer Manager interaction.",
+    }
+  }
+
+  private renderInactiveHostState(
+    hostViewContext: SidepanelHostViewContextDescription,
+    model: RenderViewModel,
+  ): void {
+    this.debugLifecycle("rendering inactive sidepanel state")
+    this.resetForInactiveHostState()
+
+    const contentRoot = this.ensureContentRoot()
+    if (!contentRoot) {
+      this.#fallbackRenderer.render({
+        ...model,
+        tree: [],
+        selectedIds: new Set<string>(),
+      })
+      return
+    }
+
+    const presentation = this.resolveInactiveHostPresentation(hostViewContext)
+    const ownerDocument = contentRoot.ownerDocument
+    contentRoot.innerHTML = ""
+    this.#rowTreeRoot = null
+
+    const statusCard = ownerDocument.createElement("div")
+    statusCard.style.display = "flex"
+    statusCard.style.flexDirection = "column"
+    statusCard.style.gap = "6px"
+    statusCard.style.padding = "10px"
+    statusCard.style.border = "1px solid rgba(127, 127, 127, 0.35)"
+    statusCard.style.borderRadius = "8px"
+    statusCard.style.background = "rgba(127, 127, 127, 0.08)"
+
+    const title = ownerDocument.createElement("div")
+    title.textContent = presentation.title
+    title.style.fontSize = "12px"
+    title.style.fontWeight = "600"
+
+    const detail = ownerDocument.createElement("div")
+    detail.textContent = presentation.detail
+    detail.style.fontSize = "11px"
+    detail.style.lineHeight = "1.4"
+
+    const hint = ownerDocument.createElement("div")
+    hint.textContent = presentation.hint
+    hint.style.fontSize = "11px"
+    hint.style.lineHeight = "1.4"
+    hint.style.opacity = "0.85"
+
+    statusCard.appendChild(title)
+    statusCard.appendChild(detail)
+    statusCard.appendChild(hint)
+    contentRoot.appendChild(statusCard)
   }
 
   private ensureContentRoot(): HTMLElement | null {
@@ -1769,7 +1843,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     return assistiveLabel
   }
 
-  private resetForHostViewContextChange(): void {
+  private resetForViewContextBoundary(): void {
     this.#hostSelectionBridge.invalidatePendingSelectionMirror()
     this.cancelDeferredFocusRestore()
     this.#keyboardContext = null
@@ -1789,7 +1863,16 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.#inlineRenameController.clear()
     this.#dragDropController.clear()
     this.#focusOwnership.reset()
+  }
+
+  private resetForHostViewContextChange(): void {
+    this.resetForViewContextBoundary()
     this.requestRowTreeAutofocus()
+  }
+
+  private resetForInactiveHostState(): void {
+    this.resetForViewContextBoundary()
+    this.stopTargetViewLossMonitor()
   }
 
   private reconcileHostViewContextBeforeRender(): void {

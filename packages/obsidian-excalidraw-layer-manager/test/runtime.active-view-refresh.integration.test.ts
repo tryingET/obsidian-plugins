@@ -10,8 +10,11 @@ import {
   findFocusedInteractiveRow,
   findInteractiveRowByLabel,
   findRowFilterInput,
+  findRowTreeRoot,
+  flattenElements,
   flushAsync,
   getContentRoot,
+  getInteractiveRows,
   getSelectedRows,
   makeSidepanelTab,
 } from "./sidepanelTestHarness.js"
@@ -22,6 +25,22 @@ const cloneElement = (element: RawExcalidrawElement): RawExcalidrawElement => ({
   groupIds: [...(element.groupIds ?? [])],
   customData: { ...(element.customData ?? {}) },
 })
+
+const expectInactiveSidepanelState = (contentRoot: FakeDomElement, detail: string): void => {
+  expect(getInteractiveRows(contentRoot)).toHaveLength(0)
+  expect(getSelectedRows(contentRoot)).toHaveLength(0)
+  expect(findRowTreeRoot(contentRoot)).toBeUndefined()
+  expect(findRowFilterInput(contentRoot)).toBeUndefined()
+
+  const textFragments = flattenElements(contentRoot).map((element) => element.textContent ?? "")
+  expect(textFragments).toEqual(
+    expect.arrayContaining([
+      "Layer Manager inactive",
+      detail,
+      "Focus an Excalidraw view to resume live Layer Manager interaction.",
+    ]),
+  )
+}
 
 interface RuntimeWithSidepanel {
   readonly ea: EaLike
@@ -481,7 +500,7 @@ describe("runtime active-view refresh", () => {
     expect(getSelectedRows(contentRoot)).toHaveLength(0)
   })
 
-  it("closes and clears the sidepanel when the active note is not Excalidraw-capable", async () => {
+  it("renders an explicit inactive state when the active note is not Excalidraw-capable", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
       {
@@ -502,8 +521,11 @@ describe("runtime active-view refresh", () => {
     app.refresh()
     await flushAsync()
 
-    expect(runtime.detachLeaf).toHaveBeenCalledTimes(1)
-    expect(runtime.sidepanelTab.contentEl.children).toHaveLength(0)
+    expect(runtime.detachLeaf).not.toHaveBeenCalled()
+    expectInactiveSidepanelState(
+      getContentRoot(runtime.sidepanelTab.contentEl),
+      "Active leaf is not Excalidraw.",
+    )
   })
 
   it("auto-refreshes host applicability from workspace note changes", async () => {
@@ -530,8 +552,11 @@ describe("runtime active-view refresh", () => {
     runtime.emitWorkspaceEvent("file-open")
     await flushAsync()
 
-    expect(runtime.detachLeaf).toHaveBeenCalledTimes(1)
-    expect(runtime.sidepanelTab.contentEl.children).toHaveLength(0)
+    expect(runtime.detachLeaf).not.toHaveBeenCalled()
+    expectInactiveSidepanelState(
+      getContentRoot(runtime.sidepanelTab.contentEl),
+      "Active leaf is not Excalidraw.",
+    )
 
     runtime.switchWorkspaceToView("A.excalidraw")
     runtime.emitWorkspaceEvent("active-leaf-change")
@@ -568,8 +593,11 @@ describe("runtime active-view refresh", () => {
       await vi.advanceTimersByTimeAsync(500)
       await flushAsync()
 
-      expect(runtime.detachLeaf).toHaveBeenCalledTimes(1)
-      expect(runtime.sidepanelTab.contentEl.children).toHaveLength(0)
+      expect(runtime.detachLeaf).not.toHaveBeenCalled()
+      expectInactiveSidepanelState(
+        getContentRoot(runtime.sidepanelTab.contentEl),
+        "Active leaf is not Excalidraw.",
+      )
 
       runtime.switchWorkspaceToView("A.excalidraw")
       await vi.advanceTimersByTimeAsync(500)
@@ -606,8 +634,11 @@ describe("runtime active-view refresh", () => {
     runtime.emitWorkspaceEvent("file-open")
     await flushAsync()
 
-    expect(runtime.detachLeaf).toHaveBeenCalledTimes(1)
-    expect(runtime.sidepanelTab.contentEl.children).toHaveLength(0)
+    expect(runtime.detachLeaf).not.toHaveBeenCalled()
+    expectInactiveSidepanelState(
+      getContentRoot(runtime.sidepanelTab.contentEl),
+      "Active leaf is not Excalidraw.",
+    )
   })
 
   it("does not call getExcalidrawAPI wrapper when targetView is unavailable during refresh", async () => {
@@ -633,7 +664,7 @@ describe("runtime active-view refresh", () => {
     expect(runtime.getExcalidrawAPI).not.toHaveBeenCalled()
   })
 
-  it("remounts cleanly after tearing down an ineligible host view", async () => {
+  it("reactivates cleanly after rendering an inactive host view state", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
       {
@@ -654,7 +685,7 @@ describe("runtime active-view refresh", () => {
     let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
     const alphaRow = findInteractiveRowByLabel(contentRoot, "[element] Alpha")
     if (!alphaRow) {
-      throw new Error("Expected Alpha row before ineligible-host teardown.")
+      throw new Error("Expected Alpha row before inactive-host transition.")
     }
 
     alphaRow.click()
@@ -667,8 +698,11 @@ describe("runtime active-view refresh", () => {
     app.refresh()
     await flushAsync()
 
-    expect(runtime.detachLeaf).toHaveBeenCalledTimes(1)
-    expect(runtime.sidepanelTab.contentEl.children).toHaveLength(0)
+    expect(runtime.detachLeaf).not.toHaveBeenCalled()
+    expectInactiveSidepanelState(
+      getContentRoot(runtime.sidepanelTab.contentEl),
+      "Active leaf is not Excalidraw.",
+    )
 
     runtime.switchToView("A.excalidraw")
     app.refresh()
