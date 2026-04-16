@@ -41,11 +41,26 @@ export interface ExcalidrawSidepanelTabLike {
   getHostEA?: () => unknown
 }
 
+export interface FileCacheLike {
+  frontmatter?: Record<string, unknown>
+}
+
+export interface MetadataCacheLike {
+  getFileCache?: (file: unknown) => FileCacheLike | null | undefined
+}
+
+export interface ObsidianAppLike {
+  metadataCache?: MetadataCacheLike
+}
+
 export interface ObsidianLike {
   Notice?: new (message: string, timeout?: number) => unknown
+  getIcon?: (iconName: string) => HTMLElement | null
+  app?: ObsidianAppLike
 }
 
 export interface EaLike {
+  app?: ObsidianAppLike
   getViewElements?: () => RawExcalidrawElement[]
   getViewSelectedElements?: () => RawExcalidrawElement[]
   setView?: (view?: unknown, reveal?: boolean) => unknown

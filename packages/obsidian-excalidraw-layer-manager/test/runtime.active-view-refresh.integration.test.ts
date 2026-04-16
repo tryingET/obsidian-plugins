@@ -29,22 +29,85 @@ interface RuntimeWithSidepanel {
   readonly switchToView: (viewPath: string) => void
 }
 
+type DrawingFixture =
+  | readonly RawExcalidrawElement[]
+  | {
+      readonly elements: readonly RawExcalidrawElement[]
+      readonly frontmatter?: Record<string, unknown>
+    }
+
+const isArrayDrawingFixture = (
+  fixture: DrawingFixture,
+): fixture is readonly RawExcalidrawElement[] => {
+  return Array.isArray(fixture)
+}
+
+const normalizeDrawingFixture = (
+  fixture: DrawingFixture,
+): {
+  readonly elements: readonly RawExcalidrawElement[]
+  readonly frontmatter: Record<string, unknown>
+} => {
+  if (isArrayDrawingFixture(fixture)) {
+    return {
+      elements: fixture,
+      frontmatter: {
+        "excalidraw-plugin": "parsed",
+      },
+    }
+  }
+
+  return {
+    elements: fixture.elements,
+    frontmatter: fixture.frontmatter ?? {},
+  }
+}
+
 const makeRuntimeWithSidepanel = (
   document: FakeDocument,
-  input: Record<string, readonly RawExcalidrawElement[]>,
+  input: Record<string, DrawingFixture>,
   initialViewPath: string,
 ): RuntimeWithSidepanel => {
+  const normalizedByPath = new Map(
+    Object.entries(input).map(([viewPath, fixture]) => [
+      viewPath,
+      normalizeDrawingFixture(fixture),
+    ]),
+  )
   const drawingByPath = new Map(
-    Object.entries(input).map(([viewPath, elements]) => [
+    [...normalizedByPath.entries()].map(([viewPath, fixture]) => [
       viewPath,
       {
-        elements: elements.map(cloneElement),
+        elements: fixture.elements.map(cloneElement),
         selectedIds: new Set<string>(),
       },
     ]),
   )
+  const app = {
+    metadataCache: {
+      getFileCache: (file: unknown) => {
+        const path =
+          file && typeof file === "object" && typeof (file as { path?: unknown }).path === "string"
+            ? ((file as { path: string }).path as string)
+            : null
+
+        if (!path) {
+          return null
+        }
+
+        const fixture = normalizedByPath.get(path)
+        if (!fixture) {
+          return null
+        }
+
+        return {
+          frontmatter: fixture.frontmatter,
+        }
+      },
+    },
+  }
   const viewByPath = new Map(
-    Object.keys(input).map((viewPath) => [
+    [...normalizedByPath.keys()].map((viewPath) => [
       viewPath,
       {
         id: viewPath,
@@ -52,6 +115,7 @@ const makeRuntimeWithSidepanel = (
         file: {
           path: viewPath,
         },
+        app,
       },
     ]),
   )
@@ -117,6 +181,7 @@ const makeRuntimeWithSidepanel = (
   })
 
   const ea: EaLike = {
+    app,
     targetView: viewByPath.get(currentViewPath) ?? null,
     setView: vi.fn(() => ea.targetView),
     getViewElements: () => getCurrentDrawing().elements,
@@ -250,5 +315,30 @@ describe("runtime active-view refresh", () => {
       expect.arrayContaining([expect.stringMatching(/Gamma|Delta/)]),
     )
     expect(focusedRowLabel).not.toContain("Alpha")
+  })
+
+  it("closes and clears the sidepanel when the active note is not Excalidraw-capable", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      {
+        "A.excalidraw": [{ id: "A", type: "rectangle", name: "Alpha", isDeleted: false }],
+        "plain.md": {
+          elements: [],
+          frontmatter: {},
+        },
+      },
+      "A.excalidraw",
+    )
+
+    const app = createLayerManagerRuntime(runtime.ea)
+
+    expect(runtime.sidepanelTab.contentEl.children.length).toBeGreaterThan(0)
+
+    runtime.switchToView("plain.md")
+    app.refresh()
+    await flushAsync()
+
+    expect(runtime.sidepanelTab.close).toHaveBeenCalledTimes(1)
+    expect(runtime.sidepanelTab.contentEl.children).toHaveLength(0)
   })
 })

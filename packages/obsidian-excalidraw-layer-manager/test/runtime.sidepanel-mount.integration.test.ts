@@ -39,6 +39,37 @@ const expectMountedOutputForMode = (
   expect(sidepanelTab.contentEl.children.length).toBeGreaterThan(0)
 }
 
+const makeHostViewBinding = (viewPath: string, frontmatter: Record<string, unknown> = {}) => {
+  const app = {
+    metadataCache: {
+      getFileCache: (file: unknown) => {
+        if (
+          !file ||
+          typeof file !== "object" ||
+          typeof (file as { path?: unknown }).path !== "string"
+        ) {
+          return null
+        }
+
+        return {
+          frontmatter,
+        }
+      },
+    },
+  }
+
+  return {
+    app,
+    targetView: {
+      _loaded: true,
+      file: {
+        path: viewPath,
+      },
+      app,
+    },
+  }
+}
+
 describe("sidepanel mount-focused integration", () => {
   const globalRecord = globalThis as Record<string, unknown>
 
@@ -61,6 +92,20 @@ describe("sidepanel mount-focused integration", () => {
     }
 
     Reflect.deleteProperty(globalRecord, "document")
+  })
+
+  it("returns null when the active note metadata is not Excalidraw-capable", () => {
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    const host = {
+      sidepanelTab: sidepanelTab.tab,
+      createSidepanelTab: () => sidepanelTab.tab,
+      getScriptSettings: () => ({}),
+      ...makeHostViewBinding("plain.md", {}),
+    }
+
+    const renderer = createExcalidrawSidepanelRenderer(host)
+
+    expect(renderer).toBeNull()
   })
 
   for (const mountCase of SIDEPANEL_MOUNT_MODE_CASES) {

@@ -1,3 +1,4 @@
+import type { ObsidianAppLike } from "../adapter/excalidraw-types.js"
 import type { LayerNode } from "../model/tree.js"
 import {
   ConsoleRenderer,
@@ -57,6 +58,8 @@ import { SidepanelHostSelectionBridge } from "./sidepanel/selection/hostSelectio
 import {
   describeHostViewContext,
   ensureHostViewContext,
+  ensureHostViewContextState,
+  resolveHostViewContextKey,
 } from "./sidepanel/selection/hostViewContext.js"
 import { collectVisibleNodeContext } from "./sidepanel/selection/nodeContext.js"
 import { resolveRowClickSelection } from "./sidepanel/selection/rowClickSelection.js"
@@ -81,6 +84,7 @@ type SidepanelTabLike = SidepanelMountTabLike
 interface ObsidianLike {
   Notice?: new (message: string, timeout?: number) => unknown
   getIcon?: (iconName: string) => HTMLElement | null
+  app?: ObsidianAppLike
 }
 
 interface RenderedRowPreviewState {
@@ -103,6 +107,7 @@ export interface ExcalidrawSidepanelHost extends SidepanelMountHostLike {
   getViewSelectedElements?: () => readonly SelectedElementLike[]
   setView?: (view?: unknown, reveal?: boolean) => unknown
   targetView?: unknown | null
+  app?: ObsidianAppLike
   selectElementsInView?: (ids: string[]) => void
   getExcalidrawAPI?: () => unknown
   getScriptSettings?: () => ScriptSettingsLike
@@ -372,23 +377,6 @@ const resolveElementScrollHeight = (element: HTMLElement): number => {
 
 const resolveElementScrollTop = (element: HTMLElement): number => {
   return readNumericDimension((element as unknown as { readonly scrollTop?: unknown }).scrollTop)
-}
-
-const resolveTargetViewContextKey = (targetView: unknown): string => {
-  if (!targetView || typeof targetView !== "object") {
-    return "target:null"
-  }
-
-  const targetViewRecord = targetView as Record<string, unknown>
-  const fileCandidate = targetViewRecord["file"]
-  const filePath =
-    fileCandidate &&
-    typeof fileCandidate === "object" &&
-    typeof (fileCandidate as Record<string, unknown>)["path"] === "string"
-      ? ((fileCandidate as Record<string, unknown>)["path"] as string)
-      : null
-
-  return filePath ? `target:file:${filePath}` : "target:unknown-file"
 }
 
 const runUiAction = (
@@ -805,7 +793,18 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
 
   render(model: RenderViewModel): void {
     this.#latestModel = model
+
+    ensureHostViewContextState(this.#host)
+    const hostViewContext = describeHostViewContext(this.#host)
     this.reconcileHostViewContextBeforeRender()
+
+    if (
+      hostViewContext.targetViewMetadataAvailable &&
+      hostViewContext.targetViewExcalidrawCapable === false
+    ) {
+      this.failClosedForIneligibleHost()
+      return
+    }
 
     const contentRoot = this.ensureContentRoot()
     if (!contentRoot) {
@@ -934,7 +933,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
 
     this.renderRowFilterControls(contentRoot, ownerDocument, rowFilter)
 
-    renderSidepanelToolbar({
+    const toolbar = renderSidepanelToolbar({
       container: contentRoot,
       ownerDocument,
       hasActions: !!model.actions,
@@ -1005,6 +1004,10 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         this.clearInteractiveBindings()
       },
     })
+
+    if (!model.actions) {
+      toolbar.style.background = ""
+    }
 
     renderSidepanelQuickMove({
       container: contentRoot,
@@ -1470,6 +1473,38 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.#dragDropController.clear()
   }
 
+  private failClosedForIneligibleHost(): void {
+    this.debugLifecycle("mount failed with reason=hostIneligible")
+
+    const sidepanelTab = this.#host.sidepanelTab
+    const attachedRootParent = this.#contentRoot?.parentElement as HTMLElement | null
+
+    if (attachedRootParent) {
+      attachedRootParent.innerHTML = ""
+    } else if (sidepanelTab?.contentEl) {
+      sidepanelTab.contentEl.innerHTML = ""
+    } else {
+      sidepanelTab?.setContent?.("")
+    }
+
+    if (this.#host.closeSidepanelTab) {
+      try {
+        this.#host.closeSidepanelTab()
+      } catch {
+        // best-effort fail-closed visibility only
+      }
+    } else {
+      try {
+        sidepanelTab?.close?.()
+      } catch {
+        // best-effort fail-closed visibility only
+      }
+    }
+
+    this.#mountManager.resetAfterClose()
+    this.clearInteractiveBindings()
+  }
+
   private ensureContentRoot(): HTMLElement | null {
     const mountPreparation = this.#mountManager.prepareMount({
       resolveExistingContentRoot: () => this.#contentRoot,
@@ -1641,7 +1676,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   }
 
   private reconcileHostViewContextBeforeRender(): void {
-    const nextHostViewContextKey = resolveTargetViewContextKey(this.#host.targetView ?? null)
+    const nextHostViewContextKey = resolveHostViewContextKey(this.#host)
 
     if (this.#lastHostViewContextKey === null) {
       this.#lastHostViewContextKey = nextHostViewContextKey
@@ -2443,6 +2478,16 @@ export const createExcalidrawSidepanelRenderer = (
     !!host.createSidepanelTab || !!host.sidepanelTab || !!host.checkForActiveSidepanelTabForScript
 
   if (!canCreateOrReuseTab) {
+    return null
+  }
+
+  ensureHostViewContextState(host)
+  const hostViewContext = describeHostViewContext(host)
+
+  if (
+    hostViewContext.targetViewMetadataAvailable &&
+    hostViewContext.targetViewExcalidrawCapable === false
+  ) {
     return null
   }
 

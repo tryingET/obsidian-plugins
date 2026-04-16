@@ -13,6 +13,10 @@ import { createRuntimeLifecycleActor } from "./runtime/runtimeLifecycleMachine.j
 import { LayerManagerController } from "./ui/controller.js"
 import { createExcalidrawSidepanelRenderer } from "./ui/excalidrawSidepanelRenderer.js"
 import { ConsoleRenderer, type LayerManagerRenderer } from "./ui/renderer.js"
+import {
+  describeHostViewContext,
+  resolveHostViewContextKey,
+} from "./ui/sidepanel/selection/hostViewContext.js"
 
 export type { CommandPlanner, ExecuteIntentOutcome } from "./runtime/intentExecution.js"
 
@@ -54,23 +58,6 @@ const toSceneChangeUnsubscribe = (value: unknown): (() => void) | null => {
   return typeof value === "function" ? (value as () => void) : null
 }
 
-const resolveTargetViewContextKey = (targetView: unknown): string => {
-  if (!targetView || typeof targetView !== "object") {
-    return "target:null"
-  }
-
-  const targetViewRecord = targetView as Record<string, unknown>
-  const fileCandidate = targetViewRecord["file"]
-  const filePath =
-    fileCandidate &&
-    typeof fileCandidate === "object" &&
-    typeof (fileCandidate as Record<string, unknown>)["path"] === "string"
-      ? ((fileCandidate as Record<string, unknown>)["path"] as string)
-      : null
-
-  return filePath ? `target:file:${filePath}` : "target:unknown-file"
-}
-
 export interface LayerManagerRuntime {
   refresh: () => void
   apply: (patch: ScenePatch) => Promise<void>
@@ -94,7 +81,7 @@ export const createLayerManagerRuntime = (
   let disposed = false
   let sceneChangeUnsubscribe: (() => void) | null = null
   let subscribedSceneChangeApi: unknown = null
-  let activeViewContextKey = resolveTargetViewContextKey(ea.targetView ?? null)
+  let activeViewContextKey = resolveHostViewContextKey(ea)
   let subscribedViewContextKey: string | null = null
   let lifecycleActor: ReturnType<typeof createRuntimeLifecycleActor> | null = null
 
@@ -220,7 +207,7 @@ export const createLayerManagerRuntime = (
   let selectedIdsHintFromOnChange: ReadonlySet<string> | null = null
 
   const syncActiveViewContext = (): boolean => {
-    const nextViewContextKey = resolveTargetViewContextKey(ea.targetView ?? null)
+    const nextViewContextKey = resolveHostViewContextKey(ea)
     if (nextViewContextKey === activeViewContextKey) {
       return false
     }
@@ -461,15 +448,9 @@ if (scriptEa) {
       new Notice("[LMX] LayerManager script executed.", 2200)
     }
 
-    const targetViewRecord = (scriptEa as Record<string, unknown>)["targetView"] as
-      | Record<string, unknown>
-      | undefined
-
     console.log("[LMX] LayerManager script executed.")
     console.log("[LMX] EA pre-runtime context", {
-      targetLoaded: targetViewRecord?.["_loaded"] === true,
-      targetPath: (targetViewRecord?.["file"] as { path?: string } | undefined)?.path,
-      hasSetView: typeof scriptEa.setView === "function",
+      ...describeHostViewContext(scriptEa),
     })
   }
 
