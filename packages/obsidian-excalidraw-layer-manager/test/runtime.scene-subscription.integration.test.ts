@@ -87,6 +87,123 @@ describe("runtime scene-change subscription lifecycle", () => {
     expect([...runtime.getSnapshot().selectedIds]).toEqual(["A"])
   })
 
+  it("does not resubscribe when only the workspace active file changes under a stable targetView", async () => {
+    const elementsByView: Record<string, RawExcalidrawElement[]> = {
+      "A.excalidraw": [{ id: "A", type: "rectangle", isDeleted: false }],
+    }
+    const selectedIdsByView = new Map<string, Set<string>>([["A.excalidraw", new Set<string>()]])
+    let workspaceActiveFilePath = "A.excalidraw"
+    let subscribeCount = 0
+    let unsubscribeCount = 0
+
+    const app = {
+      metadataCache: {
+        getFileCache: (file: unknown) => {
+          const path =
+            file &&
+            typeof file === "object" &&
+            typeof (file as { path?: unknown }).path === "string"
+              ? ((file as { path: string }).path as string)
+              : null
+
+          if (path === "A.excalidraw") {
+            return {
+              frontmatter: {
+                "excalidraw-plugin": "parsed",
+              },
+            }
+          }
+
+          if (path === "plain.md") {
+            return {
+              frontmatter: {},
+            }
+          }
+
+          return null
+        },
+      },
+      workspace: {
+        getActiveFile: () => ({
+          path: workspaceActiveFilePath,
+        }),
+      },
+    }
+
+    const currentView = {
+      id: "A.excalidraw",
+      _loaded: true,
+      file: {
+        path: "A.excalidraw",
+      },
+      app,
+    }
+
+    const listeners = new Set<
+      (elements: readonly RawExcalidrawElement[], appState: unknown, files: unknown) => void
+    >()
+
+    const api = {
+      onChange: (
+        callback: (
+          elements: readonly RawExcalidrawElement[],
+          appState: unknown,
+          files: unknown,
+        ) => void,
+      ) => {
+        subscribeCount += 1
+        listeners.add(callback)
+        return () => {
+          unsubscribeCount += 1
+          listeners.delete(callback)
+        }
+      },
+    }
+
+    const renderer = {
+      render: vi.fn(),
+      dispose: vi.fn(),
+    }
+
+    const ea: EaLike = {
+      app,
+      targetView: currentView,
+      setView: vi.fn(() => currentView),
+      getViewElements: () => elementsByView["A.excalidraw"] ?? [],
+      getViewSelectedElements: () => {
+        const selectedIds = selectedIdsByView.get("A.excalidraw") ?? new Set<string>()
+        return (elementsByView["A.excalidraw"] ?? []).filter((element) =>
+          selectedIds.has(element.id),
+        )
+      },
+      getScriptSettings: () => ({}),
+      getExcalidrawAPI: () => api,
+    }
+
+    const runtime = createLayerManagerRuntime(ea, renderer)
+    expect(subscribeCount).toBe(1)
+    expect(unsubscribeCount).toBe(0)
+    expect(listeners.size).toBe(1)
+
+    for (const callback of listeners) {
+      callback(elementsByView["A.excalidraw"] ?? [], { selectedElementIds: { A: true } }, {})
+    }
+
+    selectedIdsByView.set("A.excalidraw", new Set(["A"]))
+    await flushAsync()
+    expect([...runtime.getSnapshot().selectedIds]).toEqual(["A"])
+
+    workspaceActiveFilePath = "plain.md"
+    runtime.refresh()
+    await flushAsync()
+
+    expect(subscribeCount).toBe(1)
+    expect(unsubscribeCount).toBe(0)
+    expect(listeners.size).toBe(1)
+    expect([...runtime.getSnapshot().selectedIds]).toEqual(["A"])
+    expect(ea.setView as ReturnType<typeof vi.fn>).not.toHaveBeenCalled()
+  })
+
   it("resubscribes and clears stale selection hints when the targetView changes under a stable API", async () => {
     const elementsByView: Record<string, RawExcalidrawElement[]> = {
       "A.excalidraw": [{ id: "A", type: "rectangle", isDeleted: false }],
