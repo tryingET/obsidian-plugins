@@ -720,6 +720,8 @@ describe("runtime active-view refresh", () => {
     )
 
     const app = createLayerManagerRuntime(runtime.ea)
+    const setView = runtime.ea.setView as ReturnType<typeof vi.fn>
+    setView.mockClear()
 
     let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
     const searchInput = findRowFilterInput(contentRoot)
@@ -747,6 +749,8 @@ describe("runtime active-view refresh", () => {
     runtime.switchWorkspaceToView("B.excalidraw")
     app.refresh()
     await flushAsync()
+
+    expect(setView).toHaveBeenCalledTimes(1)
 
     contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
     const refreshedSearchInput = findRowFilterInput(contentRoot)
@@ -802,6 +806,8 @@ describe("runtime active-view refresh", () => {
     )
 
     createLayerManagerRuntime(runtime.ea)
+    const setView = runtime.ea.setView as ReturnType<typeof vi.fn>
+    setView.mockClear()
 
     expect(runtime.sidepanelTab.contentEl.children.length).toBeGreaterThan(0)
 
@@ -815,9 +821,13 @@ describe("runtime active-view refresh", () => {
       "Active leaf is not Excalidraw.",
     )
 
+    setView.mockClear()
+
     runtime.switchWorkspaceToView("A.excalidraw")
     runtime.emitWorkspaceEvent("active-leaf-change")
     await flushAsync()
+
+    expect(setView).toHaveBeenCalledTimes(1)
 
     const contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
     expect(findInteractiveRowByLabel(contentRoot, "[element] Alpha")).toBeDefined()

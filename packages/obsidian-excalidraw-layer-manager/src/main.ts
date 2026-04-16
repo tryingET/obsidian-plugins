@@ -14,9 +14,10 @@ import { LayerManagerController } from "./ui/controller.js"
 import { createExcalidrawSidepanelRenderer } from "./ui/excalidrawSidepanelRenderer.js"
 import { ConsoleRenderer, type LayerManagerRenderer } from "./ui/renderer.js"
 import {
-  describeHostViewContext,
-  resolveHostViewContextKey,
-} from "./ui/sidepanel/selection/hostViewContext.js"
+  type SidepanelHostPrimarySignal,
+  createSidepanelHostContextCoordinator,
+} from "./ui/sidepanel/selection/hostContextCoordinator.js"
+import { describeHostViewContext } from "./ui/sidepanel/selection/hostViewContext.js"
 
 export type { CommandPlanner, ExecuteIntentOutcome } from "./runtime/intentExecution.js"
 
@@ -58,15 +59,6 @@ const toSceneChangeUnsubscribe = (value: unknown): (() => void) | null => {
   return typeof value === "function" ? (value as () => void) : null
 }
 
-const ACTIVE_VIEW_BIND_STRATEGIES: readonly {
-  readonly viewArg: unknown
-  readonly reveal: boolean
-}[] = [
-  { viewArg: "active", reveal: false },
-  { viewArg: undefined, reveal: false },
-  { viewArg: "active", reveal: true },
-  { viewArg: undefined, reveal: true },
-]
 const WORKSPACE_ACTIVE_FILE_POLL_MS = 350
 
 const resolveRuntimeApp = (ea: EaLike): ObsidianAppLike | null => {
@@ -93,77 +85,6 @@ const resolveRuntimeApp = (ea: EaLike): ObsidianAppLike | null => {
   return null
 }
 
-const bindEaToActiveWorkspaceView = (ea: EaLike): void => {
-  const workspace = resolveRuntimeApp(ea)?.workspace
-  const setView = ea.setView
-  if (!workspace || !setView) {
-    return
-  }
-
-  for (const strategy of ACTIVE_VIEW_BIND_STRATEGIES) {
-    try {
-      setView(strategy.viewArg, strategy.reveal)
-    } catch {
-      // keep trying bounded active-view strategies
-    }
-  }
-}
-
-const shouldBindEaToActiveWorkspaceView = (ea: EaLike): boolean => {
-  const hostViewContext = describeHostViewContext(ea)
-
-  if (!hostViewContext.hasSetView) {
-    return false
-  }
-
-  if (!hostViewContext.targetViewUsable) {
-    return true
-  }
-
-  if (!hostViewContext.activeFilePath) {
-    return false
-  }
-
-  if (
-    hostViewContext.activeFileMetadataAvailable &&
-    hostViewContext.activeFileExcalidrawCapable === false
-  ) {
-    return false
-  }
-
-  return hostViewContext.targetViewFilePath !== hostViewContext.activeFilePath
-}
-
-const bindEaToActiveWorkspaceViewIfNeeded = (ea: EaLike): void => {
-  if (!shouldBindEaToActiveWorkspaceView(ea)) {
-    return
-  }
-
-  bindEaToActiveWorkspaceView(ea)
-}
-
-const resolveLiveExcalidrawApiFromTargetView = (ea: EaLike): unknown => {
-  if (!Object.prototype.hasOwnProperty.call(ea, "targetView")) {
-    try {
-      return ea.getExcalidrawAPI?.() ?? null
-    } catch {
-      return null
-    }
-  }
-
-  const targetView = ea.targetView
-  if (!targetView || typeof targetView !== "object") {
-    return null
-  }
-
-  const targetViewRecord = targetView as Record<string, unknown>
-  if ("_loaded" in targetViewRecord && targetViewRecord["_loaded"] !== true) {
-    return null
-  }
-
-  return targetViewRecord["excalidrawAPI"] ?? null
-}
-
 export interface LayerManagerRuntime {
   refresh: () => void
   apply: (patch: ScenePatch) => Promise<void>
@@ -182,18 +103,19 @@ export const createLayerManagerRuntime = (
   ea: EaLike,
   renderer: LayerManagerRenderer = createExcalidrawSidepanelRenderer(ea) ?? new ConsoleRenderer(),
 ): LayerManagerRuntime => {
+  const hostContextCoordinator = createSidepanelHostContextCoordinator(ea)
+  let hostContextSnapshot = hostContextCoordinator.getSnapshot()
   let snapshot = readSnapshot(ea)
   let renderLatestSnapshot: () => void = () => {}
   let disposed = false
   let sceneChangeUnsubscribe: (() => void) | null = null
   let subscribedSceneChangeApi: unknown = null
-  let activeViewContextKey = resolveHostViewContextKey(ea)
+  let activeViewContextKey = hostContextSnapshot.bindingKey
   let subscribedViewContextKey: string | null = null
   let lifecycleActor: ReturnType<typeof createRuntimeLifecycleActor> | null = null
   let workspaceRefreshRefs: unknown[] = []
   let workspaceRefreshScheduled = false
   let workspaceActiveFilePoll: ReturnType<typeof setInterval> | null = null
-  let lastObservedWorkspaceViewContextKey = resolveHostViewContextKey(ea)
 
   const sendLifecycleEvent = (
     event:
@@ -316,15 +238,25 @@ export const createLayerManagerRuntime = (
 
   let selectedIdsHintFromOnChange: ReadonlySet<string> | null = null
 
-  const syncActiveViewContext = (): boolean => {
-    const nextViewContextKey = resolveHostViewContextKey(ea)
-    if (nextViewContextKey === activeViewContextKey) {
-      return false
+  const reconcileHostContext = (
+    signal: SidepanelHostPrimarySignal,
+  ): ReturnType<typeof hostContextCoordinator.reconcile> => {
+    const previousBindingKey = activeViewContextKey
+    const result =
+      signal === "leaf-change"
+        ? hostContextCoordinator.handleWorkspaceLeafChange()
+        : signal === "poll"
+          ? hostContextCoordinator.handlePollingFallback()
+          : hostContextCoordinator.reconcile(signal)
+
+    hostContextSnapshot = result.snapshot
+    activeViewContextKey = result.snapshot.bindingKey
+
+    if (result.changed || previousBindingKey !== result.snapshot.bindingKey) {
+      selectedIdsHintFromOnChange = null
     }
 
-    activeViewContextKey = nextViewContextKey
-    selectedIdsHintFromOnChange = null
-    return true
+    return result
   }
 
   const renderSnapshot = (nextSnapshot: SceneSnapshot): void => {
@@ -406,7 +338,7 @@ export const createLayerManagerRuntime = (
     workspaceRefreshScheduled = false
   }
 
-  const scheduleWorkspaceDrivenRefresh = (): void => {
+  const scheduleHostContextRefresh = (): void => {
     if (disposed || workspaceRefreshScheduled) {
       return
     }
@@ -420,7 +352,6 @@ export const createLayerManagerRuntime = (
         return
       }
 
-      bindEaToActiveWorkspaceViewIfNeeded(ea)
       sendLifecycleEvent({ type: "REFRESH_REQUEST" })
     })
   }
@@ -438,7 +369,8 @@ export const createLayerManagerRuntime = (
         for (const eventName of ["file-open", "active-leaf-change"]) {
           try {
             const ref = on.call(workspace, eventName, () => {
-              scheduleWorkspaceDrivenRefresh()
+              reconcileHostContext("leaf-change")
+              scheduleHostContextRefresh()
             })
 
             if (ref !== undefined) {
@@ -453,19 +385,18 @@ export const createLayerManagerRuntime = (
 
     if (workspaceActiveFilePoll === null) {
       workspaceActiveFilePoll = setInterval(() => {
-        const nextViewContextKey = resolveHostViewContextKey(ea)
-        if (nextViewContextKey === lastObservedWorkspaceViewContextKey) {
+        const reconcileResult = reconcileHostContext("poll")
+        if (!reconcileResult.changed && !reconcileResult.rebound) {
           return
         }
 
-        lastObservedWorkspaceViewContextKey = nextViewContextKey
-        scheduleWorkspaceDrivenRefresh()
+        scheduleHostContextRefresh()
       }, WORKSPACE_ACTIVE_FILE_POLL_MS)
     }
   }
 
   const subscribeToSceneChanges = (): void => {
-    const api = resolveLiveExcalidrawApiFromTargetView(ea)
+    const api = hostContextSnapshot.sceneApi
 
     const currentViewContextKey = activeViewContextKey
     const viewContextChanged = currentViewContextKey !== subscribedViewContextKey
@@ -515,11 +446,9 @@ export const createLayerManagerRuntime = (
       return
     }
 
-    bindEaToActiveWorkspaceViewIfNeeded(ea)
-    syncActiveViewContext()
+    reconcileHostContext("manual")
     const nextSnapshot = readSnapshot(ea)
-    syncActiveViewContext()
-    lastObservedWorkspaceViewContextKey = resolveHostViewContextKey(ea)
+    reconcileHostContext("manual")
     renderSnapshot(nextSnapshot)
     subscribeToSceneChanges()
   }
@@ -595,7 +524,6 @@ export const createLayerManagerRuntime = (
   }
 
   subscribeToWorkspaceRefresh()
-  bindEaToActiveWorkspaceViewIfNeeded(ea)
   refresh()
 
   return {

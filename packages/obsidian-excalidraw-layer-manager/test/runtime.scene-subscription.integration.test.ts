@@ -520,11 +520,17 @@ describe("runtime scene-change subscription lifecycle", () => {
     runtime.refresh()
     await flushAsync()
 
-    expect(setView).toHaveBeenCalled()
+    expect(setView).toHaveBeenCalledTimes(1)
     expect(getListenersForView("A.excalidraw").size).toBe(0)
     expect(getListenersForView("B.excalidraw").size).toBe(1)
     expect(runtime.getSnapshot().elements.map((element) => element.id)).toEqual(["B"])
     expect([...runtime.getSnapshot().selectedIds]).toEqual([])
+
+    runtime.refresh()
+    await flushAsync()
+
+    expect(setView).toHaveBeenCalledTimes(1)
+    expect(getListenersForView("B.excalidraw").size).toBe(1)
   })
 
   it("detaches the active subscription and disposes the renderer when the runtime is disposed", () => {
