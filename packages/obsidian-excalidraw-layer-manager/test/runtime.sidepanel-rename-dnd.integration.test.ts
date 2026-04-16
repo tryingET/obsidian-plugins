@@ -11,6 +11,7 @@ import {
   findButtonByTitle,
   findFirstInput,
   findInteractiveRowByLabel,
+  findRowTreeRoot,
   flattenElements,
   flushAsync,
   getContentRoot,
@@ -465,6 +466,59 @@ describe("sidepanel rename + drag-drop integration", () => {
     expect(refreshedTargetRow.style["boxShadow"]).toContain("inset 0 0 0 2px")
     expect(refreshedTargetRow.style["background"]).toContain("interactive-accent-hover")
     expect(previewText).toContain("drop into group")
+  })
+
+  it("updates dragover preview without rebuilding the rendered row tree", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      [
+        { id: "A", type: "rectangle", name: "Alpha" },
+        { id: "B", type: "rectangle", name: "Beta" },
+        { id: "C", type: "rectangle", name: "Gamma" },
+      ],
+      [],
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+
+    const contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const rowTreeRoot = findRowTreeRoot(contentRoot)
+    const sourceRow = findInteractiveRowByLabel(contentRoot, "[element] Alpha")
+    const targetRow = findInteractiveRowByLabel(contentRoot, "[element] Beta")
+
+    if (!rowTreeRoot || !sourceRow || !targetRow) {
+      throw new Error("Expected same-parent drag source, target, and row tree root.")
+    }
+
+    sourceRow.dispatchEvent(new FakeDomEvent("dragstart"))
+    targetRow.dispatchEvent(new FakeDomEvent("dragover"))
+    await flushAsync()
+
+    const contentRootAfterDragover = getContentRoot(runtime.sidepanelTab.contentEl)
+    const rowTreeRootAfterDragover = findRowTreeRoot(contentRootAfterDragover)
+    const sourceRowAfterDragover = findInteractiveRowByLabel(
+      contentRootAfterDragover,
+      "[element] Alpha",
+    )
+    const targetRowAfterDragover = findInteractiveRowByLabel(
+      contentRootAfterDragover,
+      "[element] Beta",
+    )
+
+    if (!rowTreeRootAfterDragover || !sourceRowAfterDragover || !targetRowAfterDragover) {
+      throw new Error("Expected dragover preview rows to remain addressable after refresh.")
+    }
+
+    expect(rowTreeRootAfterDragover).toBe(rowTreeRoot)
+    expect(sourceRowAfterDragover).toBe(sourceRow)
+    expect(targetRowAfterDragover).toBe(targetRow)
+    expect(targetRowAfterDragover.style["boxShadow"]).toContain("inset 0 2px 0 0")
+
+    const previewText = flattenElements(targetRowAfterDragover)
+      .map((element) => element.textContent ?? "")
+      .filter((text) => text.length > 0)
+
+    expect(previewText).toContain("reorder before row")
   })
 
   it("shows reorder-style drag preview when the drop will reorder within one parent scope", async () => {

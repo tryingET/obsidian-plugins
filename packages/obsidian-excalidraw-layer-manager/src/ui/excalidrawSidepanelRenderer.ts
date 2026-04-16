@@ -42,11 +42,13 @@ import { renderSidepanelQuickMove } from "./sidepanel/render/quickMoveRenderer.j
 import { bindSidepanelRowInteractions } from "./sidepanel/render/rowInteractionBinder.js"
 import {
   type SidepanelFilterMatchKind,
+  type SidepanelRowVisualState,
   buildSidepanelVisibleRowTreeResult,
   resolveSidepanelRowVisualState,
 } from "./sidepanel/render/rowModel.js"
 import {
   type SidepanelInlineRenameRenderState,
+  type SidepanelRowDropHintKind,
   renderSidepanelRow,
 } from "./sidepanel/render/rowRenderer.js"
 import { renderSidepanelRowTree } from "./sidepanel/render/rowTreeRenderer.js"
@@ -79,6 +81,17 @@ type SidepanelTabLike = SidepanelMountTabLike
 interface ObsidianLike {
   Notice?: new (message: string, timeout?: number) => unknown
   getIcon?: (iconName: string) => HTMLElement | null
+}
+
+interface RenderedRowPreviewState {
+  readonly row: HTMLDivElement
+  readonly node: LayerNode
+  readonly branchContext: DragDropBranchContext
+  readonly siblingIndex: number
+  readonly selected: boolean
+  readonly filterMatchKind: SidepanelFilterMatchKind
+  readonly nodeVisualState: SidepanelRowVisualState
+  dropHintAssistiveLabel: HTMLSpanElement | null
 }
 
 interface SelectedElementLike {
@@ -191,6 +204,140 @@ const ROW_STYLE_CONFIG = {
   iconButtonSizePx: ICON_BUTTON_SIZE_PX,
   iconSizePx: ICON_SIZE_PX,
 } as const
+
+const cloneDragDropHint = (hint: DragDropHint | null): DragDropHint | null => {
+  if (!hint) {
+    return null
+  }
+
+  return hint.kind === "reorder"
+    ? {
+        kind: "reorder",
+        nodeId: hint.nodeId,
+        placement: hint.placement,
+      }
+    : {
+        kind: "reparent",
+        nodeId: hint.nodeId,
+      }
+}
+
+const haveSameDragDropHint = (left: DragDropHint | null, right: DragDropHint | null): boolean => {
+  if (!left || !right) {
+    return left === right
+  }
+
+  if (left.nodeId !== right.nodeId || left.kind !== right.kind) {
+    return false
+  }
+
+  if (left.kind === "reorder" && right.kind === "reorder") {
+    return left.placement === right.placement
+  }
+
+  return true
+}
+
+const resolveSidepanelRowDropHintKind = (
+  hint: DragDropHint | null,
+): SidepanelRowDropHintKind | null => {
+  if (!hint) {
+    return null
+  }
+
+  if (hint.kind === "reorder") {
+    return hint.placement === "before" ? "reorderBefore" : "reorderAfter"
+  }
+
+  return "reparent"
+}
+
+const resolveRowPreviewBoxShadow = (
+  state: SidepanelRowVisualState,
+  dropHintKind: SidepanelRowDropHintKind | null,
+): string => {
+  const shadows: string[] = []
+
+  if (state.visibility === "hidden") {
+    shadows.push("inset 3px 0 0 0 var(--text-faint, rgba(120,120,120,0.55))")
+  } else if (state.visibility === "mixed") {
+    shadows.push("inset 3px 0 0 0 var(--background-modifier-border-hover, rgba(120,120,120,0.45))")
+  }
+
+  if (state.lock === "locked") {
+    shadows.push("inset -3px 0 0 0 var(--text-muted, rgba(120,120,120,0.6))")
+  } else if (state.lock === "mixed") {
+    shadows.push("inset -3px 0 0 0 var(--background-secondary-alt, rgba(120,120,120,0.45))")
+  }
+
+  if (dropHintKind === "reparent") {
+    shadows.push("inset 0 0 0 2px var(--interactive-accent, rgba(120,120,120,0.68))")
+  }
+
+  if (dropHintKind === "reorderBefore") {
+    shadows.push("inset 0 2px 0 0 var(--interactive-accent, rgba(120,120,120,0.7))")
+  }
+
+  if (dropHintKind === "reorderAfter") {
+    shadows.push("inset 0 -2px 0 0 var(--interactive-accent, rgba(120,120,120,0.7))")
+  }
+
+  return shadows.join(", ")
+}
+
+const applyRenderedRowPreviewShellState = (
+  row: HTMLDivElement,
+  input: {
+    readonly nodeVisualState: SidepanelRowVisualState
+    readonly filterMatchKind: SidepanelFilterMatchKind
+    readonly selected: boolean
+    readonly dropHintKind: SidepanelRowDropHintKind | null
+  },
+): void => {
+  row.style.boxShadow = resolveRowPreviewBoxShadow(input.nodeVisualState, input.dropHintKind)
+  row.style.background = ""
+  row.style.borderColor = ""
+
+  if (input.filterMatchKind === "self") {
+    row.style.background = "var(--background-modifier-hover, rgba(120,120,120,0.12))"
+    row.style.borderColor = "var(--background-modifier-border, rgba(120,120,120,0.16))"
+  }
+
+  if (input.selected) {
+    row.style.background = "var(--interactive-accent-hover, rgba(120,120,120,0.2))"
+    row.style.borderColor = "var(--interactive-accent, rgba(120,120,120,0.32))"
+  }
+
+  if (input.dropHintKind === "reparent" && !input.selected) {
+    row.style.background = "var(--interactive-accent-hover, rgba(120,120,120,0.16))"
+    row.style.borderColor = "var(--interactive-accent, rgba(120,120,120,0.68))"
+  }
+}
+
+const styleDropHintAssistiveLabel = (label: HTMLSpanElement): void => {
+  label.style.position = "absolute"
+  label.style.width = "1px"
+  label.style.height = "1px"
+  label.style.padding = "0"
+  label.style.margin = "-1px"
+  label.style.overflow = "hidden"
+  label.style.clip = "rect(0 0 0 0)"
+  label.style.clipPath = "inset(50%)"
+  label.style.whiteSpace = "nowrap"
+  label.style.border = "0"
+}
+
+const isDropHintAssistiveLabel = (element: Element): element is HTMLSpanElement => {
+  return (
+    element.tagName === "SPAN" &&
+    (element as HTMLSpanElement).style.position === "absolute" &&
+    (element as HTMLSpanElement).style.clipPath === "inset(50%)"
+  )
+}
+
+const findRenderedRowDropHintAssistiveLabel = (row: HTMLDivElement): HTMLSpanElement | null => {
+  return Array.from(row.children).find(isDropHintAssistiveLabel) ?? null
+}
 
 const hasDom = (): boolean => {
   return typeof document !== "undefined"
@@ -330,6 +477,8 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   })
   #contentRoot: HTMLElement | null = null
   #rowTreeRoot: HTMLDivElement | null = null
+  #renderedRowPreviewStateByNodeId = new Map<string, RenderedRowPreviewState>()
+  #lastRenderedDragDropHint: DragDropHint | null = null
   #latestModel: RenderViewModel | null = null
   #focusedNodeId: string | null = null
   #keyboardContext: KeyboardShortcutContext | null = null
@@ -567,7 +716,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         this.notify(message)
       },
       requestRenderFromLatestModel: () => {
-        this.requestRenderFromLatestModel()
+        this.requestDragDropPreviewRender()
       },
       getLatestStructuralTree: () => {
         return this.#latestModel?.tree ?? null
@@ -679,6 +828,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     }
     contentRoot.innerHTML = ""
     this.#rowTreeRoot = null
+    this.clearRenderedRowPreviewState()
 
     const structuralTree = model.tree
     const selectedElementIds = this.resolveSelectedElementIds(model.selectedIds)
@@ -947,6 +1097,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       this.autofocusContentRootIfNeeded(focusTargetRoot)
     }
 
+    this.#lastRenderedDragDropHint = cloneDragDropHint(this.#dragDropController.dropHint)
     this.revealFocusedRowWithinComfortBandIfNeeded()
   }
 
@@ -1290,6 +1441,11 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.#ownerDocumentWithKeyCapture = null
   }
 
+  private clearRenderedRowPreviewState(): void {
+    this.#renderedRowPreviewStateByNodeId.clear()
+    this.#lastRenderedDragDropHint = null
+  }
+
   private clearInteractiveBindings(): void {
     this.#contentRoot?.removeEventListener("keydown", this.#contentKeydownHandler)
     this.#contentRoot?.removeEventListener("focusout", this.#contentFocusOutHandler)
@@ -1298,6 +1454,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.detachOwnerDocumentKeyCapture()
     this.#contentRoot = null
     this.#rowTreeRoot = null
+    this.clearRenderedRowPreviewState()
     this.#keyboardContext = null
     this.#focusedNodeId = null
     this.#selectionOverrideState = null
@@ -1366,6 +1523,100 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     }
   }
 
+  private requestDragDropPreviewRender(): void {
+    if (this.refreshRenderedDragDropPreview()) {
+      return
+    }
+
+    this.requestRenderFromLatestModel()
+  }
+
+  private refreshRenderedDragDropPreview(): boolean {
+    const rowTreeRoot = this.#rowTreeRoot
+    if (!rowTreeRoot) {
+      return false
+    }
+
+    const nextHint = cloneDragDropHint(this.#dragDropController.dropHint)
+    if (haveSameDragDropHint(this.#lastRenderedDragDropHint, nextHint)) {
+      return true
+    }
+
+    if (nextHint && !this.#renderedRowPreviewStateByNodeId.has(nextHint.nodeId)) {
+      return false
+    }
+
+    const affectedNodeIds = new Set<string>()
+    if (this.#lastRenderedDragDropHint) {
+      affectedNodeIds.add(this.#lastRenderedDragDropHint.nodeId)
+    }
+    if (nextHint) {
+      affectedNodeIds.add(nextHint.nodeId)
+    }
+
+    for (const nodeId of affectedNodeIds) {
+      const renderedRow = this.#renderedRowPreviewStateByNodeId.get(nodeId)
+      if (!renderedRow) {
+        continue
+      }
+
+      if (!rowTreeRoot.contains(renderedRow.row)) {
+        return false
+      }
+
+      this.updateRenderedRowPreview(renderedRow, nextHint?.nodeId === nodeId ? nextHint : null)
+    }
+
+    this.#lastRenderedDragDropHint = nextHint
+    return true
+  }
+
+  private updateRenderedRowPreview(
+    renderedRow: RenderedRowPreviewState,
+    activeDropHint: DragDropHint | null,
+  ): void {
+    const dropHintKind = resolveSidepanelRowDropHintKind(activeDropHint)
+
+    applyRenderedRowPreviewShellState(renderedRow.row, {
+      nodeVisualState: renderedRow.nodeVisualState,
+      filterMatchKind: renderedRow.filterMatchKind,
+      selected: renderedRow.selected,
+      dropHintKind,
+    })
+
+    if (!activeDropHint || !dropHintKind) {
+      if (renderedRow.dropHintAssistiveLabel) {
+        renderedRow.dropHintAssistiveLabel.textContent = ""
+        renderedRow.dropHintAssistiveLabel.style.display = "none"
+      }
+      return
+    }
+
+    const assistiveLabel =
+      renderedRow.dropHintAssistiveLabel ??
+      findRenderedRowDropHintAssistiveLabel(renderedRow.row) ??
+      this.createDropHintAssistiveLabel(renderedRow.row)
+
+    assistiveLabel.textContent = this.describeDropHint(
+      activeDropHint,
+      renderedRow.node,
+      this.resolveDropTargetForNode(
+        renderedRow.node,
+        renderedRow.branchContext,
+        renderedRow.siblingIndex,
+      ),
+    )
+    assistiveLabel.style.display = ""
+    renderedRow.dropHintAssistiveLabel = assistiveLabel
+  }
+
+  private createDropHintAssistiveLabel(row: HTMLDivElement): HTMLSpanElement {
+    const assistiveLabel = row.ownerDocument.createElement("span")
+    styleDropHintAssistiveLabel(assistiveLabel)
+    row.appendChild(assistiveLabel)
+    return assistiveLabel
+  }
+
   private resetForHostViewContextChange(): void {
     this.#hostSelectionBridge.invalidatePendingSelectionMirror()
     this.cancelDeferredFocusRestore()
@@ -1382,6 +1633,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.#cachedQuickMoveDestinationProjection = null
     this.#lastHandledContentKeydownEvent = null
     this.#keyboardSuppressedUntilMs = 0
+    this.clearRenderedRowPreviewState()
     this.#inlineRenameController.clear()
     this.#dragDropController.clear()
     this.#focusOwnership.reset()
@@ -1939,33 +2191,29 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         const currentInlineRenameState = this.#inlineRenameController.state
         const inlineRenameState: SidepanelInlineRenameRenderState | null =
           currentInlineRenameState?.nodeId === node.id ? currentInlineRenameState : null
-
+        const selected = selectedNodeIds.has(node.id)
+        const focused = this.#focusedNodeId === node.id
+        const filterMatchKind = matchKindByNodeId.get(node.id) ?? "none"
         const nodeVisualState = resolveSidepanelRowVisualState(
           node,
           this.#latestModel?.elementStateById,
         )
+        const dropHintKind = resolveSidepanelRowDropHintKind(activeDropHint)
         const { row, renameInputForAutofocus } = renderSidepanelRow({
           ownerDocument,
           rowDomId: this.resolveRowDomId(node.id),
           node,
           depth: nodeDepth,
-          selected: selectedNodeIds.has(node.id),
-          focused: this.#focusedNodeId === node.id,
-          dropHintKind:
-            activeDropHint?.kind === "reorder"
-              ? activeDropHint.placement === "before"
-                ? "reorderBefore"
-                : "reorderAfter"
-              : activeDropHint
-                ? "reparent"
-                : null,
+          selected,
+          focused,
+          dropHintKind,
           dropHintLabel: activeDropHint
             ? this.describeDropHint(activeDropHint, node, nodeDropTarget)
             : null,
           actions,
           styleConfig: ROW_STYLE_CONFIG,
           nodeVisualState,
-          filterMatchKind: matchKindByNodeId.get(node.id) ?? "none",
+          filterMatchKind,
           inlineRenameState,
           onToggleExpanded: (targetNodeId) => {
             actions?.toggleExpanded(targetNodeId)
@@ -1994,6 +2242,17 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
           },
           createIconActionButton: (nextOwnerDocument, icon, action) =>
             this.createIconActionButton(nextOwnerDocument, icon, action),
+        })
+
+        this.#renderedRowPreviewStateByNodeId.set(node.id, {
+          row,
+          node,
+          branchContext: nodeBranchContext,
+          siblingIndex,
+          selected,
+          filterMatchKind,
+          nodeVisualState,
+          dropHintAssistiveLabel: findRenderedRowDropHintAssistiveLabel(row),
         })
 
         if (actions) {
