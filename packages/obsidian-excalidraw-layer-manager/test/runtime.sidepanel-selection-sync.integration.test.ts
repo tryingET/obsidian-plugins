@@ -115,15 +115,20 @@ const makeRuntimeWithSidepanel = (
     },
   }
 
-  let viewBound = true
-  let targetViewGeneration = 0
   const bindTargetView = (
     loaded: boolean,
-  ): { id: string; _loaded: boolean; excalidrawAPI?: typeof api } => {
-    targetViewGeneration += 1
+  ): {
+    id: string
+    _loaded: boolean
+    file: { path: string }
+    excalidrawAPI?: typeof api
+  } => {
     return {
-      id: `fake-view-${targetViewGeneration}`,
+      id: "selection-sync-view",
       _loaded: loaded,
+      file: {
+        path: "SelectionSync.excalidraw",
+      },
       ...(loaded ? { excalidrawAPI: api } : {}),
     }
   }
@@ -164,7 +169,6 @@ const makeRuntimeWithSidepanel = (
       return failedTargetView
     }
 
-    viewBound = true
     const nextTargetView = bindTargetView(true)
     ea.targetView = nextTargetView
 
@@ -172,7 +176,6 @@ const makeRuntimeWithSidepanel = (
   })
 
   const clearViewBinding = (): void => {
-    viewBound = false
     ea.targetView = bindTargetView(false)
   }
 
