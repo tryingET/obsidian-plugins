@@ -65,10 +65,15 @@ const normalizeDrawingFixture = (
   }
 }
 
+interface MakeRuntimeWithSidepanelOptions {
+  readonly disableWorkspaceEvents?: boolean
+}
+
 const makeRuntimeWithSidepanel = (
   document: FakeDocument,
   input: Record<string, DrawingFixture>,
   initialViewPath: string,
+  options: MakeRuntimeWithSidepanelOptions = {},
 ): RuntimeWithSidepanel => {
   const normalizedByPath = new Map(
     Object.entries(input).map(([viewPath, fixture]) => [
@@ -108,32 +113,36 @@ const makeRuntimeWithSidepanel = (
       },
     },
     workspace: {
-      on: (eventName: string, callback: (...args: unknown[]) => unknown) => {
-        let listeners = workspaceListeners.get(eventName)
-        if (!listeners) {
-          listeners = new Set()
-          workspaceListeners.set(eventName, listeners)
-        }
+      ...(options.disableWorkspaceEvents
+        ? {}
+        : {
+            on: (eventName: string, callback: (...args: unknown[]) => unknown) => {
+              let listeners = workspaceListeners.get(eventName)
+              if (!listeners) {
+                listeners = new Set()
+                workspaceListeners.set(eventName, listeners)
+              }
 
-        listeners.add(callback)
-        return {
-          eventName,
-          callback,
-        }
-      },
-      offref: (ref: unknown) => {
-        if (!ref || typeof ref !== "object") {
-          return
-        }
+              listeners.add(callback)
+              return {
+                eventName,
+                callback,
+              }
+            },
+            offref: (ref: unknown) => {
+              if (!ref || typeof ref !== "object") {
+                return
+              }
 
-        const eventName = (ref as { eventName?: unknown }).eventName
-        const callback = (ref as { callback?: unknown }).callback
-        if (typeof eventName !== "string" || typeof callback !== "function") {
-          return
-        }
+              const eventName = (ref as { eventName?: unknown }).eventName
+              const callback = (ref as { callback?: unknown }).callback
+              if (typeof eventName !== "string" || typeof callback !== "function") {
+                return
+              }
 
-        workspaceListeners.get(eventName)?.delete(callback as (...args: unknown[]) => unknown)
-      },
+              workspaceListeners.get(eventName)?.delete(callback as (...args: unknown[]) => unknown)
+            },
+          }),
       getActiveFile: () => ({
         path: activeViewPath,
       }),
@@ -436,6 +445,46 @@ describe("runtime active-view refresh", () => {
 
     const contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
     expect(findInteractiveRowByLabel(contentRoot, "[element] Alpha")).toBeDefined()
+  })
+
+  it("polls workspace active-file changes when workspace events are unavailable", async () => {
+    vi.useFakeTimers()
+
+    try {
+      const runtime = makeRuntimeWithSidepanel(
+        fakeDocument,
+        {
+          "A.excalidraw": [{ id: "A", type: "rectangle", name: "Alpha", isDeleted: false }],
+          "plain.md": {
+            elements: [],
+            frontmatter: {},
+          },
+        },
+        "A.excalidraw",
+        {
+          disableWorkspaceEvents: true,
+        },
+      )
+
+      createLayerManagerRuntime(runtime.ea)
+      expect(runtime.sidepanelTab.contentEl.children.length).toBeGreaterThan(0)
+
+      runtime.switchWorkspaceToView("plain.md")
+      await vi.advanceTimersByTimeAsync(500)
+      await flushAsync()
+
+      expect(runtime.sidepanelTab.close).toHaveBeenCalledTimes(1)
+      expect(runtime.sidepanelTab.contentEl.children).toHaveLength(0)
+
+      runtime.switchWorkspaceToView("A.excalidraw")
+      await vi.advanceTimersByTimeAsync(500)
+      await flushAsync()
+
+      const contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+      expect(findInteractiveRowByLabel(contentRoot, "[element] Alpha")).toBeDefined()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it("remounts cleanly after tearing down an ineligible host view", async () => {

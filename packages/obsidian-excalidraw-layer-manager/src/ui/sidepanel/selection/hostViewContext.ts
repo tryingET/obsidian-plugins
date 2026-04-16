@@ -94,6 +94,8 @@ const resolveMetadataApp = (
     host.app,
     host.obsidian?.app,
     (globalThis as Record<string, unknown>)["app"],
+    (globalThis as { window?: { app?: unknown } }).window?.app,
+    (globalThis as { obsidian?: { app?: unknown } }).obsidian?.app,
   ]
 
   for (const candidate of candidates) {
