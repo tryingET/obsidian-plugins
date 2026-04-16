@@ -30,8 +30,6 @@ interface RuntimeWithSidepanel {
   readonly detachLeaf: ReturnType<typeof vi.fn>
   readonly switchToView: (viewPath: string) => void
   readonly switchWorkspaceToView: (viewPath: string) => void
-  readonly switchToMarkdownBackSide: () => void
-  readonly switchToExcalidrawFrontSide: () => void
   readonly emitWorkspaceEvent: (eventName?: string) => void
 }
 
@@ -97,9 +95,6 @@ const makeRuntimeWithSidepanel = (
       },
     ]),
   )
-  let activeViewPath = initialViewPath
-  let activeWorkspaceViewType = initialViewPath.endsWith(".excalidraw") ? "excalidraw" : "markdown"
-
   const app = {
     metadataCache: {
       getFileCache: (file: unknown) => {
@@ -153,14 +148,6 @@ const makeRuntimeWithSidepanel = (
               workspaceListeners.get(eventName)?.delete(callback as (...args: unknown[]) => unknown)
             },
           }),
-      activeLeaf: {
-        view: {
-          getViewType: () => activeWorkspaceViewType,
-          file: {
-            path: activeViewPath,
-          },
-        },
-      },
       getActiveFile: () => ({
         path: activeViewPath,
       }),
@@ -180,6 +167,7 @@ const makeRuntimeWithSidepanel = (
     ]),
   )
 
+  let activeViewPath = initialViewPath
   const workspaceListeners = new Map<string, Set<(...args: unknown[]) => unknown>>()
   const sidepanelTab = makeSidepanelTab(document, null)
   const sceneChangeListeners = new Set<
@@ -285,9 +273,7 @@ const makeRuntimeWithSidepanel = (
     targetView: viewByPath.get(activeViewPath) ?? null,
     setView: vi.fn((viewArg?: unknown) => {
       if (viewArg === "active" || viewArg === undefined) {
-        if (activeWorkspaceViewType === "excalidraw") {
-          ea.targetView = viewByPath.get(activeViewPath) ?? null
-        }
+        ea.targetView = viewByPath.get(activeViewPath) ?? null
       }
 
       return ea.targetView
@@ -340,14 +326,6 @@ const makeRuntimeWithSidepanel = (
       }
 
       activeViewPath = viewPath
-      activeWorkspaceViewType = viewPath.endsWith(".excalidraw") ? "excalidraw" : "markdown"
-    },
-    switchToMarkdownBackSide: () => {
-      activeWorkspaceViewType = "markdown"
-    },
-    switchToExcalidrawFrontSide: () => {
-      activeWorkspaceViewType = "excalidraw"
-      ea.targetView = viewByPath.get(activeViewPath) ?? null
     },
     emitWorkspaceEvent: (eventName = "file-open") => {
       for (const listener of [...(workspaceListeners.get(eventName) ?? [])]) {
@@ -596,36 +574,6 @@ describe("runtime active-view refresh", () => {
     await flushAsync()
 
     expect(runtime.getExcalidrawAPI).not.toHaveBeenCalled()
-  })
-
-  it("closes on same-file markdown back side and remounts on return to excalidraw front side", async () => {
-    const runtime = makeRuntimeWithSidepanel(
-      fakeDocument,
-      {
-        "A.excalidraw": [{ id: "A", type: "rectangle", name: "Alpha", isDeleted: false }],
-      },
-      "A.excalidraw",
-      {
-        requireSetViewForReadCalls: true,
-      },
-    )
-
-    createLayerManagerRuntime(runtime.ea)
-    expect(runtime.sidepanelTab.contentEl.children.length).toBeGreaterThan(0)
-
-    runtime.switchToMarkdownBackSide()
-    runtime.emitWorkspaceEvent("active-leaf-change")
-    await flushAsync()
-
-    expect(runtime.detachLeaf).toHaveBeenCalledTimes(1)
-    expect(runtime.sidepanelTab.contentEl.children).toHaveLength(0)
-
-    runtime.switchToExcalidrawFrontSide()
-    runtime.emitWorkspaceEvent("active-leaf-change")
-    await flushAsync()
-
-    const contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    expect(findInteractiveRowByLabel(contentRoot, "[element] Alpha")).toBeDefined()
   })
 
   it("remounts cleanly after tearing down an ineligible host view", async () => {

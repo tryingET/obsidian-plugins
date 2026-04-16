@@ -23,8 +23,6 @@ export interface SidepanelHostViewContextDescription {
   readonly activeFileMetadataAvailable: boolean
   readonly activeFileExcalidrawPlugin: string | null
   readonly activeFileExcalidrawCapable: boolean | null
-  readonly activeWorkspaceViewType: string | null
-  readonly activeWorkspaceViewExcalidraw: boolean | null
   readonly hostEligible: boolean
   readonly hasSetView: boolean
 }
@@ -198,40 +196,6 @@ const resolveActiveWorkspaceFilePath = (
     : null
 }
 
-const resolveActiveWorkspaceViewType = (
-  host: SidepanelHostViewContextHost,
-  targetView: unknown,
-): string | null => {
-  const workspace = resolveWorkspace(host, targetView)
-  if (!workspace || typeof workspace !== "object") {
-    return null
-  }
-
-  const workspaceRecord = workspace as Record<string, unknown>
-  const activeLeaf = workspaceRecord["activeLeaf"]
-  if (!activeLeaf || typeof activeLeaf !== "object") {
-    return null
-  }
-
-  const activeLeafRecord = activeLeaf as Record<string, unknown>
-  const activeView =
-    activeLeafRecord["view"] && typeof activeLeafRecord["view"] === "object"
-      ? (activeLeafRecord["view"] as Record<string, unknown>)
-      : null
-  const getViewType = activeView?.["getViewType"]
-
-  if (typeof getViewType !== "function") {
-    return null
-  }
-
-  try {
-    const result = getViewType.call(activeView)
-    return typeof result === "string" ? result : null
-  } catch {
-    return null
-  }
-}
-
 const isExcalidrawCapableMetadataValue = (value: string | null): boolean => {
   return value?.trim().toLowerCase() === EXCALIDRAW_FRONTMATTER_VALUE
 }
@@ -259,10 +223,6 @@ const resolveHostViewContextDescription = (
   const activeFileExcalidrawCapable = activeFileMetadata.available
     ? isExcalidrawCapableMetadataValue(activeFileMetadata.value)
     : null
-  const activeWorkspaceViewType = resolveActiveWorkspaceViewType(host, targetView)
-  const activeWorkspaceViewExcalidraw = activeWorkspaceViewType
-    ? activeWorkspaceViewType === "excalidraw"
-    : null
   const legacyHostWithoutTargetViewProperty = !hasExplicitTargetViewProperty(host)
   const effectiveExcalidrawCapable = activeFileMetadata.available
     ? activeFileExcalidrawCapable
@@ -280,13 +240,9 @@ const resolveHostViewContextDescription = (
     activeFileMetadataAvailable: activeFileMetadata.available,
     activeFileExcalidrawPlugin: activeFileMetadata.value,
     activeFileExcalidrawCapable,
-    activeWorkspaceViewType,
-    activeWorkspaceViewExcalidraw,
     hostEligible: legacyHostWithoutTargetViewProperty
       ? true
-      : targetViewUsable &&
-        (effectiveExcalidrawCapable ?? true) &&
-        (activeWorkspaceViewExcalidraw ?? true),
+      : targetViewUsable && (effectiveExcalidrawCapable ?? true),
     hasSetView: typeof host.setView === "function",
   }
 }
@@ -310,17 +266,17 @@ export const resolveHostViewContextKey = (host: SidepanelHostViewContextHost): s
   const contextFilePath = description.activeFilePath ?? description.targetViewFilePath
   const targetKey = contextFilePath ? `target:file:${contextFilePath}` : "target:unknown-file"
 
-  const viewTypeKey = description.activeWorkspaceViewType
-    ? `active:${description.activeWorkspaceViewType}`
-    : "active:unknown"
-
-  const eligibilityKey = description.hostEligible
-    ? "eligible"
-    : description.activeFileMetadataAvailable || description.targetViewMetadataAvailable
-      ? "ineligible"
+  const eligibilityKey = description.activeFileMetadataAvailable
+    ? description.activeFileExcalidrawCapable
+      ? "eligible"
+      : "ineligible"
+    : description.targetViewMetadataAvailable
+      ? description.targetViewExcalidrawCapable
+        ? "eligible"
+        : "ineligible"
       : "legacy"
 
-  return `${targetKey}::${viewTypeKey}::eligibility:${eligibilityKey}`
+  return `${targetKey}::eligibility:${eligibilityKey}`
 }
 
 export const ensureHostViewContextState = (
