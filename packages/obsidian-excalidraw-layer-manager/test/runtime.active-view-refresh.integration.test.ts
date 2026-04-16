@@ -63,6 +63,7 @@ interface RuntimeWithSidepanel {
   readonly ea: EaLike
   readonly sidepanelTab: SidepanelTabHarness
   readonly getExcalidrawAPI: ReturnType<typeof vi.fn>
+  readonly getViewElements: ReturnType<typeof vi.fn>
   readonly detachLeaf: ReturnType<typeof vi.fn>
   readonly switchToView: (viewPath: string) => void
   readonly switchWorkspaceToView: (viewPath: string) => void
@@ -76,6 +77,7 @@ type DrawingFixture =
       readonly elements: readonly RawExcalidrawElement[]
       readonly frontmatter?: Record<string, unknown>
       readonly filePath?: string
+      readonly workspaceFilePath?: string | null
       readonly viewId?: string
       readonly leafId?: string
       readonly viewType?: string
@@ -95,6 +97,7 @@ const normalizeDrawingFixture = (
   readonly elements: readonly RawExcalidrawElement[]
   readonly frontmatter: Record<string, unknown>
   readonly filePath: string
+  readonly workspaceFilePath: string | null
   readonly viewId: string
   readonly leafId: string
   readonly viewType: string
@@ -107,6 +110,7 @@ const normalizeDrawingFixture = (
         "excalidraw-plugin": "parsed",
       },
       filePath: viewPath,
+      workspaceFilePath: viewPath,
       viewId: viewPath,
       leafId: viewPath,
       viewType: "excalidraw",
@@ -118,6 +122,7 @@ const normalizeDrawingFixture = (
     elements: fixture.elements,
     frontmatter: fixture.frontmatter ?? {},
     filePath: fixture.filePath ?? viewPath,
+    workspaceFilePath: fixture.workspaceFilePath ?? fixture.filePath ?? viewPath,
     viewId: fixture.viewId ?? viewPath,
     leafId: fixture.leafId ?? fixture.viewId ?? viewPath,
     viewType: fixture.viewType ?? "excalidraw",
@@ -224,9 +229,14 @@ const makeRuntimeWithSidepanel = (
               workspaceListeners.get(eventName)?.delete(callback as (...args: unknown[]) => unknown)
             },
           }),
-      getActiveFile: () => ({
-        path: normalizedByPath.get(activeViewPath)?.filePath ?? activeViewPath,
-      }),
+      getActiveFile: () => {
+        const workspaceFilePath = normalizedByPath.get(activeViewPath)?.workspaceFilePath
+        return workspaceFilePath === null
+          ? null
+          : {
+              path: workspaceFilePath ?? activeViewPath,
+            }
+      },
       get activeLeaf() {
         const fixture = normalizedByPath.get(activeViewPath)
         return {
@@ -374,6 +384,14 @@ const makeRuntimeWithSidepanel = (
 
   const detachLeaf = vi.fn()
 
+  const getViewElements = vi.fn(() => {
+    if (options.requireSetViewForReadCalls === true && !hasFreshViewBinding()) {
+      throw new Error("targetView not set")
+    }
+
+    return getCurrentDrawing().elements
+  })
+
   const ea: EaLike = {
     ...(options.omitEaApp ? {} : { app }),
     targetView: viewByPath.get(activeViewPath) ?? null,
@@ -384,13 +402,7 @@ const makeRuntimeWithSidepanel = (
 
       return ea.targetView
     }),
-    getViewElements: () => {
-      if (options.requireSetViewForReadCalls === true && !hasFreshViewBinding()) {
-        throw new Error("targetView not set")
-      }
-
-      return getCurrentDrawing().elements
-    },
+    getViewElements,
     getViewSelectedElements: () => {
       if (options.requireSetViewForReadCalls === true && !hasFreshViewBinding()) {
         throw new Error("targetView not set")
@@ -417,6 +429,7 @@ const makeRuntimeWithSidepanel = (
     ea,
     sidepanelTab,
     getExcalidrawAPI,
+    getViewElements,
     detachLeaf,
     switchToView: (viewPath: string) => {
       if (!drawingByPath.has(viewPath)) {
@@ -677,6 +690,44 @@ describe("runtime active-view refresh", () => {
     expect(focusedRowAfterArrowLabel).toBeDefined()
     expect(focusedIndexAfterArrow).toBeGreaterThanOrEqual(0)
     expect(focusedIndexAfterArrow).not.toBe(focusedIndexBeforeArrow)
+  })
+
+  it("does not refresh runtime snapshot when the sidepanel leaf becomes active without changing binding or rebind pressure", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      {
+        "A.excalidraw": [
+          { id: "A", type: "rectangle", name: "Alpha", isDeleted: false },
+          { id: "B", type: "rectangle", name: "Beta", isDeleted: false },
+        ],
+        sidepanel: {
+          filePath: "A.excalidraw",
+          workspaceFilePath: null,
+          viewId: "sidepanel:view",
+          leafId: "sidepanel:leaf",
+          viewType: "sidepanel",
+          frontmatter: {
+            "excalidraw-plugin": "parsed",
+          },
+          elements: [],
+          bindTargetView: false,
+        },
+      },
+      "A.excalidraw",
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+    runtime.getViewElements.mockClear()
+
+    runtime.switchWorkspaceToView("sidepanel")
+    runtime.emitWorkspaceEvent("active-leaf-change")
+    await flushAsync()
+
+    expect(runtime.getViewElements).not.toHaveBeenCalled()
+
+    const contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Alpha")).toBeDefined()
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Beta")).toBeDefined()
   })
 
   it("treats same-file targetView identity switches in both directions as active-view changes even when file path and leaf stay stable", async () => {

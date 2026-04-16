@@ -356,6 +356,20 @@ export const createLayerManagerRuntime = (
     })
   }
 
+  const shouldScheduleHostContextRefresh = (input: {
+    readonly previousBindingKey: string
+    readonly previousState: (typeof hostContextSnapshot)["state"]
+    readonly previousShouldAttemptRebind: boolean
+    readonly result: ReturnType<typeof hostContextCoordinator.reconcile>
+  }): boolean => {
+    return (
+      input.result.rebound ||
+      input.previousBindingKey !== input.result.snapshot.bindingKey ||
+      input.previousState !== input.result.snapshot.state ||
+      input.previousShouldAttemptRebind !== input.result.snapshot.shouldAttemptRebind
+    )
+  }
+
   const subscribeToWorkspaceRefresh = (): void => {
     const workspace = resolveRuntimeApp(ea)?.workspace
     if (!workspace) {
@@ -369,7 +383,22 @@ export const createLayerManagerRuntime = (
         for (const eventName of ["file-open", "active-leaf-change"]) {
           try {
             const ref = on.call(workspace, eventName, () => {
-              reconcileHostContext("leaf-change")
+              const previousBindingKey = activeViewContextKey
+              const previousState = hostContextSnapshot.state
+              const previousShouldAttemptRebind = hostContextSnapshot.shouldAttemptRebind
+              const reconcileResult = reconcileHostContext("leaf-change")
+
+              if (
+                !shouldScheduleHostContextRefresh({
+                  previousBindingKey,
+                  previousState,
+                  previousShouldAttemptRebind,
+                  result: reconcileResult,
+                })
+              ) {
+                return
+              }
+
               scheduleHostContextRefresh()
             })
 
@@ -385,8 +414,18 @@ export const createLayerManagerRuntime = (
 
     if (workspaceActiveFilePoll === null) {
       workspaceActiveFilePoll = setInterval(() => {
+        const previousBindingKey = activeViewContextKey
+        const previousState = hostContextSnapshot.state
+        const previousShouldAttemptRebind = hostContextSnapshot.shouldAttemptRebind
         const reconcileResult = reconcileHostContext("poll")
-        if (!reconcileResult.changed && !reconcileResult.rebound) {
+        if (
+          !shouldScheduleHostContextRefresh({
+            previousBindingKey,
+            previousState,
+            previousShouldAttemptRebind,
+            result: reconcileResult,
+          })
+        ) {
           return
         }
 

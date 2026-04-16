@@ -118,7 +118,6 @@ const haveEquivalentSnapshots = (
     left.bindingKey === right.bindingKey &&
     left.state === right.state &&
     left.targetViewIdentity === right.targetViewIdentity &&
-    left.activeFilePath === right.activeFilePath &&
     left.targetViewUsable === right.targetViewUsable &&
     left.hostEligible === right.hostEligible &&
     left.shouldAttemptRebind === right.shouldAttemptRebind &&

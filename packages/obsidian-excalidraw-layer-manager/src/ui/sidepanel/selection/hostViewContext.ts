@@ -472,14 +472,11 @@ export const resolveHostViewContextKeyFromObservation = (
   const targetFileKey = description.targetViewFilePath
     ? `target-file:${description.targetViewFilePath}`
     : "target-file:none"
-  const activeFileKey = description.activeFilePath
-    ? `active-file:${description.activeFilePath}`
-    : "active-file:none"
   const targetViewIdentityKey = description.targetViewIdentity
     ? `view:${description.targetViewIdentity}`
     : "view:none"
 
-  return `${targetPresenceKey}::${targetFileKey}::${activeFileKey}::${targetViewIdentityKey}::eligibility:${resolveHostViewContextEligibilityKey(description)}`
+  return `${targetPresenceKey}::${targetFileKey}::${targetViewIdentityKey}::eligibility:${resolveHostViewContextEligibilityKey(description)}`
 }
 
 export const resolveHostViewContextKey = (host: SidepanelHostViewContextHost): string => {
