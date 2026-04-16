@@ -39,6 +39,16 @@ That distributed approach has produced a recurring whack-a-mole pattern:
 The package needs one explicit answer to:
 > where does host-context truth live, and how do shell state and focus routing derive from it?
 
+A maintainer hint materially narrows the problem space:
+- `ea.targetView` can be cached as a reusable view object
+- leaf-change handling can reinstate that cached view
+- Excalidraw emits an `onViewChange` event to the sidepanel
+- sidepanel persistence outside active Excalidraw is intentional and can support markdown or other document workflows later
+
+So the RFC is not deciding from scratch whether persistence outside Excalidraw is allowed.
+It already is.
+The real decision is how LayerManager should bind truthfully to that persistent shell.
+
 ## Goals
 
 - make switching between Excalidraw, markdown, and same-file note-card modes deterministic
@@ -66,6 +76,7 @@ Keep the current structure and keep fixing the observed regressions one by one.
 **Cons**
 - highest regression risk
 - keeps multiple semi-authoritative definitions of host truth alive
+- ignores the stronger host-native contract the maintainer says already exists
 - does not solve the operator-trust problem around switching and keyboard capture
 - likely to keep producing symptom migration rather than closure
 
@@ -73,6 +84,7 @@ Keep the current structure and keep fixing the observed regressions one by one.
 Create one explicit coordinator that observes host signals and emits a normalized host-context snapshot or event stream.
 
 It would own at least:
+- cached `ea.targetView` as the reusable bound-view object
 - active file path
 - active workspace leaf identity
 - active workspace view type
@@ -81,11 +93,19 @@ It would own at least:
 - rebinding attempts and bounded retry policy
 - derived shell state: `live`, `inactive`, `unbound`
 
+Primary host signals should be:
+- workspace leaf-change
+- Excalidraw sidepanel `onViewChange`
+- cached view reinstatement from `ea.targetView`
+
+Polling should remain fallback only.
+
 Renderer, runtime refresh, and focus routing would consume this coordinator instead of reconstructing host truth independently.
 
 **Pros**
 - centralizes host authority without necessarily rewriting the whole lifecycle model
-- likely the best tradeoff between stability and implementation cost
+- aligns directly with the maintainer’s stated host contract
+- preserves sidepanel persistence without pretending persistence implies live Excalidraw ownership
 - makes test strategy cleaner because host transitions have one canonical source
 
 **Cons**
@@ -94,6 +114,8 @@ Renderer, runtime refresh, and focus routing would consume this coordinator inst
 
 ### Option C — Add a dedicated host-binding state machine
 Create a dedicated bounded machine for host binding / unbinding / rebinding / shell-state decisions.
+
+This option is only sensible if it becomes the implementation form of the coordinator in Option B, not a second parallel inference layer.
 
 Potential high-level states might include:
 - `live`
@@ -132,19 +154,25 @@ Combine shell mount truth, host binding truth, and keyboard/focus routing truth 
 The core problem is not “we have too little state machinery.”
 The core problem is “host truth is fragmented.”
 
+The maintainer hint sharpens that further:
+- we already have stronger host-native signals than file-path heuristics
+- the package should use those before inventing more internal complexity
+
 So the first architectural move should be:
 - centralize host-context observation and derived shell-state truth
+- treat cached `ea.targetView`, leaf-change, and sidepanel `onViewChange` as the primary contract
 - let existing runtime / renderer / focus code consume that one authority surface
 - only introduce a dedicated state machine inside the coordinator if the coordinator’s transitions prove too rich for a simpler normalized-snapshot model
 
 ### Provisional contract for the coordinator
 The coordinator should own:
 1. host signal observation
-   - workspace events
-   - polling fallback
-   - targetView availability/usability
+   - cached `ea.targetView`
+   - workspace leaf-change
+   - sidepanel `onViewChange`
+   - polling fallback only when the stronger signals are unavailable
 2. normalization into one host-context identity / status
-3. bounded rebinding attempts
+3. bounded rebinding attempts, including reinstating the cached view object when appropriate
 4. derivation of shell state
    - `live`
    - `inactive`
@@ -153,21 +181,25 @@ The coordinator should own:
    - document-level routing may only be active while the coordinator says LayerManager legitimately owns it
    - leaving live Excalidraw context must release routing fail-safe
    - inactive/unbound shell visibility must not imply continued global-ish keyboard ownership
+   - persistent shell visibility may support future non-Excalidraw workflows, but that must not imply live Excalidraw routing ownership
 
 ## Open questions
 
 1. Should focus-routing ownership be derived directly from host state, or remain a separate subsystem with a stricter consumption contract?
 2. Is `inactive` vs `unbound` sufficient, or do we also need an explicit `rebinding` state exposed to the renderer/runtime?
 3. Should coordinator outputs be event-driven, snapshot-driven, or both?
-4. How much existing renderer-side targetView-loss logic should be deleted vs delegated?
-5. What is the minimum migration slice that proves the architecture without another repo-wide destabilization?
+4. Exactly how should leaf-change and `onViewChange` interact when they disagree or arrive in different orders?
+5. How much existing renderer-side targetView-loss logic should be deleted vs delegated?
+6. What is the minimum migration slice that proves the architecture without another repo-wide destabilization?
+7. Should future markdown / templater-like sidepanel workflows be explicitly in-scope later, or merely preserved as a non-broken possibility for now?
 
 ## Decision requested
 
 1. Confirm that the package should stop relying on distributed host-context inference as the long-term model.
 2. Confirm that a single host-context coordinator is the preferred architectural direction.
-3. Confirm that a new state machine is optional and only justified if used inside that coordinator to replace, not supplement, fragmented authority.
-4. Confirm that keyboard/focus routing must be included in the same authority discussion rather than treated as a separate later concern.
+3. Confirm that cached `ea.targetView`, workspace leaf-change, and sidepanel `onViewChange` should be treated as the primary host-binding contract, with polling only as fallback.
+4. Confirm that a new state machine is optional and only justified if used inside that coordinator to replace, not supplement, fragmented authority.
+5. Confirm that keyboard/focus routing must be included in the same authority discussion rather than treated as a separate later concern.
 
 ## Smallest truthful conclusion
 

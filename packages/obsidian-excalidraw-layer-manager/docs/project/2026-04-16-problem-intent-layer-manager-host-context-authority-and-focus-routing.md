@@ -17,7 +17,7 @@ Decide how `obsidian-excalidraw-layer-manager` should model:
 - shell persistence vs live authority
 - document-level keyboard / focus routing ownership
 
-so that switching between Excalidraw, markdown, and same-file note-card modes becomes deterministic rather than heuristic.
+so that switching between Excalidraw, markdown, and same-file note-card modes becomes deterministic rather than heuristic, while preserving the maintainer’s intended persistent-sidepanel model.
 
 ## Why this is not another small bug ticket
 
@@ -27,6 +27,13 @@ They come from an architectural mismatch:
 - shell persistence is allowed independently of live scene authority
 - document-level keyboard routing can remain active after the context that justified it changed
 - switching is partly event-driven, partly poll-driven, and partly renderer-driven
+- stronger host-native signals exist, but the package is not yet treating them as the primary contract
+
+The maintainer guidance specifically says the package can:
+- cache `ea.targetView`
+- reinstate that cached view on leaf changes
+- listen to an Excalidraw `onViewChange` event delivered to the sidepanel
+- and rely on persistent shell visibility even when Excalidraw is not the active view
 
 That means more symptom patches are likely to keep moving the breakage around instead of closing it.
 
@@ -36,6 +43,7 @@ LayerManager currently has to answer all of these questions:
 - what workspace leaf is active right now?
 - what view type is active right now?
 - what targetView is currently usable?
+- what cached view object should remain available even when Excalidraw is not the active leaf?
 - when should the package rebind to active Excalidraw?
 - when should the shell render `inactive` vs `unbound` vs `live`?
 - when is document-level keyboard routing allowed?
@@ -44,7 +52,7 @@ LayerManager currently has to answer all of these questions:
 Today those answers are distributed across several modules.
 The unresolved problem is:
 
-> Should LayerManager keep making these decisions through distributed local inference, or should it introduce one explicit host-context authority surface that owns switching, rebinding, shell state, and focus-routing release rules?
+> Should LayerManager keep making these decisions through distributed local inference, or should it introduce one explicit host-context authority surface that treats cached `ea.targetView`, leaf-change handling, and sidepanel `onViewChange` as the primary binding contract?
 
 ## Decision pressure
 
@@ -62,23 +70,32 @@ This RFC cycle should answer at least these questions:
    - a centralized coordinator
    - a dedicated bounded state machine
 
-3. How should shell truth be modeled?
+3. Which host signals should be primary?
+   - cached `ea.targetView`
+   - workspace leaf-change
+   - Excalidraw sidepanel `onViewChange`
+   - polling only as fallback?
+
+4. How should shell truth be modeled?
    - `live`
    - `inactive`
    - `unbound`
    - any other states needed?
 
-4. How should keyboard/focus routing be bounded?
+5. How should keyboard/focus routing be bounded?
    - must routing release whenever the active leaf leaves live Excalidraw?
    - may an inactive/unbound shell ever retain sticky keyboard ownership?
    - what is the fail-safe release rule if switching signals are partial or transient?
 
-5. What is the right relationship between:
+6. What is the right relationship between:
    - workspace events
+   - sidepanel `onViewChange`
+   - cached view reinstatement
    - polling fallback
    - targetView-loss detection
    - rebinding attempts
    - and renderer refresh?
+
 
 ## Success criteria
 
@@ -86,6 +103,7 @@ A good RFC outcome here should produce:
 - one explicit authority model for host-context switching
 - one explicit contract for shell state truthfulness
 - one explicit contract for document-level keyboard/focus capture and release
+- one explicit stance on the maintainer-provided host signals: cached `ea.targetView`, leaf-change, and `onViewChange`
 - a migration direction that reduces regression surface instead of adding another parallel inference path
 - a reviewable architecture decision rather than more local tactical patching
 
@@ -103,4 +121,4 @@ The current question is not:
 - “what one extra guard clause should we add?”
 
 It is:
-- “what component is allowed to say what the current host context really is, and how do shell state + focus routing derive from that without contradiction?”
+- “what component is allowed to say what the current host context really is, using the host-native signals the maintainer says already exist, and how do shell state + focus routing derive from that without contradiction?”

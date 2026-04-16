@@ -24,6 +24,20 @@ Operator-reported symptoms across the packet included:
 The operator’s bounded conclusion was reasonable:
 > stop doing one more little patch and frame the problem at the right architectural level.
 
+## Maintainer-provided upstream contract
+
+A maintainer hint materially changed the evidence base.
+The package is not limited to file-path inference plus target-loss heuristics.
+The host already provides stronger primitives:
+- the Excalidraw view object in `ea.targetView` can be cached and reinstated
+- a leaf-change handler can reapply that cached view when the active leaf changes
+- Excalidraw emits an `onViewChange` event to the sidepanel, which is a stronger view-binding signal than reconstructing truth from file path alone
+- the sidepanel is intentionally persistent even when Excalidraw is not the active view, which means the shell is not conceptually Excalidraw-only and could legitimately support markdown or other document workflows later
+
+That last point matters because it means the package should not treat "not currently active Excalidraw" as proof the shell should disappear.
+The shell is allowed to persist.
+What must change is the truth model for what the shell is currently bound to and what interaction ownership it is allowed to keep.
+
 ## Verified current evidence
 
 ### 1. The regressions are distributed across multiple seams, not one local bug
@@ -64,6 +78,7 @@ They also made the remaining problem clearer:
 - the package still does not have one canonical authority for host-context switching
 - document-level focus/keyboard routing can outlive the context that justified it
 - switching truth is still being reconstructed from several bounded heuristics rather than one explicit contract
+- the package is still underusing host-native signals that the maintainer says already exist: cached `ea.targetView`, leaf-change rebinding, and sidepanel `onViewChange`
 
 ### 3. The regression cluster crosses two concerns that are currently entangled
 The failures are really about two coupled but distinct concerns:
@@ -110,12 +125,18 @@ This is no longer only:
 The package now needs an explicit answer to:
 > where does host truth live, and which subsystem is allowed to drive shell state, rebinding, and document-level focus routing from that truth?
 
+That answer must also account for the maintainer contract that:
+- the shell may persist beyond active Excalidraw focus
+- `ea.targetView` is a reusable binding object, not merely a transient probe
+- leaf-change plus `onViewChange` should be treated as first-class host signals
+
 That is architecture-significant because it affects:
 - switching determinism
 - typing safety outside Excalidraw
 - keyboard accessibility
 - operator trust in whether the shell is live or merely visible
 - the boundary between shell persistence and interaction ownership
+- the future possibility of sidepanel-backed workflows outside live Excalidraw, including markdown-like or templater-like uses
 
 ## Smallest bounded conclusion from the evidence
 
@@ -125,5 +146,11 @@ The right next move is to decide a single authority model for:
 2. binding / rebinding decisions
 3. shell state transitions (`live`, `inactive`, `unbound`)
 4. document/focus routing ownership and release rules
+
+And that model should be derived from the stronger maintainer-provided contract surfaces first:
+- cached `ea.targetView`
+- leaf-change handling
+- sidepanel `onViewChange`
+- polling only as bounded fallback
 
 That is the concern this RFC chain should address.
