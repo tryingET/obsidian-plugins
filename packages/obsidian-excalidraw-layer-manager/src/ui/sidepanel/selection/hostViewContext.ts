@@ -215,20 +215,18 @@ const resolveHostViewContextDescription = (
   const targetViewExcalidrawCapable = targetViewMetadata.available
     ? isExcalidrawCapableMetadataValue(targetViewMetadata.value)
     : null
-  const legacyHostWithoutTargetViewProperty = !hasExplicitTargetViewProperty(host)
-  const shouldUseActiveFileDiagnostics = legacyHostWithoutTargetViewProperty || !targetViewUsable
-  const activeFile = shouldUseActiveFileDiagnostics
-    ? resolveActiveWorkspaceFile(host, targetView)
-    : null
-  const activeFileMetadata = shouldUseActiveFileDiagnostics
-    ? resolveFileExcalidrawMetadata(resolveMetadataApp(host, targetView), activeFile)
-    : {
-        available: false,
-        value: null,
-      }
+  const activeFile = resolveActiveWorkspaceFile(host, targetView)
+  const activeFileMetadata = resolveFileExcalidrawMetadata(
+    resolveMetadataApp(host, targetView),
+    activeFile,
+  )
   const activeFileExcalidrawCapable = activeFileMetadata.available
     ? isExcalidrawCapableMetadataValue(activeFileMetadata.value)
     : null
+  const legacyHostWithoutTargetViewProperty = !hasExplicitTargetViewProperty(host)
+  const effectiveExcalidrawCapable = activeFileMetadata.available
+    ? activeFileExcalidrawCapable
+    : targetViewExcalidrawCapable
 
   return {
     hasTargetView: targetView !== null,
@@ -238,15 +236,13 @@ const resolveHostViewContextDescription = (
     targetViewMetadataAvailable: targetViewMetadata.available,
     targetViewExcalidrawPlugin: targetViewMetadata.value,
     targetViewExcalidrawCapable,
-    activeFilePath: shouldUseActiveFileDiagnostics
-      ? resolveActiveWorkspaceFilePath(host, targetView)
-      : null,
+    activeFilePath: resolveActiveWorkspaceFilePath(host, targetView),
     activeFileMetadataAvailable: activeFileMetadata.available,
     activeFileExcalidrawPlugin: activeFileMetadata.value,
     activeFileExcalidrawCapable,
     hostEligible: legacyHostWithoutTargetViewProperty
       ? true
-      : targetViewUsable && (targetViewExcalidrawCapable ?? true),
+      : targetViewUsable && (effectiveExcalidrawCapable ?? true),
     hasSetView: typeof host.setView === "function",
   }
 }
@@ -267,15 +263,18 @@ export const resolveHostViewContextKey = (host: SidepanelHostViewContextHost): s
     return "target:null::eligibility:unbound"
   }
 
-  const targetKey = description.targetViewFilePath
-    ? `target:file:${description.targetViewFilePath}`
-    : "target:unknown-file"
+  const contextFilePath = description.activeFilePath ?? description.targetViewFilePath
+  const targetKey = contextFilePath ? `target:file:${contextFilePath}` : "target:unknown-file"
 
-  const eligibilityKey = description.targetViewMetadataAvailable
-    ? description.targetViewExcalidrawCapable
+  const eligibilityKey = description.activeFileMetadataAvailable
+    ? description.activeFileExcalidrawCapable
       ? "eligible"
       : "ineligible"
-    : "legacy"
+    : description.targetViewMetadataAvailable
+      ? description.targetViewExcalidrawCapable
+        ? "eligible"
+        : "ineligible"
+      : "legacy"
 
   return `${targetKey}::eligibility:${eligibilityKey}`
 }

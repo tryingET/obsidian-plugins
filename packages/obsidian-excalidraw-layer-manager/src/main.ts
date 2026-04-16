@@ -1,4 +1,4 @@
-import type { EaLike } from "./adapter/excalidraw-types.js"
+import type { EaLike, ObsidianAppLike } from "./adapter/excalidraw-types.js"
 import { readSnapshot } from "./adapter/excalidrawAdapter.js"
 import { buildLayerTree } from "./domain/treeBuilder.js"
 import { buildSceneIndexes } from "./model/indexes.js"
@@ -58,6 +58,75 @@ const toSceneChangeUnsubscribe = (value: unknown): (() => void) | null => {
   return typeof value === "function" ? (value as () => void) : null
 }
 
+const ACTIVE_VIEW_BIND_STRATEGIES: readonly {
+  readonly viewArg: unknown
+  readonly reveal: boolean
+}[] = [
+  { viewArg: "active", reveal: false },
+  { viewArg: undefined, reveal: false },
+  { viewArg: "active", reveal: true },
+  { viewArg: undefined, reveal: true },
+]
+const WORKSPACE_ACTIVE_FILE_POLL_MS = 350
+
+const resolveRuntimeApp = (ea: EaLike): ObsidianAppLike | null => {
+  const targetViewApp =
+    ea.targetView && typeof ea.targetView === "object"
+      ? ((ea.targetView as Record<string, unknown>)["app"] ?? null)
+      : null
+
+  const candidates = [
+    targetViewApp,
+    ea.app,
+    ea.obsidian?.app,
+    (globalThis as Record<string, unknown>)["app"],
+    (globalThis as { window?: { app?: unknown } }).window?.app,
+    (globalThis as { obsidian?: { app?: unknown } }).obsidian?.app,
+  ]
+
+  for (const candidate of candidates) {
+    if (candidate && typeof candidate === "object") {
+      return candidate as ObsidianAppLike
+    }
+  }
+
+  return null
+}
+
+const resolveWorkspaceActiveFilePath = (ea: EaLike): string | null => {
+  const getActiveFile = resolveRuntimeApp(ea)?.workspace?.getActiveFile
+  if (!getActiveFile) {
+    return null
+  }
+
+  try {
+    const activeFile = getActiveFile()
+    return activeFile &&
+      typeof activeFile === "object" &&
+      typeof (activeFile as { path?: unknown }).path === "string"
+      ? ((activeFile as { path: string }).path as string)
+      : null
+  } catch {
+    return null
+  }
+}
+
+const bindEaToActiveWorkspaceView = (ea: EaLike): void => {
+  const workspace = resolveRuntimeApp(ea)?.workspace
+  const setView = ea.setView
+  if (!workspace || !setView) {
+    return
+  }
+
+  for (const strategy of ACTIVE_VIEW_BIND_STRATEGIES) {
+    try {
+      setView(strategy.viewArg, strategy.reveal)
+    } catch {
+      // keep trying bounded active-view strategies
+    }
+  }
+}
+
 export interface LayerManagerRuntime {
   refresh: () => void
   apply: (patch: ScenePatch) => Promise<void>
@@ -84,6 +153,10 @@ export const createLayerManagerRuntime = (
   let activeViewContextKey = resolveHostViewContextKey(ea)
   let subscribedViewContextKey: string | null = null
   let lifecycleActor: ReturnType<typeof createRuntimeLifecycleActor> | null = null
+  let workspaceRefreshRefs: unknown[] = []
+  let workspaceRefreshScheduled = false
+  let workspaceActiveFilePoll: ReturnType<typeof setInterval> | null = null
+  let lastObservedWorkspaceActiveFilePath = resolveWorkspaceActiveFilePath(ea)
 
   const sendLifecycleEvent = (
     event:
@@ -267,6 +340,93 @@ export const createLayerManagerRuntime = (
     subscribedViewContextKey = null
   }
 
+  const clearWorkspaceRefreshSubscriptions = (): void => {
+    const workspace = resolveRuntimeApp(ea)?.workspace
+
+    for (const ref of workspaceRefreshRefs) {
+      if (typeof ref === "function") {
+        try {
+          ref()
+        } catch {
+          // no-op: best-effort cleanup only
+        }
+        continue
+      }
+
+      try {
+        workspace?.offref?.(ref)
+      } catch {
+        // no-op: best-effort cleanup only
+      }
+    }
+
+    if (workspaceActiveFilePoll !== null) {
+      clearInterval(workspaceActiveFilePoll)
+      workspaceActiveFilePoll = null
+    }
+
+    workspaceRefreshRefs = []
+    workspaceRefreshScheduled = false
+  }
+
+  const scheduleWorkspaceDrivenRefresh = (): void => {
+    if (disposed || workspaceRefreshScheduled) {
+      return
+    }
+
+    workspaceRefreshScheduled = true
+
+    Promise.resolve().then(() => {
+      workspaceRefreshScheduled = false
+
+      if (disposed) {
+        return
+      }
+
+      bindEaToActiveWorkspaceView(ea)
+      sendLifecycleEvent({ type: "REFRESH_REQUEST" })
+    })
+  }
+
+  const subscribeToWorkspaceRefresh = (): void => {
+    const workspace = resolveRuntimeApp(ea)?.workspace
+    if (!workspace) {
+      return
+    }
+
+    if (workspaceRefreshRefs.length === 0) {
+      const on = workspace.on
+
+      if (on) {
+        for (const eventName of ["file-open", "active-leaf-change"]) {
+          try {
+            const ref = on.call(workspace, eventName, () => {
+              scheduleWorkspaceDrivenRefresh()
+            })
+
+            if (ref !== undefined) {
+              workspaceRefreshRefs.push(ref)
+            }
+          } catch {
+            // keep subscribing to remaining bounded workspace events
+          }
+        }
+      }
+    }
+
+    if (workspaceActiveFilePoll === null && workspace.getActiveFile) {
+      workspaceActiveFilePoll = setInterval(() => {
+        const nextActiveFilePath = resolveWorkspaceActiveFilePath(ea)
+        if (nextActiveFilePath === lastObservedWorkspaceActiveFilePath) {
+          return
+        }
+
+        lastObservedWorkspaceActiveFilePath = nextActiveFilePath
+        scheduleWorkspaceDrivenRefresh()
+      }, WORKSPACE_ACTIVE_FILE_POLL_MS)
+    }
+  }
+
   const subscribeToSceneChanges = (): void => {
     let api: unknown
 
@@ -327,6 +487,7 @@ export const createLayerManagerRuntime = (
     syncActiveViewContext()
     const nextSnapshot = readSnapshot(ea)
     syncActiveViewContext()
+    lastObservedWorkspaceActiveFilePath = resolveWorkspaceActiveFilePath(ea)
     renderSnapshot(nextSnapshot)
     subscribeToSceneChanges()
   }
@@ -390,6 +551,7 @@ export const createLayerManagerRuntime = (
     lifecycleActor = null
     disposed = true
     clearSceneChangeSubscription()
+    clearWorkspaceRefreshSubscriptions()
     renderer.dispose?.()
     controller.dispose()
   }
@@ -400,6 +562,8 @@ export const createLayerManagerRuntime = (
     controller.toggleExpanded(nodeId)
   }
 
+  subscribeToWorkspaceRefresh()
+  bindEaToActiveWorkspaceView(ea)
   refresh()
 
   return {

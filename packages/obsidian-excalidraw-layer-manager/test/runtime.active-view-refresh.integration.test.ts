@@ -68,6 +68,7 @@ const normalizeDrawingFixture = (
 interface MakeRuntimeWithSidepanelOptions {
   readonly disableWorkspaceEvents?: boolean
   readonly omitEaApp?: boolean
+  readonly requireSetViewForReadCalls?: boolean
 }
 
 const makeRuntimeWithSidepanel = (
@@ -181,6 +182,10 @@ const makeRuntimeWithSidepanel = (
     return path
   }
 
+  const hasFreshViewBinding = (): boolean => {
+    return getBoundViewPath() === activeViewPath
+  }
+
   const getCurrentDrawing = () => {
     const boundViewPath = getBoundViewPath()
     const drawing = drawingByPath.get(boundViewPath)
@@ -246,8 +251,18 @@ const makeRuntimeWithSidepanel = (
 
       return ea.targetView
     }),
-    getViewElements: () => getCurrentDrawing().elements,
+    getViewElements: () => {
+      if (options.requireSetViewForReadCalls === true && !hasFreshViewBinding()) {
+        throw new Error("targetView not set")
+      }
+
+      return getCurrentDrawing().elements
+    },
     getViewSelectedElements: () => {
+      if (options.requireSetViewForReadCalls === true && !hasFreshViewBinding()) {
+        throw new Error("targetView not set")
+      }
+
       const drawing = getCurrentDrawing()
       return drawing.elements.filter((element) => drawing.selectedIds.has(element.id))
     },
@@ -416,24 +431,7 @@ describe("runtime active-view refresh", () => {
     expect(runtime.sidepanelTab.contentEl.children).toHaveLength(0)
   })
 
-  it("does not churn setView during startup when targetView is already healthy", async () => {
-    const runtime = makeRuntimeWithSidepanel(
-      fakeDocument,
-      {
-        "A.excalidraw": [{ id: "A", type: "rectangle", name: "Alpha", isDeleted: false }],
-      },
-      "A.excalidraw",
-    )
-
-    createLayerManagerRuntime(runtime.ea)
-    await flushAsync()
-
-    const setView = runtime.ea.setView as ReturnType<typeof vi.fn>
-    expect(setView).not.toHaveBeenCalled()
-    expect(runtime.sidepanelTab.contentEl.children.length).toBeGreaterThan(0)
-  })
-
-  it("ignores workspace note events while the singleton sidepanel stays bound to a healthy targetView", async () => {
+  it("auto-refreshes host applicability from workspace note changes", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
       {
@@ -444,36 +442,72 @@ describe("runtime active-view refresh", () => {
         },
       },
       "A.excalidraw",
+      {
+        requireSetViewForReadCalls: true,
+      },
     )
 
     createLayerManagerRuntime(runtime.ea)
-    const setView = runtime.ea.setView as ReturnType<typeof vi.fn>
-    setView.mockClear()
 
-    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    const alphaRow = findInteractiveRowByLabel(contentRoot, "[element] Alpha")
-    if (!alphaRow) {
-      throw new Error("Expected Alpha row before unrelated workspace note switch.")
-    }
-
-    alphaRow.click()
-    await flushAsync()
-
-    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    expect(getSelectedRows(contentRoot)).toHaveLength(1)
+    expect(runtime.sidepanelTab.contentEl.children.length).toBeGreaterThan(0)
 
     runtime.switchWorkspaceToView("plain.md")
     runtime.emitWorkspaceEvent("file-open")
     await flushAsync()
 
-    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    expect(runtime.sidepanelTab.close).toHaveBeenCalledTimes(1)
+    expect(runtime.sidepanelTab.contentEl.children).toHaveLength(0)
+
+    runtime.switchWorkspaceToView("A.excalidraw")
+    runtime.emitWorkspaceEvent("active-leaf-change")
+    await flushAsync()
+
+    const contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
     expect(findInteractiveRowByLabel(contentRoot, "[element] Alpha")).toBeDefined()
-    expect(getSelectedRows(contentRoot)).toHaveLength(1)
-    expect(runtime.sidepanelTab.close).not.toHaveBeenCalled()
-    expect(setView).not.toHaveBeenCalled()
   })
 
-  it("manual refresh keeps the singleton sidepanel bound to its healthy targetView when the workspace active file diverges", async () => {
+  it("polls workspace active-file changes when workspace events are unavailable", async () => {
+    vi.useFakeTimers()
+
+    try {
+      const runtime = makeRuntimeWithSidepanel(
+        fakeDocument,
+        {
+          "A.excalidraw": [{ id: "A", type: "rectangle", name: "Alpha", isDeleted: false }],
+          "plain.md": {
+            elements: [],
+            frontmatter: {},
+          },
+        },
+        "A.excalidraw",
+        {
+          disableWorkspaceEvents: true,
+          requireSetViewForReadCalls: true,
+        },
+      )
+
+      createLayerManagerRuntime(runtime.ea)
+      expect(runtime.sidepanelTab.contentEl.children.length).toBeGreaterThan(0)
+
+      runtime.switchWorkspaceToView("plain.md")
+      await vi.advanceTimersByTimeAsync(500)
+      await flushAsync()
+
+      expect(runtime.sidepanelTab.close).toHaveBeenCalledTimes(1)
+      expect(runtime.sidepanelTab.contentEl.children).toHaveLength(0)
+
+      runtime.switchWorkspaceToView("A.excalidraw")
+      await vi.advanceTimersByTimeAsync(500)
+      await flushAsync()
+
+      const contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+      expect(findInteractiveRowByLabel(contentRoot, "[element] Alpha")).toBeDefined()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it("derives workspace refresh app from targetView when ea.app is absent", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
       {
@@ -486,43 +520,19 @@ describe("runtime active-view refresh", () => {
       "A.excalidraw",
       {
         omitEaApp: true,
+        requireSetViewForReadCalls: true,
       },
     )
 
-    const app = createLayerManagerRuntime(runtime.ea)
-
-    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    const searchInput = findRowFilterInput(contentRoot)
-    if (!searchInput) {
-      throw new Error("Expected row filter input before workspace divergence refresh.")
-    }
-
-    searchInput.focus()
-    searchInput.value = "Alpha"
-    searchInput.dispatchEvent(new FakeDomEvent("input"))
-    await flushAsync()
-
-    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    const alphaRow = findInteractiveRowByLabel(contentRoot, "[element] Alpha")
-    if (!alphaRow) {
-      throw new Error("Expected Alpha row before workspace divergence refresh.")
-    }
-
-    alphaRow.click()
-    await flushAsync()
-    const setView = runtime.ea.setView as ReturnType<typeof vi.fn>
-    setView.mockClear()
+    createLayerManagerRuntime(runtime.ea)
+    expect(runtime.sidepanelTab.contentEl.children.length).toBeGreaterThan(0)
 
     runtime.switchWorkspaceToView("plain.md")
-    app.refresh()
+    runtime.emitWorkspaceEvent("file-open")
     await flushAsync()
 
-    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    expect(findInteractiveRowByLabel(contentRoot, "[element] Alpha")).toBeDefined()
-    expect(findRowFilterInput(contentRoot)?.value).toBe("Alpha")
-    expect(getSelectedRows(contentRoot)).toHaveLength(1)
-    expect(runtime.sidepanelTab.close).not.toHaveBeenCalled()
-    expect(setView).not.toHaveBeenCalled()
+    expect(runtime.sidepanelTab.close).toHaveBeenCalledTimes(1)
+    expect(runtime.sidepanelTab.contentEl.children).toHaveLength(0)
   })
 
   it("remounts cleanly after tearing down an ineligible host view", async () => {

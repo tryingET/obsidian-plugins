@@ -87,7 +87,7 @@ describe("runtime scene-change subscription lifecycle", () => {
     expect([...runtime.getSnapshot().selectedIds]).toEqual(["A"])
   })
 
-  it("does not resubscribe when only the workspace active file changes under a stable targetView", async () => {
+  it("resubscribes when the workspace active file changes eligibility under a stable targetView", async () => {
     const elementsByView: Record<string, RawExcalidrawElement[]> = {
       "A.excalidraw": [{ id: "A", type: "rectangle", isDeleted: false }],
     }
@@ -181,6 +181,8 @@ describe("runtime scene-change subscription lifecycle", () => {
     }
 
     const runtime = createLayerManagerRuntime(ea, renderer)
+    const setView = ea.setView as ReturnType<typeof vi.fn>
+    setView.mockClear()
     expect(subscribeCount).toBe(1)
     expect(unsubscribeCount).toBe(0)
     expect(listeners.size).toBe(1)
@@ -197,11 +199,11 @@ describe("runtime scene-change subscription lifecycle", () => {
     runtime.refresh()
     await flushAsync()
 
-    expect(subscribeCount).toBe(1)
-    expect(unsubscribeCount).toBe(0)
+    expect(subscribeCount).toBe(2)
+    expect(unsubscribeCount).toBe(1)
     expect(listeners.size).toBe(1)
     expect([...runtime.getSnapshot().selectedIds]).toEqual(["A"])
-    expect(ea.setView as ReturnType<typeof vi.fn>).not.toHaveBeenCalled()
+    expect(setView).not.toHaveBeenCalled()
   })
 
   it("resubscribes and clears stale selection hints when the targetView changes under a stable API", async () => {
