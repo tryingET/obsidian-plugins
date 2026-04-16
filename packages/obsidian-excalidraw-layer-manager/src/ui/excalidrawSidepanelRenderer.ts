@@ -770,6 +770,9 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       releaseKeyboardCapture: () => {
         this.#focusOwnership.releaseKeyboardCapture()
       },
+      confirmOutsideFocusOut: () => {
+        this.#focusOwnership.confirmOutsideFocusOut()
+      },
       suppressTransientFocusOut: () => {
         this.suppressContentFocusOut()
       },

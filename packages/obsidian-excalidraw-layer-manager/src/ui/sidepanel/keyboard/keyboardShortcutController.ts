@@ -83,6 +83,7 @@ interface SidepanelKeyboardShortcutControllerHost {
   isTextInputTarget: (target: EventTarget | null) => boolean
   isKeyboardSuppressed: () => boolean
   releaseKeyboardCapture: () => void
+  confirmOutsideFocusOut?: () => void
   suppressTransientFocusOut: () => void
 
   notify: (message: string) => void
@@ -302,6 +303,7 @@ export class SidepanelKeyboardShortcutController {
     }
 
     this.#host.releaseKeyboardCapture()
+    this.#host.confirmOutsideFocusOut?.()
 
     this.#host.debugInteraction?.("content focusout", {
       focusedNodeId: this.#host.getFocusedNodeId(),

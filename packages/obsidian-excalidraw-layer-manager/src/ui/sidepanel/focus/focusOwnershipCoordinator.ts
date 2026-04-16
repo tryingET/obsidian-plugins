@@ -66,6 +66,9 @@ type FocusOwnershipMachineEvent =
       readonly type: "RELEASE_KEYBOARD_CAPTURE"
     }
   | {
+      readonly type: "CONFIRM_OUTSIDE_FOCUS_OUT"
+    }
+  | {
       readonly type: "SUPPRESS_TRANSIENT_FOCUS_OUT"
     }
   | {
@@ -107,6 +110,12 @@ const focusOwnershipMachine = setup({
     }),
     releaseKeyboardCapture: assign({
       keyboardCaptureActive: false,
+    }),
+    confirmOutsideFocusOut: assign({
+      shouldAutofocusContentRoot: false,
+      keyboardCaptureActive: false,
+      keyboardCaptureStickyUntilMs: 0,
+      deferredFocusEpoch: ({ context }) => context.deferredFocusEpoch + 1,
     }),
     suppressTransientFocusOut: ({ context }) => {
       context.focusOutGuard.suppressFor(context.focusOutSuppressionWindowMs)
@@ -162,6 +171,9 @@ const focusOwnershipMachine = setup({
         },
         RELEASE_KEYBOARD_CAPTURE: {
           actions: "releaseKeyboardCapture",
+        },
+        CONFIRM_OUTSIDE_FOCUS_OUT: {
+          actions: "confirmOutsideFocusOut",
         },
         SUPPRESS_TRANSIENT_FOCUS_OUT: {
           actions: "suppressTransientFocusOut",
@@ -232,6 +244,12 @@ export class SidepanelFocusOwnershipCoordinator {
   releaseKeyboardCapture(): void {
     this.#actor.send({
       type: "RELEASE_KEYBOARD_CAPTURE",
+    })
+  }
+
+  confirmOutsideFocusOut(): void {
+    this.#actor.send({
+      type: "CONFIRM_OUTSIDE_FOCUS_OUT",
     })
   }
 

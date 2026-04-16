@@ -1944,6 +1944,70 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect(focusedIndexAfterArrow).not.toBe(focusedIndexBeforeArrow)
   })
 
+  it("does not recapture document focus after a confirmed outside blur", async () => {
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    const { actions } = makeUiActions()
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => ({}),
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [makeElementNode("A", "Alpha"), makeElementNode("B", "Beta")],
+      selectedIds: new Set(),
+      sceneVersion: 32.5,
+      actions,
+    })
+
+    let contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const alphaRow = findInteractiveRowByLabel(contentRoot, "[element] Alpha")
+    if (!alphaRow) {
+      throw new Error("Expected Alpha row for outside-blur routing test.")
+    }
+
+    alphaRow.click()
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const focusedRowBeforeBlur = findFocusedInteractiveRow(contentRoot)
+    expect((focusedRowBeforeBlur as FakeDomElement & { ariaLabel?: string })?.ariaLabel).toContain(
+      "Alpha",
+    )
+
+    await new Promise<void>((resolve) => {
+      setTimeout(() => {
+        resolve()
+      }, 520)
+    })
+
+    const outsideTarget = fakeDocument.createElement("div")
+    fakeDocument.activeElement = outsideTarget
+
+    const focusOutEvent = new FakeDomEvent("focusout")
+    ;(focusOutEvent as unknown as { relatedTarget?: EventTarget | null }).relatedTarget =
+      outsideTarget as unknown as EventTarget
+
+    contentRoot.dispatchEvent(focusOutEvent)
+    await flushAsync()
+
+    dispatchDocumentKeydown(fakeDocument, "ArrowDown", { eventTarget: outsideTarget })
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const focusedRowAfterDocumentKeydown = findFocusedInteractiveRow(contentRoot)
+
+    expect(fakeDocument.activeElement).toBe(outsideTarget)
+    expect(
+      (focusedRowAfterDocumentKeydown as FakeDomElement & { ariaLabel?: string })?.ariaLabel,
+    ).toContain("Alpha")
+    expect(findFirstInput(contentRoot)).toBeUndefined()
+  })
+
   it("keeps Shift+Arrow selection extension usable when host selection bridge is unavailable", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,

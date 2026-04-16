@@ -164,6 +164,41 @@ describe("sidepanel focus ownership coordinator", () => {
     expect(harness.focus).toHaveBeenCalledTimes(1)
   })
 
+  it("stops sticky routing and cancels focus recovery after confirmed outside blur", async () => {
+    let now = 8_000
+    const harness = makeFocusHarness()
+
+    const coordinator = new SidepanelFocusOwnershipCoordinator({
+      nowMs: () => now,
+      focusOutSuppressionWindowMs: 180,
+      keyboardStickyCaptureMs: 400,
+    })
+
+    coordinator.activateKeyboardCapture()
+    coordinator.releaseKeyboardCapture()
+    expect(coordinator.isKeyboardRoutingActive()).toBe(true)
+
+    coordinator.focusContentRootBestEffort({
+      contentRoot: harness.contentRoot,
+    })
+    expect(harness.focus).toHaveBeenCalledTimes(1)
+
+    coordinator.confirmOutsideFocusOut()
+
+    expect(coordinator.isKeyboardCaptureActive()).toBe(false)
+    expect(coordinator.isKeyboardRoutingActive()).toBe(false)
+    expect(coordinator.shouldAutofocusContentRoot).toBe(false)
+
+    await flushMicrotask()
+    expect(harness.focus).toHaveBeenCalledTimes(1)
+
+    coordinator.autofocusContentRootIfNeeded(harness.contentRoot, () => false)
+    expect(harness.focus).toHaveBeenCalledTimes(1)
+
+    now = 8_250
+    expect(coordinator.isKeyboardRoutingActive()).toBe(false)
+  })
+
   it("restores default ownership state on reset", () => {
     const coordinator = new SidepanelFocusOwnershipCoordinator({
       focusOutSuppressionWindowMs: 180,
