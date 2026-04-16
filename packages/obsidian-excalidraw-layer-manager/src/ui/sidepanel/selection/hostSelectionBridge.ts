@@ -16,6 +16,9 @@ interface SidepanelHostSelectionBridgeInput {
   readonly suppressContentFocusOut: () => void
 }
 
+type SelectionMirrorAttemptResult = "applied" | "failed" | "hostUnavailable"
+type SelectionMirrorVerificationResult = "match" | "mismatch" | "hostUnavailable"
+
 export class SidepanelHostSelectionBridge {
   readonly #host: SidepanelHostSelectionBridgeHost
   readonly #suppressContentFocusOut: () => void
@@ -42,24 +45,32 @@ export class SidepanelHostSelectionBridge {
     this.#latestMirrorRequestId = mirrorRequestId
     this.#pendingMirrorRequestId = mirrorRequestId
 
-    const runSelectAttempt = (): boolean => {
+    const runSelectAttempt = (): SelectionMirrorAttemptResult => {
       const selectElementsInView = this.#host.selectElementsInView
       if (!selectElementsInView) {
-        return false
+        return "failed"
       }
 
       this.#suppressContentFocusOut()
-      ensureHostViewContextState(this.#host)
+      const hostViewContext = ensureHostViewContextState(this.#host)
+      if (!hostViewContext.ok) {
+        return "hostUnavailable"
+      }
 
       try {
         selectElementsInView([...nextElementIds])
-        return true
+        return "applied"
       } catch {
-        return false
+        return "failed"
       }
     }
 
     const runAppStateFallback = (): boolean => {
+      const hostViewContext = ensureHostViewContextState(this.#host)
+      if (!hostViewContext.ok) {
+        return false
+      }
+
       const apiCandidate = this.#host.getExcalidrawAPI?.()
       if (!apiCandidate || typeof apiCandidate !== "object") {
         return false
@@ -84,8 +95,26 @@ export class SidepanelHostSelectionBridge {
       }
     }
 
-    const firstAttemptApplied = runSelectAttempt()
-    if (!firstAttemptApplied) {
+    const resolveVerificationState = (): SelectionMirrorVerificationResult => {
+      try {
+        const hostViewContext = ensureHostViewContextState(this.#host)
+        if (!hostViewContext.ok) {
+          return "hostUnavailable"
+        }
+
+        const liveSelectedIds = collectUniqueSelectionIds(getViewSelectedElements?.() ?? [])
+        return haveSameIds(liveSelectedIds, nextElementIds) ? "match" : "mismatch"
+      } catch {
+        return "mismatch"
+      }
+    }
+
+    const firstAttemptResult = runSelectAttempt()
+    if (firstAttemptResult === "hostUnavailable") {
+      return
+    }
+
+    if (firstAttemptResult === "failed") {
       runAppStateFallback()
     }
 
@@ -102,24 +131,15 @@ export class SidepanelHostSelectionBridge {
         return
       }
 
-      const hasAllExpectedSelections = (): boolean => {
-        try {
-          const hostViewContext = ensureHostViewContextState(this.#host)
-          if (!hostViewContext.ok) {
-            return false
-          }
-
-          const liveSelectedIds = collectUniqueSelectionIds(getViewSelectedElements() ?? [])
-          return haveSameIds(liveSelectedIds, nextElementIds)
-        } catch {
-          return false
-        }
-      }
-
-      if (hasAllExpectedSelections()) {
+      const firstVerification = resolveVerificationState()
+      if (firstVerification === "match") {
         if (this.#pendingMirrorRequestId === mirrorRequestId) {
           this.#pendingMirrorRequestId = null
         }
+        return
+      }
+
+      if (firstVerification === "hostUnavailable") {
         return
       }
 
@@ -127,8 +147,12 @@ export class SidepanelHostSelectionBridge {
         return
       }
 
-      const retryApplied = runSelectAttempt()
-      if (retryApplied && hasAllExpectedSelections()) {
+      const retryResult = runSelectAttempt()
+      if (retryResult === "hostUnavailable") {
+        return
+      }
+
+      if (retryResult === "applied" && resolveVerificationState() === "match") {
         if (this.#pendingMirrorRequestId === mirrorRequestId) {
           this.#pendingMirrorRequestId = null
         }

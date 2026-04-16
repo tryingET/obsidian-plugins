@@ -43,10 +43,14 @@ export const reconcileSelectedElementIds = <T extends SelectionElementLike>(
 
   const hostViewReady = input.ensureHostViewContext()
   if (!hostViewReady) {
+    const failStoppedPendingMirror = input.hasPendingSelectionMirror === true
+
     return {
       source: "hostViewUnavailable",
-      resolvedSelection: input.selectionOverride ?? input.snapshotSelection,
-      clearSelectionOverride: false,
+      resolvedSelection: failStoppedPendingMirror
+        ? input.snapshotSelection
+        : (input.selectionOverride ?? input.snapshotSelection),
+      clearSelectionOverride: failStoppedPendingMirror,
     }
   }
 

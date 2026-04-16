@@ -32,6 +32,7 @@ interface RuntimeWithSidepanel {
   readonly updateScene: ReturnType<typeof vi.fn>
   readonly selectInView: ReturnType<typeof vi.fn>
   readonly setView: ReturnType<typeof vi.fn>
+  readonly getViewSelectedElements: ReturnType<typeof vi.fn>
   readonly clearViewBinding: () => void
   readonly emitSceneChange: (appState?: unknown) => void
 }
@@ -39,6 +40,7 @@ interface RuntimeWithSidepanel {
 interface MakeRuntimeWithSidepanelOptions {
   readonly requireSetViewForSelectCalls?: boolean
   readonly requireSetViewForReadCalls?: boolean
+  readonly failSetViewRebind?: boolean
 }
 
 const makeRuntimeWithSidepanel = (
@@ -107,19 +109,21 @@ const makeRuntimeWithSidepanel = (
     }
   }
 
+  const getViewSelectedElements = vi.fn(() => {
+    if (options.requireSetViewForReadCalls === true && !viewBound) {
+      throw new Error("targetView not set")
+    }
+
+    return elements.filter((element) => selectedIdSet.has(element.id))
+  })
+
   const ea: EaLike = {
     targetView: bindTargetView(true),
     setView: () => {
       throw new Error("setView not initialized")
     },
     getViewElements: () => elements,
-    getViewSelectedElements: () => {
-      if (options.requireSetViewForReadCalls === true && !viewBound) {
-        throw new Error("targetView not set")
-      }
-
-      return elements.filter((element) => selectedIdSet.has(element.id))
-    },
+    getViewSelectedElements,
     selectElementsInView: () => {
       throw new Error("selectElementsInView not initialized")
     },
@@ -138,6 +142,12 @@ const makeRuntimeWithSidepanel = (
   }
 
   const setView = vi.fn(() => {
+    if (options.failSetViewRebind === true) {
+      const failedTargetView = bindTargetView(false)
+      ea.targetView = failedTargetView
+      return failedTargetView
+    }
+
     viewBound = true
     const nextTargetView = bindTargetView(true)
     ea.targetView = nextTargetView
@@ -170,6 +180,7 @@ const makeRuntimeWithSidepanel = (
     updateScene,
     selectInView,
     setView,
+    getViewSelectedElements,
     clearViewBinding,
     emitSceneChange,
   }
@@ -290,6 +301,46 @@ describe("sidepanel selection-sync integration", () => {
 
     expect(runtime.setView).toHaveBeenCalled()
     expect(runtime.selectInView).toHaveBeenCalledTimes(1)
+  })
+
+  it("fail-stops row-click selection mirror and reconcile when targetView cannot be rebound", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      [
+        { id: "A", type: "rectangle", name: "A", isDeleted: false },
+        { id: "B", type: "rectangle", name: "B", isDeleted: false },
+      ],
+      [],
+      {
+        requireSetViewForSelectCalls: true,
+        requireSetViewForReadCalls: true,
+        failSetViewRebind: true,
+      },
+    )
+
+    const app = createLayerManagerRuntime(runtime.ea)
+    runtime.setView.mockClear()
+    runtime.selectInView.mockClear()
+    runtime.updateScene.mockClear()
+    runtime.getViewSelectedElements.mockClear()
+    runtime.clearViewBinding()
+
+    const contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const row = findInteractiveRowByLabel(contentRoot, "[element] A")
+    if (!row) {
+      throw new Error("Expected row A in fail-stop selection mirror test.")
+    }
+
+    dispatchClick(row)
+    await flushAsync()
+    await flushAsync()
+
+    expect(runtime.setView).toHaveBeenCalled()
+    expect(runtime.selectInView).not.toHaveBeenCalled()
+    expect(runtime.updateScene).not.toHaveBeenCalled()
+    expect(runtime.getViewSelectedElements).not.toHaveBeenCalled()
+    expect([...app.getSnapshot().selectedIds]).toEqual([])
+    expect(getSelectedRows(getContentRoot(runtime.sidepanelTab.contentEl))).toHaveLength(0)
   })
 
   it("interaction debug captures stale targetView churn before mouse and keyboard row-selection writes", async () => {
