@@ -199,6 +199,61 @@ describe("sidepanel focus ownership coordinator", () => {
     expect(coordinator.isKeyboardRoutingActive()).toBe(false)
   })
 
+  it("drops host document authority and clears routing state when the host becomes inactive", async () => {
+    const harness = makeFocusHarness()
+
+    const coordinator = new SidepanelFocusOwnershipCoordinator({
+      focusOutSuppressionWindowMs: 180,
+      keyboardStickyCaptureMs: 400,
+    })
+
+    coordinator.activateKeyboardCapture()
+    coordinator.focusContentRootBestEffort({
+      contentRoot: harness.contentRoot,
+    })
+
+    expect(harness.focus).toHaveBeenCalledTimes(1)
+    expect(coordinator.hasHostDocumentAuthority()).toBe(true)
+    expect(coordinator.isKeyboardRoutingActive()).toBe(true)
+
+    coordinator.setHostDocumentAuthority(false)
+
+    expect(coordinator.hasHostDocumentAuthority()).toBe(false)
+    expect(coordinator.isKeyboardCaptureActive()).toBe(false)
+    expect(coordinator.isKeyboardRoutingActive()).toBe(false)
+    expect(coordinator.shouldAutofocusContentRoot).toBe(false)
+
+    coordinator.focusContentRootBestEffort({
+      contentRoot: harness.contentRoot,
+    })
+    coordinator.autofocusContentRootIfNeeded(harness.contentRoot, () => false)
+    await flushMicrotask()
+
+    expect(harness.focus).toHaveBeenCalledTimes(1)
+
+    coordinator.setHostDocumentAuthority(true)
+    coordinator.setShouldAutofocusContentRoot(true)
+    harness.setActiveElement(null)
+    coordinator.autofocusContentRootIfNeeded(harness.contentRoot, () => false)
+
+    expect(coordinator.hasHostDocumentAuthority()).toBe(true)
+    expect(harness.focus).toHaveBeenCalledTimes(2)
+  })
+
+  it("preserves disabled host authority across reset", () => {
+    const coordinator = new SidepanelFocusOwnershipCoordinator({
+      focusOutSuppressionWindowMs: 180,
+      keyboardStickyCaptureMs: 400,
+    })
+
+    coordinator.setHostDocumentAuthority(false)
+    coordinator.reset()
+
+    expect(coordinator.hasHostDocumentAuthority()).toBe(false)
+    expect(coordinator.shouldAutofocusContentRoot).toBe(false)
+    expect(coordinator.isKeyboardRoutingActive()).toBe(false)
+  })
+
   it("restores default ownership state on reset", () => {
     const coordinator = new SidepanelFocusOwnershipCoordinator({
       focusOutSuppressionWindowMs: 180,
@@ -210,6 +265,7 @@ describe("sidepanel focus ownership coordinator", () => {
     coordinator.suppressTransientFocusOut()
     coordinator.reset()
 
+    expect(coordinator.hasHostDocumentAuthority()).toBe(true)
     expect(coordinator.isKeyboardCaptureActive()).toBe(false)
     expect(coordinator.shouldAutofocusContentRoot).toBe(true)
     expect(coordinator.isFocusOutSuppressed()).toBe(false)

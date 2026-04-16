@@ -48,6 +48,7 @@ interface FocusOwnershipMachineContext {
   readonly focusOutSuppressionWindowMs: number
   readonly keyboardStickyCaptureMs: number
   readonly focusOutGuard: SidepanelFocusOutGuard
+  readonly hostDocumentAuthority: boolean
   readonly shouldAutofocusContentRoot: boolean
   readonly keyboardCaptureActive: boolean
   readonly keyboardCaptureStickyUntilMs: number
@@ -57,6 +58,10 @@ interface FocusOwnershipMachineContext {
 type FocusOwnershipMachineEvent =
   | {
       readonly type: "SET_SHOULD_AUTOFOCUS_CONTENT_ROOT"
+      readonly value: boolean
+    }
+  | {
+      readonly type: "SET_HOST_DOCUMENT_AUTHORITY"
       readonly value: boolean
     }
   | {
@@ -103,10 +108,33 @@ const focusOwnershipMachine = setup({
         return event.value
       },
     }),
+    setHostDocumentAuthorityFromEvent: assign(({ context, event }) => {
+      if (event.type !== "SET_HOST_DOCUMENT_AUTHORITY") {
+        return {
+          hostDocumentAuthority: context.hostDocumentAuthority,
+        }
+      }
+
+      if (event.value) {
+        return {
+          hostDocumentAuthority: true,
+        }
+      }
+
+      context.focusOutGuard.reset()
+
+      return {
+        hostDocumentAuthority: false,
+        shouldAutofocusContentRoot: false,
+        keyboardCaptureActive: false,
+        keyboardCaptureStickyUntilMs: 0,
+        deferredFocusEpoch: context.deferredFocusEpoch + 1,
+      }
+    }),
     activateKeyboardCapture: assign({
-      keyboardCaptureActive: true,
+      keyboardCaptureActive: ({ context }) => context.hostDocumentAuthority,
       keyboardCaptureStickyUntilMs: ({ context }) =>
-        context.nowMs() + context.keyboardStickyCaptureMs,
+        context.hostDocumentAuthority ? context.nowMs() + context.keyboardStickyCaptureMs : 0,
     }),
     releaseKeyboardCapture: assign({
       keyboardCaptureActive: false,
@@ -138,12 +166,12 @@ const focusOwnershipMachine = setup({
     resetFocusOutGuard: ({ context }) => {
       context.focusOutGuard.reset()
     },
-    resetFocusOwnership: assign({
-      shouldAutofocusContentRoot: true,
+    resetFocusOwnership: assign(({ context }) => ({
+      shouldAutofocusContentRoot: context.hostDocumentAuthority,
       keyboardCaptureActive: false,
       keyboardCaptureStickyUntilMs: 0,
       deferredFocusEpoch: 0,
-    }),
+    })),
   },
 }).createMachine({
   id: "sidepanelFocusOwnership",
@@ -155,6 +183,7 @@ const focusOwnershipMachine = setup({
     focusOutGuard: new SidepanelFocusOutGuard({
       nowMs: input.nowMs,
     }),
+    hostDocumentAuthority: true,
     shouldAutofocusContentRoot: true,
     keyboardCaptureActive: false,
     keyboardCaptureStickyUntilMs: 0,
@@ -165,6 +194,9 @@ const focusOwnershipMachine = setup({
       on: {
         SET_SHOULD_AUTOFOCUS_CONTENT_ROOT: {
           actions: "setShouldAutofocusContentRootFromEvent",
+        },
+        SET_HOST_DOCUMENT_AUTHORITY: {
+          actions: "setHostDocumentAuthorityFromEvent",
         },
         ACTIVATE_KEYBOARD_CAPTURE: {
           actions: "activateKeyboardCapture",
@@ -224,9 +256,20 @@ export class SidepanelFocusOwnershipCoordinator {
     return this.#context.shouldAutofocusContentRoot
   }
 
+  hasHostDocumentAuthority(): boolean {
+    return this.#context.hostDocumentAuthority
+  }
+
   setShouldAutofocusContentRoot(value: boolean): void {
     this.#actor.send({
       type: "SET_SHOULD_AUTOFOCUS_CONTENT_ROOT",
+      value,
+    })
+  }
+
+  setHostDocumentAuthority(value: boolean): void {
+    this.#actor.send({
+      type: "SET_HOST_DOCUMENT_AUTHORITY",
       value,
     })
   }
@@ -236,6 +279,10 @@ export class SidepanelFocusOwnershipCoordinator {
   }
 
   activateKeyboardCapture(): void {
+    if (!this.hasHostDocumentAuthority()) {
+      return
+    }
+
     this.#actor.send({
       type: "ACTIVATE_KEYBOARD_CAPTURE",
     })
@@ -255,6 +302,10 @@ export class SidepanelFocusOwnershipCoordinator {
 
   isKeyboardRoutingActive(): boolean {
     const context = this.#context
+    if (!context.hostDocumentAuthority) {
+      return false
+    }
+
     return context.keyboardCaptureActive || context.nowMs() < context.keyboardCaptureStickyUntilMs
   }
 
@@ -297,6 +348,10 @@ export class SidepanelFocusOwnershipCoordinator {
   }
 
   focusContentRootBestEffort(input: FocusContentRootBestEffortInput): void {
+    if (!this.hasHostDocumentAuthority()) {
+      return
+    }
+
     const contentRoot = input.contentRoot
     if (!contentRoot) {
       return
@@ -326,7 +381,7 @@ export class SidepanelFocusOwnershipCoordinator {
     contentRoot: HTMLElement,
     isTextInputTarget: (target: EventTarget | null) => boolean,
   ): void {
-    if (!this.shouldAutofocusContentRoot) {
+    if (!this.hasHostDocumentAuthority() || !this.shouldAutofocusContentRoot) {
       return
     }
 

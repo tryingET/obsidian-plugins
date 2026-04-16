@@ -412,7 +412,15 @@ const runUiAction = (
 }
 
 const isTextInputTarget = (target: EventTarget | null): boolean => {
-  if (!target || typeof target !== "object" || !("tagName" in target)) {
+  if (!target || typeof target !== "object") {
+    return false
+  }
+
+  if ((target as { readonly isContentEditable?: unknown }).isContentEditable === true) {
+    return true
+  }
+
+  if (!("tagName" in target)) {
     return false
   }
 
@@ -427,6 +435,29 @@ const isTextInputTarget = (target: EventTarget | null): boolean => {
 
 const isSpaceLikeKey = (key: string): boolean => {
   return key === " " || key === "Space" || key === "Spacebar"
+}
+
+const isDocumentRoutingContinuationKey = (event: KeyboardEvent): boolean => {
+  if (event.ctrlKey || event.metaKey || event.altKey) {
+    return false
+  }
+
+  switch (event.key) {
+    case "ArrowDown":
+    case "ArrowUp":
+    case "ArrowLeft":
+    case "ArrowRight":
+    case "Home":
+    case "End":
+    case "PageDown":
+    case "PageUp":
+    case "Enter":
+    case "Delete":
+    case "Backspace":
+      return true
+    default:
+      return false
+  }
 }
 
 const claimHandledKeyboardEvent = (event: KeyboardEvent): void => {
@@ -555,7 +586,8 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       return
     }
 
-    if (isTextInputTarget(eventTarget)) {
+    if (isTextInputTarget(eventTarget) || !isDocumentRoutingContinuationKey(event)) {
+      this.#focusOwnership.confirmOutsideFocusOut()
       return
     }
 
@@ -828,6 +860,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     })
 
     this.rememberUsableTargetView(getCurrentHostTargetView(this.#host))
+    this.syncFocusOwnershipHostAuthority()
   }
 
   render(model: RenderViewModel): void {
@@ -840,6 +873,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
 
     ensureHostViewContextState(this.#host)
     const hostViewContext = describeHostViewContext(this.#host)
+    this.syncFocusOwnershipHostAuthority(hostViewContext)
     this.rememberUsableTargetView(getCurrentHostTargetView(this.#host))
     this.reconcileHostViewContextBeforeRender()
 
@@ -1618,6 +1652,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         : nextTargetView
 
     this.rememberUsableTargetView(resolvedTargetView)
+    this.syncFocusOwnershipHostAuthority()
     this.requestRenderFromLatestModel()
   }
 
@@ -1758,6 +1793,12 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     } finally {
       this.#handlingHostViewClose = false
     }
+  }
+
+  private syncFocusOwnershipHostAuthority(
+    hostViewContext: SidepanelHostViewContextDescription = describeHostViewContext(this.#host),
+  ): void {
+    this.#focusOwnership.setHostDocumentAuthority(hostViewContext.hostEligible)
   }
 
   private resolveInactiveHostPresentation(hostViewContext: SidepanelHostViewContextDescription): {

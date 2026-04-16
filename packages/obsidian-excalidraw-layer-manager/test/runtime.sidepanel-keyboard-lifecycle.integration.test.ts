@@ -1951,6 +1951,130 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect(focusedIndexAfterArrow).not.toBe(focusedIndexBeforeArrow)
   })
 
+  it("releases document routing on Tab after a row-action rename blur transition", async () => {
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    const { actions, commandSpies } = makeUiActions()
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => ({}),
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [makeElementNode("A", "Old name"), makeElementNode("B"), makeElementNode("C")],
+      selectedIds: new Set(),
+      sceneVersion: 32.25,
+      actions,
+    })
+
+    let contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const renameButton = findButtonByTitle(contentRoot, "Rename layer")
+    if (!renameButton) {
+      throw new Error("Expected rename row action button to exist.")
+    }
+
+    renameButton.click()
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const input = findFirstInput(contentRoot)
+    if (!input) {
+      throw new Error("Expected inline rename input to exist after clicking rename action.")
+    }
+
+    input.value = "Renamed tab release"
+    input.dispatchEvent(new FakeDomEvent("input"))
+    dispatchKeydown(input, "Enter")
+
+    const outsideTarget = fakeDocument.createElement("div")
+    fakeDocument.activeElement = outsideTarget
+
+    const focusOutEvent = new FakeDomEvent("focusout")
+    ;(focusOutEvent as unknown as { relatedTarget?: EventTarget | null }).relatedTarget =
+      outsideTarget as unknown as EventTarget
+
+    contentRoot.dispatchEvent(focusOutEvent)
+    await flushAsync()
+
+    expect(actions.renameNode).toHaveBeenCalledWith("el:A", "Renamed tab release")
+
+    fakeDocument.activeElement = outsideTarget
+    dispatchDocumentKeydown(fakeDocument, "Tab", { eventTarget: outsideTarget })
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    expect(fakeDocument.activeElement).toBe(outsideTarget)
+    expect(findFirstInput(contentRoot)).toBeUndefined()
+    expect(actions.reorderFromNodeIds).not.toHaveBeenCalled()
+    expect(commandSpies.reorder).not.toHaveBeenCalled()
+  })
+
+  it("releases typed document shortcuts after a row-action rename blur transition", async () => {
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    const { actions, commandSpies } = makeUiActions()
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => ({}),
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [makeElementNode("A", "Old name"), makeElementNode("B"), makeElementNode("C")],
+      selectedIds: new Set(),
+      sceneVersion: 32.4,
+      actions,
+    })
+
+    let contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const renameButton = findButtonByTitle(contentRoot, "Rename layer")
+    if (!renameButton) {
+      throw new Error("Expected rename row action button to exist.")
+    }
+
+    renameButton.click()
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const input = findFirstInput(contentRoot)
+    if (!input) {
+      throw new Error("Expected inline rename input to exist after clicking rename action.")
+    }
+
+    input.value = "Renamed typing release"
+    input.dispatchEvent(new FakeDomEvent("input"))
+    dispatchKeydown(input, "Enter")
+
+    const outsideTarget = fakeDocument.createElement("div")
+    fakeDocument.activeElement = outsideTarget
+
+    const focusOutEvent = new FakeDomEvent("focusout")
+    ;(focusOutEvent as unknown as { relatedTarget?: EventTarget | null }).relatedTarget =
+      outsideTarget as unknown as EventTarget
+
+    contentRoot.dispatchEvent(focusOutEvent)
+    await flushAsync()
+
+    expect(actions.renameNode).toHaveBeenCalledWith("el:A", "Renamed typing release")
+
+    fakeDocument.activeElement = outsideTarget
+    dispatchDocumentKeydown(fakeDocument, "f", { eventTarget: outsideTarget })
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    expect(fakeDocument.activeElement).toBe(outsideTarget)
+    expect(findFirstInput(contentRoot)).toBeUndefined()
+    expect(actions.reorderFromNodeIds).not.toHaveBeenCalled()
+    expect(commandSpies.reorder).not.toHaveBeenCalled()
+  })
+
   it("does not recapture document focus after a confirmed outside blur", async () => {
     const sidepanelTab = makeSidepanelTab(fakeDocument, null)
     const { actions } = makeUiActions()
