@@ -42,6 +42,22 @@ const expectInactiveSidepanelState = (contentRoot: FakeDomElement, detail: strin
   )
 }
 
+const expectUnboundSidepanelState = (contentRoot: FakeDomElement): void => {
+  expect(getInteractiveRows(contentRoot)).toHaveLength(0)
+  expect(getSelectedRows(contentRoot)).toHaveLength(0)
+  expect(findRowTreeRoot(contentRoot)).toBeUndefined()
+  expect(findRowFilterInput(contentRoot)).toBeUndefined()
+
+  const textFragments = flattenElements(contentRoot).map((element) => element.textContent ?? "")
+  expect(textFragments).toEqual(
+    expect.arrayContaining([
+      "Layer Manager unbound",
+      "No active Excalidraw view is currently bound.",
+      "Focus an Excalidraw view to resume live Layer Manager interaction.",
+    ]),
+  )
+}
+
 interface RuntimeWithSidepanel {
   readonly ea: EaLike
   readonly sidepanelTab: SidepanelTabHarness
@@ -60,6 +76,9 @@ type DrawingFixture =
       readonly frontmatter?: Record<string, unknown>
       readonly filePath?: string
       readonly viewId?: string
+      readonly leafId?: string
+      readonly viewType?: string
+      readonly bindTargetView?: boolean
     }
 
 const isArrayDrawingFixture = (
@@ -76,6 +95,9 @@ const normalizeDrawingFixture = (
   readonly frontmatter: Record<string, unknown>
   readonly filePath: string
   readonly viewId: string
+  readonly leafId: string
+  readonly viewType: string
+  readonly bindTargetView: boolean
 } => {
   if (isArrayDrawingFixture(fixture)) {
     return {
@@ -85,6 +107,9 @@ const normalizeDrawingFixture = (
       },
       filePath: viewPath,
       viewId: viewPath,
+      leafId: viewPath,
+      viewType: "excalidraw",
+      bindTargetView: true,
     }
   }
 
@@ -93,6 +118,9 @@ const normalizeDrawingFixture = (
     frontmatter: fixture.frontmatter ?? {},
     filePath: fixture.filePath ?? viewPath,
     viewId: fixture.viewId ?? viewPath,
+    leafId: fixture.leafId ?? fixture.viewId ?? viewPath,
+    viewType: fixture.viewType ?? "excalidraw",
+    bindTargetView: fixture.bindTargetView ?? true,
   }
 }
 
@@ -198,21 +226,39 @@ const makeRuntimeWithSidepanel = (
       getActiveFile: () => ({
         path: normalizedByPath.get(activeViewPath)?.filePath ?? activeViewPath,
       }),
+      get activeLeaf() {
+        const fixture = normalizedByPath.get(activeViewPath)
+        return {
+          id: fixture?.leafId ?? activeViewPath,
+          view: {
+            getViewType: () => fixture?.viewType ?? "unknown",
+          },
+        }
+      },
     },
   }
 
-  const viewByPath = new Map(
-    [...normalizedByPath.entries()].map(([viewPath, fixture]) => [
-      viewPath,
-      {
-        id: fixture.viewId,
-        _loaded: true,
-        file: {
-          path: fixture.filePath,
-        },
-        app,
+  const buildTargetViewForPath = (viewPath: string): Record<string, unknown> | null => {
+    const fixture = normalizedByPath.get(viewPath)
+    if (!fixture || fixture.bindTargetView === false) {
+      return null
+    }
+
+    return {
+      id: fixture.viewId,
+      _loaded: true,
+      file: {
+        path: fixture.filePath,
       },
-    ]),
+      leaf: {
+        id: fixture.leafId,
+      },
+      app,
+    }
+  }
+
+  const viewByPath = new Map(
+    [...normalizedByPath.keys()].map((viewPath) => [viewPath, buildTargetViewForPath(viewPath)]),
   )
 
   const getBoundViewPath = (): string => {
@@ -816,6 +862,58 @@ describe("runtime active-view refresh", () => {
 
       const contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
       expect(findInteractiveRowByLabel(contentRoot, "[element] Alpha")).toBeDefined()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it("polls same-file leaf-context changes back out of unbound state when the file path stays stable", async () => {
+    vi.useFakeTimers()
+
+    try {
+      const runtime = makeRuntimeWithSidepanel(
+        fakeDocument,
+        {
+          markdown: {
+            filePath: "Card.excalidraw",
+            viewId: "Card.excalidraw#markdown",
+            leafId: "card-leaf",
+            viewType: "markdown",
+            bindTargetView: false,
+            frontmatter: {
+              "excalidraw-plugin": "parsed",
+            },
+            elements: [],
+          },
+          excalidraw: {
+            filePath: "Card.excalidraw",
+            viewId: "Card.excalidraw#front",
+            leafId: "card-leaf",
+            viewType: "excalidraw",
+            frontmatter: {
+              "excalidraw-plugin": "parsed",
+            },
+            elements: [{ id: "A", type: "rectangle", name: "Alpha", isDeleted: false }],
+          },
+        },
+        "markdown",
+        {
+          disableWorkspaceEvents: true,
+          requireSetViewForReadCalls: true,
+        },
+      )
+
+      createLayerManagerRuntime(runtime.ea)
+
+      expectUnboundSidepanelState(getContentRoot(runtime.sidepanelTab.contentEl))
+
+      runtime.switchWorkspaceToView("excalidraw")
+      await vi.advanceTimersByTimeAsync(500)
+      await flushAsync()
+
+      const contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+      expect(findInteractiveRowByLabel(contentRoot, "[element] Alpha")).toBeDefined()
+      expect(findRowTreeRoot(contentRoot)).toBeDefined()
     } finally {
       vi.useRealTimers()
     }

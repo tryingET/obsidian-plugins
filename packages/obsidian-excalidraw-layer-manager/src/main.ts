@@ -93,24 +93,6 @@ const resolveRuntimeApp = (ea: EaLike): ObsidianAppLike | null => {
   return null
 }
 
-const resolveWorkspaceActiveFilePath = (ea: EaLike): string | null => {
-  const getActiveFile = resolveRuntimeApp(ea)?.workspace?.getActiveFile
-  if (!getActiveFile) {
-    return null
-  }
-
-  try {
-    const activeFile = getActiveFile()
-    return activeFile &&
-      typeof activeFile === "object" &&
-      typeof (activeFile as { path?: unknown }).path === "string"
-      ? ((activeFile as { path: string }).path as string)
-      : null
-  } catch {
-    return null
-  }
-}
-
 const bindEaToActiveWorkspaceView = (ea: EaLike): void => {
   const workspace = resolveRuntimeApp(ea)?.workspace
   const setView = ea.setView
@@ -211,7 +193,7 @@ export const createLayerManagerRuntime = (
   let workspaceRefreshRefs: unknown[] = []
   let workspaceRefreshScheduled = false
   let workspaceActiveFilePoll: ReturnType<typeof setInterval> | null = null
-  let lastObservedWorkspaceActiveFilePath = resolveWorkspaceActiveFilePath(ea)
+  let lastObservedWorkspaceViewContextKey = resolveHostViewContextKey(ea)
 
   const sendLifecycleEvent = (
     event:
@@ -469,14 +451,14 @@ export const createLayerManagerRuntime = (
       }
     }
 
-    if (workspaceActiveFilePoll === null && workspace.getActiveFile) {
+    if (workspaceActiveFilePoll === null) {
       workspaceActiveFilePoll = setInterval(() => {
-        const nextActiveFilePath = resolveWorkspaceActiveFilePath(ea)
-        if (nextActiveFilePath === lastObservedWorkspaceActiveFilePath) {
+        const nextViewContextKey = resolveHostViewContextKey(ea)
+        if (nextViewContextKey === lastObservedWorkspaceViewContextKey) {
           return
         }
 
-        lastObservedWorkspaceActiveFilePath = nextActiveFilePath
+        lastObservedWorkspaceViewContextKey = nextViewContextKey
         scheduleWorkspaceDrivenRefresh()
       }, WORKSPACE_ACTIVE_FILE_POLL_MS)
     }
@@ -537,7 +519,7 @@ export const createLayerManagerRuntime = (
     syncActiveViewContext()
     const nextSnapshot = readSnapshot(ea)
     syncActiveViewContext()
-    lastObservedWorkspaceActiveFilePath = resolveWorkspaceActiveFilePath(ea)
+    lastObservedWorkspaceViewContextKey = resolveHostViewContextKey(ea)
     renderSnapshot(nextSnapshot)
     subscribeToSceneChanges()
   }

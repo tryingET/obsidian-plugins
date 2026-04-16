@@ -21,6 +21,8 @@ export interface SidepanelHostViewContextDescription {
   readonly targetViewExcalidrawPlugin: string | null
   readonly targetViewExcalidrawCapable: boolean | null
   readonly activeFilePath: string | null
+  readonly activeWorkspaceLeafIdentity: string | null
+  readonly activeWorkspaceViewType: string | null
   readonly activeFileMetadataAvailable: boolean
   readonly activeFileExcalidrawPlugin: string | null
   readonly activeFileExcalidrawCapable: boolean | null
@@ -83,7 +85,7 @@ const resolveTargetViewFilePath = (targetView: unknown): string | null => {
   return typeof file?.["path"] === "string" ? (file["path"] as string) : null
 }
 
-const normalizeTargetViewIdentityToken = (value: unknown): string | null => {
+const normalizeIdentityToken = (value: unknown): string | null => {
   if (typeof value === "string") {
     const trimmed = value.trim()
     return trimmed.length > 0 ? trimmed : null
@@ -112,7 +114,7 @@ const resolveTargetViewIdentity = (targetView: unknown): string | null => {
   ]
 
   for (const candidate of identityCandidates) {
-    const identityToken = normalizeTargetViewIdentityToken(candidate)
+    const identityToken = normalizeIdentityToken(candidate)
     if (identityToken) {
       return identityToken
     }
@@ -235,6 +237,102 @@ const resolveActiveWorkspaceFilePath = (
     : null
 }
 
+const resolveActiveWorkspaceLeaf = (
+  host: SidepanelHostViewContextHost,
+  targetView: unknown,
+): Record<string, unknown> | null => {
+  const workspace = resolveWorkspace(host, targetView) as
+    | (WorkspaceLike & {
+        activeLeaf?: unknown
+        getMostRecentLeaf?: () => unknown
+      })
+    | null
+
+  if (!workspace) {
+    return null
+  }
+
+  const leafCandidates = [workspace.activeLeaf]
+
+  if (typeof workspace.getMostRecentLeaf === "function") {
+    try {
+      leafCandidates.push(workspace.getMostRecentLeaf())
+    } catch {
+      // no-op: best-effort active leaf probing only
+    }
+  }
+
+  for (const candidate of leafCandidates) {
+    if (candidate && typeof candidate === "object") {
+      return candidate as Record<string, unknown>
+    }
+  }
+
+  return null
+}
+
+const resolveActiveWorkspaceLeafIdentity = (
+  host: SidepanelHostViewContextHost,
+  targetView: unknown,
+): string | null => {
+  const activeLeaf = resolveActiveWorkspaceLeaf(host, targetView)
+  if (!activeLeaf) {
+    return null
+  }
+
+  const viewRecord =
+    activeLeaf["view"] && typeof activeLeaf["view"] === "object"
+      ? (activeLeaf["view"] as Record<string, unknown>)
+      : null
+
+  const identityCandidates = [
+    activeLeaf["id"],
+    activeLeaf["leafId"],
+    activeLeaf["workspaceLeafId"],
+    viewRecord?.["leafId"],
+  ]
+
+  for (const candidate of identityCandidates) {
+    const identityToken = normalizeIdentityToken(candidate)
+    if (identityToken) {
+      return identityToken
+    }
+  }
+
+  return null
+}
+
+const resolveActiveWorkspaceViewType = (
+  host: SidepanelHostViewContextHost,
+  targetView: unknown,
+): string | null => {
+  const activeLeaf = resolveActiveWorkspaceLeaf(host, targetView)
+  if (!activeLeaf) {
+    return null
+  }
+
+  const viewRecord =
+    activeLeaf["view"] && typeof activeLeaf["view"] === "object"
+      ? (activeLeaf["view"] as Record<string, unknown>)
+      : null
+
+  const directViewType = normalizeIdentityToken(viewRecord?.["viewType"])
+  if (directViewType) {
+    return directViewType
+  }
+
+  const getViewType = viewRecord?.["getViewType"]
+  if (typeof getViewType === "function") {
+    try {
+      return normalizeIdentityToken(getViewType.call(viewRecord))
+    } catch {
+      // no-op: best-effort active leaf probing only
+    }
+  }
+
+  return null
+}
+
 const isExcalidrawCapableMetadataValue = (value: string | null): boolean => {
   return value?.trim().toLowerCase() === EXCALIDRAW_FRONTMATTER_VALUE
 }
@@ -256,6 +354,8 @@ const resolveHostViewContextDescription = (
     ? isExcalidrawCapableMetadataValue(targetViewMetadata.value)
     : null
   const activeFile = resolveActiveWorkspaceFile(host, targetView)
+  const activeWorkspaceLeafIdentity = resolveActiveWorkspaceLeafIdentity(host, targetView)
+  const activeWorkspaceViewType = resolveActiveWorkspaceViewType(host, targetView)
   const activeFileMetadata = resolveFileExcalidrawMetadata(
     resolveMetadataApp(host, targetView),
     activeFile,
@@ -278,6 +378,8 @@ const resolveHostViewContextDescription = (
     targetViewExcalidrawPlugin: targetViewMetadata.value,
     targetViewExcalidrawCapable,
     activeFilePath: resolveActiveWorkspaceFilePath(host, targetView),
+    activeWorkspaceLeafIdentity,
+    activeWorkspaceViewType,
     activeFileMetadataAvailable: activeFileMetadata.available,
     activeFileExcalidrawPlugin: activeFileMetadata.value,
     activeFileExcalidrawCapable,
@@ -300,15 +402,22 @@ export const resolveHostViewContextKey = (host: SidepanelHostViewContextHost): s
   }
 
   const description = resolveHostViewContextDescription(host)
-  if (!description.hasTargetView) {
-    return "target:null::view:none::eligibility:unbound"
-  }
-
-  const contextFilePath = description.activeFilePath ?? description.targetViewFilePath
-  const targetKey = contextFilePath ? `target:file:${contextFilePath}` : "target:unknown-file"
+  const targetPresenceKey = description.hasTargetView ? "target:present" : "target:null"
+  const targetFileKey = description.targetViewFilePath
+    ? `target-file:${description.targetViewFilePath}`
+    : "target-file:none"
+  const activeFileKey = description.activeFilePath
+    ? `active-file:${description.activeFilePath}`
+    : "active-file:none"
   const targetViewIdentityKey = description.targetViewIdentity
     ? `view:${description.targetViewIdentity}`
-    : "view:unknown"
+    : "view:none"
+  const activeLeafIdentityKey = description.activeWorkspaceLeafIdentity
+    ? `active-leaf:${description.activeWorkspaceLeafIdentity}`
+    : "active-leaf:none"
+  const activeWorkspaceViewTypeKey = description.activeWorkspaceViewType
+    ? `active-view:${description.activeWorkspaceViewType}`
+    : "active-view:none"
 
   const eligibilityKey = description.activeFileMetadataAvailable
     ? description.activeFileExcalidrawCapable
@@ -320,7 +429,7 @@ export const resolveHostViewContextKey = (host: SidepanelHostViewContextHost): s
         : "ineligible"
       : "legacy"
 
-  return `${targetKey}::${targetViewIdentityKey}::eligibility:${eligibilityKey}`
+  return `${targetPresenceKey}::${targetFileKey}::${activeFileKey}::${targetViewIdentityKey}::${activeLeafIdentityKey}::${activeWorkspaceViewTypeKey}::eligibility:${eligibilityKey}`
 }
 
 export const ensureHostViewContextState = (
