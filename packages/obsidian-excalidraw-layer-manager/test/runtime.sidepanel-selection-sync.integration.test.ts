@@ -295,7 +295,7 @@ describe("sidepanel selection-sync integration", () => {
     expect(selectedIds?.length ?? 0).toBeGreaterThan(0)
   })
 
-  it("rebinds view context before row-click selection bridge when host requires setView", async () => {
+  it("fail-stops row-click selection bridge when the rendered scene binding is stale", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
       [
@@ -322,9 +322,12 @@ describe("sidepanel selection-sync integration", () => {
 
     row.click()
     await flushAsync()
+    await flushAsync()
 
-    expect(runtime.setView).toHaveBeenCalled()
-    expect(runtime.selectInView).toHaveBeenCalledTimes(1)
+    expect(runtime.setView).not.toHaveBeenCalled()
+    expect(runtime.selectInView).not.toHaveBeenCalled()
+    expect(runtime.updateScene).not.toHaveBeenCalled()
+    expect(getSelectedRows(getContentRoot(runtime.sidepanelTab.contentEl))).toHaveLength(0)
   })
 
   it("fail-stops row-click selection mirror and reconcile when targetView cannot be rebound", async () => {
@@ -359,7 +362,7 @@ describe("sidepanel selection-sync integration", () => {
     await flushAsync()
     await flushAsync()
 
-    expect(runtime.setView).toHaveBeenCalled()
+    expect(runtime.setView).not.toHaveBeenCalled()
     expect(runtime.selectInView).not.toHaveBeenCalled()
     expect(runtime.updateScene).not.toHaveBeenCalled()
     expect(runtime.getViewSelectedElements).not.toHaveBeenCalled()
@@ -367,7 +370,7 @@ describe("sidepanel selection-sync integration", () => {
     expect(getSelectedRows(getContentRoot(runtime.sidepanelTab.contentEl))).toHaveLength(0)
   })
 
-  it("interaction debug captures stale targetView churn before mouse and keyboard row-selection writes", async () => {
+  it("interaction debug captures stale targetView churn before mouse fail-stop and keyboard recovery writes", async () => {
     const debugFlagKey = "LMX_DEBUG_SIDEPANEL_INTERACTION"
     const hadDebugFlag = Object.prototype.hasOwnProperty.call(globalRecord, debugFlagKey)
     const previousDebugFlag = globalRecord[debugFlagKey]
@@ -406,10 +409,11 @@ describe("sidepanel selection-sync integration", () => {
 
       dispatchClick(mouseRow)
       await flushAsync()
+      await flushAsync()
 
       mouseContentRoot = getContentRoot(mouseRuntime.sidepanelTab.contentEl)
-      expect(getSelectedRows(mouseContentRoot)).toHaveLength(1)
-      expect(mouseRuntime.setView).toHaveBeenCalled()
+      expect(getSelectedRows(mouseContentRoot)).toHaveLength(0)
+      expect(mouseRuntime.setView).not.toHaveBeenCalled()
 
       const keyboardRuntime = makeRuntimeWithSidepanel(
         fakeDocument,
@@ -431,11 +435,7 @@ describe("sidepanel selection-sync integration", () => {
       const keyboardContentRoot = getContentRoot(keyboardRuntime.sidepanelTab.contentEl)
       dispatchKeydown(keyboardContentRoot, "Space")
       await flushAsync()
-
-      expect(getSelectedRows(getContentRoot(keyboardRuntime.sidepanelTab.contentEl))).toHaveLength(
-        1,
-      )
-      expect(keyboardRuntime.setView).toHaveBeenCalled()
+      await flushAsync()
 
       expect(readInteractionPayloads("row selection gesture")).toEqual(
         expect.arrayContaining([

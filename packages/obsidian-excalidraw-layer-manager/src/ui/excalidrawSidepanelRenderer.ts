@@ -60,13 +60,13 @@ import {
   type SidepanelHostViewContextDescription,
   describeHostViewContext,
   ensureHostViewContext,
-  ensureHostViewContextState,
-  getCurrentHostTargetView,
-  isUsableTargetView,
-  resolveHostViewContextKey,
 } from "./sidepanel/selection/hostViewContext.js"
 import { collectVisibleNodeContext } from "./sidepanel/selection/nodeContext.js"
 import { resolveRowClickSelection } from "./sidepanel/selection/rowClickSelection.js"
+import {
+  type SidepanelSceneBinding,
+  resolveSceneBindingFromHost,
+} from "./sidepanel/selection/sceneBinding.js"
 import { haveSameIds, haveSameIdsInSameOrder } from "./sidepanel/selection/selectionIds.js"
 import { reconcileSelectedElementIds } from "./sidepanel/selection/selectionReconciler.js"
 import {
@@ -139,8 +139,6 @@ const LAST_MOVE_LABEL_MAX = 26
 const KEYBOARD_PROMPT_SUPPRESSION_MS = 160
 const FOCUSOUT_SUPPRESSION_WINDOW_MS = 420
 const KEYBOARD_STICKY_CAPTURE_MS = 1400
-const TARGET_VIEW_LOSS_POLL_MS = 250
-const TARGET_VIEW_LOSS_CLOSE_DEBOUNCE_MS = 350
 const ROW_MIN_HEIGHT_PX = 20
 const REVIEW_CURSOR_COMFORT_MIN_MARGIN_ROWS = 2
 const REVIEW_CURSOR_COMFORT_VIEWPORT_RATIO = 0.18
@@ -530,10 +528,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   #latestSelectionResolution: SidepanelSelectionResolution | null = null
   #lastSnapshotSelectionIds: readonly string[] = []
   #pendingFocusedRowRevealNodeId: string | null = null
-  #lastHostViewContextKey: string | null = null
-  #targetViewLossMonitor: ReturnType<typeof setInterval> | null = null
-  #targetViewLossMonitorArmed = false
-  #targetViewLossConsecutivePolls = 0
+  #lastRenderedSceneBinding: SidepanelSceneBinding | null = null
   #handlingHostViewClose = false
   #rowFilterQuery = ""
   #shouldAutofocusRowFilterInput = false
@@ -715,6 +710,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       suppressContentFocusOut: () => {
         this.suppressContentFocusOut()
       },
+      resolveCurrentSceneBinding: () => resolveSceneBindingFromHost(this.#host),
     })
 
     this.#mountManager = new SidepanelMountManager({
@@ -816,7 +812,10 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         this.applyResolvedRowSelectionGesture(input)
       },
       mirrorSelectionToHost: (elementIds) => {
-        this.#hostSelectionBridge.mirrorSelectionToHost(elementIds)
+        this.#hostSelectionBridge.mirrorSelectionToHost(
+          elementIds,
+          this.#lastRenderedSceneBinding ?? undefined,
+        )
       },
       getPageNavigationStep: () => this.resolveKeyboardPageNavigationStep(),
       ensureHostViewContext: () => ensureHostViewContext(this.#host),
@@ -859,25 +858,20 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       },
     })
 
-    this.rememberUsableTargetView(getCurrentHostTargetView(this.#host))
-    this.syncFocusOwnershipHostAuthority()
+    this.#lastRenderedSceneBinding = resolveSceneBindingFromHost(this.#host)
+    this.syncFocusOwnershipHostAuthority(this.#lastRenderedSceneBinding)
   }
 
   render(model: RenderViewModel): void {
     this.#latestModel = model
 
-    this.rememberUsableTargetView(getCurrentHostTargetView(this.#host))
-    if (this.shouldAttemptCachedTargetViewReinstatement()) {
-      this.reinstateCachedTargetView()
-    }
-
-    ensureHostViewContextState(this.#host)
+    const sceneBinding = resolveSceneBindingFromHost(this.#host)
     const hostViewContext = describeHostViewContext(this.#host)
-    this.syncFocusOwnershipHostAuthority(hostViewContext)
-    this.rememberUsableTargetView(getCurrentHostTargetView(this.#host))
-    this.reconcileHostViewContextBeforeRender()
+    this.syncFocusOwnershipHostAuthority(sceneBinding)
+    this.reconcileHostViewContextBeforeRender(sceneBinding)
+    this.#lastRenderedSceneBinding = sceneBinding
 
-    if (!hostViewContext.hostEligible) {
+    if (sceneBinding.state !== "live") {
       this.renderInactiveHostState(hostViewContext, model)
       return
     }
@@ -886,10 +880,6 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     if (!contentRoot) {
       this.#fallbackRenderer.render(model)
       return
-    }
-
-    if (hostViewContext.targetViewUsable) {
-      this.armTargetViewLossMonitor()
     }
 
     const ownerDocument = contentRoot.ownerDocument
@@ -1529,14 +1519,6 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     return Object.prototype.hasOwnProperty.call(this.#host, "targetView")
   }
 
-  private rememberUsableTargetView(targetView: unknown | null): void {
-    if (!isUsableTargetView(targetView)) {
-      return
-    }
-
-    this.#cachedTargetView = targetView
-  }
-
   private assignHostTargetView(targetView: unknown | null): void {
     if (!this.hasExplicitTargetViewProperty()) {
       return
@@ -1547,56 +1529,6 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     } catch {
       // best-effort host sync only
     }
-  }
-
-  private shouldAttemptCachedTargetViewReinstatement(): boolean {
-    if (isUsableTargetView(getCurrentHostTargetView(this.#host))) {
-      return false
-    }
-
-    if (!isUsableTargetView(this.#cachedTargetView)) {
-      return false
-    }
-
-    if (this.#contentRoot && this.#host.sidepanelTab) {
-      return false
-    }
-
-    const hostViewContext = describeHostViewContext(this.#host)
-    return !(
-      hostViewContext.activeFileMetadataAvailable &&
-      hostViewContext.activeFileExcalidrawCapable === false
-    )
-  }
-
-  private reinstateCachedTargetView(): boolean {
-    const cachedTargetView = this.#cachedTargetView
-    if (!isUsableTargetView(cachedTargetView)) {
-      return false
-    }
-
-    const setView = this.#host.setView
-    if (setView) {
-      try {
-        const resolvedTargetView = setView(cachedTargetView, false)
-        if (isUsableTargetView(resolvedTargetView)) {
-          this.assignHostTargetView(resolvedTargetView)
-          this.rememberUsableTargetView(resolvedTargetView)
-          return true
-        }
-      } catch {
-        // fall through to direct host-property reinstatement below
-      }
-    }
-
-    this.assignHostTargetView(cachedTargetView)
-    const currentTargetView = getCurrentHostTargetView(this.#host)
-    if (!isUsableTargetView(currentTargetView)) {
-      return false
-    }
-
-    this.rememberUsableTargetView(currentTargetView)
-    return true
   }
 
   private bindSidepanelViewChangeToCurrentTab(): void {
@@ -1655,16 +1587,13 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       this.assignHostTargetView(nextTargetView)
     }
 
-    const resolvedTargetView =
-      nextTargetView === SIDEPANEL_VIEW_CHANGE_UNSET
-        ? getCurrentHostTargetView(this.#host)
-        : nextTargetView
-
-    this.rememberUsableTargetView(resolvedTargetView)
+    const sceneBinding = resolveSceneBindingFromHost(this.#host)
     const hostViewContext = describeHostViewContext(this.#host)
     this.debugLifecycle("sidepanel onViewChange received", {
-      targetViewPresent: resolvedTargetView !== null,
-      targetViewUsable: isUsableTargetView(resolvedTargetView),
+      sceneBindingSource: sceneBinding.source,
+      sceneBindingState: sceneBinding.state,
+      sceneBindingRefreshKey: sceneBinding.refreshKey,
+      sceneBindingShouldAttemptRebind: sceneBinding.shouldAttemptRebind,
       activeFilePath: hostViewContext.activeFilePath,
       activeLeafIdentity: hostViewContext.activeWorkspaceLeafIdentity,
       activeViewType: hostViewContext.activeWorkspaceViewType,
@@ -1672,65 +1601,8 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       targetViewFilePath: hostViewContext.targetViewFilePath,
       hostEligible: hostViewContext.hostEligible,
     })
-    this.syncFocusOwnershipHostAuthority()
+    this.syncFocusOwnershipHostAuthority(sceneBinding)
     this.requestRenderFromLatestModel()
-  }
-
-  private stopTargetViewLossMonitor(): void {
-    if (this.#targetViewLossMonitor !== null) {
-      clearInterval(this.#targetViewLossMonitor)
-      this.#targetViewLossMonitor = null
-    }
-
-    this.#targetViewLossMonitorArmed = false
-    this.#targetViewLossConsecutivePolls = 0
-  }
-
-  private startTargetViewLossMonitor(): void {
-    if (!this.hasExplicitTargetViewProperty() || this.#targetViewLossMonitor !== null) {
-      return
-    }
-
-    this.#targetViewLossMonitor = setInterval(() => {
-      if (!this.#targetViewLossMonitorArmed) {
-        return
-      }
-
-      const hostViewContext = describeHostViewContext(this.#host)
-      if (hostViewContext.targetViewUsable) {
-        this.#targetViewLossConsecutivePolls = 0
-        return
-      }
-
-      this.#targetViewLossConsecutivePolls += 1
-      if (
-        this.#targetViewLossConsecutivePolls <
-        Math.ceil(TARGET_VIEW_LOSS_CLOSE_DEBOUNCE_MS / TARGET_VIEW_LOSS_POLL_MS)
-      ) {
-        return
-      }
-
-      this.#targetViewLossConsecutivePolls = 0
-      this.debugLifecycle("host targetView became unusable; re-rendering latest model", {
-        activeFilePath: hostViewContext.activeFilePath,
-        activeLeafIdentity: hostViewContext.activeWorkspaceLeafIdentity,
-        activeViewType: hostViewContext.activeWorkspaceViewType,
-        targetViewIdentity: hostViewContext.targetViewIdentity,
-        targetViewFilePath: hostViewContext.targetViewFilePath,
-        hostEligible: hostViewContext.hostEligible,
-      })
-      this.requestRenderFromLatestModel()
-    }, TARGET_VIEW_LOSS_POLL_MS)
-  }
-
-  private armTargetViewLossMonitor(): void {
-    if (!this.hasExplicitTargetViewProperty()) {
-      return
-    }
-
-    this.startTargetViewLossMonitor()
-    this.#targetViewLossMonitorArmed = true
-    this.#targetViewLossConsecutivePolls = 0
   }
 
   private clearInteractiveBindings(): void {
@@ -1740,7 +1612,6 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.#contentRoot?.removeEventListener("pointerdown", this.#contentPointerDownHandler)
     this.releaseSidepanelViewChangeBinding()
     this.detachOwnerDocumentKeyCapture()
-    this.stopTargetViewLossMonitor()
     this.#contentRoot = null
     this.#rowTreeRoot = null
     this.clearRenderedRowPreviewState()
@@ -1830,9 +1701,11 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   }
 
   private syncFocusOwnershipHostAuthority(
-    hostViewContext: SidepanelHostViewContextDescription = describeHostViewContext(this.#host),
+    sceneBinding: SidepanelSceneBinding = resolveSceneBindingFromHost(this.#host),
   ): void {
-    this.#focusOwnership.setHostDocumentAuthority(hostViewContext.hostEligible)
+    this.#focusOwnership.setHostDocumentAuthority(
+      sceneBinding.state === "live" && !sceneBinding.shouldAttemptRebind,
+    )
   }
 
   private resolveInactiveHostPresentation(hostViewContext: SidepanelHostViewContextDescription): {
@@ -2108,26 +1981,26 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
 
   private resetForInactiveHostState(): void {
     this.resetForViewContextBoundary()
-    this.stopTargetViewLossMonitor()
   }
 
-  private reconcileHostViewContextBeforeRender(): void {
-    const nextHostViewContextKey = resolveHostViewContextKey(this.#host)
-
-    if (this.#lastHostViewContextKey === null) {
-      this.#lastHostViewContextKey = nextHostViewContextKey
+  private reconcileHostViewContextBeforeRender(sceneBinding: SidepanelSceneBinding): void {
+    if (this.#lastRenderedSceneBinding === null) {
       return
     }
 
-    if (this.#lastHostViewContextKey === nextHostViewContextKey) {
+    if (this.#lastRenderedSceneBinding.refreshKey === sceneBinding.refreshKey) {
       return
     }
 
-    this.#lastHostViewContextKey = nextHostViewContextKey
     this.resetForHostViewContextChange()
 
     this.debugInteraction("host view context changed", {
-      hostViewContextKey: nextHostViewContextKey,
+      previousSceneBindingRefreshKey: this.#lastRenderedSceneBinding.refreshKey,
+      nextSceneBindingRefreshKey: sceneBinding.refreshKey,
+      previousSceneBindingSource: this.#lastRenderedSceneBinding.source,
+      nextSceneBindingSource: sceneBinding.source,
+      previousSceneBindingState: this.#lastRenderedSceneBinding.state,
+      nextSceneBindingState: sceneBinding.state,
       ...this.buildHostViewDebugPayload(),
     })
   }
@@ -2257,7 +2130,10 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       ...this.buildHostViewDebugPayload(),
     })
 
-    this.#hostSelectionBridge.mirrorSelectionToHost(input.selectedElementIds)
+    this.#hostSelectionBridge.mirrorSelectionToHost(
+      input.selectedElementIds,
+      this.#lastRenderedSceneBinding ?? undefined,
+    )
   }
 
   private reconcileSelectionAnchor(selectedNodes: readonly LayerNode[]): void {
@@ -2935,7 +2811,6 @@ export const createExcalidrawSidepanelRenderer = (
     return null
   }
 
-  ensureHostViewContextState(host)
   const hostViewContext = describeHostViewContext(host)
 
   if (

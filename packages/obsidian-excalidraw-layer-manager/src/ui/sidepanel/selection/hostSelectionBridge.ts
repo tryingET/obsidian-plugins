@@ -1,4 +1,10 @@
 import { type SidepanelHostViewContextHost, ensureHostViewContextState } from "./hostViewContext.js"
+import {
+  type SidepanelSceneBinding,
+  canMirrorSelectionToSceneBinding,
+  haveSameSceneBindingRefreshKey,
+  resolveSceneBindingFromHost,
+} from "./sceneBinding.js"
 import { collectUniqueSelectionIds, haveSameIds } from "./selectionIds.js"
 
 interface SelectionElementLike {
@@ -14,6 +20,7 @@ interface SidepanelHostSelectionBridgeHost extends SidepanelHostViewContextHost 
 interface SidepanelHostSelectionBridgeInput {
   readonly host: SidepanelHostSelectionBridgeHost
   readonly suppressContentFocusOut: () => void
+  readonly resolveCurrentSceneBinding?: () => SidepanelSceneBinding
 }
 
 type SelectionMirrorAttemptResult = "applied" | "failed" | "hostUnavailable"
@@ -22,12 +29,14 @@ type SelectionMirrorVerificationResult = "match" | "mismatch" | "hostUnavailable
 export class SidepanelHostSelectionBridge {
   readonly #host: SidepanelHostSelectionBridgeHost
   readonly #suppressContentFocusOut: () => void
+  readonly #resolveCurrentSceneBinding: (() => SidepanelSceneBinding) | undefined
   #latestMirrorRequestId = 0
   #pendingMirrorRequestId: number | null = null
 
   constructor(input: SidepanelHostSelectionBridgeInput) {
     this.#host = input.host
     this.#suppressContentFocusOut = input.suppressContentFocusOut
+    this.#resolveCurrentSceneBinding = input.resolveCurrentSceneBinding
   }
 
   invalidatePendingSelectionMirror(): void {
@@ -39,22 +48,69 @@ export class SidepanelHostSelectionBridge {
     return this.#pendingMirrorRequestId !== null
   }
 
-  mirrorSelectionToHost(elementIds: readonly string[]): void {
+  private resolveCurrentSceneBinding(): SidepanelSceneBinding {
+    return this.#resolveCurrentSceneBinding?.() ?? resolveSceneBindingFromHost(this.#host)
+  }
+
+  private matchesExpectedSceneBinding(
+    expectedSceneBinding: SidepanelSceneBinding | null | undefined,
+  ): boolean {
+    if (!expectedSceneBinding) {
+      return true
+    }
+
+    const currentSceneBinding = this.resolveCurrentSceneBinding()
+    return (
+      haveSameSceneBindingRefreshKey(expectedSceneBinding, currentSceneBinding) &&
+      canMirrorSelectionToSceneBinding(currentSceneBinding)
+    )
+  }
+
+  private resolveFallbackApi(
+    expectedSceneBinding: SidepanelSceneBinding | null | undefined,
+  ): unknown | null {
+    if (expectedSceneBinding && !this.matchesExpectedSceneBinding(expectedSceneBinding)) {
+      return null
+    }
+
+    try {
+      return this.#host.getExcalidrawAPI?.() ?? null
+    } catch {
+      return null
+    }
+  }
+
+  mirrorSelectionToHost(
+    elementIds: readonly string[],
+    expectedSceneBinding?: SidepanelSceneBinding,
+  ): void {
+    if (expectedSceneBinding && !this.matchesExpectedSceneBinding(expectedSceneBinding)) {
+      this.invalidatePendingSelectionMirror()
+      return
+    }
+
     const nextElementIds = [...elementIds]
     const mirrorRequestId = this.#latestMirrorRequestId + 1
     this.#latestMirrorRequestId = mirrorRequestId
     this.#pendingMirrorRequestId = mirrorRequestId
 
     const runSelectAttempt = (): SelectionMirrorAttemptResult => {
+      if (expectedSceneBinding) {
+        if (!this.matchesExpectedSceneBinding(expectedSceneBinding)) {
+          return "hostUnavailable"
+        }
+      } else {
+        const hostViewContext = ensureHostViewContextState(this.#host)
+        if (!hostViewContext.ok) {
+          return "hostUnavailable"
+        }
+      }
+
       if (!this.#host.selectElementsInView) {
         return "failed"
       }
 
       this.#suppressContentFocusOut()
-      const hostViewContext = ensureHostViewContextState(this.#host)
-      if (!hostViewContext.ok) {
-        return "hostUnavailable"
-      }
 
       try {
         this.#host.selectElementsInView([...nextElementIds])
@@ -65,12 +121,18 @@ export class SidepanelHostSelectionBridge {
     }
 
     const runAppStateFallback = (): boolean => {
-      const hostViewContext = ensureHostViewContextState(this.#host)
-      if (!hostViewContext.ok) {
-        return false
+      if (expectedSceneBinding) {
+        if (!this.matchesExpectedSceneBinding(expectedSceneBinding)) {
+          return false
+        }
+      } else {
+        const hostViewContext = ensureHostViewContextState(this.#host)
+        if (!hostViewContext.ok) {
+          return false
+        }
       }
 
-      const apiCandidate = this.#host.getExcalidrawAPI?.()
+      const apiCandidate = this.resolveFallbackApi(expectedSceneBinding)
       if (!apiCandidate || typeof apiCandidate !== "object") {
         return false
       }
@@ -96,9 +158,15 @@ export class SidepanelHostSelectionBridge {
 
     const resolveVerificationState = (): SelectionMirrorVerificationResult => {
       try {
-        const hostViewContext = ensureHostViewContextState(this.#host)
-        if (!hostViewContext.ok) {
-          return "hostUnavailable"
+        if (expectedSceneBinding) {
+          if (!this.matchesExpectedSceneBinding(expectedSceneBinding)) {
+            return "hostUnavailable"
+          }
+        } else {
+          const hostViewContext = ensureHostViewContextState(this.#host)
+          if (!hostViewContext.ok) {
+            return "hostUnavailable"
+          }
         }
 
         const liveSelectedIds = collectUniqueSelectionIds(
@@ -112,6 +180,9 @@ export class SidepanelHostSelectionBridge {
 
     const firstAttemptResult = runSelectAttempt()
     if (firstAttemptResult === "hostUnavailable") {
+      if (this.#pendingMirrorRequestId === mirrorRequestId) {
+        this.#pendingMirrorRequestId = null
+      }
       return
     }
 
@@ -140,6 +211,9 @@ export class SidepanelHostSelectionBridge {
       }
 
       if (firstVerification === "hostUnavailable") {
+        if (this.#pendingMirrorRequestId === mirrorRequestId) {
+          this.#pendingMirrorRequestId = null
+        }
         return
       }
 
@@ -149,6 +223,9 @@ export class SidepanelHostSelectionBridge {
 
       const retryResult = runSelectAttempt()
       if (retryResult === "hostUnavailable") {
+        if (this.#pendingMirrorRequestId === mirrorRequestId) {
+          this.#pendingMirrorRequestId = null
+        }
         return
       }
 

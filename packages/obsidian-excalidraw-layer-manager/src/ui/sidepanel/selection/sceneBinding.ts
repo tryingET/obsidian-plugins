@@ -1,8 +1,14 @@
 import type {
   SidepanelHostContextShellState,
+  SidepanelHostViewContextHost,
   SidepanelHostViewObservation,
 } from "./hostViewContext.js"
-import { resolveHostViewContextKeyFromObservation } from "./hostViewContext.js"
+import {
+  observeHostViewContext,
+  resolveHostViewContextKeyFromObservation,
+  resolveHostViewContextShellStateFromObservation,
+  shouldRebindHostViewToActiveWorkspaceView,
+} from "./hostViewContext.js"
 
 export type SidepanelSceneRefSource = "legacy-host" | "target-view" | "active-leaf"
 
@@ -93,4 +99,35 @@ export const resolveSceneBindingFromObservation = (input: {
     state: input.state,
     shouldAttemptRebind: input.shouldAttemptRebind,
   }
+}
+
+export const resolveSceneBindingFromHost = (
+  host: SidepanelHostViewContextHost,
+): SidepanelSceneBinding => {
+  const observation = observeHostViewContext(host)
+
+  return resolveSceneBindingFromObservation({
+    observation,
+    state: resolveHostViewContextShellStateFromObservation(observation),
+    shouldAttemptRebind: shouldRebindHostViewToActiveWorkspaceView(host),
+  })
+}
+
+export const haveSameSceneBindingRefreshKey = (
+  left: SidepanelSceneBinding | null | undefined,
+  right: SidepanelSceneBinding | null | undefined,
+): boolean => {
+  if (!left || !right) {
+    return left === right
+  }
+
+  return left.refreshKey === right.refreshKey
+}
+
+export const canMirrorSelectionToSceneBinding = (binding: SidepanelSceneBinding): boolean => {
+  if (binding.state !== "live" || binding.shouldAttemptRebind) {
+    return false
+  }
+
+  return binding.source === "legacy-host" || binding.source === "target-view"
 }
