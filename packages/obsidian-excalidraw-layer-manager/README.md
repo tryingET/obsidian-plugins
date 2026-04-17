@@ -47,10 +47,24 @@ Provide an architecture-first Layer Manager for Obsidian Excalidraw scripts, wit
 - `docs/project/strategic_goals.md`
 - `docs/project/tactical_goals.md`
 - `docs/project/operating_plan.md`
+- `docs/project/current-vs-target.md`
+- `docs/project/2026-04-17-layer-manager-host-context-packet-closeout.md`
+- `docs/project/2026-04-17-layer-manager-host-context-fresh-context-implementation-note.md`
+- `docs/project/2026-04-16-layer-manager-manual-verification-matrix.md`
 - `docs/project/2026-04-08-projection-kernel-recovery.md`
 - `docs/project/2026-04-09-projection-kernel-recovery-blueprint.md`
 - `docs/project/2026-04-14-safe-deployment-and-reload-workflow.md`
 - `docs/project/script-style-package-boundary.md`
+
+## Host-context switching packet
+
+Layer Manager host switching now treats **scene-bound authority** as the source of truth rather than a surviving sidepanel shell or renderer-local `targetView` recovery.
+
+The shortest read stack for that packet is:
+- `docs/project/current-vs-target.md`
+- `docs/project/2026-04-17-layer-manager-host-context-packet-closeout.md`
+- `docs/project/2026-04-17-layer-manager-host-context-fresh-context-implementation-note.md`
+- `docs/project/2026-04-16-layer-manager-manual-verification-matrix.md`
 
 ## AK direction (L3 package surface)
 
