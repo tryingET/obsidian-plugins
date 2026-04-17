@@ -17,6 +17,12 @@ import {
   type SidepanelHostPrimarySignal,
   createSidepanelHostContextCoordinator,
 } from "./ui/sidepanel/selection/hostContextCoordinator.js"
+import {
+  clearHostContextFlightRecorder,
+  installHostContextFlightRecorderGlobals,
+  isLifecycleDebugEnabled,
+  traceHostContextLifecycleEvent,
+} from "./ui/sidepanel/selection/hostContextFlightRecorder.js"
 import { describeHostViewContext } from "./ui/sidepanel/selection/hostViewContext.js"
 
 export type { CommandPlanner, ExecuteIntentOutcome } from "./runtime/intentExecution.js"
@@ -370,9 +376,55 @@ export const createLayerManagerRuntime = (
     )
   }
 
+  const logHostContextRefreshDecision = (input: {
+    readonly source: string
+    readonly previousBindingKey: string
+    readonly previousState: (typeof hostContextSnapshot)["state"]
+    readonly previousShouldAttemptRebind: boolean
+    readonly result: ReturnType<typeof hostContextCoordinator.reconcile>
+    readonly scheduledRefresh: boolean
+  }): void => {
+    if (
+      !input.result.changed &&
+      !input.result.rebound &&
+      !input.scheduledRefresh &&
+      input.previousBindingKey === input.result.snapshot.bindingKey &&
+      input.previousState === input.result.snapshot.state &&
+      input.previousShouldAttemptRebind === input.result.snapshot.shouldAttemptRebind
+    ) {
+      return
+    }
+
+    traceHostContextLifecycleEvent("signal", "host-context signal reconciled", {
+      source: input.source,
+      changed: input.result.changed,
+      rebound: input.result.rebound,
+      scheduledRefresh: input.scheduledRefresh,
+      previousBindingKey: input.previousBindingKey,
+      nextBindingKey: input.result.snapshot.bindingKey,
+      previousState: input.previousState,
+      nextState: input.result.snapshot.state,
+      previousShouldAttemptRebind: input.previousShouldAttemptRebind,
+      nextShouldAttemptRebind: input.result.snapshot.shouldAttemptRebind,
+      activeFilePath: input.result.snapshot.activeFilePath,
+      activeLeafIdentity: input.result.snapshot.activeLeafIdentity,
+      activeViewType: input.result.snapshot.activeViewType,
+      targetViewIdentity: input.result.snapshot.targetViewIdentity,
+      targetViewFilePath: input.result.snapshot.targetViewFilePath,
+      targetViewUsable: input.result.snapshot.targetViewUsable,
+      cachedTargetViewIdentity: input.result.snapshot.cachedTargetViewIdentity,
+    })
+  }
+
   const subscribeToWorkspaceRefresh = (): void => {
     const workspace = resolveRuntimeApp(ea)?.workspace
     if (!workspace) {
+      traceHostContextLifecycleEvent("startup", "workspace refresh infrastructure unavailable", {
+        runtimeAppResolved: resolveRuntimeApp(ea) !== null,
+        hasWorkspace: false,
+        initialState: hostContextSnapshot.state,
+        initialBindingKey: hostContextSnapshot.bindingKey,
+      })
       return
     }
 
@@ -387,15 +439,23 @@ export const createLayerManagerRuntime = (
               const previousState = hostContextSnapshot.state
               const previousShouldAttemptRebind = hostContextSnapshot.shouldAttemptRebind
               const reconcileResult = reconcileHostContext("leaf-change")
+              const scheduledRefresh = shouldScheduleHostContextRefresh({
+                previousBindingKey,
+                previousState,
+                previousShouldAttemptRebind,
+                result: reconcileResult,
+              })
 
-              if (
-                !shouldScheduleHostContextRefresh({
-                  previousBindingKey,
-                  previousState,
-                  previousShouldAttemptRebind,
-                  result: reconcileResult,
-                })
-              ) {
+              logHostContextRefreshDecision({
+                source: `workspace:${eventName}`,
+                previousBindingKey,
+                previousState,
+                previousShouldAttemptRebind,
+                result: reconcileResult,
+                scheduledRefresh,
+              })
+
+              if (!scheduledRefresh) {
                 return
               }
 
@@ -418,20 +478,42 @@ export const createLayerManagerRuntime = (
         const previousState = hostContextSnapshot.state
         const previousShouldAttemptRebind = hostContextSnapshot.shouldAttemptRebind
         const reconcileResult = reconcileHostContext("poll")
-        if (
-          !shouldScheduleHostContextRefresh({
-            previousBindingKey,
-            previousState,
-            previousShouldAttemptRebind,
-            result: reconcileResult,
-          })
-        ) {
+        const scheduledRefresh = shouldScheduleHostContextRefresh({
+          previousBindingKey,
+          previousState,
+          previousShouldAttemptRebind,
+          result: reconcileResult,
+        })
+
+        logHostContextRefreshDecision({
+          source: "workspace:poll",
+          previousBindingKey,
+          previousState,
+          previousShouldAttemptRebind,
+          result: reconcileResult,
+          scheduledRefresh,
+        })
+
+        if (!scheduledRefresh) {
           return
         }
 
         scheduleHostContextRefresh()
       }, WORKSPACE_ACTIVE_FILE_POLL_MS)
     }
+
+    traceHostContextLifecycleEvent("startup", "workspace refresh infrastructure ready", {
+      hasWorkspace: true,
+      subscribedEvents: workspaceRefreshRefs.length,
+      pollArmed: workspaceActiveFilePoll !== null,
+      initialState: hostContextSnapshot.state,
+      initialBindingKey: hostContextSnapshot.bindingKey,
+      activeFilePath: hostContextSnapshot.activeFilePath,
+      activeLeafIdentity: hostContextSnapshot.activeLeafIdentity,
+      activeViewType: hostContextSnapshot.activeViewType,
+      targetViewIdentity: hostContextSnapshot.targetViewIdentity,
+      targetViewFilePath: hostContextSnapshot.targetViewFilePath,
+    })
   }
 
   const subscribeToSceneChanges = (): void => {
@@ -587,8 +669,6 @@ type RuntimeGlobal = typeof globalThis & {
 declare const ea: EaLike | undefined
 
 const runtimeGlobal = globalThis as RuntimeGlobal
-const isLifecycleDebugEnabled =
-  (runtimeGlobal as Record<string, unknown>)["LMX_DEBUG_SIDEPANEL_LIFECYCLE"] === true
 
 const resolveScriptEa = (): EaLike | undefined => {
   if (typeof ea !== "undefined" && ea) {
@@ -605,8 +685,14 @@ const resolveScriptEa = (): EaLike | undefined => {
 
 const scriptEa = resolveScriptEa()
 if (scriptEa) {
-  if (isLifecycleDebugEnabled) {
-    const Notice = scriptEa.obsidian?.Notice
+  const Notice = scriptEa.obsidian?.Notice
+  installHostContextFlightRecorderGlobals({ Notice })
+  clearHostContextFlightRecorder()
+  traceHostContextLifecycleEvent("startup", "LayerManager script executed", {
+    ...describeHostViewContext(scriptEa),
+  })
+
+  if (isLifecycleDebugEnabled()) {
     if (Notice) {
       new Notice("[LMX] LayerManager script executed.", 2200)
     }
@@ -619,8 +705,17 @@ if (scriptEa) {
 
   runtimeGlobal.excalidrawLayerManagerRuntime?.dispose?.()
   runtimeGlobal.excalidrawLayerManagerRuntime = createLayerManagerRuntime(scriptEa)
-} else if (isLifecycleDebugEnabled) {
-  console.log(
-    "[LMX] No active Excalidraw context (ea missing). Open an Excalidraw drawing and rerun LayerManager.",
+} else {
+  installHostContextFlightRecorderGlobals()
+  clearHostContextFlightRecorder()
+  traceHostContextLifecycleEvent(
+    "startup",
+    "No active Excalidraw context (ea missing). Open an Excalidraw drawing and rerun LayerManager.",
   )
+
+  if (isLifecycleDebugEnabled()) {
+    console.log(
+      "[LMX] No active Excalidraw context (ea missing). Open an Excalidraw drawing and rerun LayerManager.",
+    )
+  }
 }

@@ -1,3 +1,4 @@
+import { traceHostContextLifecycleEvent } from "./hostContextFlightRecorder.js"
 import {
   type SidepanelHostContextShellState,
   type SidepanelHostViewContextHost,
@@ -132,6 +133,7 @@ export class SidepanelHostContextCoordinator {
   readonly #autoRebindSignals: ReadonlySet<SidepanelHostPrimarySignal>
   #cachedTargetView: unknown | null = null
   #snapshot: SidepanelHostContextSnapshot | null = null
+  #lastFailedRebindDebugKey: string | null = null
 
   constructor(
     host: SidepanelHostContextCoordinatorHost,
@@ -206,6 +208,42 @@ export class SidepanelHostContextCoordinator {
       shouldAttemptRebind,
     })
     const changed = !haveEquivalentSnapshots(this.#snapshot, snapshot)
+
+    if (attemptRebind && !rebound && shouldAttemptRebind) {
+      const failedRebindDebugKey = [
+        signal,
+        snapshot.state,
+        snapshot.activeFilePath ?? "none",
+        snapshot.activeLeafIdentity ?? "none",
+        snapshot.activeViewType ?? "none",
+        snapshot.targetViewIdentity ?? "none",
+        snapshot.targetViewFilePath ?? "none",
+        snapshot.cachedTargetViewIdentity ?? "none",
+      ].join("::")
+
+      if (this.#lastFailedRebindDebugKey !== failedRebindDebugKey) {
+        traceHostContextLifecycleEvent(
+          "decision",
+          "host context rebind attempt did not confirm a usable targetView",
+          {
+            signal,
+            state: snapshot.state,
+            activeFilePath: snapshot.activeFilePath,
+            activeLeafIdentity: snapshot.activeLeafIdentity,
+            activeViewType: snapshot.activeViewType,
+            targetViewIdentity: snapshot.targetViewIdentity,
+            targetViewFilePath: snapshot.targetViewFilePath,
+            targetViewUsable: snapshot.targetViewUsable,
+            hasSetView: observation.description.hasSetView,
+            shouldAttemptRebind: snapshot.shouldAttemptRebind,
+            cachedTargetViewIdentity: snapshot.cachedTargetViewIdentity,
+          },
+        )
+        this.#lastFailedRebindDebugKey = failedRebindDebugKey
+      }
+    } else {
+      this.#lastFailedRebindDebugKey = null
+    }
 
     this.#snapshot = snapshot
 

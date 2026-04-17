@@ -3,6 +3,7 @@ import type {
   ObsidianLike,
   WorkspaceLike,
 } from "../../../adapter/excalidraw-types.js"
+import { traceHostContextLifecycleEvent } from "./hostContextFlightRecorder.js"
 
 export interface SidepanelHostViewContextHost {
   readonly targetView?: unknown | null
@@ -483,6 +484,30 @@ export const resolveHostViewContextKey = (host: SidepanelHostViewContextHost): s
   return resolveHostViewContextKeyFromObservation(observeHostViewContext(host))
 }
 
+const summarizeHostViewContextForDebug = (
+  description: SidepanelHostViewContextDescription,
+): Record<string, unknown> => {
+  return {
+    activeFilePath: description.activeFilePath,
+    activeLeafIdentity: description.activeWorkspaceLeafIdentity,
+    activeViewType: description.activeWorkspaceViewType,
+    targetViewIdentity: description.targetViewIdentity,
+    targetViewFilePath: description.targetViewFilePath,
+    targetViewLoaded: description.targetViewLoaded,
+    targetViewUsable: description.targetViewUsable,
+    hostEligible: description.hostEligible,
+    hasSetView: description.hasSetView,
+  }
+}
+
+const renderViewBindStrategyLabel = (strategy: {
+  readonly viewArg: unknown
+  readonly reveal: boolean
+}): string => {
+  const viewArgLabel = strategy.viewArg === undefined ? "undefined" : `${strategy.viewArg}`
+  return `${viewArgLabel}|reveal:${strategy.reveal}`
+}
+
 export const shouldRebindHostViewToActiveWorkspaceView = (
   host: SidepanelHostViewContextHost,
 ): boolean => {
@@ -513,6 +538,8 @@ export const shouldRebindHostViewToActiveWorkspaceView = (
 export const bindHostViewToActiveWorkspaceView = (
   host: SidepanelHostViewContextHost,
 ): SidepanelHostViewContextEnsureResult => {
+  const initialDescription = resolveHostViewContextDescription(host)
+
   if (!shouldRebindHostViewToActiveWorkspaceView(host)) {
     return {
       ok: true,
@@ -520,8 +547,16 @@ export const bindHostViewToActiveWorkspaceView = (
     }
   }
 
+  traceHostContextLifecycleEvent("rebind", "host view rebind requested", {
+    ...summarizeHostViewContextForDebug(initialDescription),
+  })
+
   const setView = host.setView
   if (!setView) {
+    traceHostContextLifecycleEvent("rebind", "host view rebind unavailable: host has no setView", {
+      ...summarizeHostViewContextForDebug(initialDescription),
+    })
+
     return {
       ok: !shouldRebindHostViewToActiveWorkspaceView(host),
       rebound: false,
@@ -529,19 +564,48 @@ export const bindHostViewToActiveWorkspaceView = (
   }
 
   for (const strategy of VIEW_BIND_STRATEGIES) {
+    const beforeDescription = resolveHostViewContextDescription(host)
+    let threw = false
+    let errorMessage: string | null = null
+
     try {
       setView(strategy.viewArg, strategy.reveal)
-    } catch {
-      // keep trying bounded active-view strategies
+    } catch (error) {
+      threw = true
+      errorMessage = error instanceof Error ? error.message : `${error}`
     }
 
-    if (!shouldRebindHostViewToActiveWorkspaceView(host)) {
+    const afterDescription = resolveHostViewContextDescription(host)
+    const shouldAttemptRebindAfter = shouldRebindHostViewToActiveWorkspaceView(host)
+
+    traceHostContextLifecycleEvent("rebind", "host view rebind strategy attempted", {
+      strategy: renderViewBindStrategyLabel(strategy),
+      threw,
+      ...(errorMessage ? { errorMessage } : {}),
+      before: summarizeHostViewContextForDebug(beforeDescription),
+      after: summarizeHostViewContextForDebug(afterDescription),
+      shouldAttemptRebindAfter,
+    })
+
+    if (!shouldAttemptRebindAfter) {
+      traceHostContextLifecycleEvent("rebind", "host view rebind confirmed", {
+        strategy: renderViewBindStrategyLabel(strategy),
+        ...summarizeHostViewContextForDebug(afterDescription),
+      })
+
       return {
         ok: true,
         rebound: true,
       }
     }
   }
+
+  const finalDescription = resolveHostViewContextDescription(host)
+
+  traceHostContextLifecycleEvent("rebind", "host view rebind exhausted without usable targetView", {
+    initial: summarizeHostViewContextForDebug(initialDescription),
+    final: summarizeHostViewContextForDebug(finalDescription),
+  })
 
   return {
     ok: !shouldRebindHostViewToActiveWorkspaceView(host),

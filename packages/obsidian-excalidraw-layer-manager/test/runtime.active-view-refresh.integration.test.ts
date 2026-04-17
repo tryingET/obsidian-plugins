@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { EaLike, RawExcalidrawElement } from "../src/adapter/excalidraw-types.js"
 import { createLayerManagerRuntime } from "../src/main.js"
+import { clearHostContextFlightRecorder } from "../src/ui/sidepanel/selection/hostContextFlightRecorder.js"
 
 import {
   FakeDocument,
@@ -468,9 +469,12 @@ describe("runtime active-view refresh", () => {
 
     fakeDocument = new FakeDocument()
     globalRecord["document"] = fakeDocument as unknown as Document
+    clearHostContextFlightRecorder()
   })
 
   afterEach(() => {
+    clearHostContextFlightRecorder()
+
     if (hadDocumentProperty) {
       globalRecord["document"] = previousDocumentValue
       return
@@ -961,6 +965,63 @@ describe("runtime active-view refresh", () => {
     expect(findInteractiveRowByLabel(contentRoot, "[element] Delta")).toBeDefined()
     expect(findInteractiveRowByLabel(contentRoot, "[element] Alpha")).toBeUndefined()
     expect(getSelectedRows(contentRoot)).toHaveLength(0)
+  })
+
+  it("exposes host-context trace helpers and records cross-file rebind evidence", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      {
+        "A.excalidraw": [{ id: "A", type: "rectangle", name: "Alpha", isDeleted: false }],
+        "B.excalidraw": [{ id: "B", type: "rectangle", name: "Beta", isDeleted: false }],
+      },
+      "A.excalidraw",
+      {
+        requireSetViewForReadCalls: true,
+      },
+    )
+
+    const app = createLayerManagerRuntime(runtime.ea)
+    const traceRead = globalRecord["LMX_HOST_CONTEXT_TRACE_READ"] as
+      | (() => readonly {
+          readonly category: string
+          readonly message: string
+          readonly payload: Record<string, unknown> | null
+        }[])
+      | undefined
+    const traceClear = globalRecord["LMX_HOST_CONTEXT_TRACE_CLEAR"] as (() => void) | undefined
+    const traceDump = globalRecord["LMX_HOST_CONTEXT_TRACE_DUMP"] as (() => string) | undefined
+
+    expect(typeof traceRead).toBe("function")
+    expect(typeof traceClear).toBe("function")
+    expect(typeof traceDump).toBe("function")
+
+    traceClear?.()
+
+    runtime.switchWorkspaceToView("B.excalidraw")
+    app.refresh()
+    await flushAsync()
+
+    const events = traceRead?.() ?? []
+    const rebindMessages = events
+      .filter((event) => event.category === "rebind")
+      .map((event) => event.message)
+
+    expect(rebindMessages).toEqual(
+      expect.arrayContaining([
+        "host view rebind requested",
+        "host view rebind strategy attempted",
+        "host view rebind confirmed",
+      ]),
+    )
+
+    const confirmedEvent = events.find((event) => event.message === "host view rebind confirmed")
+    expect(confirmedEvent?.payload).toEqual(
+      expect.objectContaining({
+        activeFilePath: "B.excalidraw",
+        targetViewFilePath: "B.excalidraw",
+      }),
+    )
+    expect(traceDump?.()).toContain("host view rebind confirmed")
   })
 
   it("renders an explicit inactive state when the active note is not Excalidraw-capable", async () => {
