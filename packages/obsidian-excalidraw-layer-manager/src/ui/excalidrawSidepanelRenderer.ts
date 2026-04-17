@@ -54,6 +54,7 @@ import {
 } from "./sidepanel/render/rowRenderer.js"
 import { renderSidepanelRowTree } from "./sidepanel/render/rowTreeRenderer.js"
 import { renderSidepanelToolbar } from "./sidepanel/render/toolbarRenderer.js"
+import { traceHostContextLifecycleEvent } from "./sidepanel/selection/hostContextFlightRecorder.js"
 import { SidepanelHostSelectionBridge } from "./sidepanel/selection/hostSelectionBridge.js"
 import {
   type SidepanelHostViewContextDescription,
@@ -148,7 +149,6 @@ const ROW_FONT_SIZE_PX = 11
 const ICON_SIZE_PX = 13
 const ICON_BUTTON_SIZE_PX = 16
 const TOOLBAR_FONT_SIZE_PX = 11
-const SIDEPANEL_LIFECYCLE_DEBUG_FLAG = "LMX_DEBUG_SIDEPANEL_LIFECYCLE"
 const SIDEPANEL_INTERACTION_DEBUG_FLAG = "LMX_DEBUG_SIDEPANEL_INTERACTION"
 const SIDEPANEL_VIEW_CHANGE_UNSET = Symbol("sidepanel-view-change-unset")
 /**
@@ -1414,17 +1414,8 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     })
   }
 
-  private isLifecycleDebugEnabled(): boolean {
-    const runtime = globalThis as Record<string, unknown>
-    return runtime[SIDEPANEL_LIFECYCLE_DEBUG_FLAG] === true
-  }
-
-  private debugLifecycle(message: string): void {
-    if (!this.isLifecycleDebugEnabled()) {
-      return
-    }
-
-    console.log(`[LMX:lifecycle] ${message}`)
+  private debugLifecycle(message: string, payload?: Record<string, unknown>): void {
+    traceHostContextLifecycleEvent("renderer", message, payload)
   }
 
   private isInteractionDebugEnabled(): boolean {
@@ -1627,6 +1618,14 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       this.#boundSidepanelViewChangeHandler(...args)
     }
     this.#viewChangeBoundTab = sidepanelTab
+    const hostViewContext = describeHostViewContext(this.#host)
+    this.debugLifecycle("bound sidepanel onViewChange bridge", {
+      activeFilePath: hostViewContext.activeFilePath,
+      activeLeafIdentity: hostViewContext.activeWorkspaceLeafIdentity,
+      activeViewType: hostViewContext.activeWorkspaceViewType,
+      targetViewIdentity: hostViewContext.targetViewIdentity,
+      targetViewFilePath: hostViewContext.targetViewFilePath,
+    })
   }
 
   private releaseSidepanelViewChangeBinding(): void {
@@ -1634,6 +1633,15 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     if (!sidepanelTab) {
       return
     }
+
+    const hostViewContext = describeHostViewContext(this.#host)
+    this.debugLifecycle("released sidepanel onViewChange bridge", {
+      activeFilePath: hostViewContext.activeFilePath,
+      activeLeafIdentity: hostViewContext.activeWorkspaceLeafIdentity,
+      activeViewType: hostViewContext.activeWorkspaceViewType,
+      targetViewIdentity: hostViewContext.targetViewIdentity,
+      targetViewFilePath: hostViewContext.targetViewFilePath,
+    })
 
     sidepanelTab.onViewChange = this.#previousTabViewChangeHandler
     this.#viewChangeBoundTab = null
@@ -1653,6 +1661,17 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         : nextTargetView
 
     this.rememberUsableTargetView(resolvedTargetView)
+    const hostViewContext = describeHostViewContext(this.#host)
+    this.debugLifecycle("sidepanel onViewChange received", {
+      targetViewPresent: resolvedTargetView !== null,
+      targetViewUsable: isUsableTargetView(resolvedTargetView),
+      activeFilePath: hostViewContext.activeFilePath,
+      activeLeafIdentity: hostViewContext.activeWorkspaceLeafIdentity,
+      activeViewType: hostViewContext.activeWorkspaceViewType,
+      targetViewIdentity: hostViewContext.targetViewIdentity,
+      targetViewFilePath: hostViewContext.targetViewFilePath,
+      hostEligible: hostViewContext.hostEligible,
+    })
     this.syncFocusOwnershipHostAuthority()
     this.requestRenderFromLatestModel()
   }
@@ -1692,7 +1711,14 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       }
 
       this.#targetViewLossConsecutivePolls = 0
-      this.debugLifecycle("host targetView became unusable; re-rendering latest model")
+      this.debugLifecycle("host targetView became unusable; re-rendering latest model", {
+        activeFilePath: hostViewContext.activeFilePath,
+        activeLeafIdentity: hostViewContext.activeWorkspaceLeafIdentity,
+        activeViewType: hostViewContext.activeWorkspaceViewType,
+        targetViewIdentity: hostViewContext.targetViewIdentity,
+        targetViewFilePath: hostViewContext.targetViewFilePath,
+        hostEligible: hostViewContext.hostEligible,
+      })
       this.requestRenderFromLatestModel()
     }, TARGET_VIEW_LOSS_POLL_MS)
   }
@@ -1785,7 +1811,14 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.#handlingHostViewClose = true
 
     try {
-      this.debugLifecycle("host excalidraw view closed")
+      const hostViewContext = describeHostViewContext(this.#host)
+      this.debugLifecycle("host excalidraw view closed", {
+        activeFilePath: hostViewContext.activeFilePath,
+        activeLeafIdentity: hostViewContext.activeWorkspaceLeafIdentity,
+        activeViewType: hostViewContext.activeWorkspaceViewType,
+        targetViewIdentity: hostViewContext.targetViewIdentity,
+        targetViewFilePath: hostViewContext.targetViewFilePath,
+      })
       this.clearMountedOutput()
       this.#mountManager.releaseLifecycleBinding()
       this.closeSidepanelPresentation()
@@ -1840,7 +1873,17 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     hostViewContext: SidepanelHostViewContextDescription,
     model: RenderViewModel,
   ): void {
-    this.debugLifecycle("rendering inactive sidepanel state")
+    const presentation = this.resolveInactiveHostPresentation(hostViewContext)
+    this.debugLifecycle("rendering inactive sidepanel state", {
+      title: presentation.title,
+      detail: presentation.detail,
+      activeFilePath: hostViewContext.activeFilePath,
+      activeLeafIdentity: hostViewContext.activeWorkspaceLeafIdentity,
+      activeViewType: hostViewContext.activeWorkspaceViewType,
+      targetViewIdentity: hostViewContext.targetViewIdentity,
+      targetViewFilePath: hostViewContext.targetViewFilePath,
+      hostEligible: hostViewContext.hostEligible,
+    })
     this.resetForInactiveHostState()
 
     const contentRoot = this.ensureContentRoot()
@@ -1853,7 +1896,6 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       return
     }
 
-    const presentation = this.resolveInactiveHostPresentation(hostViewContext)
     const ownerDocument = contentRoot.ownerDocument
     contentRoot.innerHTML = ""
     this.#rowTreeRoot = null

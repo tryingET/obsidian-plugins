@@ -967,6 +967,138 @@ describe("runtime active-view refresh", () => {
     expect(getSelectedRows(contentRoot)).toHaveLength(0)
   })
 
+  it("records startup health when workspace refresh infrastructure is available", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      {
+        "A.excalidraw": [{ id: "A", type: "rectangle", name: "Alpha", isDeleted: false }],
+      },
+      "A.excalidraw",
+    )
+
+    const app = createLayerManagerRuntime(runtime.ea)
+    await flushAsync()
+
+    const traceRead = globalRecord["LMX_HOST_CONTEXT_TRACE_READ"] as
+      | (() => readonly {
+          readonly message: string
+          readonly payload: Record<string, unknown> | null
+        }[])
+      | undefined
+
+    const startupEvent = traceRead?.().find(
+      (event) => event.message === "workspace refresh infrastructure ready",
+    )
+
+    expect(startupEvent?.payload).toEqual(
+      expect.objectContaining({
+        runtimeAppResolved: true,
+        hasWorkspace: true,
+        hasWorkspaceOn: true,
+        hasWorkspaceOffref: true,
+        pollArmed: true,
+        pollIntervalMs: 350,
+        activeFilePath: "A.excalidraw",
+        targetViewFilePath: "A.excalidraw",
+      }),
+    )
+
+    app.dispose()
+  })
+
+  it("records startup health when workspace refresh infrastructure is unavailable", async () => {
+    const traceRead = globalRecord["LMX_HOST_CONTEXT_TRACE_READ"] as
+      | (() => readonly {
+          readonly message: string
+          readonly payload: Record<string, unknown> | null
+        }[])
+      | undefined
+
+    const app = createLayerManagerRuntime(
+      {
+        targetView: null,
+        setView: vi.fn(() => null),
+        getViewElements: vi.fn(() => []),
+        getViewSelectedElements: vi.fn(() => []),
+        getScriptSettings: () => ({}),
+        getExcalidrawAPI: vi.fn(() => null),
+        createSidepanelTab: () => null,
+        getSidepanelLeaf: () => ({
+          detach: vi.fn(),
+        }),
+      } as unknown as EaLike,
+      {
+        render: vi.fn(),
+        dispose: vi.fn(),
+      },
+    )
+    await flushAsync()
+
+    const startupEvent = traceRead?.().find(
+      (event) => event.message === "workspace refresh infrastructure unavailable",
+    )
+
+    expect(startupEvent?.payload).toEqual(
+      expect.objectContaining({
+        runtimeAppResolved: false,
+        hasWorkspace: false,
+        hasWorkspaceOn: false,
+        hasWorkspaceOffref: false,
+        pollArmed: false,
+      }),
+    )
+
+    app.dispose()
+  })
+
+  it("records renderer raw sidepanel view-change signals", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      {
+        "A.excalidraw": [{ id: "A", type: "rectangle", name: "Alpha", isDeleted: false }],
+      },
+      "A.excalidraw",
+    )
+
+    const app = createLayerManagerRuntime(runtime.ea)
+    await flushAsync()
+
+    const traceRead = globalRecord["LMX_HOST_CONTEXT_TRACE_READ"] as
+      | (() => readonly {
+          readonly category: string
+          readonly message: string
+          readonly payload: Record<string, unknown> | null
+        }[])
+      | undefined
+    const traceClear = globalRecord["LMX_HOST_CONTEXT_TRACE_CLEAR"] as (() => void) | undefined
+
+    traceClear?.()
+
+    const tabWithViewChange = runtime.sidepanelTab.tab as {
+      onViewChange?: (targetView?: unknown | null) => void
+    }
+    tabWithViewChange.onViewChange?.(runtime.ea.targetView)
+    await flushAsync()
+
+    const rendererEvent = traceRead?.().find(
+      (event) =>
+        event.category === "renderer" && event.message === "sidepanel onViewChange received",
+    )
+
+    expect(rendererEvent?.payload).toEqual(
+      expect.objectContaining({
+        targetViewPresent: true,
+        targetViewUsable: true,
+        activeFilePath: "A.excalidraw",
+        targetViewIdentity: "A.excalidraw",
+        targetViewFilePath: "A.excalidraw",
+        hostEligible: true,
+      }),
+    )
+
+    app.dispose()
+  })
+
   it("exposes host-context trace helpers and records cross-file rebind evidence", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,

@@ -417,11 +417,15 @@ export const createLayerManagerRuntime = (
   }
 
   const subscribeToWorkspaceRefresh = (): void => {
-    const workspace = resolveRuntimeApp(ea)?.workspace
+    const runtimeApp = resolveRuntimeApp(ea)
+    const workspace = runtimeApp?.workspace
     if (!workspace) {
       traceHostContextLifecycleEvent("startup", "workspace refresh infrastructure unavailable", {
-        runtimeAppResolved: resolveRuntimeApp(ea) !== null,
+        runtimeAppResolved: runtimeApp !== null,
         hasWorkspace: false,
+        hasWorkspaceOn: false,
+        hasWorkspaceOffref: false,
+        pollArmed: false,
         initialState: hostContextSnapshot.state,
         initialBindingKey: hostContextSnapshot.bindingKey,
       })
@@ -503,9 +507,13 @@ export const createLayerManagerRuntime = (
     }
 
     traceHostContextLifecycleEvent("startup", "workspace refresh infrastructure ready", {
+      runtimeAppResolved: true,
       hasWorkspace: true,
+      hasWorkspaceOn: typeof workspace.on === "function",
+      hasWorkspaceOffref: typeof workspace.offref === "function",
       subscribedEvents: workspaceRefreshRefs.length,
       pollArmed: workspaceActiveFilePoll !== null,
+      pollIntervalMs: WORKSPACE_ACTIVE_FILE_POLL_MS,
       initialState: hostContextSnapshot.state,
       initialBindingKey: hostContextSnapshot.bindingKey,
       activeFilePath: hostContextSnapshot.activeFilePath,
@@ -689,6 +697,7 @@ if (scriptEa) {
   installHostContextFlightRecorderGlobals({ Notice })
   clearHostContextFlightRecorder()
   traceHostContextLifecycleEvent("startup", "LayerManager script executed", {
+    runtimeAppResolved: resolveRuntimeApp(scriptEa) !== null,
     ...describeHostViewContext(scriptEa),
   })
 
@@ -711,6 +720,10 @@ if (scriptEa) {
   traceHostContextLifecycleEvent(
     "startup",
     "No active Excalidraw context (ea missing). Open an Excalidraw drawing and rerun LayerManager.",
+    {
+      hasScriptEa: false,
+      runtimeAppResolved: false,
+    },
   )
 
   if (isLifecycleDebugEnabled()) {

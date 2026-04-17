@@ -121,6 +121,16 @@ const sanitizePayload = (payload?: Record<string, unknown>): Record<string, unkn
   return sanitizeForRecorder(payload) as Record<string, unknown>
 }
 
+const cloneRecordedPayload = (
+  payload: Record<string, unknown> | null,
+): Record<string, unknown> | null => {
+  if (!payload) {
+    return null
+  }
+
+  return sanitizeForRecorder(payload) as Record<string, unknown>
+}
+
 const stringifyEventPayload = (payload: Record<string, unknown> | null): string => {
   if (!payload) {
     return "{}"
@@ -181,7 +191,7 @@ export const traceHostContextLifecycleEvent = (
   payload?: Record<string, unknown>,
 ): HostContextFlightRecorderEvent => {
   const event = recordHostContextFlightRecorderEvent(category, message, payload)
-  logLifecycleDebug(message, payload)
+  logLifecycleDebug(message, event.payload ?? undefined)
   return event
 }
 
@@ -190,7 +200,7 @@ export const readHostContextFlightRecorderEvents =
     const state = getRecorderState()
     return state.events.map((event) => ({
       ...event,
-      payload: event.payload ? ({ ...event.payload } as Record<string, unknown>) : null,
+      payload: cloneRecordedPayload(event.payload),
     }))
   }
 
