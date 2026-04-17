@@ -7,12 +7,16 @@ import {
   getCurrentHostTargetView,
   isUsableTargetView,
   observeHostViewContext,
-  resolveHostViewContextKeyFromObservation,
   resolveHostViewContextShellStateFromObservation,
   resolveLiveExcalidrawApiFromTargetView,
   resolveTargetViewIdentity,
   shouldRebindHostViewToActiveWorkspaceView,
 } from "./hostViewContext.js"
+import {
+  type SidepanelSceneBinding,
+  type SidepanelSceneRef,
+  resolveSceneBindingFromObservation,
+} from "./sceneBinding.js"
 
 export type SidepanelHostPrimarySignal =
   | "initial"
@@ -23,6 +27,8 @@ export type SidepanelHostPrimarySignal =
 
 export interface SidepanelHostContextSnapshot {
   readonly bindingKey: string
+  readonly sceneRef: SidepanelSceneRef | null
+  readonly sceneBinding: SidepanelSceneBinding
   readonly state: SidepanelHostContextShellState
   readonly activeFilePath: string | null
   readonly activeLeafIdentity: string | null
@@ -85,10 +91,18 @@ const createSnapshot = (input: {
   readonly shouldAttemptRebind: boolean
 }): SidepanelHostContextSnapshot => {
   const { description } = input.observation
+  const state = resolveHostViewContextShellStateFromObservation(input.observation)
+  const sceneBinding = resolveSceneBindingFromObservation({
+    observation: input.observation,
+    state,
+    shouldAttemptRebind: input.shouldAttemptRebind,
+  })
 
   return {
-    bindingKey: resolveHostViewContextKeyFromObservation(input.observation),
-    state: resolveHostViewContextShellStateFromObservation(input.observation),
+    bindingKey: sceneBinding.sceneKey,
+    sceneRef: sceneBinding.sceneRef,
+    sceneBinding,
+    state,
     activeFilePath: description.activeFilePath,
     activeLeafIdentity: description.activeWorkspaceLeafIdentity,
     activeViewType: description.activeWorkspaceViewType,
@@ -116,13 +130,10 @@ const haveEquivalentSnapshots = (
   }
 
   return (
-    left.bindingKey === right.bindingKey &&
-    left.state === right.state &&
+    left.sceneBinding.refreshKey === right.sceneBinding.refreshKey &&
     left.targetViewIdentity === right.targetViewIdentity &&
     left.targetViewUsable === right.targetViewUsable &&
     left.hostEligible === right.hostEligible &&
-    left.shouldAttemptRebind === right.shouldAttemptRebind &&
-    left.canOwnKeyboardRouting === right.canOwnKeyboardRouting &&
     left.hasCachedTargetView === right.hasCachedTargetView &&
     left.cachedTargetViewIdentity === right.cachedTargetViewIdentity
   )

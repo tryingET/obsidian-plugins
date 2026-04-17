@@ -461,6 +461,41 @@ const resolveHostViewContextEligibilityKey = (
       : "legacy"
 }
 
+const resolveTargetViewSceneKey = (description: SidepanelHostViewContextDescription): string => {
+  const targetFileKey = description.targetViewFilePath
+    ? `file:${description.targetViewFilePath}`
+    : "file:none"
+  const targetViewIdentityKey = description.targetViewIdentity
+    ? `view:${description.targetViewIdentity}`
+    : "view:none"
+
+  return `scene:target-view::${targetFileKey}::${targetViewIdentityKey}`
+}
+
+const resolveActiveLeafFallbackSceneKey = (
+  description: SidepanelHostViewContextDescription,
+): string | null => {
+  if (
+    !description.activeFilePath &&
+    !description.activeWorkspaceLeafIdentity &&
+    !description.activeWorkspaceViewType
+  ) {
+    return null
+  }
+
+  const activeFileKey = description.activeFilePath
+    ? `file:${description.activeFilePath}`
+    : "file:none"
+  const activeLeafKey = description.activeWorkspaceLeafIdentity
+    ? `leaf:${description.activeWorkspaceLeafIdentity}`
+    : "leaf:none"
+  const activeViewTypeKey = description.activeWorkspaceViewType
+    ? `view-type:${description.activeWorkspaceViewType}`
+    : "view-type:none"
+
+  return `scene:active-leaf::${activeFileKey}::${activeLeafKey}::${activeViewTypeKey}`
+}
+
 export const resolveHostViewContextKeyFromObservation = (
   observation: SidepanelHostViewObservation,
 ): string => {
@@ -469,15 +504,15 @@ export const resolveHostViewContextKeyFromObservation = (
   }
 
   const { description } = observation
-  const targetPresenceKey = description.hasTargetView ? "target:present" : "target:null"
-  const targetFileKey = description.targetViewFilePath
-    ? `target-file:${description.targetViewFilePath}`
-    : "target-file:none"
-  const targetViewIdentityKey = description.targetViewIdentity
-    ? `view:${description.targetViewIdentity}`
-    : "view:none"
 
-  return `${targetPresenceKey}::${targetFileKey}::${targetViewIdentityKey}::eligibility:${resolveHostViewContextEligibilityKey(description)}`
+  if (description.targetViewUsable) {
+    return resolveTargetViewSceneKey(description)
+  }
+
+  return (
+    resolveActiveLeafFallbackSceneKey(description) ??
+    `scene:none::eligibility:${resolveHostViewContextEligibilityKey(description)}`
+  )
 }
 
 export const resolveHostViewContextKey = (host: SidepanelHostViewContextHost): string => {

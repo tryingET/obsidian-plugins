@@ -116,8 +116,8 @@ export const createLayerManagerRuntime = (
   let disposed = false
   let sceneChangeUnsubscribe: (() => void) | null = null
   let subscribedSceneChangeApi: unknown = null
-  let activeViewContextKey = hostContextSnapshot.bindingKey
-  let subscribedViewContextKey: string | null = null
+  let activeSceneBindingKey = hostContextSnapshot.sceneBinding.sceneKey
+  let subscribedSceneBindingKey: string | null = null
   let lifecycleActor: ReturnType<typeof createRuntimeLifecycleActor> | null = null
   let workspaceRefreshRefs: unknown[] = []
   let workspaceRefreshScheduled = false
@@ -247,7 +247,7 @@ export const createLayerManagerRuntime = (
   const reconcileHostContext = (
     signal: SidepanelHostPrimarySignal,
   ): ReturnType<typeof hostContextCoordinator.reconcile> => {
-    const previousBindingKey = activeViewContextKey
+    const previousBindingKey = activeSceneBindingKey
     const result =
       signal === "leaf-change"
         ? hostContextCoordinator.handleWorkspaceLeafChange()
@@ -256,7 +256,7 @@ export const createLayerManagerRuntime = (
           : hostContextCoordinator.reconcile(signal)
 
     hostContextSnapshot = result.snapshot
-    activeViewContextKey = result.snapshot.bindingKey
+    activeSceneBindingKey = result.snapshot.sceneBinding.sceneKey
 
     if (result.changed || previousBindingKey !== result.snapshot.bindingKey) {
       selectedIdsHintFromOnChange = null
@@ -312,7 +312,7 @@ export const createLayerManagerRuntime = (
 
     sceneChangeUnsubscribe = null
     subscribedSceneChangeApi = null
-    subscribedViewContextKey = null
+    subscribedSceneBindingKey = null
   }
 
   const clearWorkspaceRefreshSubscriptions = (): void => {
@@ -363,22 +363,19 @@ export const createLayerManagerRuntime = (
   }
 
   const shouldScheduleHostContextRefresh = (input: {
-    readonly previousBindingKey: string
-    readonly previousState: (typeof hostContextSnapshot)["state"]
-    readonly previousShouldAttemptRebind: boolean
+    readonly previousRefreshKey: string
     readonly result: ReturnType<typeof hostContextCoordinator.reconcile>
   }): boolean => {
     return (
       input.result.rebound ||
-      input.previousBindingKey !== input.result.snapshot.bindingKey ||
-      input.previousState !== input.result.snapshot.state ||
-      input.previousShouldAttemptRebind !== input.result.snapshot.shouldAttemptRebind
+      input.previousRefreshKey !== input.result.snapshot.sceneBinding.refreshKey
     )
   }
 
   const logHostContextRefreshDecision = (input: {
     readonly source: string
     readonly previousBindingKey: string
+    readonly previousRefreshKey: string
     readonly previousState: (typeof hostContextSnapshot)["state"]
     readonly previousShouldAttemptRebind: boolean
     readonly result: ReturnType<typeof hostContextCoordinator.reconcile>
@@ -389,8 +386,7 @@ export const createLayerManagerRuntime = (
       !input.result.rebound &&
       !input.scheduledRefresh &&
       input.previousBindingKey === input.result.snapshot.bindingKey &&
-      input.previousState === input.result.snapshot.state &&
-      input.previousShouldAttemptRebind === input.result.snapshot.shouldAttemptRebind
+      input.previousRefreshKey === input.result.snapshot.sceneBinding.refreshKey
     ) {
       return
     }
@@ -402,6 +398,9 @@ export const createLayerManagerRuntime = (
       scheduledRefresh: input.scheduledRefresh,
       previousBindingKey: input.previousBindingKey,
       nextBindingKey: input.result.snapshot.bindingKey,
+      previousRefreshKey: input.previousRefreshKey,
+      nextRefreshKey: input.result.snapshot.sceneBinding.refreshKey,
+      sceneRefSource: input.result.snapshot.sceneBinding.source,
       previousState: input.previousState,
       nextState: input.result.snapshot.state,
       previousShouldAttemptRebind: input.previousShouldAttemptRebind,
@@ -439,20 +438,20 @@ export const createLayerManagerRuntime = (
         for (const eventName of ["file-open", "active-leaf-change"]) {
           try {
             const ref = on.call(workspace, eventName, () => {
-              const previousBindingKey = activeViewContextKey
+              const previousBindingKey = activeSceneBindingKey
+              const previousRefreshKey = hostContextSnapshot.sceneBinding.refreshKey
               const previousState = hostContextSnapshot.state
               const previousShouldAttemptRebind = hostContextSnapshot.shouldAttemptRebind
               const reconcileResult = reconcileHostContext("leaf-change")
               const scheduledRefresh = shouldScheduleHostContextRefresh({
-                previousBindingKey,
-                previousState,
-                previousShouldAttemptRebind,
+                previousRefreshKey,
                 result: reconcileResult,
               })
 
               logHostContextRefreshDecision({
                 source: `workspace:${eventName}`,
                 previousBindingKey,
+                previousRefreshKey,
                 previousState,
                 previousShouldAttemptRebind,
                 result: reconcileResult,
@@ -478,20 +477,20 @@ export const createLayerManagerRuntime = (
 
     if (workspaceActiveFilePoll === null) {
       workspaceActiveFilePoll = setInterval(() => {
-        const previousBindingKey = activeViewContextKey
+        const previousBindingKey = activeSceneBindingKey
+        const previousRefreshKey = hostContextSnapshot.sceneBinding.refreshKey
         const previousState = hostContextSnapshot.state
         const previousShouldAttemptRebind = hostContextSnapshot.shouldAttemptRebind
         const reconcileResult = reconcileHostContext("poll")
         const scheduledRefresh = shouldScheduleHostContextRefresh({
-          previousBindingKey,
-          previousState,
-          previousShouldAttemptRebind,
+          previousRefreshKey,
           result: reconcileResult,
         })
 
         logHostContextRefreshDecision({
           source: "workspace:poll",
           previousBindingKey,
+          previousRefreshKey,
           previousState,
           previousShouldAttemptRebind,
           result: reconcileResult,
@@ -527,10 +526,10 @@ export const createLayerManagerRuntime = (
   const subscribeToSceneChanges = (): void => {
     const api = hostContextSnapshot.sceneApi
 
-    const currentViewContextKey = activeViewContextKey
-    const viewContextChanged = currentViewContextKey !== subscribedViewContextKey
+    const currentSceneBindingKey = activeSceneBindingKey
+    const sceneBindingChanged = currentSceneBindingKey !== subscribedSceneBindingKey
 
-    if (viewContextChanged) {
+    if (sceneBindingChanged) {
       selectedIdsHintFromOnChange = null
     }
 
@@ -539,13 +538,13 @@ export const createLayerManagerRuntime = (
       return
     }
 
-    if (api === subscribedSceneChangeApi && !viewContextChanged) {
+    if (api === subscribedSceneChangeApi && !sceneBindingChanged) {
       return
     }
 
     clearSceneChangeSubscription()
     subscribedSceneChangeApi = api
-    subscribedViewContextKey = currentViewContextKey
+    subscribedSceneBindingKey = currentSceneBindingKey
 
     const onChange = (
       api as {

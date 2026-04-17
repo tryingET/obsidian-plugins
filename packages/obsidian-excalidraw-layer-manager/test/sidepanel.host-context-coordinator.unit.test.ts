@@ -293,6 +293,32 @@ describe("sidepanel host-context coordinator", () => {
     expect(result.snapshot.targetViewIdentity).toBe(null)
   })
 
+  it("uses an active-leaf fallback scene binding when targetView truth is unavailable", () => {
+    const harness = makeHostHarness(
+      [makeViewFixture("A.excalidraw"), makeViewFixture("B.excalidraw")],
+      "A.excalidraw",
+      null,
+    )
+
+    const coordinator = new SidepanelHostContextCoordinator(harness.host, {
+      autoRebindSignals: [],
+    })
+    const before = coordinator.getSnapshot()
+
+    expect(before.sceneBinding.source).toBe("active-leaf")
+    expect(before.bindingKey).toContain("A.excalidraw")
+
+    harness.setActiveView("B.excalidraw")
+    const result = coordinator.handleWorkspaceLeafChange()
+
+    expect(result.rebound).toBe(false)
+    expect(result.changed).toBe(true)
+    expect(result.snapshot.state).toBe("unbound")
+    expect(result.snapshot.sceneBinding.source).toBe("active-leaf")
+    expect(result.snapshot.bindingKey).not.toBe(before.bindingKey)
+    expect(result.snapshot.bindingKey).toContain("B.excalidraw")
+  })
+
   it("treats same-file front/back targetView identity switches as real host-context boundary changes", () => {
     const harness = makeHostHarness(
       [

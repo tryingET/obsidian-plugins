@@ -1,0 +1,96 @@
+import type {
+  SidepanelHostContextShellState,
+  SidepanelHostViewObservation,
+} from "./hostViewContext.js"
+import { resolveHostViewContextKeyFromObservation } from "./hostViewContext.js"
+
+export type SidepanelSceneRefSource = "legacy-host" | "target-view" | "active-leaf"
+
+export interface SidepanelSceneRef {
+  readonly source: SidepanelSceneRefSource
+  readonly key: string
+  readonly filePath: string | null
+  readonly viewIdentity: string | null
+  readonly leafIdentity: string | null
+  readonly viewType: string | null
+}
+
+export interface SidepanelSceneBinding {
+  readonly source: SidepanelSceneRefSource | "none"
+  readonly sceneRef: SidepanelSceneRef | null
+  readonly sceneKey: string
+  readonly refreshKey: string
+  readonly state: SidepanelHostContextShellState
+  readonly shouldAttemptRebind: boolean
+}
+
+const createSceneRef = (input: SidepanelSceneRef): SidepanelSceneRef => {
+  return input
+}
+
+export const resolveSceneRefFromObservation = (
+  observation: SidepanelHostViewObservation,
+): SidepanelSceneRef | null => {
+  const { description } = observation
+  const key = resolveHostViewContextKeyFromObservation(observation)
+
+  if (!observation.hasExplicitTargetViewProperty) {
+    return createSceneRef({
+      source: "legacy-host",
+      key,
+      filePath: description.activeFilePath,
+      viewIdentity: description.targetViewIdentity ?? description.activeFilePath,
+      leafIdentity: description.activeWorkspaceLeafIdentity,
+      viewType: description.activeWorkspaceViewType,
+    })
+  }
+
+  if (description.targetViewUsable) {
+    return createSceneRef({
+      source: "target-view",
+      key,
+      filePath: description.targetViewFilePath,
+      viewIdentity: description.targetViewIdentity,
+      leafIdentity: description.activeWorkspaceLeafIdentity,
+      viewType: description.activeWorkspaceViewType,
+    })
+  }
+
+  if (
+    description.activeFilePath ||
+    description.activeWorkspaceLeafIdentity ||
+    description.activeWorkspaceViewType
+  ) {
+    return createSceneRef({
+      source: "active-leaf",
+      key,
+      filePath: description.activeFilePath,
+      viewIdentity:
+        description.activeWorkspaceLeafIdentity ??
+        description.activeWorkspaceViewType ??
+        description.activeFilePath,
+      leafIdentity: description.activeWorkspaceLeafIdentity,
+      viewType: description.activeWorkspaceViewType,
+    })
+  }
+
+  return null
+}
+
+export const resolveSceneBindingFromObservation = (input: {
+  readonly observation: SidepanelHostViewObservation
+  readonly state: SidepanelHostContextShellState
+  readonly shouldAttemptRebind: boolean
+}): SidepanelSceneBinding => {
+  const sceneRef = resolveSceneRefFromObservation(input.observation)
+  const sceneKey = sceneRef?.key ?? resolveHostViewContextKeyFromObservation(input.observation)
+
+  return {
+    source: sceneRef?.source ?? "none",
+    sceneRef,
+    sceneKey,
+    refreshKey: `${sceneKey}::state:${input.state}::rebind:${input.shouldAttemptRebind ? "yes" : "no"}`,
+    state: input.state,
+    shouldAttemptRebind: input.shouldAttemptRebind,
+  }
+}
