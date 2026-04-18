@@ -501,7 +501,7 @@ describe("applyPatch adapter preflight", () => {
     expect(runtime.addToView).not.toHaveBeenCalled()
   })
 
-  it("surfaces partialApply when updateScene applies element patches before reorder fails", async () => {
+  it("applies element patches and reorder atomically through a single updateScene write", async () => {
     const runtime = makeMockEa(
       [
         { id: "A", type: "rectangle", locked: false },
@@ -509,7 +509,6 @@ describe("applyPatch adapter preflight", () => {
       ],
       {
         withElementEditCapabilities: false,
-        failUpdateSceneAfterCall: 2,
       },
     )
 
@@ -527,12 +526,44 @@ describe("applyPatch adapter preflight", () => {
       },
     })
 
-    expect(outcome.status).toBe("partialApply")
-    if (outcome.status === "partialApply") {
-      expect(outcome.reason).toContain("Element patches applied")
-    }
-    expect(runtime.updateScene).toHaveBeenCalledTimes(2)
+    expect(outcome.status).toBe("applied")
+    expect(runtime.updateScene).toHaveBeenCalledTimes(1)
     expect(runtime.elements.find((element) => element.id === "A")?.locked).toBe(true)
+    expect(runtime.elements.map((element) => element.id)).toEqual(["B", "A"])
+  })
+
+  it("fails closed when the unified updateScene write cannot commit reorder + element patches", async () => {
+    const runtime = makeMockEa(
+      [
+        { id: "A", type: "rectangle", locked: false },
+        { id: "B", type: "rectangle", locked: false },
+      ],
+      {
+        withElementEditCapabilities: false,
+        failUpdateSceneAfterCall: 1,
+      },
+    )
+
+    const outcome = await applyPatch(runtime.ea, {
+      elementPatches: [
+        {
+          id: "A",
+          set: {
+            locked: true,
+          },
+        },
+      ],
+      reorder: {
+        orderedElementIds: ["B", "A"],
+      },
+    })
+
+    expect(outcome.status).toBe("preflightFailed")
+    if (outcome.status === "preflightFailed") {
+      expect(outcome.reason).toContain("before commit")
+    }
+    expect(runtime.updateScene).toHaveBeenCalledTimes(1)
+    expect(runtime.elements.find((element) => element.id === "A")?.locked).toBe(false)
     expect(runtime.elements.map((element) => element.id)).toEqual(["A", "B"])
   })
 })

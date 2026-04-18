@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -45,11 +45,23 @@ export const verifyDeploymentWorkflow = async () => {
       "expected verification to preserve the previous target as a backup",
     )
     assert(Boolean(receipt.rollbackCommand), "expected verification to record a rollback command")
+    assert(
+      receipt.rollbackCommand?.startsWith(
+        `node -e "require('node:fs').copyFileSync(process.argv[1], process.argv[2])"`,
+      ) === true,
+      "expected rollback command to use the portable Node copy helper",
+    )
 
     const backupText = await readFile(receipt.backupPath, "utf8")
     assert(
       backupText === previousBundle,
       "backup bundle did not preserve the previous target contents",
+    )
+
+    const targetDirectoryEntries = await readdir(dirname(target))
+    assert(
+      targetDirectoryEntries.every((entry) => !entry.endsWith(".tmp")),
+      "deployment left a temporary bundle next to the live target",
     )
 
     const receiptRecord = JSON.parse(await readFile(receipt.receiptPath, "utf8"))

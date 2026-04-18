@@ -25,11 +25,11 @@
     "deadcode": "knip",
     "verify:recovery": "node build/recoveryVerificationGate.mjs",
     "check:fast": "npm run lint && npm run typecheck",
-    "check": "npm run check:fast && npm run test",
-    "check:full": "npm run verify:recovery && npm run deadcode",
+    "check": "npm run verify:recovery && npm run deadcode && node build/verifyDeploymentWorkflow.mjs",
+    "check:full": "npm run check",
     "build": "node build/build.mjs",
     "sync:vault": "node build/sync-to-vault.mjs",
-    "bundle:and:sync": "npm run build && npm run sync:vault",
+    "bundle:and:sync": "npm run check && npm run sync:vault",
     "docs:sync:ea": "node build/sync-excalidraw-automate-doc.mjs"
   },
   "devDependencies": {

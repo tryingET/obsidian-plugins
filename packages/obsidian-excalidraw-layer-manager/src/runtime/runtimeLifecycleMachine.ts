@@ -1,6 +1,7 @@
 import { assign, createActor, fromPromise, setup } from "xstate"
 
 import type { EaLike } from "../adapter/excalidraw-types.js"
+import type { ApplyPatchOutcome } from "../adapter/excalidrawAdapter.js"
 import { applyPatch, readSnapshot } from "../adapter/excalidrawAdapter.js"
 import { buildSceneIndexes } from "../model/indexes.js"
 import type { ScenePatch } from "../model/patch.js"
@@ -9,7 +10,7 @@ import type { CommandPlanner, ExecuteIntentOutcome } from "./intentExecution.js"
 interface ApplyRequestEvent {
   readonly type: "APPLY_REQUEST"
   readonly patch: ScenePatch
-  readonly resolve: () => void
+  readonly resolve: (outcome: ApplyPatchOutcome) => void
   readonly reject: (error: unknown) => void
 }
 
@@ -26,6 +27,7 @@ type RuntimeMutationResult =
   | {
       readonly kind: "apply"
       readonly request: ApplyRequestEvent
+      readonly outcome: ApplyPatchOutcome
     }
   | {
       readonly kind: "executeIntent"
@@ -140,10 +142,11 @@ const runtimeLifecycleMachine = setup({
         }
       }): Promise<RuntimeMutationResult> => {
         if (input.request.type === "APPLY_REQUEST") {
-          await applyPatch(input.ea, input.request.patch)
+          const outcome = await applyPatch(input.ea, input.request.patch)
           return {
             kind: "apply",
             request: input.request,
+            outcome,
           }
         }
 
@@ -227,7 +230,7 @@ const runtimeLifecycleMachine = setup({
       const { output } = event as unknown as { output: RuntimeMutationResult }
 
       if (output.kind === "apply") {
-        output.request.resolve()
+        output.request.resolve(output.outcome)
         return
       }
 

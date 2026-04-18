@@ -158,8 +158,11 @@ describe("recovery verification gate", () => {
     expect(detectPackageDocsTouched({ repoRootOverride: repoRoot })).toBe(true)
   })
 
-  it("routes full checks through the recovery gate before deadcode", () => {
+  it("routes the authoritative package check through recovery, deadcode, and deployment proof", () => {
     expect(packageJson.scripts?.["verify:recovery"]).toBe("node build/recoveryVerificationGate.mjs")
-    expect(packageJson.scripts?.["check:full"]).toBe("npm run verify:recovery && npm run deadcode")
+    expect(packageJson.scripts?.["check"]).toBe(
+      "npm run verify:recovery && npm run deadcode && node build/verifyDeploymentWorkflow.mjs",
+    )
+    expect(packageJson.scripts?.["check:full"]).toBe("npm run check")
   })
 })

@@ -190,6 +190,16 @@ export class FakeDomElement {
     return child
   }
 
+  remove(): void {
+    const parent = this.parentElement
+    if (!parent) {
+      return
+    }
+
+    parent.#children = parent.#children.filter((child) => child !== this)
+    this.parentElement = null
+  }
+
   contains(candidate: FakeDomElement | null): boolean {
     if (!candidate) {
       return false

@@ -240,8 +240,19 @@ export class SidepanelHostSelectionBridge {
         return
       }
 
-      runAppStateFallback()
-      if (this.#pendingMirrorRequestId === mirrorRequestId) {
+      const fallbackApplied = runAppStateFallback()
+      if (!fallbackApplied) {
+        if (this.#pendingMirrorRequestId === mirrorRequestId) {
+          this.#pendingMirrorRequestId = null
+        }
+        return
+      }
+
+      const fallbackVerification = resolveVerificationState()
+      if (
+        (fallbackVerification === "match" || fallbackVerification === "hostUnavailable") &&
+        this.#pendingMirrorRequestId === mirrorRequestId
+      ) {
         this.#pendingMirrorRequestId = null
       }
     })

@@ -1107,6 +1107,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
           this.#host.sidepanelTab?.close?.()
         }
 
+        this.clearMountedOutput()
         this.#mountManager.resetAfterClose()
         this.clearInteractiveBindings()
       },
@@ -1674,7 +1675,13 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
 
   private clearMountedOutput(): void {
     const sidepanelTab = this.#host.sidepanelTab
-    const attachedRootParent = this.#contentRoot?.parentElement as HTMLElement | null
+    const contentRoot = this.#contentRoot
+    const attachedRootParent = contentRoot?.parentElement as HTMLElement | null
+
+    if (contentRoot?.remove) {
+      contentRoot.remove()
+      return
+    }
 
     if (attachedRootParent) {
       attachedRootParent.innerHTML = ""

@@ -29,8 +29,14 @@ The imported package keeps the core shape of that workspace:
 Provide an architecture-first Layer Manager for Obsidian Excalidraw scripts, with:
 - sidepanel-first UX
 - deterministic scene/tree behavior
-- safe scene mutations
+- outcome-honest scene mutations
 - strong runtime/test coverage
+
+## Mutation contract
+
+- `executeIntent(...)` remains the canonical command path for planner-driven scene writes.
+- `apply(patch)` now returns an explicit `ApplyPatchOutcome` instead of resolving `Promise<void>` on failure.
+- Any patch that combines element edits with reorder now commits through a single `updateScene` write or fails before commit, so reorder-sensitive scene changes do not partially land.
 
 ## Keyboard-first tree selection model
 
@@ -106,15 +112,19 @@ npm run bundle:and:sync
 Recovery-wave verification contract:
 - `npm run verify:recovery` runs the mandatory kernel gate: `npm run check:fast`, `npm test`, and `npm run arch`
 - if package docs differ from `HEAD` (including working-tree changes), the same gate also runs `node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs packages/obsidian-excalidraw-layer-manager/docs --strict`
-- `npm run check:full` is the ship-ready gate for the recovery wave and now routes through `verify:recovery` before `npm run deadcode`
+- `npm run check` is now the authoritative ship-ready gate: it runs `verify:recovery`, `deadcode`, and the deployment-workflow proof before release work or sync
+- `npm run check:full` remains as a compatibility alias to `npm run check`
+- `npm run bundle:and:sync` now fails closed by running `npm run check` before copying into the vault target
 
 Default sync target now points at the primary personal Obsidian Excalidraw Skripte path:
 - `~/Documents/Obsidian/00-09_meta/02_HardwareSoftwareTools/02.01_Obsidian/Excalidraw/Skripte/LayerManager.md`
 
 `npm run sync:vault` is now a safe deployment step, not just a blind copy, and verifies that the exported bundle landed at that scripts path with the same hash as `dist/LayerManager.md`:
 - it preserves the previous target bundle under `.tmp/obsidian-excalidraw-layer-manager/deployments/<timestamp>/previous/`
-- it verifies the copied target hash matches the built bundle
+- it stages the fresh bundle beside the target, verifies the staged hash, and then swaps it into place
+- it verifies the final target hash matches the built bundle
 - it writes a deployment receipt with rollback guidance and the manual reload checklist
+- the recorded rollback command uses a portable Node copy helper instead of assuming `cp`
 
 Override the target or receipt root with:
 
@@ -123,7 +133,7 @@ LMX_VAULT_TARGET="/custom/path/LayerManager.md" npm run sync:vault
 LMX_DEPLOY_ROOT="/custom/deploy-receipts" npm run sync:vault
 ```
 
-Repo-level CI now also proves the workflow end-to-end by building the bundle and running `node packages/obsidian-excalidraw-layer-manager/build/verifyDeploymentWorkflow.mjs` against a temporary vault target before merge.
+The authoritative `npm run check` gate now also proves the workflow end-to-end by running `node build/verifyDeploymentWorkflow.mjs` against a temporary vault target before release work or sync, and repo-level CI inherits that same package gate before merge.
 
 Manual reload rule after sync:
 1. open an Excalidraw drawing in the target vault

@@ -139,4 +139,42 @@ describe("sidepanel mount manager", () => {
     expect(host.sidepanelTab).toBeNull()
     expect(manager.mountCapabilities).toBeNull()
   })
+
+  it("preserves host-owned sidepanel siblings while attaching the Layer Manager root", () => {
+    const fakeDocument = new FakeDocument()
+    const preservedSibling = fakeDocument.createElement("div")
+    preservedSibling.textContent = "keep me"
+
+    const sidepanelTab = makeSidepanelTabForMountMode(fakeDocument, null, "contentEl")
+    sidepanelTab.contentEl.appendChild(preservedSibling)
+
+    const manager = new SidepanelMountManager({
+      host: {
+        sidepanelTab: sidepanelTab.tab,
+      },
+      title: "Layer Manager",
+      notify: vi.fn(),
+      debugLifecycle: vi.fn(),
+      onTabSwitched: vi.fn(),
+      onAsyncTabResolved: vi.fn(),
+      onPersistedTabDetected: vi.fn(),
+    })
+
+    const preparation = manager.prepareMount({
+      resolveExistingContentRoot: () => null,
+      onSetContentFailure: vi.fn(),
+    })
+
+    expect(preparation.status).toBe("ready")
+    if (preparation.status !== "ready") {
+      throw new Error("expected ready mount preparation")
+    }
+
+    const contentRoot = fakeDocument.createElement("section")
+    const attachOutcome = preparation.mountStrategy.attach(contentRoot as unknown as HTMLElement)
+
+    expect(attachOutcome).toEqual({ ok: true })
+    expect(sidepanelTab.contentEl.contains(preservedSibling)).toBe(true)
+    expect(sidepanelTab.contentEl.contains(contentRoot)).toBe(true)
+  })
 })

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto"
 import { constants } from "node:fs"
-import { access, copyFile, mkdir, readFile, writeFile } from "node:fs/promises"
+import { access, copyFile, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises"
 import { basename, dirname, isAbsolute, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -84,6 +84,43 @@ const backupExistingTarget = async ({ target, workspaceDir }) => {
   }
 }
 
+const buildRollbackCommand = ({ backupPath, target }) => {
+  return `node -e "require('node:fs').copyFileSync(process.argv[1], process.argv[2])" ${JSON.stringify(backupPath)} ${JSON.stringify(target)}`
+}
+
+const swapVerifiedBundleIntoTarget = async ({ source, target, workspaceName, sourceHash }) => {
+  const temporaryTarget = resolve(dirname(target), `.${basename(target)}.${workspaceName}.tmp`)
+
+  try {
+    await copyFile(source, temporaryTarget)
+
+    const temporaryTargetHash = await hashFile(temporaryTarget)
+    if (temporaryTargetHash !== sourceHash) {
+      throw new Error(
+        `[sync] Verification failed: temporary target hash mismatch for ${temporaryTarget}`,
+      )
+    }
+
+    try {
+      await rename(temporaryTarget, target)
+    } catch (error) {
+      const errorCode =
+        error && typeof error === "object" && "code" in error ? error.code : undefined
+
+      if (errorCode !== "EEXIST" && errorCode !== "EPERM") {
+        throw error
+      }
+
+      await rm(target, { force: true })
+      await rename(temporaryTarget, target)
+    }
+  } finally {
+    if (await pathExists(temporaryTarget)) {
+      await rm(temporaryTarget, { force: true })
+    }
+  }
+}
+
 export const syncBundleToVault = async ({
   projectRootOverride = projectRoot,
   sourceRelativePath = defaultSourceRelativePath,
@@ -105,9 +142,15 @@ export const syncBundleToVault = async ({
   const backup = await backupExistingTarget({ target, workspaceDir })
 
   await mkdir(dirname(target), { recursive: true })
-  await copyFile(source, target)
 
   const sourceHash = await hashFile(source)
+  await swapVerifiedBundleIntoTarget({
+    source,
+    target,
+    workspaceName: basename(workspaceDir),
+    sourceHash,
+  })
+
   const targetHash = await hashFile(target)
   if (sourceHash !== targetHash) {
     throw new Error(`[sync] Verification failed: target hash mismatch for ${target}`)
@@ -125,7 +168,12 @@ export const syncBundleToVault = async ({
     backupHash: backup?.backupHash ?? null,
     receiptPath,
     deployRoot,
-    rollbackCommand: backup ? `cp "${backup.backupPath}" "${target}"` : null,
+    rollbackCommand: backup
+      ? buildRollbackCommand({
+          backupPath: backup.backupPath,
+          target,
+        })
+      : null,
     manualReloadChecklist: MANUAL_RELOAD_CHECKLIST,
   }
 

@@ -57,9 +57,9 @@ scripts/         # CI/utility scripts
 
 ```bash
 # Monorepo validation
-npm run check   # smoke + package fast static gate
+npm run check   # smoke + authoritative LayerManager release gate
 npm test        # smoke + package test suites
-npm run ci      # smoke + package full gate
+npm run ci      # smoke + authoritative LayerManager gate + repo extras
 npm run doctor
 
 # AK / ROCS wrappers

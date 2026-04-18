@@ -21,9 +21,11 @@ It must do more than copy bytes:
 
 1. confirm `dist/LayerManager.md` exists
 2. preserve the previous target bundle when one exists
-3. copy the fresh bundle to the chosen vault target
-4. verify the copied target hash matches the built bundle
-5. write a deployment receipt containing:
+3. copy the fresh bundle to a temporary file beside the chosen vault target
+4. verify the staged file hash matches the built bundle
+5. swap the verified staged bundle into the live target path
+6. verify the final target hash matches the built bundle
+7. write a deployment receipt containing:
    - source path
    - target path
    - source and target hashes
@@ -59,7 +61,7 @@ The script runtime already disposes the previous global LayerManager runtime bef
 When `sync:vault` replaced an existing target, the deployment receipt includes a rollback command of the form:
 
 ```bash
-cp "<backup-path>" "<target-path>"
+node -e "require('node:fs').copyFileSync(process.argv[1], process.argv[2])" "<backup-path>" "<target-path>"
 ```
 
 If the freshly deployed bundle fails on rerun:
@@ -76,7 +78,7 @@ Repo-level CI must verify the deployment workflow without touching the real pers
 2. building the bundle
 3. running `node packages/obsidian-excalidraw-layer-manager/build/verifyDeploymentWorkflow.mjs`
 
-That verification script deploys into a temporary target, confirms backup creation, confirms post-copy hash parity, and confirms the receipt records the reload checklist.
+That verification script deploys into a temporary target, confirms backup creation, confirms staged + final hash parity, confirms no temporary deployment file is left beside the live target, and confirms the receipt records the reload checklist.
 
 ## Overrides
 

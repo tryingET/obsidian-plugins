@@ -171,10 +171,6 @@ export type ApplyPatchOutcome =
       readonly reason: string
     }
   | {
-      readonly status: "partialApply"
-      readonly reason: string
-    }
-  | {
       readonly status: "capabilityMissing"
       readonly reason: string
     }
@@ -401,7 +397,62 @@ const applyElementPatchesViaLegacyEditing = async (
   return true
 }
 
-const applyElementPatchesViaUpdateScene = (ea: EaLike, patch: ScenePatch): boolean => {
+const cloneElementForSceneMutation = (element: RawExcalidrawElement): RawExcalidrawElement => {
+  const nextElement: RawExcalidrawElement = {
+    ...element,
+  }
+
+  if (Array.isArray(element.groupIds)) {
+    nextElement.groupIds = [...element.groupIds]
+  }
+
+  if (element.customData) {
+    nextElement.customData = { ...element.customData }
+  }
+
+  return nextElement
+}
+
+const buildNextElementsForUpdateScene = (
+  current: readonly RawExcalidrawElement[],
+  patch: ScenePatch,
+): readonly RawExcalidrawElement[] | null => {
+  const patchById = new Map(patch.elementPatches.map((entry) => [entry.id, entry]))
+  let appliedPatchCount = 0
+
+  const patchedElements = current.map((element) => {
+    const nextElement = cloneElementForSceneMutation(element)
+    const elementPatch = patchById.get(element.id)
+    if (!elementPatch) {
+      return nextElement
+    }
+
+    appliedPatchCount += 1
+    patchElementProperties(nextElement, elementPatch)
+    return nextElement
+  })
+
+  if (appliedPatchCount !== patch.elementPatches.length) {
+    return null
+  }
+
+  if (!patch.reorder) {
+    return patchedElements
+  }
+
+  const byId = new Map(patchedElements.map((element) => [element.id, element]))
+  const orderedElements = patch.reorder.orderedElementIds
+    .map((id) => byId.get(id))
+    .filter((element): element is RawExcalidrawElement => Boolean(element))
+
+  if (orderedElements.length !== patchedElements.length) {
+    return null
+  }
+
+  return orderedElements
+}
+
+const applyPatchViaUpdateScene = (ea: EaLike, patch: ScenePatch): boolean => {
   ensureTargetView(ea)
 
   const api = ea.getExcalidrawAPI?.()
@@ -410,50 +461,25 @@ const applyElementPatchesViaUpdateScene = (ea: EaLike, patch: ScenePatch): boole
     return false
   }
 
-  const patchById = new Map(patch.elementPatches.map((entry) => [entry.id, entry]))
-  let appliedPatchCount = 0
-
-  const nextElements = current.map((element) => {
-    const elementPatch = patchById.get(element.id)
-    if (!elementPatch) {
-      return element
-    }
-
-    appliedPatchCount += 1
-
-    const nextElement: RawExcalidrawElement = {
-      ...element,
-    }
-
-    if (Array.isArray(element.groupIds)) {
-      nextElement.groupIds = [...element.groupIds]
-    }
-
-    if (element.customData) {
-      nextElement.customData = { ...element.customData }
-    }
-
-    patchElementProperties(nextElement, elementPatch)
-    return nextElement
-  })
-
-  if (appliedPatchCount !== patch.elementPatches.length) {
+  const nextElements = buildNextElementsForUpdateScene(current, patch)
+  if (!nextElements) {
     return false
   }
 
   try {
-    api.updateScene({ elements: nextElements })
+    api.updateScene({ elements: [...nextElements] })
     return true
   } catch {
     return false
   }
 }
 
-type ElementPatchApplyMode = "none" | "legacy" | "updateScene"
+const applyElementPatchesViaUpdateScene = (ea: EaLike, patch: ScenePatch): boolean => {
+  return applyPatchViaUpdateScene(ea, patch)
+}
 
 interface ElementPatchApplyResult {
   readonly ok: boolean
-  readonly mode: ElementPatchApplyMode
 }
 
 const applyElementPatches = async (
@@ -463,7 +489,6 @@ const applyElementPatches = async (
   if (patch.elementPatches.length === 0) {
     return {
       ok: true,
-      mode: "none",
     }
   }
 
@@ -472,7 +497,6 @@ const applyElementPatches = async (
     if (legacyApplied) {
       return {
         ok: true,
-        mode: "legacy",
       }
     }
   }
@@ -480,44 +504,11 @@ const applyElementPatches = async (
   if (hasUpdateSceneCapability(ea)) {
     return {
       ok: applyElementPatchesViaUpdateScene(ea, patch),
-      mode: "updateScene",
     }
   }
 
   return {
     ok: false,
-    mode: "none",
-  }
-}
-
-const applyReorderPatch = (ea: EaLike, patch: ScenePatch): boolean => {
-  ensureTargetView(ea)
-
-  const api = ea.getExcalidrawAPI?.()
-  const current = readViewElements(ea)
-
-  if (!patch.reorder) {
-    return true
-  }
-
-  if (!api?.updateScene) {
-    return false
-  }
-
-  const byId = new Map(current.map((element) => [element.id, element]))
-  const desired = patch.reorder.orderedElementIds
-    .map((id) => byId.get(id))
-    .filter((element): element is RawExcalidrawElement => Boolean(element))
-
-  if (desired.length !== current.length) {
-    return false
-  }
-
-  try {
-    api.updateScene({ elements: desired })
-    return true
-  } catch {
-    return false
   }
 }
 
@@ -532,22 +523,21 @@ export const applyPatch = async (ea: EaLike, patch: ScenePatch): Promise<ApplyPa
     )
   }
 
-  const elementApply = await applyElementPatches(ea, patch)
-  if (!elementApply.ok) {
-    return {
-      status: "preflightFailed",
-      reason: "Element patch apply failed due to scene mismatch.",
+  if (patch.reorder) {
+    const patchApplied = applyPatchViaUpdateScene(ea, patch)
+    if (!patchApplied) {
+      return {
+        status: "preflightFailed",
+        reason: "Patch apply failed before commit due to scene mismatch.",
+      }
     }
-  }
-
-  const reorderApplied = applyReorderPatch(ea, patch)
-  if (!reorderApplied) {
-    return {
-      status: elementApply.mode === "updateScene" ? "partialApply" : "preflightFailed",
-      reason:
-        elementApply.mode === "updateScene"
-          ? "Element patches applied, but reorder apply failed due to scene mismatch."
-          : "Reorder apply failed due to scene mismatch.",
+  } else {
+    const elementApply = await applyElementPatches(ea, patch)
+    if (!elementApply.ok) {
+      return {
+        status: "preflightFailed",
+        reason: "Element patch apply failed due to scene mismatch.",
+      }
     }
   }
 

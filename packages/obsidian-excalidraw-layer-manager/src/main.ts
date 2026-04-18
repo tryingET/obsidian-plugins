@@ -1,5 +1,5 @@
 import type { EaLike, ObsidianAppLike } from "./adapter/excalidraw-types.js"
-import { readSnapshot } from "./adapter/excalidrawAdapter.js"
+import { type ApplyPatchOutcome, readSnapshot } from "./adapter/excalidrawAdapter.js"
 import { buildLayerTree } from "./domain/treeBuilder.js"
 import { buildSceneIndexes } from "./model/indexes.js"
 import type { ScenePatch } from "./model/patch.js"
@@ -29,6 +29,7 @@ import {
 } from "./ui/sidepanel/selection/hostContextFlightRecorder.js"
 import { describeHostViewContext } from "./ui/sidepanel/selection/hostViewContext.js"
 
+export type { ApplyPatchOutcome } from "./adapter/excalidrawAdapter.js"
 export type { CommandPlanner, ExecuteIntentOutcome } from "./runtime/intentExecution.js"
 
 const readSelectedIdsFromAppState = (appState: unknown): ReadonlySet<string> | null => {
@@ -115,7 +116,7 @@ const resolveRuntimeApp = (ea: EaLike): ObsidianAppLike | null => {
 
 export interface LayerManagerRuntime {
   refresh: () => void
-  apply: (patch: ScenePatch) => Promise<void>
+  apply: (patch: ScenePatch) => Promise<ApplyPatchOutcome>
   executeIntent: (planner: CommandPlanner) => Promise<ExecuteIntentOutcome>
   getSnapshot: () => SceneSnapshot
   toggleExpanded: (nodeId: string) => void
@@ -154,7 +155,7 @@ export const createLayerManagerRuntime = (
       | {
           readonly type: "APPLY_REQUEST"
           readonly patch: ScenePatch
-          readonly resolve: () => void
+          readonly resolve: (outcome: ApplyPatchOutcome) => void
           readonly reject: (error: unknown) => void
         }
       | {
@@ -616,12 +617,12 @@ export const createLayerManagerRuntime = (
     sendLifecycleEvent({ type: "REFRESH_REQUEST" })
   }
 
-  const apply = async (patch: ScenePatch): Promise<void> => {
+  const apply = async (patch: ScenePatch): Promise<ApplyPatchOutcome> => {
     if (disposed) {
-      return
+      throw new Error("Layer Manager runtime disposed.")
     }
 
-    await new Promise<void>((resolve, reject) => {
+    return new Promise<ApplyPatchOutcome>((resolve, reject) => {
       sendLifecycleEvent({
         type: "APPLY_REQUEST",
         patch,

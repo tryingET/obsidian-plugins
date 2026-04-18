@@ -7,7 +7,7 @@
     "apps/*"
   ],
   "scripts": {
-    "check": "bash ./scripts/ci/smoke.sh && bash ./scripts/ci/package-gate.sh check-fast",
+    "check": "bash ./scripts/ci/smoke.sh && bash ./scripts/ci/package-gate.sh check",
     "test": "bash ./scripts/ci/smoke.sh && bash ./scripts/ci/package-gate.sh test",
     "ci": "bash ./scripts/ci/full.sh",
     "doctor": "node --version && npm --version && ak --doctor && ./scripts/rocs.sh --doctor"

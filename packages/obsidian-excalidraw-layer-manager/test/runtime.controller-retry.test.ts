@@ -9,6 +9,7 @@ interface MockEaRuntime {
   readonly elements: RawExcalidrawElement[]
   readonly copyForEditing: ReturnType<typeof vi.fn>
   readonly addToView: ReturnType<typeof vi.fn>
+  readonly updateScene: ReturnType<typeof vi.fn>
 }
 
 const makeMockEa = (initialElements: readonly RawExcalidrawElement[]): MockEaRuntime => {
@@ -37,6 +38,7 @@ const makeMockEa = (initialElements: readonly RawExcalidrawElement[]): MockEaRun
     elements,
     copyForEditing,
     addToView,
+    updateScene,
   }
 }
 
@@ -126,5 +128,27 @@ describe("LayerManagerRuntime executeIntent", () => {
     expect(runtime.copyForEditing).not.toHaveBeenCalled()
     expect(runtime.addToView).not.toHaveBeenCalled()
     expect(runtime.elements.some((element) => element.locked)).toBe(false)
+  })
+
+  it("surfaces raw apply outcomes instead of resolving silent success", async () => {
+    const runtime = makeMockEa([{ id: "A", type: "rectangle", locked: false }])
+    runtime.ea.getExcalidrawAPI = () => ({})
+
+    const app = createLayerManagerRuntime(runtime.ea, {
+      render: vi.fn(),
+    })
+
+    const outcome = await app.apply({
+      elementPatches: [],
+      reorder: {
+        orderedElementIds: ["A"],
+      },
+    })
+
+    expect(outcome).toEqual({
+      status: "capabilityMissing",
+      reason: "Missing reorder capability (updateScene).",
+    })
+    expect(runtime.updateScene).not.toHaveBeenCalled()
   })
 })
