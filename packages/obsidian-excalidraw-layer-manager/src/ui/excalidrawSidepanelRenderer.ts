@@ -677,6 +677,10 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       return
     }
 
+    if (this.#keyboardController.handleDocumentKeyupFallback(event)) {
+      return
+    }
+
     if (isTextInputTarget(event.target) || !shouldClaimDocumentSpaceLikeEvent(event)) {
       return
     }

@@ -105,6 +105,10 @@ interface SidepanelKeyboardShortcutControllerHost {
 
 export class SidepanelKeyboardShortcutController {
   readonly #host: SidepanelKeyboardShortcutControllerHost
+  #lastHandledSelectionAliasKeydown: {
+    readonly signature: string
+    readonly atMs: number
+  } | null = null
 
   constructor(host: SidepanelKeyboardShortcutControllerHost) {
     this.#host = host
@@ -261,6 +265,7 @@ export class SidepanelKeyboardShortcutController {
     }
 
     if (isSelectionAliasKey) {
+      this.noteSelectionAliasKeydown(event)
       this.#host.suppressTransientFocusOut()
       claimHandledKeyboardEvent(event)
       if (isShiftTRangeToggleShortcut) {
@@ -339,6 +344,43 @@ export class SidepanelKeyboardShortcutController {
         "Keyboard ungroup-like failed",
       )
     }
+  }
+
+  handleDocumentKeyupFallback(event: KeyboardEvent): boolean {
+    if (this.#host.isTextInputTarget(event.target) || this.#host.isKeyboardSuppressed()) {
+      return false
+    }
+
+    const isAltKeyupToggleShortcut =
+      isKeyTShortcut(event) && event.altKey && !event.shiftKey && !event.metaKey
+    if (!isAltKeyupToggleShortcut) {
+      return false
+    }
+
+    const baseContext = this.#host.getKeyboardContext()
+    if (!baseContext) {
+      traceKeyboardEventIfRelevant("controller:keyup-fallback-ignored", event, {
+        reason: "keyboardContextUnavailable",
+      })
+      return false
+    }
+
+    if (this.wasMatchingSelectionAliasKeydownRecentlyHandled(event)) {
+      traceKeyboardEventIfRelevant("controller:keyup-fallback-ignored", event, {
+        reason: "matchingKeydownAlreadyHandled",
+      })
+      return false
+    }
+
+    const context = this.#host.resolveKeyboardContext(baseContext)
+    this.#host.suppressTransientFocusOut()
+    claimHandledKeyboardEvent(event)
+    traceKeyboardEventIfRelevant("controller:selection-alias-keyup-fallback", event, {
+      action: "toggleFocusedNodeSelection",
+      ctrlAltFallback: event.ctrlKey,
+    })
+    this.toggleFocusedNodeSelection(context)
+    return true
   }
 
   handleContentFocusOut(event: FocusEvent, contentRoot: HTMLElement | null): void {
@@ -501,6 +543,36 @@ export class SidepanelKeyboardShortcutController {
     }
 
     return Math.max(1, Math.floor(Math.max(1, context.visibleNodes.length) / 2))
+  }
+
+  private buildSelectionAliasSignature(event: KeyboardEvent): string {
+    return [
+      event.code || normalizeKeyboardKey(event.key),
+      event.altKey ? "alt" : "no-alt",
+      event.ctrlKey ? "ctrl" : "no-ctrl",
+      event.metaKey ? "meta" : "no-meta",
+      event.shiftKey ? "shift" : "no-shift",
+    ].join("|")
+  }
+
+  private noteSelectionAliasKeydown(event: KeyboardEvent): void {
+    this.#lastHandledSelectionAliasKeydown = {
+      signature: this.buildSelectionAliasSignature(event),
+      atMs: Date.now(),
+    }
+  }
+
+  private wasMatchingSelectionAliasKeydownRecentlyHandled(event: KeyboardEvent): boolean {
+    const previous = this.#lastHandledSelectionAliasKeydown
+    if (!previous) {
+      return false
+    }
+
+    if (previous.signature !== this.buildSelectionAliasSignature(event)) {
+      return false
+    }
+
+    return Date.now() - previous.atMs <= 750
   }
 
   private resolveFocusedNodeForSelectionGesture(

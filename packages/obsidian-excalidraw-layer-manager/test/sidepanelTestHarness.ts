@@ -573,11 +573,10 @@ type FakeDomEventReceiver = {
   dispatchEvent: (event: FakeDomEvent) => boolean
 }
 
-export const dispatchKeydown = (
-  receiver: FakeDomEventReceiver,
+const buildKeyboardEventInit = (
   key: string,
   options: DispatchKeydownOptions = {},
-): void => {
+): FakeDomEventInit => {
   const init: FakeDomEventInit = {
     key,
   }
@@ -602,7 +601,29 @@ export const dispatchKeydown = (
     init.shiftKey = options.shiftKey
   }
 
-  const event = new FakeDomEvent("keydown", init)
+  return init
+}
+
+export const dispatchKeydown = (
+  receiver: FakeDomEventReceiver,
+  key: string,
+  options: DispatchKeydownOptions = {},
+): void => {
+  const event = new FakeDomEvent("keydown", buildKeyboardEventInit(key, options))
+
+  if (options.eventTarget) {
+    event.target = options.eventTarget as unknown as EventTarget
+  }
+
+  receiver.dispatchEvent(event)
+}
+
+export const dispatchKeyup = (
+  receiver: FakeDomEventReceiver,
+  key: string,
+  options: DispatchKeydownOptions = {},
+): void => {
+  const event = new FakeDomEvent("keyup", buildKeyboardEventInit(key, options))
 
   if (options.eventTarget) {
     event.target = options.eventTarget as unknown as EventTarget
@@ -617,6 +638,14 @@ export const dispatchDocumentKeydown = (
   options: DispatchKeydownOptions = {},
 ): void => {
   dispatchKeydown(receiver, key, options)
+}
+
+export const dispatchDocumentKeyup = (
+  receiver: FakeDocument,
+  key: string,
+  options: DispatchKeydownOptions = {},
+): void => {
+  dispatchKeyup(receiver, key, options)
 }
 
 export const findButtonByTitle = (

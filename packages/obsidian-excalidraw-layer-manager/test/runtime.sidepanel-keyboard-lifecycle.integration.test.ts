@@ -17,6 +17,7 @@ import {
   FakeDomEvent,
   SIDEPANEL_MOUNT_MODE_CASES,
   dispatchDocumentKeydown,
+  dispatchDocumentKeyup,
   dispatchKeydown,
   findButtonByExactText,
   findButtonByTitle,
@@ -1455,6 +1456,119 @@ describe("sidepanel keyboard + lifecycle parity", () => {
 
     contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
     dispatchKeydown(contentRoot, "†", { altKey: true, ctrlKey: true, code: "KeyT" })
+    await flushAsync()
+
+    const lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
+    const selectedIds = runtime.selectInView.mock.calls[lastSelectCallIndex]?.[0] as
+      | readonly string[]
+      | undefined
+
+    expect([...(selectedIds ?? [])].sort()).toEqual(["A", "B"])
+  })
+
+  it("falls back to Alt+KeyT keyup toggle selection when host swallows the keydown", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      [
+        { id: "C", type: "rectangle", isDeleted: false },
+        { id: "B", type: "rectangle", isDeleted: false },
+        { id: "A", type: "rectangle", isDeleted: false },
+      ],
+      [],
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+
+    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "t")
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowDown")
+    await flushAsync()
+
+    dispatchDocumentKeyup(fakeDocument, "t", {
+      altKey: true,
+      code: "KeyT",
+      eventTarget: contentRoot,
+    })
+    await flushAsync()
+
+    const lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
+    const selectedIds = runtime.selectInView.mock.calls[lastSelectCallIndex]?.[0] as
+      | readonly string[]
+      | undefined
+
+    expect([...(selectedIds ?? [])].sort()).toEqual(["A", "B"])
+  })
+
+  it("falls back to Ctrl+Alt+KeyT keyup toggle selection when host swallows the keydown", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      [
+        { id: "C", type: "rectangle", isDeleted: false },
+        { id: "B", type: "rectangle", isDeleted: false },
+        { id: "A", type: "rectangle", isDeleted: false },
+      ],
+      [],
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+
+    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "t")
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowDown")
+    await flushAsync()
+
+    dispatchDocumentKeyup(fakeDocument, "t", {
+      altKey: true,
+      ctrlKey: true,
+      code: "KeyT",
+      eventTarget: contentRoot,
+    })
+    await flushAsync()
+
+    const lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
+    const selectedIds = runtime.selectInView.mock.calls[lastSelectCallIndex]?.[0] as
+      | readonly string[]
+      | undefined
+
+    expect([...(selectedIds ?? [])].sort()).toEqual(["A", "B"])
+  })
+
+  it("does not double-toggle when both Alt+KeyT keydown and keyup arrive", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      [
+        { id: "C", type: "rectangle", isDeleted: false },
+        { id: "B", type: "rectangle", isDeleted: false },
+        { id: "A", type: "rectangle", isDeleted: false },
+      ],
+      [],
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+
+    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "t")
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowDown")
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "†", { altKey: true, code: "KeyT" })
+    await flushAsync()
+
+    dispatchDocumentKeyup(fakeDocument, "t", {
+      altKey: true,
+      code: "KeyT",
+      eventTarget: contentRoot,
+    })
     await flushAsync()
 
     const lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
