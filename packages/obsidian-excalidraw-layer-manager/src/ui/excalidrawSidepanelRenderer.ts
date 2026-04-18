@@ -111,6 +111,26 @@ interface SelectedElementLike {
   readonly id: string
 }
 
+interface SidepanelLiveRenderRoot {
+  readonly contentRoot: HTMLElement
+  readonly ownerDocument: Document
+}
+
+interface SidepanelLiveRenderState {
+  readonly destinationProjection: ReturnType<typeof buildSidepanelQuickMoveDestinationProjection>
+  readonly currentSelectedNodes: readonly LayerNode[]
+  readonly hasKeyboardOwnership: boolean
+  readonly parentById: ReturnType<typeof collectVisibleNodeContext>["parentById"]
+  readonly resolvedSelection: ResolvedSelection
+  readonly rowFilter: ReturnType<typeof buildSidepanelVisibleRowTreeResult>
+  readonly selectedElementIds: readonly string[]
+  readonly selectedNodeIds: ReadonlySet<string>
+  readonly selectionResolution: SidepanelSelectionResolution
+  readonly visibleNodeIds: ReadonlySet<string>
+  readonly visibleNodes: readonly LayerNode[]
+  readonly visibleRowTree: readonly LayerNode[]
+}
+
 export interface ExcalidrawSidepanelHost extends SidepanelMountHostLike {
   sidepanelTab?: SidepanelTabLike | null
   createSidepanelTab?: (
@@ -243,7 +263,10 @@ const cloneDragDropHint = (hint: DragDropHint | null): DragDropHint | null => {
       }
 }
 
-const haveSameDragDropHint = (left: DragDropHint | null, right: DragDropHint | null): boolean => {
+export const haveSameDragDropHint = (
+  left: DragDropHint | null,
+  right: DragDropHint | null,
+): boolean => {
   if (!left || !right) {
     return left === right
   }
@@ -913,10 +936,23 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       return
     }
 
-    const contentRoot = this.ensureContentRoot()
-    if (!contentRoot) {
+    const liveRenderRoot = this.beginLiveRender()
+    if (!liveRenderRoot) {
       this.#fallbackRenderer.render(model)
       return
+    }
+
+    const liveRenderState = this.prepareLiveRenderState(model, liveRenderRoot)
+    this.updateKeyboardContextFromRender(model, liveRenderState)
+    this.renderLivePanelChrome(liveRenderRoot, model, liveRenderState)
+    this.renderLiveRows(liveRenderRoot, model.actions, liveRenderState)
+    this.finalizeLiveRender(liveRenderRoot.contentRoot)
+  }
+
+  private beginLiveRender(): SidepanelLiveRenderRoot | null {
+    const contentRoot = this.ensureContentRoot()
+    if (!contentRoot) {
+      return null
     }
 
     const ownerDocument = contentRoot.ownerDocument
@@ -936,6 +972,17 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.#rowTreeRoot = null
     this.clearRenderedRowPreviewState()
 
+    return {
+      contentRoot,
+      ownerDocument,
+    }
+  }
+
+  private prepareLiveRenderState(
+    model: RenderViewModel,
+    liveRenderRoot: SidepanelLiveRenderRoot,
+  ): SidepanelLiveRenderState {
+    const { contentRoot, ownerDocument } = liveRenderRoot
     const structuralTree = model.tree
     const selectedElementIds = this.resolveSelectedElementIds(model.selectedIds)
     const selectionResolution = this.resolveSelection(structuralTree, selectedElementIds)
@@ -952,14 +999,52 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     const { visibleNodes, parentById } = collectVisibleNodeContext(visibleRowTree)
     const visibleNodeIds = new Set(visibleNodes.map((node) => node.id))
     const activeElement = ownerDocument.activeElement
-    const hasKeyboardOwnership =
-      this.#focusOwnership.shouldAutofocusContentRoot ||
-      !!(activeElement && contentRoot.contains(activeElement as HTMLElement))
+    const hasKeyboardOwnership = this.resolveHasKeyboardOwnership(contentRoot, activeElement)
 
     if (hasKeyboardOwnership) {
       this.activateKeyboardCapture()
     }
 
+    this.reconcileFocusedNodeForVisibleRows(visibleNodes, hasKeyboardOwnership)
+    this.logRenderOwnership({
+      activeElement,
+      hasKeyboardOwnership,
+      model,
+      rowFilter,
+      selectedElementCount: selectedElementIds.length,
+      visibleNodeCount: visibleNodes.length,
+    })
+
+    return {
+      destinationProjection,
+      currentSelectedNodes,
+      hasKeyboardOwnership,
+      parentById,
+      resolvedSelection,
+      rowFilter,
+      selectedElementIds,
+      selectedNodeIds,
+      selectionResolution,
+      visibleNodeIds,
+      visibleNodes,
+      visibleRowTree,
+    }
+  }
+
+  private resolveHasKeyboardOwnership(
+    contentRoot: HTMLElement,
+    activeElement: Element | null,
+  ): boolean {
+    return (
+      this.#focusOwnership.shouldAutofocusContentRoot ||
+      !!(activeElement && contentRoot.contains(activeElement as Node))
+    )
+  }
+
+  private reconcileFocusedNodeForVisibleRows(
+    visibleNodes: readonly LayerNode[],
+    hasKeyboardOwnership: boolean,
+  ): void {
     const focusedNodeIdBeforeVisibleReconcile = this.#focusedNodeId
 
     if (visibleNodes.length === 0) {
@@ -980,73 +1065,132 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     ) {
       this.requestFocusedRowReveal(this.#focusedNodeId)
     }
+  }
 
+  private logRenderOwnership(input: {
+    readonly activeElement: Element | null
+    readonly hasKeyboardOwnership: boolean
+    readonly model: RenderViewModel
+    readonly rowFilter: ReturnType<typeof buildSidepanelVisibleRowTreeResult>
+    readonly selectedElementCount: number
+    readonly visibleNodeCount: number
+  }): void {
     const activeTagName =
-      activeElement && typeof activeElement === "object" && "tagName" in activeElement
-        ? `${(activeElement as { readonly tagName?: unknown }).tagName ?? ""}`
+      input.activeElement &&
+      typeof input.activeElement === "object" &&
+      "tagName" in input.activeElement
+        ? `${(input.activeElement as { readonly tagName?: unknown }).tagName ?? ""}`
         : null
 
     this.debugInteraction("render ownership", {
-      sceneVersion: model.sceneVersion,
-      hasKeyboardOwnership,
+      sceneVersion: input.model.sceneVersion,
+      hasKeyboardOwnership: input.hasKeyboardOwnership,
       keyboardCaptureActive: this.#focusOwnership.isKeyboardCaptureActive(),
       shouldAutofocusContentRoot: this.#focusOwnership.shouldAutofocusContentRoot,
       focusedNodeId: this.#focusedNodeId,
       activeTagName,
-      visibleNodeCount: visibleNodes.length,
-      selectedElementCount: selectedElementIds.length,
-      filterActive: rowFilter.active,
-      filterQuery: rowFilter.query,
+      visibleNodeCount: input.visibleNodeCount,
+      selectedElementCount: input.selectedElementCount,
+      filterActive: input.rowFilter.active,
+      filterQuery: input.rowFilter.query,
     })
+  }
 
-    if (model.actions) {
-      const nodeById = new Map<string, LayerNode>()
-      for (const node of visibleNodes) {
-        nodeById.set(node.id, node)
-      }
-
-      this.#keyboardContext = {
-        actions: model.actions,
-        selection: resolvedSelection,
-        explicitSelectedNodes: selectionResolution.explicitSelectedNodes,
-        anchorNodeId: this.#selectionAnchorNodeId,
-        visibleNodes,
-        nodeById,
-        parentById,
-      }
-    } else {
+  private updateKeyboardContextFromRender(
+    model: RenderViewModel,
+    liveRenderState: SidepanelLiveRenderState,
+  ): void {
+    if (!model.actions) {
       this.#keyboardContext = null
+      return
     }
 
+    const nodeById = new Map<string, LayerNode>()
+    for (const node of liveRenderState.visibleNodes) {
+      nodeById.set(node.id, node)
+    }
+
+    this.#keyboardContext = {
+      actions: model.actions,
+      selection: liveRenderState.resolvedSelection,
+      explicitSelectedNodes: liveRenderState.selectionResolution.explicitSelectedNodes,
+      anchorNodeId: this.#selectionAnchorNodeId,
+      visibleNodes: liveRenderState.visibleNodes,
+      nodeById,
+      parentById: liveRenderState.parentById,
+    }
+  }
+
+  private renderLivePanelChrome(
+    liveRenderRoot: SidepanelLiveRenderRoot,
+    model: RenderViewModel,
+    liveRenderState: SidepanelLiveRenderState,
+  ): void {
+    const { contentRoot, ownerDocument } = liveRenderRoot
+
+    this.renderLiveStatusHeader(
+      contentRoot,
+      ownerDocument,
+      model.sceneVersion,
+      liveRenderState.rowFilter,
+      liveRenderState.selectedElementIds.length,
+    )
+    this.renderRowFilterControls(contentRoot, ownerDocument, liveRenderState.rowFilter)
+
+    const toolbar = this.renderLiveToolbar(
+      contentRoot,
+      ownerDocument,
+      model.actions,
+      liveRenderState,
+    )
+    if (!model.actions) {
+      toolbar.style.background = ""
+    }
+
+    this.renderLiveQuickMove(contentRoot, ownerDocument, model.actions, liveRenderState)
+  }
+
+  private renderLiveStatusHeader(
+    container: HTMLElement,
+    ownerDocument: Document,
+    sceneVersion: number,
+    rowFilter: ReturnType<typeof buildSidepanelVisibleRowTreeResult>,
+    selectedElementCount: number,
+  ): void {
     const header = ownerDocument.createElement("div")
     header.style.fontWeight = "600"
     header.style.marginBottom = "4px"
-    header.textContent = `Layer Manager · v${model.sceneVersion}`
-    contentRoot.appendChild(header)
+    header.textContent = `Layer Manager · v${sceneVersion}`
+    container.appendChild(header)
 
     const info = ownerDocument.createElement("div")
     info.style.opacity = "0.75"
     info.style.fontSize = "12px"
     info.style.marginBottom = "4px"
-    info.textContent = formatRowScopeSummary(rowFilter, selectedElementIds.length)
-    contentRoot.appendChild(info)
+    info.textContent = formatRowScopeSummary(rowFilter, selectedElementCount)
+    container.appendChild(info)
 
     const keyboardHint = ownerDocument.createElement("div")
     keyboardHint.style.opacity = "0.65"
     keyboardHint.style.fontSize = "11px"
     keyboardHint.style.marginBottom = "8px"
     keyboardHint.textContent = SIDEPANEL_KEYBOARD_HINT_TEXT
-    contentRoot.appendChild(keyboardHint)
+    container.appendChild(keyboardHint)
+  }
 
-    this.renderRowFilterControls(contentRoot, ownerDocument, rowFilter)
-
-    const toolbar = renderSidepanelToolbar({
-      container: contentRoot,
+  private renderLiveToolbar(
+    container: HTMLElement,
+    ownerDocument: Document,
+    actions: LayerManagerUiActions | undefined,
+    liveRenderState: SidepanelLiveRenderState,
+  ): HTMLElement {
+    return renderSidepanelToolbar({
+      container,
       ownerDocument,
-      hasActions: !!model.actions,
-      selectedElementCount: resolvedSelection.elementIds.length,
-      reviewScopeActive: rowFilter.active,
-      ungroupLikeIssue: resolveStructuralSelectionIssue(resolvedSelection),
+      hasActions: !!actions,
+      selectedElementCount: liveRenderState.resolvedSelection.elementIds.length,
+      reviewScopeActive: liveRenderState.rowFilter.active,
+      ungroupLikeIssue: resolveStructuralSelectionIssue(liveRenderState.resolvedSelection),
       canPersistTab: !!this.#host.persistSidepanelTab,
       didPersistTab: this.#didPersistTab,
       canCloseTab:
@@ -1058,29 +1202,35 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       createToolbarButton: (nextOwnerDocument, label, action) =>
         this.createToolbarButton(nextOwnerDocument, label, action),
       onGroupSelected: async () => {
-        if (!model.actions) {
+        if (!actions) {
           return
         }
 
-        await this.#selectionActionController.groupSelected(model.actions, resolvedSelection)
+        await this.#selectionActionController.groupSelected(
+          actions,
+          liveRenderState.resolvedSelection,
+        )
       },
       onReorderSelected: async (mode) => {
-        if (!model.actions) {
+        if (!actions) {
           return
         }
 
         await this.#selectionActionController.reorderSelected(
-          model.actions,
-          resolvedSelection,
+          actions,
+          liveRenderState.resolvedSelection,
           mode,
         )
       },
       onUngroupLikeSelection: async () => {
-        if (!model.actions) {
+        if (!actions) {
           return
         }
 
-        await this.#selectionActionController.ungroupLikeSelection(model.actions, resolvedSelection)
+        await this.#selectionActionController.ungroupLikeSelection(
+          actions,
+          liveRenderState.resolvedSelection,
+        )
       },
       onTogglePersistLastMoveAcrossRestarts: async (nextPreference) => {
         return await this.#quickMovePersistenceService.setPersistLastMoveAcrossRestarts(
@@ -1112,22 +1262,25 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         this.clearInteractiveBindings()
       },
     })
+  }
 
-    if (!model.actions) {
-      toolbar.style.background = ""
-    }
-
+  private renderLiveQuickMove(
+    container: HTMLElement,
+    ownerDocument: Document,
+    actions: LayerManagerUiActions | undefined,
+    liveRenderState: SidepanelLiveRenderState,
+  ): void {
     renderSidepanelQuickMove({
-      container: contentRoot,
+      container,
       ownerDocument,
-      hasActions: !!model.actions,
-      selection: resolvedSelection,
+      hasActions: !!actions,
+      selection: liveRenderState.resolvedSelection,
       reviewScope: {
-        active: rowFilter.active,
-        matchingRowCount: rowFilter.matchingRowCount,
-        contextRowCount: rowFilter.contextRowCount,
+        active: liveRenderState.rowFilter.active,
+        matchingRowCount: liveRenderState.rowFilter.matchingRowCount,
+        contextRowCount: liveRenderState.rowFilter.contextRowCount,
       },
-      destinationProjection,
+      destinationProjection: liveRenderState.destinationProjection,
       lastQuickMoveDestination: this.#quickMovePersistenceService.lastQuickMoveDestination,
       recentQuickMoveDestinations: this.#quickMovePersistenceService.recentQuickMoveDestinations,
       quickPresetInlineMax: QUICK_PRESET_INLINE_MAX,
@@ -1135,24 +1288,24 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       createToolbarButton: (nextOwnerDocument, label, action) =>
         this.createToolbarButton(nextOwnerDocument, label, action),
       onMoveSelectionToRoot: async (targetFrameId) => {
-        if (!model.actions) {
+        if (!actions) {
           return
         }
 
         await this.#selectionActionController.moveSelectionToRoot(
-          model.actions,
-          resolvedSelection,
+          actions,
+          liveRenderState.resolvedSelection,
           targetFrameId,
         )
       },
       onApplyGroupPreset: async (preset) => {
-        if (!model.actions) {
+        if (!actions) {
           return
         }
 
         await this.#selectionActionController.applyGroupPreset(
-          model.actions,
-          resolvedSelection,
+          actions,
+          liveRenderState.resolvedSelection,
           preset,
         )
       },
@@ -1160,7 +1313,43 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         this.notify(message)
       },
     })
+  }
 
+  private renderLiveRows(
+    liveRenderRoot: SidepanelLiveRenderRoot,
+    actions: LayerManagerUiActions | undefined,
+    liveRenderState: SidepanelLiveRenderState,
+  ): void {
+    const rows = this.createRowTreeRoot(liveRenderRoot.ownerDocument)
+    this.#rowTreeRoot = rows
+    liveRenderRoot.contentRoot.appendChild(rows)
+
+    if (liveRenderState.visibleRowTree.length === 0) {
+      this.renderEmptyRowTreeState(rows, liveRenderState.rowFilter)
+    } else {
+      this.renderNodes(
+        rows,
+        liveRenderState.visibleRowTree,
+        liveRenderState.visibleNodes,
+        liveRenderState.currentSelectedNodes,
+        0,
+        liveRenderState.selectedNodeIds,
+        actions,
+        {
+          frameId: null,
+          groupPath: [],
+        },
+        liveRenderState.rowFilter.matchKindByNodeId,
+      )
+    }
+
+    if (this.#focusedNodeId && liveRenderState.visibleNodeIds.has(this.#focusedNodeId)) {
+      ;(rows as HTMLDivElement & { ariaActivedescendant?: string }).ariaActivedescendant =
+        this.resolveRowDomId(this.#focusedNodeId)
+    }
+  }
+
+  private createRowTreeRoot(ownerDocument: Document): HTMLDivElement {
     const rows = ownerDocument.createElement("div")
     rows.style.display = "flex"
     rows.style.flexDirection = "column"
@@ -1169,40 +1358,24 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     rows.role = "tree"
     rows.ariaLabel = "Layer rows"
     rows.ariaMultiSelectable = "true"
-    this.#rowTreeRoot = rows
-    contentRoot.appendChild(rows)
+    return rows
+  }
 
-    if (visibleRowTree.length === 0) {
-      const emptyState = ownerDocument.createElement("div")
-      emptyState.style.opacity = "0.75"
-      emptyState.style.fontSize = "11px"
-      emptyState.style.padding = "6px 0"
-      emptyState.textContent = rowFilter.active
-        ? `No rows match “${this.#rowFilterQuery.trim()}”.`
-        : "No layer rows available."
-      rows.appendChild(emptyState)
-    } else {
-      this.renderNodes(
-        rows,
-        visibleRowTree,
-        visibleNodes,
-        currentSelectedNodes,
-        0,
-        selectedNodeIds,
-        model.actions,
-        {
-          frameId: null,
-          groupPath: [],
-        },
-        rowFilter.matchKindByNodeId,
-      )
-    }
+  private renderEmptyRowTreeState(
+    rows: HTMLDivElement,
+    rowFilter: ReturnType<typeof buildSidepanelVisibleRowTreeResult>,
+  ): void {
+    const emptyState = rows.ownerDocument.createElement("div")
+    emptyState.style.opacity = "0.75"
+    emptyState.style.fontSize = "11px"
+    emptyState.style.padding = "6px 0"
+    emptyState.textContent = rowFilter.active
+      ? `No rows match “${this.#rowFilterQuery.trim()}”.`
+      : "No layer rows available."
+    rows.appendChild(emptyState)
+  }
 
-    if (this.#focusedNodeId && visibleNodeIds.has(this.#focusedNodeId)) {
-      ;(rows as HTMLDivElement & { ariaActivedescendant?: string }).ariaActivedescendant =
-        this.resolveRowDomId(this.#focusedNodeId)
-    }
-
+  private finalizeLiveRender(contentRoot: HTMLElement): void {
     const focusTargetRoot = this.getFocusTargetRoot(contentRoot)
     if (focusTargetRoot) {
       this.autofocusContentRootIfNeeded(focusTargetRoot)
