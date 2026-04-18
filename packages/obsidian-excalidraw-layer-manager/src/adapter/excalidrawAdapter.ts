@@ -80,13 +80,21 @@ const isUsableTargetView = (value: unknown): boolean => {
   return true
 }
 
+const invokeSetView = (ea: EaLike, viewArg: unknown, reveal: boolean): unknown => {
+  const setView = ea.setView
+  if (!setView) {
+    return null
+  }
+
+  return setView.call(ea, viewArg, reveal)
+}
+
 const ensureTargetView = (ea: EaLike): boolean => {
   if (isUsableTargetView(getCurrentTargetView(ea))) {
     return true
   }
 
-  const setView = ea.setView
-  if (!setView) {
+  if (!ea.setView) {
     return !hasExplicitTargetViewProperty(ea)
   }
 
@@ -102,7 +110,7 @@ const ensureTargetView = (ea: EaLike): boolean => {
 
   for (const strategy of strategies) {
     try {
-      const resolved = setView(strategy.viewArg, strategy.reveal)
+      const resolved = invokeSetView(ea, strategy.viewArg, strategy.reveal)
       if (isUsableTargetView(resolved) || isUsableTargetView(getCurrentTargetView(ea))) {
         return true
       }

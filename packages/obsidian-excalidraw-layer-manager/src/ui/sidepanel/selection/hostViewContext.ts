@@ -57,6 +57,19 @@ const VIEW_BIND_STRATEGIES: readonly {
   { viewArg: undefined, reveal: true },
 ]
 
+const invokeHostSetView = (
+  host: SidepanelHostViewContextHost,
+  viewArg: unknown,
+  reveal: boolean,
+): unknown => {
+  const setView = host.setView
+  if (!setView) {
+    return null
+  }
+
+  return setView.call(host, viewArg, reveal)
+}
+
 export const hasExplicitTargetViewProperty = (host: SidepanelHostViewContextHost): boolean => {
   return Object.prototype.hasOwnProperty.call(host, "targetView")
 }
@@ -586,8 +599,7 @@ export const bindHostViewToActiveWorkspaceView = (
     ...summarizeHostViewContextForDebug(initialDescription),
   })
 
-  const setView = host.setView
-  if (!setView) {
+  if (!host.setView) {
     traceHostContextLifecycleEvent("rebind", "host view rebind unavailable: host has no setView", {
       ...summarizeHostViewContextForDebug(initialDescription),
     })
@@ -604,7 +616,7 @@ export const bindHostViewToActiveWorkspaceView = (
     let errorMessage: string | null = null
 
     try {
-      setView(strategy.viewArg, strategy.reveal)
+      invokeHostSetView(host, strategy.viewArg, strategy.reveal)
     } catch (error) {
       threw = true
       errorMessage = error instanceof Error ? error.message : `${error}`
@@ -671,8 +683,7 @@ export const ensureHostViewContextState = (
     }
   }
 
-  const setView = host.setView
-  if (!setView) {
+  if (!host.setView) {
     return {
       ok: resolveHostViewContextDescription(host).hostEligible,
       rebound: false,
@@ -681,7 +692,7 @@ export const ensureHostViewContextState = (
 
   for (const strategy of VIEW_BIND_STRATEGIES) {
     try {
-      setView(strategy.viewArg, strategy.reveal)
+      invokeHostSetView(host, strategy.viewArg, strategy.reveal)
       if (resolveHostViewContextDescription(host).hostEligible) {
         return {
           ok: true,

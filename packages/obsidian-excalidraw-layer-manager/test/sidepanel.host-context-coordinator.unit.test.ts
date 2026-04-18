@@ -247,6 +247,92 @@ describe("sidepanel host-context coordinator", () => {
     expect(result.snapshot.state).toBe("live")
   })
 
+  it("preserves the host this-binding when rebind strategies call setView", () => {
+    const fixtures = {
+      current: makeViewFixture("A.excalidraw"),
+      next: makeViewFixture("B.excalidraw"),
+    }
+    let activeViewKey: "current" | "next" = "current"
+
+    const app = {
+      metadataCache: {
+        getFileCache: (file: unknown) => {
+          const path =
+            file &&
+            typeof file === "object" &&
+            typeof (file as { path?: unknown }).path === "string"
+              ? ((file as { path: string }).path as string)
+              : null
+
+          if (!path) {
+            return null
+          }
+
+          return {
+            frontmatter: { "excalidraw-plugin": "parsed" },
+          }
+        },
+      },
+      workspace: {
+        getActiveFile: () => ({
+          path: fixtures[activeViewKey].filePath,
+        }),
+        get activeLeaf() {
+          const fixture = fixtures[activeViewKey]
+          return {
+            id: fixture.leafId,
+            view: {
+              getViewType: () => fixture.viewType,
+            },
+          }
+        },
+      },
+    }
+
+    const buildTargetView = (fixture: ViewFixture) => ({
+      id: fixture.viewId,
+      _loaded: true,
+      file: {
+        path: fixture.filePath,
+      },
+      leaf: {
+        id: fixture.leafId,
+      },
+      app,
+      excalidrawAPI: fixture.api,
+    })
+
+    const host = {
+      app,
+      obsidian: {
+        app,
+      },
+      targetView: buildTargetView(fixtures.current),
+      setView: vi.fn(function (
+        this: SidepanelHostContextCoordinatorHost & { targetView: unknown | null },
+      ) {
+        if (this !== host) {
+          throw new Error("detached setView")
+        }
+
+        const reboundTargetView = buildTargetView(fixtures[activeViewKey])
+        this.targetView = reboundTargetView
+        return reboundTargetView
+      }),
+    } satisfies SidepanelHostContextCoordinatorHost & { targetView: unknown | null }
+
+    const coordinator = new SidepanelHostContextCoordinator(host)
+
+    activeViewKey = "next"
+    const result = coordinator.handleWorkspaceLeafChange()
+
+    expect(result.rebound).toBe(true)
+    expect(host.setView).toHaveBeenCalledTimes(1)
+    expect(result.snapshot.state).toBe("live")
+    expect(result.snapshot.targetViewIdentity).toBe(fixtures.next.viewId)
+    expect(result.snapshot.cachedTargetViewIdentity).toBe(fixtures.next.viewId)
+  })
+
   it("derives an inactive shell state without attempting rebind when the active leaf is not Excalidraw", () => {
     const harness = makeHostHarness(
       [

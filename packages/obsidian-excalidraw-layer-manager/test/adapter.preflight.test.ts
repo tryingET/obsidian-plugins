@@ -159,6 +159,34 @@ describe("applyPatch adapter preflight", () => {
     expect(snapshot.elements.map((element) => element.id)).toEqual(["A"])
   })
 
+  it("preserves ExcalidrawAutomate setView this-binding during rebinding", () => {
+    const getViewElements = vi.fn(() => [{ id: "A", type: "rectangle" }])
+    const getViewSelectedElements = vi.fn(() => [])
+
+    const ea: EaLike = {
+      targetView: null,
+      setView: vi.fn(function (this: EaLike) {
+        if (this !== ea) {
+          throw new Error("detached setView")
+        }
+
+        this.targetView = {
+          id: "bound-view",
+          _loaded: true,
+        }
+        return this.targetView
+      }),
+      getViewElements,
+      getViewSelectedElements,
+    }
+
+    const snapshot = readSnapshot(ea)
+
+    expect(ea.setView).toHaveBeenCalled()
+    expect(getViewElements).toHaveBeenCalledTimes(1)
+    expect(snapshot.elements.map((element) => element.id)).toEqual(["A"])
+  })
+
   it("fail-stops snapshot reads when explicit targetView cannot be rebound", () => {
     const getViewElements = vi.fn(() => {
       throw new Error("targetView not set")
