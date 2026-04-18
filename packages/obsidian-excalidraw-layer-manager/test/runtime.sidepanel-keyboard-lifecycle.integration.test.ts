@@ -1432,6 +1432,39 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect([...(selectedIds ?? [])].sort()).toEqual(["A", "B", "C"])
   })
 
+  it("supports Ctrl+Alt+KeyT as the same toggle-selection fallback alias", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      [
+        { id: "C", type: "rectangle", isDeleted: false },
+        { id: "B", type: "rectangle", isDeleted: false },
+        { id: "A", type: "rectangle", isDeleted: false },
+      ],
+      [],
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+
+    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "t")
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowDown")
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "†", { altKey: true, ctrlKey: true, code: "KeyT" })
+    await flushAsync()
+
+    const lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
+    const selectedIds = runtime.selectInView.mock.calls[lastSelectCallIndex]?.[0] as
+      | readonly string[]
+      | undefined
+
+    expect([...(selectedIds ?? [])].sort()).toEqual(["A", "B"])
+  })
+
   it("reroutes Alt+KeyT toggle selection through document keyboard continuity after outside blur even when the key value is remapped", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,

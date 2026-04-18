@@ -154,12 +154,14 @@ export class SidepanelKeyboardShortcutController {
     const isShiftTRangeToggleShortcut = isTSelectionAliasKey && event.shiftKey && !hasToggleModifier
     const isAltTToggleShortcut =
       isTSelectionAliasKey && event.altKey && !event.shiftKey && !event.ctrlKey && !event.metaKey
+    const isCtrlAltTToggleShortcut =
+      isTSelectionAliasKey && event.altKey && event.ctrlKey && !event.shiftKey && !event.metaKey
 
-    if (event.altKey && !isAltTToggleShortcut) {
+    if (event.altKey && !isAltTToggleShortcut && !isCtrlAltTToggleShortcut) {
       return
     }
 
-    if (hasToggleModifier && !isCtrlMetaToggleAliasKey) {
+    if (hasToggleModifier && !isCtrlMetaToggleAliasKey && !isCtrlAltTToggleShortcut) {
       return
     }
 
@@ -242,7 +244,7 @@ export class SidepanelKeyboardShortcutController {
       claimHandledKeyboardEvent(event)
       if (isShiftTRangeToggleShortcut) {
         this.selectVisibleRangeToFocusedNode(context, true)
-      } else if (isAltTToggleShortcut) {
+      } else if (isAltTToggleShortcut || isCtrlAltTToggleShortcut) {
         this.toggleFocusedNodeSelection(context)
       } else if (event.shiftKey) {
         this.selectVisibleRangeToFocusedNode(context, hasToggleModifier)

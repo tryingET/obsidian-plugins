@@ -448,11 +448,19 @@ const isDocumentReroutableModifierSpaceShortcut = (event: KeyboardEvent): boolea
 }
 
 const isDocumentReroutableTSelectionShortcut = (event: KeyboardEvent): boolean => {
-  if (!isKeyTShortcut(event) || event.ctrlKey || event.metaKey) {
+  if (!isKeyTShortcut(event) || event.metaKey) {
     return false
   }
 
-  return event.shiftKey || event.altKey
+  if (event.shiftKey && !event.altKey && !event.ctrlKey) {
+    return true
+  }
+
+  if (event.altKey && !event.shiftKey) {
+    return true
+  }
+
+  return false
 }
 
 const shouldClaimDocumentSpaceLikeEvent = (event: KeyboardEvent): boolean => {
