@@ -1433,6 +1433,39 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect([...(selectedIds ?? [])].sort()).toEqual(["A", "B", "C"])
   })
 
+  it("supports Ctrl+Space toggle selection even when the host reports key=Unidentified and code=Space", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      [
+        { id: "C", type: "rectangle", isDeleted: false },
+        { id: "B", type: "rectangle", isDeleted: false },
+        { id: "A", type: "rectangle", isDeleted: false },
+      ],
+      [],
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+
+    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "t")
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowDown")
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "Unidentified", { ctrlKey: true, code: "Space" })
+    await flushAsync()
+
+    const lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
+    const selectedIds = runtime.selectInView.mock.calls[lastSelectCallIndex]?.[0] as
+      | readonly string[]
+      | undefined
+
+    expect([...(selectedIds ?? [])].sort()).toEqual(["A", "B"])
+  })
+
   it("supports Ctrl+Alt+KeyT as the same toggle-selection fallback alias", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,

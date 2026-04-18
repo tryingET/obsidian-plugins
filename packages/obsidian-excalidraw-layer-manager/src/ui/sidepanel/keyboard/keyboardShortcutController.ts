@@ -54,6 +54,12 @@ const normalizeKeyboardKey = (key: string): string => {
   return key.length === 1 ? key.toLowerCase() : key
 }
 
+const isSpaceShortcutEvent = (event: KeyboardEvent): boolean => {
+  return (
+    event.code === "Space" || event.key === " " || event.key === "Space" || event.key === "Spacebar"
+  )
+}
+
 const isKeyTShortcut = (event: KeyboardEvent): boolean => {
   return normalizeKeyboardKey(event.key) === "t" || event.code === "KeyT"
 }
@@ -159,8 +165,7 @@ export class SidepanelKeyboardShortcutController {
     }
 
     const normalizedKey = normalizeKeyboardKey(event.key)
-    const isSpaceSelectionAliasKey =
-      event.key === " " || event.key === "Space" || event.key === "Spacebar"
+    const isSpaceSelectionAliasKey = isSpaceShortcutEvent(event)
     const isTSelectionAliasKey = isKeyTShortcut(event)
     const isSelectionAliasKey =
       isSpaceSelectionAliasKey ||

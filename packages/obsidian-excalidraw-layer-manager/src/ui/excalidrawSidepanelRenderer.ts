@@ -436,6 +436,10 @@ const isSpaceLikeKey = (key: string): boolean => {
   return key === " " || key === "Space" || key === "Spacebar"
 }
 
+const isSpaceShortcutEvent = (event: KeyboardEvent): boolean => {
+  return event.code === "Space" || isSpaceLikeKey(event.key)
+}
+
 const normalizeKeyboardKey = (key: string): string => {
   return key.length === 1 ? key.toLowerCase() : key
 }
@@ -445,7 +449,7 @@ const isKeyTShortcut = (event: KeyboardEvent): boolean => {
 }
 
 const isDocumentReroutableModifierSpaceShortcut = (event: KeyboardEvent): boolean => {
-  return (event.ctrlKey || event.metaKey) && !event.altKey && isSpaceLikeKey(event.key)
+  return (event.ctrlKey || event.metaKey) && !event.altKey && isSpaceShortcutEvent(event)
 }
 
 const isDocumentReroutableTSelectionShortcut = (event: KeyboardEvent): boolean => {
@@ -465,7 +469,7 @@ const isDocumentReroutableTSelectionShortcut = (event: KeyboardEvent): boolean =
 }
 
 const shouldClaimDocumentSpaceLikeEvent = (event: KeyboardEvent): boolean => {
-  if (event.altKey || !isSpaceLikeKey(event.key)) {
+  if (event.altKey || !isSpaceShortcutEvent(event)) {
     return false
   }
 
