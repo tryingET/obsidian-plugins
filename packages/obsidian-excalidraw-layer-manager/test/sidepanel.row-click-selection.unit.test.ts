@@ -80,6 +80,26 @@ describe("sidepanel row-click selection contract", () => {
     expect(result.anchorNodeId).toBeNull()
   })
 
+  it("preserves the surviving anchor when toggling a non-anchor row out of selection", () => {
+    const a = makeNode("el:A")
+    const b = makeNode("el:B")
+
+    const result = resolveRowClickSelection({
+      clickedNode: b,
+      visibleNodes: [a, b],
+      currentSelectedNodes: [a, b],
+      currentAnchorNodeId: a.id,
+      modifiers: {
+        shiftKey: false,
+        toggleKey: true,
+      },
+    })
+
+    expect(result.selectedNodes).toEqual([a])
+    expect(result.selectedElementIds).toEqual(["A"])
+    expect(result.anchorNodeId).toBe(a.id)
+  })
+
   it("selects the contiguous visible row range from the current anchor on shift-click", () => {
     const a = makeNode("el:A")
     const b = makeNode("el:B")

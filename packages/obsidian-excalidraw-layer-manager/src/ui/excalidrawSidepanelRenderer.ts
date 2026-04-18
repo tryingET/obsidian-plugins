@@ -60,12 +60,13 @@ import { SidepanelHostSelectionBridge } from "./sidepanel/selection/hostSelectio
 import {
   type SidepanelHostViewContextDescription,
   describeHostViewContext,
-  ensureHostViewContext,
+  ensureHostViewContextState,
 } from "./sidepanel/selection/hostViewContext.js"
 import { collectVisibleNodeContext } from "./sidepanel/selection/nodeContext.js"
 import { resolveRowClickSelection } from "./sidepanel/selection/rowClickSelection.js"
 import {
   type SidepanelSceneBinding,
+  canMirrorSelectionToSceneBinding,
   resolveSceneBindingFromHost,
 } from "./sidepanel/selection/sceneBinding.js"
 import { haveSameIds, haveSameIdsInSameOrder } from "./sidepanel/selection/selectionIds.js"
@@ -878,7 +879,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         )
       },
       getPageNavigationStep: () => this.resolveKeyboardPageNavigationStep(),
-      ensureHostViewContext: () => ensureHostViewContext(this.#host),
+      ensureHostViewContext: () => ensureHostViewContextState(this.#host).ok,
       ...(this.#host.selectElementsInView
         ? { selectElementsInView: this.#host.selectElementsInView }
         : {}),
@@ -944,7 +945,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
 
     const liveRenderState = this.prepareLiveRenderState(model, liveRenderRoot)
     this.updateKeyboardContextFromRender(model, liveRenderState)
-    this.renderLivePanelChrome(liveRenderRoot, model, liveRenderState)
+    this.renderLivePanelChrome(liveRenderRoot, model.actions, liveRenderState)
     this.renderLiveRows(liveRenderRoot, model.actions, liveRenderState)
     this.finalizeLiveRender(liveRenderRoot.contentRoot)
   }
@@ -964,10 +965,12 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       (activeElementBeforeRender === previousRowTreeRoot ||
         previousRowTreeRoot.contains(activeElementBeforeRender as HTMLElement))
     )
+
     this.#quickMovePersistenceService.loadFromSettingsOnce()
     if (shouldRestoreRowTreeFocus) {
       this.requestRowTreeAutofocus()
     }
+
     contentRoot.innerHTML = ""
     this.#rowTreeRoot = null
     this.clearRenderedRowPreviewState()
@@ -1123,7 +1126,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
 
   private renderLivePanelChrome(
     liveRenderRoot: SidepanelLiveRenderRoot,
-    model: RenderViewModel,
+    actions: LayerManagerUiActions | undefined,
     liveRenderState: SidepanelLiveRenderState,
   ): void {
     const { contentRoot, ownerDocument } = liveRenderRoot
@@ -1131,23 +1134,18 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.renderLiveStatusHeader(
       contentRoot,
       ownerDocument,
-      model.sceneVersion,
+      this.#latestModel?.sceneVersion ?? 0,
       liveRenderState.rowFilter,
       liveRenderState.selectedElementIds.length,
     )
     this.renderRowFilterControls(contentRoot, ownerDocument, liveRenderState.rowFilter)
 
-    const toolbar = this.renderLiveToolbar(
-      contentRoot,
-      ownerDocument,
-      model.actions,
-      liveRenderState,
-    )
-    if (!model.actions) {
+    const toolbar = this.renderLiveToolbar(contentRoot, ownerDocument, actions, liveRenderState)
+    if (!actions) {
       toolbar.style.background = ""
     }
 
-    this.renderLiveQuickMove(contentRoot, ownerDocument, model.actions, liveRenderState)
+    this.renderLiveQuickMove(contentRoot, ownerDocument, actions, liveRenderState)
   }
 
   private renderLiveStatusHeader(
@@ -1498,7 +1496,12 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.#latestModel = null
   }
 
-  private resolveSelectedElementIds(snapshotSelectedIds: ReadonlySet<string>): readonly string[] {
+  private resolveSelectedElementIds(
+    snapshotSelectedIds: ReadonlySet<string>,
+    options: {
+      readonly trustProvidedSelection?: boolean
+    } = {},
+  ): readonly string[] {
     const snapshotSelection = [...snapshotSelectedIds]
     const selectionOverride = this.#selectionOverrideState?.elementIds ?? null
     const snapshotSelectionChanged = !haveSameIdsInSameOrder(
@@ -1507,27 +1510,43 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     )
 
     if (
-      snapshotSelectionChanged &&
-      selectionOverride &&
+      options.trustProvidedSelection === true &&
       snapshotSelection.length > 0 &&
-      !this.#hostSelectionBridge.hasPendingSelectionMirror() &&
-      !haveSameIds(selectionOverride, snapshotSelection)
+      !this.#hostSelectionBridge.hasPendingSelectionMirror()
     ) {
-      this.#hostSelectionBridge.invalidatePendingSelectionMirror()
-      this.#selectionOverrideState = null
+      this.#lastSnapshotSelectionIds = snapshotSelection
+      return snapshotSelection
+    }
+
+    if (
+      snapshotSelectionChanged &&
+      snapshotSelection.length > 0 &&
+      !this.#hostSelectionBridge.hasPendingSelectionMirror()
+    ) {
+      const clearSelectionOverride =
+        !!selectionOverride && !haveSameIds(selectionOverride, snapshotSelection)
+
+      if (clearSelectionOverride) {
+        this.#hostSelectionBridge.invalidatePendingSelectionMirror()
+        this.#selectionOverrideState = null
+      }
       this.#lastSnapshotSelectionIds = snapshotSelection
 
       this.debugInteraction("selection resolution", {
-        source: "snapshotSupersedesStaleOverride",
+        source: clearSelectionOverride
+          ? "snapshotSupersedesStaleOverride"
+          : "snapshotChangePreferred",
         snapshotSize: snapshotSelection.length,
-        overrideSize: selectionOverride.length,
+        overrideSize: selectionOverride?.length ?? 0,
         resolvedSize: snapshotSelection.length,
-        clearSelectionOverride: true,
+        clearSelectionOverride,
         ...this.buildHostViewDebugPayload(),
       })
 
       return snapshotSelection
     }
+
+    const hostViewEnsureResult = ensureHostViewContextState(this.#host)
 
     const result = reconcileSelectedElementIds({
       snapshotSelection,
@@ -1541,7 +1560,8 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         : {}),
       hasSelectionBridge: !!this.#host.selectElementsInView,
       hasPendingSelectionMirror: this.#hostSelectionBridge.hasPendingSelectionMirror(),
-      ensureHostViewContext: () => ensureHostViewContext(this.#host),
+      hostViewRebound: hostViewEnsureResult.rebound,
+      ensureHostViewContext: () => hostViewEnsureResult.ok,
     })
 
     if (result.clearSelectionOverride) {
@@ -2396,10 +2416,14 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       ...this.buildHostViewDebugPayload(),
     })
 
-    this.#hostSelectionBridge.mirrorSelectionToHost(
-      input.selectedElementIds,
-      this.#lastRenderedSceneBinding ?? undefined,
-    )
+    const expectedSceneBinding =
+      input.source.startsWith("keyboard") &&
+      this.#lastRenderedSceneBinding &&
+      !canMirrorSelectionToSceneBinding(this.#lastRenderedSceneBinding)
+        ? undefined
+        : (this.#lastRenderedSceneBinding ?? undefined)
+
+    this.#hostSelectionBridge.mirrorSelectionToHost(input.selectedElementIds, expectedSceneBinding)
   }
 
   private reconcileSelectionAnchor(selectedNodes: readonly LayerNode[]): void {
@@ -2458,7 +2482,12 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       return context
     }
 
-    const resolvedElementIds = this.resolveSelectedElementIds(new Set(context.selection.elementIds))
+    const resolvedElementIds = this.resolveSelectedElementIds(
+      new Set(context.selection.elementIds),
+      {
+        trustProvidedSelection: true,
+      },
+    )
     const selectionResolution = this.resolveSelection(latestModel.tree, resolvedElementIds)
     const explicitSelectedNodeIds = (selectionResolution.explicitSelectedNodes ?? []).map(
       (node) => node.id,

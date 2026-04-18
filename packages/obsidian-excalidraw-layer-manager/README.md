@@ -104,22 +104,30 @@ Repo root remains the L2 family direction surface; this package is the L3 produc
 npm run check
 npm run verify:recovery
 npm run check:full
+npm run check:fast
+npm run typecheck:scripts
+npm run test:coverage
+npm run quality:ts
 npm run build
 npm run sync:vault
 npm run bundle:and:sync
 ```
 
 Recovery-wave verification contract:
+- `npm run check:fast` now hardens the package surface beyond TypeScript source by running `biome`, `tsc --noEmit`, and JS/MJS script type-checking through `tsconfig.scripts.json`
 - `npm run verify:recovery` runs the mandatory kernel gate: `npm run check:fast`, `npm test`, and `npm run arch`
 - if package docs differ from `HEAD` (including working-tree changes), the same gate also runs `node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs packages/obsidian-excalidraw-layer-manager/docs --strict`
-- `npm run check` is now the authoritative ship-ready gate: it runs `verify:recovery`, `deadcode`, and the deployment-workflow proof before release work or sync
+- `npm run test:coverage` now enforces the package coverage floor over the runtime TypeScript surface while excluding build/helpers that are validated through dedicated script checks and now also emits `coverage/lcov.info` for downstream evidence tooling
+- `npm run quality:ts` applies the sibling `../../owned/ts-quality` change-review tool against the current Layer Manager package diff after generating coverage, writing transient runtime config under `.ts-quality/runtime/`; it is currently an explicit review surface, not part of the ship-ready gate
+- `npm run check` is now the authoritative ship-ready gate: it runs `verify:recovery`, `deadcode`, `test:coverage`, and the deployment-workflow proof before release work or sync
 - `npm run check:full` remains as a compatibility alias to `npm run check`
-- `npm run bundle:and:sync` now fails closed by running `npm run check` before copying into the vault target
+- `npm run sync:vault` now fails closed by running `npm run check` before copying into the vault target
+- `npm run bundle:and:sync` remains as a compatibility alias to `npm run sync:vault`
 
 Default sync target now points at the primary personal Obsidian Excalidraw Skripte path:
 - `~/Documents/Obsidian/00-09_meta/02_HardwareSoftwareTools/02.01_Obsidian/Excalidraw/Skripte/LayerManager.md`
 
-`npm run sync:vault` is now a safe deployment step, not just a blind copy, and verifies that the exported bundle landed at that scripts path with the same hash as `dist/LayerManager.md`:
+`npm run sync:vault` is now a safe deployment step, not just a blind copy, and it refuses to deploy without first passing the authoritative package gate before verifying that the exported bundle landed at that scripts path with the same hash as `dist/LayerManager.md`:
 - it preserves the previous target bundle under `.tmp/obsidian-excalidraw-layer-manager/deployments/<timestamp>/previous/`
 - it stages the fresh bundle beside the target, verifies the staged hash, and then swaps it into place
 - it verifies the final target hash matches the built bundle
@@ -133,7 +141,9 @@ LMX_VAULT_TARGET="/custom/path/LayerManager.md" npm run sync:vault
 LMX_DEPLOY_ROOT="/custom/deploy-receipts" npm run sync:vault
 ```
 
-The authoritative `npm run check` gate now also proves the workflow end-to-end by running `node build/verifyDeploymentWorkflow.mjs` against a temporary vault target before release work or sync, and repo-level CI inherits that same package gate before merge.
+The authoritative `npm run check` gate now also proves the workflow end-to-end by running `node build/verifyDeploymentWorkflow.mjs` against a temporary vault target before release work or sync, and the checked-in GitHub Actions workflow (`.github/workflows/ci.yml`) inherits that same repo/package gate before merge.
+
+`npm run quality:ts` expects a built sibling `ts-quality` checkout at `../../owned/ts-quality` by default. Override that lookup with `LMX_TS_QUALITY_ROOT=/custom/ts-quality npm run quality:ts`. When the package has no changed `src/**` files in the selected diff range, the script skips instead of widening to a misleading full-repo review. By default it reviews the current worktree diff against `HEAD`; if the worktree is clean it falls back to `HEAD^..HEAD`. Override the range with `LMX_TS_QUALITY_DIFF_RANGE="origin/main...HEAD" npm run quality:ts`.
 
 Manual reload rule after sync:
 1. open an Excalidraw drawing in the target vault

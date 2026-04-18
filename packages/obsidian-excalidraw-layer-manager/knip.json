@@ -1,6 +1,14 @@
 {
   "$schema": "../../node_modules/knip/schema.json",
-  "entry": ["src/index.ts", "build/build.mjs"],
+  "entry": [
+    "src/index.ts",
+    "build/build.mjs",
+    "build/recoveryVerificationGate.mjs",
+    "build/run-ts-quality.mjs",
+    "build/sync-excalidraw-automate-doc.mjs",
+    "build/sync-to-vault.mjs",
+    "build/verifyDeploymentWorkflow.mjs"
+  ],
   "project": ["src/**/*.ts", "test/**/*.ts"],
   "ignoreBinaries": ["tsc", "biome", "vitest", "depcruise", "knip"],
   "ignoreDependencies": ["@biomejs/biome"]

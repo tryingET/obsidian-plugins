@@ -11,5 +11,8 @@
     "test": "bash ./scripts/ci/smoke.sh && bash ./scripts/ci/package-gate.sh test",
     "ci": "bash ./scripts/ci/full.sh",
     "doctor": "node --version && npm --version && ak --doctor && ./scripts/rocs.sh --doctor"
+  },
+  "overrides": {
+    "vite": "7.3.2"
   }
 }

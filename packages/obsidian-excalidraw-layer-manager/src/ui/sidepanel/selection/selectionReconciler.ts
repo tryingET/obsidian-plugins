@@ -20,6 +20,7 @@ interface SelectionReconcileInput<T extends SelectionElementLike> {
   readonly getViewSelectedElements?: () => readonly T[]
   readonly hasSelectionBridge: boolean
   readonly hasPendingSelectionMirror?: boolean
+  readonly hostViewRebound?: boolean
   readonly ensureHostViewContext: () => boolean
 }
 
@@ -86,6 +87,18 @@ export const reconcileSelectedElementIds = <T extends SelectionElementLike>(
     }
 
     if (liveSelection.length === 0 && input.snapshotSelection.length > 0) {
+      if (
+        input.hasSelectionBridge &&
+        input.hostViewRebound !== true &&
+        input.selectionOverride === null
+      ) {
+        return {
+          source: "liveDiffersFromSnapshot",
+          resolvedSelection: liveSelection,
+          clearSelectionOverride: true,
+        }
+      }
+
       const hasStaleOverrideAgainstSnapshot =
         !!input.selectionOverride && !haveSameIds(input.selectionOverride, input.snapshotSelection)
 

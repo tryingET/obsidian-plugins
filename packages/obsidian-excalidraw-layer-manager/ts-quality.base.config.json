@@ -1,0 +1,19 @@
+{
+  "sourcePatterns": ["src/**/*.ts"],
+  "testPatterns": ["test/**/*.ts"],
+  "coverage": {
+    "lcovPath": "coverage/lcov.info"
+  },
+  "mutations": {
+    "testCommand": ["npm", "test"],
+    "coveredOnly": true,
+    "timeoutMs": 30000,
+    "maxSites": 5,
+    "runtimeMirrorRoots": ["dist"]
+  },
+  "policy": {
+    "maxChangedCrap": 30,
+    "minMutationScore": 0.5,
+    "minMergeConfidence": 60
+  }
+}

@@ -5,6 +5,7 @@ build/
 !packages/obsidian-excalidraw-layer-manager/build/*.mjs
 coverage/
 .tmp/
+packages/obsidian-excalidraw-layer-manager/.ts-quality/
 .DS_Store
 *.log
 apps/*/.obsidian/workspace*.json

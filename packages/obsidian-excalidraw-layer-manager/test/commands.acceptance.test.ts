@@ -706,6 +706,84 @@ describe("commands acceptance matrix", () => {
     expect(plan.value.patch.selectIds).toEqual(["A", "B"])
   })
 
+  it("C19b — createGroup normalizes path separators out of the generated group id", () => {
+    const context = makeCommandContext([
+      makeElement({ id: "A", groupIds: [] }),
+      makeElement({ id: "B", groupIds: [] }),
+    ])
+
+    const plan = planCreateGroup(context, {
+      elementIds: ["A", "B"],
+      nameSeed: "Team / 1",
+    })
+
+    expect(plan.ok).toBe(true)
+    if (!plan.ok) {
+      return
+    }
+
+    expect(plan.value.groupId).toBe("Team-1")
+    expect(patchById(plan.value.patch, "A")?.set.customData).toEqual({
+      lmx: {
+        groupLabels: {
+          "Team-1": "Team / 1",
+        },
+      },
+    })
+  })
+
+  it("C19c — createGroup falls back to Group when the seed normalizes to blank", () => {
+    const context = makeCommandContext([
+      makeElement({ id: "A", groupIds: [] }),
+      makeElement({ id: "B", groupIds: [] }),
+    ])
+
+    const plan = planCreateGroup(context, {
+      elementIds: ["A", "B"],
+      nameSeed: "  /  ",
+    })
+
+    expect(plan.ok).toBe(true)
+    if (!plan.ok) {
+      return
+    }
+
+    expect(plan.value.groupId).toBe("Group")
+    expect(patchById(plan.value.patch, "A")?.set.customData).toEqual({
+      lmx: {
+        groupLabels: {
+          Group: "/",
+        },
+      },
+    })
+  })
+
+  it("C19d — createGroup also falls back to Group when the label seed is only whitespace", () => {
+    const context = makeCommandContext([
+      makeElement({ id: "A", groupIds: [] }),
+      makeElement({ id: "B", groupIds: [] }),
+    ])
+
+    const plan = planCreateGroup(context, {
+      elementIds: ["A", "B"],
+      nameSeed: "     ",
+    })
+
+    expect(plan.ok).toBe(true)
+    if (!plan.ok) {
+      return
+    }
+
+    expect(plan.value.groupId).toBe("Group")
+    expect(patchById(plan.value.patch, "A")?.set.customData).toEqual({
+      lmx: {
+        groupLabels: {
+          Group: "Group",
+        },
+      },
+    })
+  })
+
   it("C20 — createGroup picks deterministic next free Group suffix", () => {
     const context = makeCommandContext([
       makeElement({ id: "A" }),

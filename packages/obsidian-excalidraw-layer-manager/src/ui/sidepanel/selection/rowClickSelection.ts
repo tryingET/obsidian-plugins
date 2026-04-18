@@ -47,6 +47,27 @@ const collectSelectedElementIds = (selectedNodes: readonly LayerNode[]): readonl
   return selectedElementIds
 }
 
+const resolveToggleAnchorNodeId = (
+  selectedNodes: readonly LayerNode[],
+  clickedNode: LayerNode,
+  currentAnchorNodeId: string | null,
+  removedExistingSelection: boolean,
+): string | null => {
+  if (selectedNodes.length === 0) {
+    return null
+  }
+
+  if (!removedExistingSelection) {
+    return clickedNode.id
+  }
+
+  if (currentAnchorNodeId && selectedNodes.some((node) => node.id === currentAnchorNodeId)) {
+    return currentAnchorNodeId
+  }
+
+  return selectedNodes[0]?.id ?? null
+}
+
 const resolveVisibleRangeNodes = (
   visibleNodes: readonly LayerNode[],
   anchorNodeId: string,
@@ -107,15 +128,20 @@ export const resolveRowClickSelection = (
 
   if (modifiers.toggleKey) {
     const nextSelectedNodes = currentSelectedNodes.filter((node) => node.id !== clickedNode.id)
-    const selectedNodes =
-      nextSelectedNodes.length === currentSelectedNodes.length
-        ? [...currentSelectedNodes, clickedNode]
-        : nextSelectedNodes
+    const removedExistingSelection = nextSelectedNodes.length !== currentSelectedNodes.length
+    const selectedNodes = removedExistingSelection
+      ? nextSelectedNodes
+      : [...currentSelectedNodes, clickedNode]
 
     return {
       selectedNodes,
       selectedElementIds: collectSelectedElementIds(selectedNodes),
-      anchorNodeId: selectedNodes.length > 0 ? clickedNode.id : null,
+      anchorNodeId: resolveToggleAnchorNodeId(
+        selectedNodes,
+        clickedNode,
+        currentAnchorNodeId,
+        removedExistingSelection,
+      ),
     }
   }
 

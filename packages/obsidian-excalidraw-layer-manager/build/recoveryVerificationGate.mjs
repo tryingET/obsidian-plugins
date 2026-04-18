@@ -22,6 +22,35 @@ export const DEFAULT_DEPLOY_RECEIPTS_PATH = resolve(
   DEFAULT_DEPLOY_RECEIPTS_RELATIVE_PATH,
 )
 
+/**
+ * @typedef {{
+ *   name: string,
+ *   command: string,
+ *   args: string[],
+ *   cwd: string,
+ * }} RecoveryVerificationStep
+ */
+
+/**
+ * @typedef {{
+ *   docsTouched?: boolean,
+ *   packageRootOverride?: string,
+ *   repoRootOverride?: string,
+ * }} RecoveryVerificationPlanOptions
+ */
+
+/**
+ * @typedef {{
+ *   repoRootOverride?: string,
+ *   args: string[],
+ *   label: string,
+ * }} RunGitTextOptions
+ */
+
+/**
+ * @param {RecoveryVerificationPlanOptions} [options]
+ * @returns {RecoveryVerificationStep[]}
+ */
 export const createRecoveryVerificationPlan = ({
   docsTouched = false,
   packageRootOverride = packageRoot,
@@ -60,6 +89,10 @@ export const createRecoveryVerificationPlan = ({
   return plan
 }
 
+/**
+ * @param {RunGitTextOptions} options
+ * @returns {string}
+ */
 const runGitText = ({ repoRootOverride = repoRoot, args, label }) => {
   const result = spawnSync("git", args, {
     cwd: repoRootOverride,
@@ -79,6 +112,10 @@ const runGitText = ({ repoRootOverride = repoRoot, args, label }) => {
   return result.stdout.trim()
 }
 
+/**
+ * @param {{ repoRootOverride?: string }} [options]
+ * @returns {boolean}
+ */
 export const detectPackageDocsTouched = ({ repoRootOverride = repoRoot } = {}) => {
   const hasWorktreeDocsChanges =
     runGitText({
@@ -111,6 +148,10 @@ export const detectPackageDocsTouched = ({ repoRootOverride = repoRoot } = {}) =
   return changedSinceHead
 }
 
+/**
+ * @param {readonly RecoveryVerificationStep[]} plan
+ * @returns {void}
+ */
 export const runRecoveryVerificationPlan = (plan) => {
   for (const step of plan) {
     console.log(`[recovery-gate] ${step.name}`)

@@ -12,6 +12,25 @@ const historyRoot = resolve(docsRoot, "history")
 const latestPath = resolve(docsRoot, "ExcalidrawAutomate.full-library.md")
 const metadataPath = resolve(docsRoot, "ExcalidrawAutomate.full-library.meta.json")
 
+/**
+ * @typedef {{
+ *   sourceUrl?: string,
+ *   fetchedAt?: string,
+ *   sha256?: string,
+ *   etag?: string | null,
+ *   lastModified?: string | null,
+ *   latestFile?: string,
+ *   historyFile?: string,
+ *   previousSha256?: string | null,
+ *   changed?: boolean,
+ *   lastCheckStatus?: number,
+ * }} ExcalidrawAutomateMirrorMetadata
+ */
+
+/**
+ * @param {string} path
+ * @returns {Promise<boolean>}
+ */
 const fileExists = async (path) => {
   try {
     await access(path, constants.F_OK)
@@ -21,10 +40,17 @@ const fileExists = async (path) => {
   }
 }
 
+/**
+ * @param {string} content
+ * @returns {string}
+ */
 const computeSha256 = (content) => {
   return createHash("sha256").update(content).digest("hex")
 }
 
+/**
+ * @returns {Promise<ExcalidrawAutomateMirrorMetadata | null>}
+ */
 const readMetadata = async () => {
   if (!(await fileExists(metadataPath))) {
     return null
@@ -38,8 +64,16 @@ const readMetadata = async () => {
   }
 }
 
+/**
+ * @param {string} content
+ * @returns {string}
+ */
 const normalizeMarkdown = (content) => content.replace(/\r\n/g, "\n")
 
+/**
+ * @param {ExcalidrawAutomateMirrorMetadata | null} metadata
+ * @returns {Promise<string | null>}
+ */
 const readPreviousHistoryFile = async (metadata) => {
   if (!metadata?.historyFile) {
     return null
@@ -62,6 +96,7 @@ const sync = async () => {
 
   const previousMetadata = await readMetadata()
 
+  /** @type {Record<string, string>} */
   const requestHeaders = {
     "user-agent": "obsidian-excalidraw-layer-manager/docs-sync",
   }
@@ -145,8 +180,9 @@ const sync = async () => {
   if (previousContent !== null) {
     const previousLines = normalizeMarkdown(previousContent).split("\n").length
     const nextLines = normalizedContent.split("\n").length
+    const previousHistoryFile = previousMetadata?.historyFile ?? "unknown"
     console.log(
-      `[docs:ea] previousSnapshot=${previousMetadata.historyFile} (lines=${previousLines}) -> currentSnapshot=${historyFile} (lines=${nextLines})`,
+      `[docs:ea] previousSnapshot=${previousHistoryFile} (lines=${previousLines}) -> currentSnapshot=${historyFile} (lines=${nextLines})`,
     )
     console.log("[docs:ea] Diff tip: git diff -- docs/external/excalidraw")
   }

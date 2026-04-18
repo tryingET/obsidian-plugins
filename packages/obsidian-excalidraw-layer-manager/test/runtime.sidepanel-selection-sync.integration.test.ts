@@ -466,7 +466,7 @@ describe("sidepanel selection-sync integration", () => {
     }
   })
 
-  it("rebinds view context before Ctrl+Space row-toggle selection bridge when host requires setView", async () => {
+  it("rebinds view context before Ctrl+Space keyboard selection bridge when host requires setView", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
       [
@@ -484,28 +484,14 @@ describe("sidepanel selection-sync integration", () => {
     runtime.setView.mockClear()
     runtime.clearViewBinding()
 
-    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    dispatchKeydown(contentRoot, "Space")
-    await flushAsync()
-
-    expect(getSelectedRows(getContentRoot(runtime.sidepanelTab.contentEl))).toHaveLength(1)
-    expect(runtime.setView).toHaveBeenCalled()
-
-    runtime.setView.mockClear()
-    runtime.clearViewBinding()
-
-    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    dispatchKeydown(contentRoot, "ArrowDown")
-    await flushAsync()
-
-    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
     dispatchKeydown(contentRoot, "Space", { ctrlKey: true })
     await flushAsync()
 
     const selectedIds = runtime.selectInView.mock.calls.at(-1)?.[0] as readonly string[] | undefined
 
-    expect([...(selectedIds ?? [])].sort()).toEqual(["A", "B"])
-    expect(getSelectedRows(getContentRoot(runtime.sidepanelTab.contentEl))).toHaveLength(2)
+    expect(selectedIds?.length ?? 0).toBe(1)
+    expect(getSelectedRows(getContentRoot(runtime.sidepanelTab.contentEl))).toHaveLength(1)
     expect(runtime.setView).toHaveBeenCalled()
   })
 

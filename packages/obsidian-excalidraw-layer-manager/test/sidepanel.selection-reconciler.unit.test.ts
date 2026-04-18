@@ -120,12 +120,12 @@ describe("sidepanel selection reconciler", () => {
     expect(result.clearSelectionOverride).toBe(false)
   })
 
-  it("prefers snapshot selection when live selection is unexpectedly empty", () => {
+  it("prefers snapshot selection when live selection is empty on a legacy host without a selection bridge", () => {
     const result = reconcileSelectedElementIds({
       snapshotSelection: ["a", "b"],
       selectionOverride: null,
       getViewSelectedElements: () => [],
-      hasSelectionBridge: true,
+      hasSelectionBridge: false,
       ensureHostViewContext: () => true,
     })
 
@@ -134,17 +134,17 @@ describe("sidepanel selection reconciler", () => {
     expect(result.clearSelectionOverride).toBe(false)
   })
 
-  it("clears stale override when live selection is empty but snapshot has newer ids", () => {
+  it("treats explicit empty live selection as authoritative when the host bridge is active and no local row override exists", () => {
     const result = reconcileSelectedElementIds({
       snapshotSelection: ["b"],
-      selectionOverride: ["a"],
+      selectionOverride: null,
       getViewSelectedElements: () => [],
       hasSelectionBridge: true,
       ensureHostViewContext: () => true,
     })
 
-    expect(result.source).toBe("snapshotPreferredOverEmptyLive")
-    expect(result.resolvedSelection).toEqual(["b"])
+    expect(result.source).toBe("liveDiffersFromSnapshot")
+    expect(result.resolvedSelection).toEqual([])
     expect(result.clearSelectionOverride).toBe(true)
   })
 

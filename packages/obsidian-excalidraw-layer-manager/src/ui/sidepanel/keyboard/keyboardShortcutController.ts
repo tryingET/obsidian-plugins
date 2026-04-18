@@ -503,7 +503,17 @@ export class SidepanelKeyboardShortcutController {
   }
 
   private resolveCurrentSelectionNodes(context: KeyboardShortcutContext): readonly LayerNode[] {
-    return context.explicitSelectedNodes ?? context.selection.nodes
+    const currentSelectionNodes = context.explicitSelectedNodes ?? context.selection.nodes
+    if (currentSelectionNodes.length > 0) {
+      return currentSelectionNodes
+    }
+
+    if (!context.anchorNodeId) {
+      return currentSelectionNodes
+    }
+
+    const anchorNode = context.nodeById.get(context.anchorNodeId)
+    return anchorNode ? [anchorNode] : currentSelectionNodes
   }
 
   private applyResolvedRowSelection(

@@ -9,6 +9,11 @@ import { MANUAL_RELOAD_CHECKLIST, syncBundleToVault } from "./sync-to-vault.mjs"
 
 const scriptPath = fileURLToPath(import.meta.url)
 
+/**
+ * @param {unknown} condition
+ * @param {string} message
+ * @returns {void}
+ */
 const assert = (condition, message) => {
   if (!condition) {
     throw new Error(`[deploy-verify] ${message}`)
@@ -52,7 +57,12 @@ export const verifyDeploymentWorkflow = async () => {
       "expected rollback command to use the portable Node copy helper",
     )
 
-    const backupText = await readFile(receipt.backupPath, "utf8")
+    const backupPath = receipt.backupPath
+    if (backupPath === null) {
+      throw new Error("[deploy-verify] expected verification to preserve a readable backup path")
+    }
+
+    const backupText = await readFile(backupPath, "utf8")
     assert(
       backupText === previousBundle,
       "backup bundle did not preserve the previous target contents",

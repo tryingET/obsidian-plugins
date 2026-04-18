@@ -15,7 +15,10 @@ const makeCanonicalTargetParentPathKey = (
   targetFrameId: string | null,
   targetParentPath: readonly string[],
 ): string => {
-  return `${targetFrameId ?? "null"}:${targetParentPath.join("/")}`
+  return JSON.stringify({
+    targetFrameId,
+    targetParentPath: [...targetParentPath],
+  })
 }
 
 export const collectCanonicalTargetParentPathKeys = (

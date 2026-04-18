@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest"
 
-import { validateNoDescendantCycle, validateReparentInvariants } from "../src/domain/invariants.js"
+import {
+  collectCanonicalTargetParentPathKeys,
+  validateNoDescendantCycle,
+  validateReparentInvariants,
+} from "../src/domain/invariants.js"
 
 describe("validateReparentInvariants", () => {
   it("rejects cross-frame moves", () => {
@@ -51,7 +55,10 @@ describe("validateReparentInvariants", () => {
       targetFrameId: "frame-1",
       sourceGroupId: null,
       targetParentPath: ["missing"],
-      canonicalTargetParentPathKeys: new Set(["null:", "frame-1:"]),
+      canonicalTargetParentPathKeys: new Set([
+        JSON.stringify({ targetFrameId: null, targetParentPath: [] }),
+        JSON.stringify({ targetFrameId: "frame-1", targetParentPath: [] }),
+      ]),
     })
 
     expect(result.ok).toBe(false)
@@ -66,10 +73,68 @@ describe("validateReparentInvariants", () => {
       targetFrameId: "frame-1",
       sourceGroupId: "group-1",
       targetParentPath: ["group-2"],
-      canonicalTargetParentPathKeys: new Set(["null:", "frame-1:", "frame-1:group-2"]),
+      canonicalTargetParentPathKeys: new Set([
+        JSON.stringify({ targetFrameId: null, targetParentPath: [] }),
+        JSON.stringify({ targetFrameId: "frame-1", targetParentPath: [] }),
+        JSON.stringify({ targetFrameId: "frame-1", targetParentPath: ["group-2"] }),
+      ]),
     })
 
     expect(result.ok).toBe(true)
+  })
+
+  it("distinguishes slash-bearing group ids from nested parent paths in canonical validation", () => {
+    const result = validateReparentInvariants({
+      sourceFrameId: "frame-1",
+      targetFrameId: "frame-1",
+      sourceGroupId: null,
+      targetParentPath: ["Foo", "Bar"],
+      canonicalTargetParentPathKeys: new Set([
+        JSON.stringify({ targetFrameId: "frame-1", targetParentPath: ["Foo/Bar"] }),
+      ]),
+    })
+
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error).toContain("stale")
+    }
+  })
+
+  it("does not fabricate a child group path for group rows with a blank groupId", () => {
+    const keys = collectCanonicalTargetParentPathKeys([
+      {
+        id: "group:blank",
+        type: "group" as const,
+        groupId: null,
+        frameId: "frame-1",
+        label: "blank",
+        elementIds: [],
+        primaryElementId: "blank",
+        canExpand: true,
+        isExpanded: true,
+        children: [
+          {
+            id: "el:child",
+            type: "element" as const,
+            groupId: null,
+            frameId: "frame-1",
+            label: "child",
+            elementIds: ["child"],
+            primaryElementId: "child",
+            canExpand: false,
+            isExpanded: false,
+            children: [],
+          },
+        ],
+      },
+    ])
+
+    expect(keys).toEqual(
+      new Set([
+        JSON.stringify({ targetFrameId: null, targetParentPath: [] }),
+        JSON.stringify({ targetFrameId: "frame-1", targetParentPath: [] }),
+      ]),
+    )
   })
 
   it("rejects moving a group into its own descendant (ancestor-descendant cycle)", () => {

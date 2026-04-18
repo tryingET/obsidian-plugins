@@ -21,7 +21,10 @@ const normalizeGroupLabel = (seed: string): string => {
 }
 
 const normalizeGroupSeed = (seed: string): string => {
-  const compact = normalizeGroupLabel(seed).replaceAll(/\s+/g, "-")
+  const compact = normalizeGroupLabel(seed)
+    .replaceAll(/[\\/]+/g, " ")
+    .trim()
+    .replaceAll(/\s+/g, "-")
   return compact.length > 0 ? compact : "Group"
 }
 

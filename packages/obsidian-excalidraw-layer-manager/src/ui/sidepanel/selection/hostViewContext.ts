@@ -890,7 +890,3 @@ export const ensureHostViewContextState = (
     rebound: false,
   }
 }
-
-export const ensureHostViewContext = (host: SidepanelHostViewContextHost): boolean => {
-  return ensureHostViewContextState(host).ok
-}
