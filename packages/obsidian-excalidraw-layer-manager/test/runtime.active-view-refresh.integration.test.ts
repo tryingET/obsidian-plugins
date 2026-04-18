@@ -641,6 +641,41 @@ describe("runtime active-view refresh", () => {
     expect(focusedRowLabel).not.toContain("Alpha")
   })
 
+  it("does not steal focus from the host drawing when a workspace-driven Excalidraw switch starts outside the sidepanel", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      {
+        "A.excalidraw": [
+          { id: "A", type: "rectangle", name: "Alpha", isDeleted: false },
+          { id: "B", type: "rectangle", name: "Beta", isDeleted: false },
+        ],
+        "B.excalidraw": [
+          { id: "C", type: "rectangle", name: "Gamma", isDeleted: false },
+          { id: "D", type: "rectangle", name: "Delta", isDeleted: false },
+        ],
+      },
+      "A.excalidraw",
+      {
+        requireSetViewForReadCalls: true,
+      },
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+
+    const outsideTarget = fakeDocument.createElement("button")
+    fakeDocument.activeElement = outsideTarget
+
+    runtime.switchWorkspaceToView("B.excalidraw")
+    runtime.emitWorkspaceEvent("active-leaf-change")
+    await flushAsync()
+
+    const contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Gamma")).toBeDefined()
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Delta")).toBeDefined()
+    expect(findFocusedInteractiveRow(contentRoot)).toBeUndefined()
+    expect(fakeDocument.activeElement).toBe(outsideTarget)
+  })
+
   it("treats active-leaf fallback binding changes as refresh-worthy even while the host stays unbound", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
@@ -1776,12 +1811,6 @@ describe("runtime active-view refresh", () => {
     expect(findInteractiveRowByLabel(contentRoot, "[element] Alpha")).toBeDefined()
     expect(findInteractiveRowByLabel(contentRoot, "[element] Beta")).toBeDefined()
     expect(getSelectedRows(contentRoot).length).toBeLessThanOrEqual(1)
-
-    const focusedRow = findFocusedInteractiveRow(contentRoot)
-    const focusedRowLabel = (focusedRow as (FakeDomElement & { ariaLabel?: string }) | undefined)
-      ?.ariaLabel
-
-    expect(focusedRowLabel).toBeDefined()
-    expect([focusedRowLabel]).toEqual(expect.arrayContaining([expect.stringMatching(/Alpha|Beta/)]))
+    expect(findFocusedInteractiveRow(contentRoot)).toBeUndefined()
   })
 })

@@ -2000,9 +2000,25 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.#focusOwnership.reset()
   }
 
-  private resetForHostViewContextChange(): void {
+  private shouldPreserveSidepanelFocusAcrossHostViewContextChange(): boolean {
+    const contentRoot = this.#contentRoot
+    if (!contentRoot) {
+      return false
+    }
+
+    const activeElement = contentRoot.ownerDocument.activeElement
+    return !!(activeElement && contentRoot.contains(activeElement as HTMLElement))
+  }
+
+  private resetForHostViewContextChange(preserveSidepanelFocus: boolean): void {
     this.resetForViewContextBoundary()
-    this.requestRowTreeAutofocus()
+
+    if (preserveSidepanelFocus) {
+      this.requestRowTreeAutofocus()
+      return
+    }
+
+    this.#focusOwnership.setShouldAutofocusContentRoot(false)
   }
 
   private resetForInactiveHostState(): void {
@@ -2018,7 +2034,8 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       return
     }
 
-    this.resetForHostViewContextChange()
+    const preserveSidepanelFocus = this.shouldPreserveSidepanelFocusAcrossHostViewContextChange()
+    this.resetForHostViewContextChange(preserveSidepanelFocus)
 
     this.debugInteraction("host view context changed", {
       previousSceneBindingRefreshKey: this.#lastRenderedSceneBinding.refreshKey,
@@ -2027,6 +2044,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       nextSceneBindingSource: sceneBinding.source,
       previousSceneBindingState: this.#lastRenderedSceneBinding.state,
       nextSceneBindingState: sceneBinding.state,
+      preserveSidepanelFocus,
       ...this.buildHostViewDebugPayload(),
     })
   }
