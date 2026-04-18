@@ -112,7 +112,6 @@ const createSidepanelMountStrategy = (input: {
       resolveOwnerDocument: () => contentEl.ownerDocument,
       attach: (contentRoot) => {
         if (!contentEl.contains(contentRoot)) {
-          contentEl.innerHTML = ""
           contentEl.appendChild(contentRoot)
         }
 
@@ -159,7 +158,7 @@ const createSidepanelMountStrategy = (input: {
   return null
 }
 
-export interface SidepanelMountManagerInput {
+interface SidepanelMountManagerInput {
   readonly host: SidepanelMountHostLike
   readonly title: string
   readonly notify: (message: string) => void

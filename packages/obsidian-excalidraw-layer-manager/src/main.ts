@@ -501,7 +501,9 @@ export const createLayerManagerRuntime = (
       }
     }
 
-    if (workspaceActiveFilePoll === null) {
+    const shouldArmPollingFallback = workspaceRefreshRefs.length === 0
+
+    if (shouldArmPollingFallback && workspaceActiveFilePoll === null) {
       workspaceActiveFilePoll = setInterval(() => {
         const previousBindingKey = activeSceneBindingKey
         const previousRefreshKey = hostContextSnapshot.sceneBinding.refreshKey
