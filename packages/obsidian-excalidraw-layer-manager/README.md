@@ -62,9 +62,12 @@ Layer Manager host switching now treats **scene-bound authority** as the source 
 
 The shortest read stack for that packet is:
 - `docs/project/current-vs-target.md`
+- `docs/project/2026-04-18-layer-manager-host-context-loop-root-cause-and-manual-verification-path.md`
 - `docs/project/2026-04-17-layer-manager-host-context-packet-closeout.md`
 - `docs/project/2026-04-17-layer-manager-host-context-fresh-context-implementation-note.md`
 - `docs/project/2026-04-16-layer-manager-manual-verification-matrix.md`
+
+Use the `2026-04-18` note when the question is specifically about markdown/sidepanel empty-leaf rebind churn, upstream `setView(...)` / active-file constraints, or the focused manual verification path after tasks `1596-1600`.
 
 ## AK direction (L3 package surface)
 

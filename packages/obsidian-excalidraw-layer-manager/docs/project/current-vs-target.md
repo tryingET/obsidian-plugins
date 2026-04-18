@@ -16,6 +16,7 @@ This note now compares:
   - `2026-04-16-problem-intent-layer-manager-host-context-authority-and-focus-routing.md`
   - `2026-04-16-rfc-layer-manager-host-context-authority-and-focus-routing.md`
 - against the **current packet status** after AK tasks `1570-1573` closed under umbrella `1569`
+- plus the **follow-on hardening** from AK tasks `1596-1598` documented under umbrella `1599`
 
 Use this as the shortest fresh-session answer to:
 - what changed
@@ -133,6 +134,23 @@ The truthful description is:
 - scene binding is the shared identity packet consumed by runtime, renderer, and host-selection mirroring
 - fallback paths only ask the coordinator to reconcile again or produce evidence
 
+## Post-closeout hardening that changed the fallback edge
+
+The main packet closed under `1569`, but follow-on tasks `1596-1598` tightened one still-important edge: repeated rebinding pressure when the shell survived a markdown / sidepanel / empty-leaf transition without a usable live `targetView`.
+
+Current truthful follow-on status:
+- `setView(...)` rebinding now preserves the host `this` binding instead of treating the host API like a detached free function
+- active-file truth now falls back to `activeLeaf.view.file` / `getFile()` when `workspace.getActiveFile()` is `null`
+- definite non-Excalidraw active-leaf states no longer authorize blind rebinding just because a shell or `.excalidraw` file hint survives
+- repeated unchanged failed `manual` / `poll` rebind attempts are now suppressed until host evidence actually changes
+
+This keeps the architectural story intact:
+- bounded rebinding remains a fallback
+- but it is now constrained tightly enough that it behaves like reconciliation rather than a standing retry loop
+
+For the focused root cause, upstream-host constraints, and operator run sheet, read:
+- `packages/obsidian-excalidraw-layer-manager/docs/project/2026-04-18-layer-manager-host-context-loop-root-cause-and-manual-verification-path.md`
+
 ## Verification packet to treat as current proof
 
 ### Automated
@@ -154,6 +172,7 @@ node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs docs/project -
 ```
 
 ### Manual
+- `packages/obsidian-excalidraw-layer-manager/docs/project/2026-04-18-layer-manager-host-context-loop-root-cause-and-manual-verification-path.md`
 - `packages/obsidian-excalidraw-layer-manager/docs/project/2026-04-16-layer-manager-manual-verification-matrix.md`
 
 ## Smallest truthful conclusion
