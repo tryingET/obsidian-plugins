@@ -71,7 +71,12 @@ const DEFAULT_AUTO_REBIND_SIGNALS = new Set<SidepanelHostPrimarySignal>([
 const resolveSceneApi = (
   host: SidepanelHostContextCoordinatorHost,
   observation: SidepanelHostViewObservation,
+  state: SidepanelHostContextShellState,
 ): unknown | null => {
+  if (state !== "live") {
+    return null
+  }
+
   if (observation.hasExplicitTargetViewProperty) {
     return resolveLiveExcalidrawApiFromTargetView(observation.targetView) ?? null
   }
@@ -113,7 +118,7 @@ const createSnapshot = (input: {
     hostEligible: description.hostEligible,
     shouldAttemptRebind: input.shouldAttemptRebind,
     canOwnKeyboardRouting: description.hostEligible,
-    sceneApi: resolveSceneApi(input.host, input.observation),
+    sceneApi: resolveSceneApi(input.host, input.observation, state),
     currentTargetView: input.observation.targetView,
     hasCachedTargetView: input.cachedTargetView !== null,
     cachedTargetViewIdentity: resolveTargetViewIdentity(input.cachedTargetView),

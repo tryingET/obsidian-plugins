@@ -24,6 +24,7 @@ export interface SidepanelHostViewContextDescription {
   readonly activeFilePath: string | null
   readonly activeWorkspaceLeafIdentity: string | null
   readonly activeWorkspaceViewType: string | null
+  readonly activeWorkspaceDefinitelyInactive: boolean
   readonly activeFileMetadataAvailable: boolean
   readonly activeFileExcalidrawPlugin: string | null
   readonly activeFileExcalidrawCapable: boolean | null
@@ -299,7 +300,9 @@ const normalizeFileLike = (file: unknown): unknown | null => {
   return path ? { path } : null
 }
 
-const resolveActiveWorkspaceLeaf = (workspace: WorkspaceLike | null): Record<string, unknown> | null => {
+const resolveActiveWorkspaceLeaf = (
+  workspace: WorkspaceLike | null,
+): Record<string, unknown> | null => {
   const workspaceRecord = workspace as
     | (WorkspaceLike & {
         activeLeaf?: unknown
@@ -330,7 +333,9 @@ const resolveActiveWorkspaceLeaf = (workspace: WorkspaceLike | null): Record<str
   return null
 }
 
-const resolveActiveWorkspaceLeafFile = (activeLeaf: Record<string, unknown> | null): unknown | null => {
+const resolveActiveWorkspaceLeafFile = (
+  activeLeaf: Record<string, unknown> | null,
+): unknown | null => {
   if (!activeLeaf) {
     return null
   }
@@ -393,7 +398,9 @@ const resolveActiveWorkspaceFile = (
   return resolveActiveWorkspaceLeafFile(activeLeaf)
 }
 
-const resolveActiveWorkspaceLeafIdentity = (activeLeaf: Record<string, unknown> | null): string | null => {
+const resolveActiveWorkspaceLeafIdentity = (
+  activeLeaf: Record<string, unknown> | null,
+): string | null => {
   if (!activeLeaf) {
     return null
   }
@@ -420,7 +427,9 @@ const resolveActiveWorkspaceLeafIdentity = (activeLeaf: Record<string, unknown> 
   return null
 }
 
-const resolveActiveWorkspaceViewType = (activeLeaf: Record<string, unknown> | null): string | null => {
+const resolveActiveWorkspaceViewType = (
+  activeLeaf: Record<string, unknown> | null,
+): string | null => {
   if (!activeLeaf) {
     return null
   }
@@ -482,6 +491,13 @@ const resolveHostViewContextDescription = (
   const effectiveExcalidrawCapable = activeFileMetadata.available
     ? activeFileExcalidrawCapable
     : targetViewExcalidrawCapable
+  const activeWorkspaceDefinitelyInactive = isDefinitelyInactiveActiveWorkspaceContext({
+    activeFilePath,
+    activeWorkspaceViewType,
+    activeFileMetadataAvailable: activeFileMetadata.available,
+    activeFileExcalidrawCapable,
+    targetViewFilePath: resolveTargetViewFilePath(targetView),
+  })
 
   return {
     hasTargetView: targetView !== null,
@@ -495,12 +511,15 @@ const resolveHostViewContextDescription = (
     activeFilePath,
     activeWorkspaceLeafIdentity,
     activeWorkspaceViewType,
+    activeWorkspaceDefinitelyInactive,
     activeFileMetadataAvailable: activeFileMetadata.available,
     activeFileExcalidrawPlugin: activeFileMetadata.value,
     activeFileExcalidrawCapable,
     hostEligible: legacyHostWithoutTargetViewProperty
       ? true
-      : targetViewUsable && (effectiveExcalidrawCapable ?? true),
+      : activeWorkspaceDefinitelyInactive
+        ? false
+        : targetViewUsable && (effectiveExcalidrawCapable ?? true),
     hasSetView: typeof host.setView === "function",
   }
 }
@@ -530,6 +549,18 @@ export const resolveHostViewContextShellStateFromObservation = (
 
   if (!observation.hasExplicitTargetViewProperty) {
     return "live"
+  }
+
+  if (
+    isDefinitelyInactiveActiveWorkspaceContext({
+      activeFilePath: description.activeFilePath,
+      activeWorkspaceViewType: description.activeWorkspaceViewType,
+      activeFileMetadataAvailable: description.activeFileMetadataAvailable,
+      activeFileExcalidrawCapable: description.activeFileExcalidrawCapable,
+      targetViewFilePath: description.targetViewFilePath,
+    })
+  ) {
+    return "inactive"
   }
 
   if (description.hostEligible) {
@@ -610,8 +641,9 @@ export const resolveHostViewContextKeyFromObservation = (
   }
 
   const { description } = observation
+  const state = resolveHostViewContextShellStateFromObservation(observation)
 
-  if (description.targetViewUsable) {
+  if (state === "live" && description.targetViewUsable) {
     return resolveTargetViewSceneKey(description)
   }
 
@@ -652,6 +684,38 @@ const renderViewBindStrategyLabel = (strategy: {
 const normalizeWorkspaceViewType = (value: string | null): string | null => {
   const normalized = value?.trim().toLowerCase() ?? null
   return normalized && normalized.length > 0 ? normalized : null
+}
+
+const isNeutralNonHostActiveWorkspaceViewType = (value: string | null): boolean => {
+  return normalizeWorkspaceViewType(value) === "sidepanel"
+}
+
+const isDefinitelyInactiveActiveWorkspaceContext = (input: {
+  readonly activeFilePath: string | null
+  readonly activeWorkspaceViewType: string | null
+  readonly activeFileMetadataAvailable: boolean
+  readonly activeFileExcalidrawCapable: boolean | null
+  readonly targetViewFilePath: string | null
+}): boolean => {
+  const normalizedViewType = normalizeWorkspaceViewType(input.activeWorkspaceViewType)
+
+  if (!input.activeFilePath || normalizedViewType === null) {
+    return false
+  }
+
+  if (normalizedViewType === "excalidraw") {
+    return false
+  }
+
+  if (isNeutralNonHostActiveWorkspaceViewType(normalizedViewType)) {
+    return false
+  }
+
+  if (input.activeFileMetadataAvailable) {
+    return input.activeFileExcalidrawCapable === false
+  }
+
+  return input.targetViewFilePath !== null && input.targetViewFilePath !== input.activeFilePath
 }
 
 const isDefinitelyNonRebindableActiveWorkspaceViewType = (value: string | null): boolean => {

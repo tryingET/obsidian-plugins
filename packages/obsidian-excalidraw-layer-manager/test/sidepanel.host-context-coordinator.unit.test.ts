@@ -395,7 +395,9 @@ describe("sidepanel host-context coordinator", () => {
       metadataCache: {
         getFileCache: (file: unknown) => {
           const path =
-            file && typeof file === "object" && typeof (file as { path?: unknown }).path === "string"
+            file &&
+            typeof file === "object" &&
+            typeof (file as { path?: unknown }).path === "string"
               ? ((file as { path: string }).path as string)
               : null
 
@@ -404,11 +406,12 @@ describe("sidepanel host-context coordinator", () => {
           }
 
           return {
-            frontmatter: resolveFixture(hostWorkspaceState).filePath === path
-              ? resolveFixture(hostWorkspaceState).frontmatter
-              : path === "A.excalidraw"
-                ? { "excalidraw-plugin": "parsed" }
-                : {},
+            frontmatter:
+              resolveFixture(hostWorkspaceState).filePath === path
+                ? resolveFixture(hostWorkspaceState).frontmatter
+                : path === "A.excalidraw"
+                  ? { "excalidraw-plugin": "parsed" }
+                  : {},
           }
         },
       },
@@ -451,10 +454,10 @@ describe("sidepanel host-context coordinator", () => {
       },
     }
 
-    let host: SidepanelHostContextCoordinatorHost & { targetView: unknown | null }
+    const host = {} as SidepanelHostContextCoordinatorHost & { targetView: unknown | null }
     const setView = vi.fn(() => host.targetView)
 
-    host = {
+    Object.assign(host, {
       app: hostApp,
       obsidian: {
         app: hostApp,
@@ -472,7 +475,7 @@ describe("sidepanel host-context coordinator", () => {
         app: staleTargetViewApp,
         excalidrawAPI: { name: "api:A.excalidraw" },
       },
-    }
+    })
 
     const coordinator = new SidepanelHostContextCoordinator(host)
     expect(coordinator.getSnapshot().state).toBe("live")
@@ -486,6 +489,97 @@ describe("sidepanel host-context coordinator", () => {
     expect(result.snapshot.activeFilePath).toBe("plain.md")
     expect(result.snapshot.activeLeafIdentity).toBe("plain.md:leaf")
     expect(result.snapshot.activeViewType).toBe("markdown")
+    expect(result.snapshot.shouldAttemptRebind).toBe(false)
+  })
+
+  it("treats markdown workspace truth as inactive even when metadata probing is unavailable and stale targetView stays usable", () => {
+    let hostWorkspaceState: "live" | "markdown" = "live"
+
+    const hostApp = {
+      workspace: {
+        getActiveFile: () => ({
+          path: hostWorkspaceState === "live" ? "A.excalidraw" : "plain.md",
+        }),
+        get activeLeaf() {
+          return hostWorkspaceState === "live"
+            ? {
+                id: "A.excalidraw:leaf",
+                view: {
+                  file: {
+                    path: "A.excalidraw",
+                  },
+                  getViewType: () => "excalidraw",
+                },
+              }
+            : {
+                id: "plain.md:leaf",
+                view: {
+                  file: {
+                    path: "plain.md",
+                  },
+                  getViewType: () => "markdown",
+                },
+              }
+        },
+      },
+    }
+
+    const staleTargetViewApp = {
+      workspace: {
+        getActiveFile: () => ({
+          path: "A.excalidraw",
+        }),
+        get activeLeaf() {
+          return {
+            id: "stale-excalidraw-leaf",
+            view: {
+              file: {
+                path: "A.excalidraw",
+              },
+              getViewType: () => "excalidraw",
+            },
+          }
+        },
+      },
+    }
+
+    const host = {} as SidepanelHostContextCoordinatorHost & { targetView: unknown | null }
+    const setView = vi.fn(() => host.targetView)
+
+    Object.assign(host, {
+      app: hostApp,
+      obsidian: {
+        app: hostApp,
+      },
+      setView,
+      targetView: {
+        id: "A.excalidraw:view",
+        _loaded: true,
+        file: {
+          path: "A.excalidraw",
+        },
+        leaf: {
+          id: "A.excalidraw:leaf",
+        },
+        app: staleTargetViewApp,
+        excalidrawAPI: { name: "api:A.excalidraw" },
+      },
+    })
+
+    const coordinator = new SidepanelHostContextCoordinator(host)
+    expect(coordinator.getSnapshot().state).toBe("live")
+
+    hostWorkspaceState = "markdown"
+    const result = coordinator.handleWorkspaceLeafChange()
+
+    expect(result.rebound).toBe(false)
+    expect(host.setView).not.toHaveBeenCalled()
+    expect(result.changed).toBe(true)
+    expect(result.snapshot.state).toBe("inactive")
+    expect(result.snapshot.hostEligible).toBe(false)
+    expect(result.snapshot.bindingKey).toContain("scene:active-leaf::file:plain.md")
+    expect(result.snapshot.targetViewIdentity).toBe("A.excalidraw:view")
+    expect(result.snapshot.targetViewUsable).toBe(true)
     expect(result.snapshot.shouldAttemptRebind).toBe(false)
   })
 

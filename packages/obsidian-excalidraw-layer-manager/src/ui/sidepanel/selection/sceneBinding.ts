@@ -39,6 +39,7 @@ export const resolveSceneRefFromObservation = (
 ): SidepanelSceneRef | null => {
   const { description } = observation
   const key = resolveHostViewContextKeyFromObservation(observation)
+  const state = resolveHostViewContextShellStateFromObservation(observation)
 
   if (!observation.hasExplicitTargetViewProperty) {
     return createSceneRef({
@@ -51,7 +52,7 @@ export const resolveSceneRefFromObservation = (
     })
   }
 
-  if (description.targetViewUsable) {
+  if (state === "live" && description.targetViewUsable) {
     return createSceneRef({
       source: "target-view",
       key,

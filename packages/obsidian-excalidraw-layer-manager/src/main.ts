@@ -286,9 +286,12 @@ export const createLayerManagerRuntime = (
   const renderSnapshot = (nextSnapshot: SceneSnapshot): void => {
     const elementIds = new Set(nextSnapshot.elements.map((element) => element.id))
 
-    const resolvedSelectedIds = selectedIdsHintFromOnChange
-      ? new Set([...selectedIdsHintFromOnChange].filter((id) => elementIds.has(id)))
-      : nextSnapshot.selectedIds
+    const resolvedSelectedIds =
+      hostContextSnapshot.state !== "live"
+        ? new Set<string>()
+        : selectedIdsHintFromOnChange
+          ? new Set([...selectedIdsHintFromOnChange].filter((id) => elementIds.has(id)))
+          : nextSnapshot.selectedIds
 
     snapshot = {
       ...nextSnapshot,

@@ -159,9 +159,9 @@ const SIDEPANEL_KEYBOARD_HINT_TEXT = [
   "Home/End bounds",
   "PgUp/PgDn page",
   "Shift+PgUp/PgDn extend page",
-  "Space/M/N select row",
-  "Ctrl/Cmd+Space/M/N toggle row",
-  "Shift+Space/M/N range rows",
+  "T select row",
+  "Alt+T toggle row",
+  "Shift+T add range to selection",
   "←/→ collapse/expand",
   "Enter rename",
   "Del delete",
@@ -435,7 +435,34 @@ const isSpaceLikeKey = (key: string): boolean => {
   return key === " " || key === "Space" || key === "Spacebar"
 }
 
+const isDocumentReroutableModifierSpaceShortcut = (event: KeyboardEvent): boolean => {
+  return (event.ctrlKey || event.metaKey) && !event.altKey && isSpaceLikeKey(event.key)
+}
+
+const isDocumentReroutableTSelectionShortcut = (event: KeyboardEvent): boolean => {
+  if (event.key.toLowerCase() !== "t" || event.ctrlKey || event.metaKey) {
+    return false
+  }
+
+  return event.shiftKey || event.altKey
+}
+
+const shouldClaimDocumentSpaceLikeEvent = (event: KeyboardEvent): boolean => {
+  if (event.altKey || !isSpaceLikeKey(event.key)) {
+    return false
+  }
+
+  return (!event.ctrlKey && !event.metaKey) || isDocumentReroutableModifierSpaceShortcut(event)
+}
+
 const isDocumentRoutingContinuationKey = (event: KeyboardEvent): boolean => {
+  if (
+    isDocumentReroutableModifierSpaceShortcut(event) ||
+    isDocumentReroutableTSelectionShortcut(event)
+  ) {
+    return true
+  }
+
   if (event.ctrlKey || event.metaKey || event.altKey) {
     return false
   }
@@ -518,7 +545,6 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   #keyboardContext: KeyboardShortcutContext | null = null
   #lastHandledContentKeydownEvent: KeyboardEvent | null = null
   #didPersistTab = false
-  #cachedTargetView: unknown | null = null
   #viewChangeBoundTab: SidepanelTabLike | null = null
   #previousTabViewChangeHandler: SidepanelTabViewChangeHandler | undefined
   #keyboardSuppressedUntilMs = 0
@@ -597,11 +623,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       return
     }
 
-    if (event.ctrlKey || event.metaKey || event.altKey) {
-      return
-    }
-
-    if (isTextInputTarget(event.target) || !isSpaceLikeKey(event.key)) {
+    if (isTextInputTarget(event.target) || !shouldClaimDocumentSpaceLikeEvent(event)) {
       return
     }
 
@@ -613,11 +635,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       return
     }
 
-    if (event.ctrlKey || event.metaKey || event.altKey) {
-      return
-    }
-
-    if (isTextInputTarget(event.target) || !isSpaceLikeKey(event.key)) {
+    if (isTextInputTarget(event.target) || !shouldClaimDocumentSpaceLikeEvent(event)) {
       return
     }
 
@@ -1713,6 +1731,14 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     readonly detail: string
     readonly hint: string
   } {
+    if (hostViewContext.activeWorkspaceDefinitelyInactive) {
+      return {
+        title: "Layer Manager inactive",
+        detail: "Active leaf is not Excalidraw.",
+        hint: "Focus an Excalidraw view to resume live Layer Manager interaction.",
+      }
+    }
+
     if (
       hostViewContext.activeFileMetadataAvailable &&
       hostViewContext.activeFileExcalidrawCapable === false

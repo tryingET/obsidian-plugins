@@ -166,7 +166,8 @@ The narrower 1608 packet is no longer an open architectural gap:
 - runtime workspace subscriptions and polling now bind to the canonical workspace app surface instead of preferring `targetView.app`
 - active workspace leaf/file/view-type truth is now observed independently from Excalidraw host authority inside `hostViewContext.ts`
 - shell truth is now derived by comparing workspace truth against `targetView` authority rather than letting stale `targetView` evidence answer the workspace question
-- regression coverage now proves markdown-only switches render `inactive` and stay inactive even when stale Excalidraw authority or scene noise remains nearby
+- markdown active-leaf truth now hard-vetoes stale live `targetView` authority even when metadata probing is unavailable in the host runtime
+- regression coverage now proves markdown-only switches render `inactive`, emit host-context signal evidence, and stay inactive even when stale Excalidraw authority or scene noise remains nearby
 
 That means a fresh session should currently describe LayerManager this way:
 - scene-bound live authority is landed

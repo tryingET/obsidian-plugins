@@ -60,8 +60,10 @@ Why this matters:
 The focused regression surface now proves that:
 - switching from Excalidraw to markdown renders the inactive shell
 - switching across multiple markdown-only notes stays inactive
+- markdown active-leaf truth still forces `inactive` when metadata probing is unavailable and a stale usable `targetView` survives nearby
 - stale scene-change noise does not repopulate the shell as if live authority survived
 - scene subscriptions do not churn just because workspace truth moved across markdown-only notes while a stale stable `targetView` still exists
+- recorder evidence now includes the markdown transition instead of silently collapsing to `events=0` under that stale-target + missing-metadata edge
 
 ### 4. Operator-facing docs now treat this as a closed packet
 README and `current-vs-target.md` now describe the markdown-only workspace-truth issue as:
@@ -112,6 +114,11 @@ npx vitest run \
   test/sidepanel.host-context-coordinator.unit.test.ts
 node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs docs/project --strict
 ```
+
+Real-host smoke check retained as a closure guard:
+- clear the recorder with `LMX_HOST_CONTEXT_TRACE_CLEAR?.()`
+- switch from a live Excalidraw leaf to a definite markdown note
+- confirm the recorder no longer stays at `events=0`; it should emit a `host-context signal reconciled` entry whose `nextState` is `inactive`
 
 ## Smallest durable conclusion
 The markdown-only workspace-truth packet is closed when LayerManager is described this way:

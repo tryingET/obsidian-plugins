@@ -177,7 +177,7 @@ describe("runtime scene-change subscription lifecycle", () => {
     expect(ea.getExcalidrawAPI as ReturnType<typeof vi.fn>).not.toHaveBeenCalled()
   })
 
-  it("keeps the current scene subscription while workspace switches across markdown-only notes under a stable targetView", async () => {
+  it("drops the stale scene subscription while workspace switches across markdown-only notes under a stable targetView", async () => {
     const elementsByView: Record<string, RawExcalidrawElement[]> = {
       "A.excalidraw": [{ id: "A", type: "rectangle", isDeleted: false }],
     }
@@ -291,18 +291,18 @@ describe("runtime scene-change subscription lifecycle", () => {
     await flushAsync()
 
     expect(subscribeCount).toBe(1)
-    expect(unsubscribeCount).toBe(0)
-    expect(listeners.size).toBe(1)
-    expect([...runtime.getSnapshot().selectedIds]).toEqual(["A"])
+    expect(unsubscribeCount).toBe(1)
+    expect(listeners.size).toBe(0)
+    expect([...runtime.getSnapshot().selectedIds]).toEqual([])
 
     workspaceActiveFilePath = "plain-b.md"
     runtime.refresh()
     await flushAsync()
 
     expect(subscribeCount).toBe(1)
-    expect(unsubscribeCount).toBe(0)
-    expect(listeners.size).toBe(1)
-    expect([...runtime.getSnapshot().selectedIds]).toEqual(["A"])
+    expect(unsubscribeCount).toBe(1)
+    expect(listeners.size).toBe(0)
+    expect([...runtime.getSnapshot().selectedIds]).toEqual([])
     expect(setView).not.toHaveBeenCalled()
   })
 

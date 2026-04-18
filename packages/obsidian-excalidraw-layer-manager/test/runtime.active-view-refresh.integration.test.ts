@@ -136,6 +136,7 @@ type TargetViewAppWorkspaceMode = "shared" | "no-events" | "none"
 interface MakeRuntimeWithSidepanelOptions {
   readonly disableWorkspaceEvents?: boolean
   readonly omitEaApp?: boolean
+  readonly omitMetadataCache?: boolean
   readonly requireSetViewForReadCalls?: boolean
   readonly requireSetViewForApiCalls?: boolean
   readonly targetViewAppWorkspaceMode?: TargetViewAppWorkspaceMode
@@ -258,7 +259,7 @@ const makeRuntimeWithSidepanel = (
   })
 
   const app = {
-    metadataCache,
+    ...(options.omitMetadataCache === true ? {} : { metadataCache }),
     workspace: createWorkspace(options.disableWorkspaceEvents !== true),
   }
 
@@ -267,10 +268,8 @@ const makeRuntimeWithSidepanel = (
     targetViewAppWorkspaceMode === "shared"
       ? app
       : {
-          metadataCache,
-          ...(targetViewAppWorkspaceMode === "none"
-            ? {}
-            : { workspace: createWorkspace(false) }),
+          ...(options.omitMetadataCache === true ? {} : { metadataCache }),
+          ...(targetViewAppWorkspaceMode === "none" ? {} : { workspace: createWorkspace(false) }),
         }
 
   const buildTargetViewForPath = (viewPath: string): Record<string, unknown> | null => {
@@ -1056,6 +1055,65 @@ describe("runtime active-view refresh", () => {
     contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
     expectInactiveSidepanelState(contentRoot, "Active leaf is not Excalidraw.")
     expect(findInteractiveRowByLabel(contentRoot, "[element] Alpha")).toBeUndefined()
+  })
+
+  it("marks markdown workspace switches inactive and records signal evidence even when metadata probing is unavailable", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      {
+        "A.excalidraw": [{ id: "A", type: "rectangle", name: "Alpha", isDeleted: false }],
+        "plain.md": {
+          elements: [],
+          frontmatter: {},
+          viewType: "markdown",
+        },
+      },
+      "A.excalidraw",
+      {
+        omitMetadataCache: true,
+        requireSetViewForReadCalls: true,
+      },
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+    const setView = runtime.ea.setView as ReturnType<typeof vi.fn>
+    setView.mockClear()
+
+    const traceRead = globalRecord["LMX_HOST_CONTEXT_TRACE_READ"] as
+      | (() => readonly {
+          readonly category: string
+          readonly message: string
+          readonly payload: Record<string, unknown> | null
+        }[])
+      | undefined
+    const traceClear = globalRecord["LMX_HOST_CONTEXT_TRACE_CLEAR"] as (() => void) | undefined
+
+    traceClear?.()
+
+    runtime.switchWorkspaceToView("plain.md")
+    runtime.emitWorkspaceEvent("file-open")
+    await flushAsync()
+
+    const contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    expectInactiveSidepanelState(contentRoot, "Active leaf is not Excalidraw.")
+    expect(setView).not.toHaveBeenCalled()
+
+    const signalEvent = traceRead?.().find(
+      (event) => event.category === "signal" && event.message === "host-context signal reconciled",
+    )
+
+    expect(signalEvent?.payload).toEqual(
+      expect.objectContaining({
+        source: "workspace:file-open",
+        scheduledRefresh: true,
+        previousState: "live",
+        nextState: "inactive",
+        sceneRefSource: "active-leaf",
+        activeFilePath: "plain.md",
+        activeViewType: "markdown",
+        targetViewFilePath: "A.excalidraw",
+      }),
+    )
   })
 
   it("stays inactive across markdown-only workspace note switches while stale Excalidraw authority remains bound", async () => {
