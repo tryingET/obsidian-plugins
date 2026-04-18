@@ -1406,7 +1406,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     await flushAsync()
 
     contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    dispatchKeydown(contentRoot, "t", { altKey: true })
+    dispatchKeydown(contentRoot, "†", { altKey: true, code: "KeyT" })
     await flushAsync()
 
     lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
@@ -1432,7 +1432,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect([...(selectedIds ?? [])].sort()).toEqual(["A", "B", "C"])
   })
 
-  it("reroutes Alt+T toggle selection through document keyboard continuity after outside blur", async () => {
+  it("reroutes Alt+KeyT toggle selection through document keyboard continuity after outside blur even when the key value is remapped", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
       [
@@ -1463,8 +1463,9 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     contentRoot.dispatchEvent(focusOutEvent)
     await flushAsync()
 
-    dispatchDocumentKeydown(fakeDocument, "t", {
+    dispatchDocumentKeydown(fakeDocument, "†", {
       altKey: true,
+      code: "KeyT",
       eventTarget: outsideTarget,
     })
     await flushAsync()

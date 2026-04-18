@@ -45,10 +45,12 @@ const makeKeyboardEvent = (
     readonly ctrlKey?: boolean
     readonly metaKey?: boolean
     readonly altKey?: boolean
+    readonly code?: string
   },
 ): KeyboardEvent => {
   return {
     key,
+    code: options?.code ?? "",
     shiftKey: options?.shiftKey ?? false,
     ctrlKey: options?.ctrlKey ?? false,
     metaKey: options?.metaKey ?? false,
@@ -973,7 +975,7 @@ describe("sidepanel keyboard shortcut controller", () => {
     expect(requestRenderFromLatestModel).toHaveBeenCalledTimes(1)
   })
 
-  it("treats Alt+T as the same toggle-selection modifier shortcut", () => {
+  it("treats Alt+KeyT as the same toggle-selection modifier shortcut even when the key value is remapped", () => {
     const selectedNode = makeNode("el:A", "Alpha")
     const focusedNode = makeNode("el:B", "Beta")
     const applyResolvedRowSelection =
@@ -1030,7 +1032,7 @@ describe("sidepanel keyboard shortcut controller", () => {
       requestRenderFromLatestModel: () => {},
     })
 
-    controller.handleContentKeydown(makeKeyboardEvent("t", { altKey: true }))
+    controller.handleContentKeydown(makeKeyboardEvent("†", { altKey: true, code: "KeyT" }))
 
     expect(applyResolvedRowSelection).toHaveBeenCalledWith({
       source: "keyboardModifierToggle",

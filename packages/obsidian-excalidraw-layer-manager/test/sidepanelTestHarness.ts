@@ -2,6 +2,7 @@ import { vi } from "vitest"
 
 export interface FakeDomEventInit {
   key?: string
+  code?: string
   ctrlKey?: boolean
   metaKey?: boolean
   altKey?: boolean
@@ -11,6 +12,7 @@ export interface FakeDomEventInit {
 export class FakeDomEvent {
   readonly type: string
   readonly key: string
+  readonly code: string
   readonly ctrlKey: boolean
   readonly metaKey: boolean
   readonly altKey: boolean
@@ -22,6 +24,7 @@ export class FakeDomEvent {
   constructor(type: string, init: FakeDomEventInit = {}) {
     this.type = type
     this.key = init.key ?? ""
+    this.code = init.code ?? ""
     this.ctrlKey = init.ctrlKey ?? false
     this.metaKey = init.metaKey ?? false
     this.altKey = init.altKey ?? false
@@ -562,6 +565,7 @@ export interface DispatchKeydownOptions {
   metaKey?: boolean
   altKey?: boolean
   shiftKey?: boolean
+  code?: string
   eventTarget?: FakeDomElement
 }
 
@@ -576,6 +580,10 @@ export const dispatchKeydown = (
 ): void => {
   const init: FakeDomEventInit = {
     key,
+  }
+
+  if (options.code !== undefined) {
+    init.code = options.code
   }
 
   if (options.ctrlKey !== undefined) {

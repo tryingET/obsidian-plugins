@@ -49,6 +49,14 @@ const claimHandledKeyboardEvent = (event: KeyboardEvent): void => {
   ;(event as KeyboardEvent & { stopImmediatePropagation?: () => void }).stopImmediatePropagation?.()
 }
 
+const normalizeKeyboardKey = (key: string): string => {
+  return key.length === 1 ? key.toLowerCase() : key
+}
+
+const isKeyTShortcut = (event: KeyboardEvent): boolean => {
+  return normalizeKeyboardKey(event.key) === "t" || event.code === "KeyT"
+}
+
 interface SidepanelKeyboardShortcutControllerHost {
   getKeyboardContext: () => KeyboardShortcutContext | null
   resolveKeyboardContext: (context: KeyboardShortcutContext) => KeyboardShortcutContext
@@ -131,10 +139,10 @@ export class SidepanelKeyboardShortcutController {
       return
     }
 
-    const normalizedKey = event.key.length === 1 ? event.key.toLowerCase() : event.key
+    const normalizedKey = normalizeKeyboardKey(event.key)
     const isSpaceSelectionAliasKey =
       event.key === " " || event.key === "Space" || event.key === "Spacebar"
-    const isTSelectionAliasKey = normalizedKey === "t"
+    const isTSelectionAliasKey = isKeyTShortcut(event)
     const isSelectionAliasKey =
       isSpaceSelectionAliasKey ||
       isTSelectionAliasKey ||
