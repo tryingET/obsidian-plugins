@@ -177,7 +177,7 @@ describe("runtime scene-change subscription lifecycle", () => {
     expect(ea.getExcalidrawAPI as ReturnType<typeof vi.fn>).not.toHaveBeenCalled()
   })
 
-  it("keeps the current scene subscription when workspace active-file eligibility changes under a stable targetView", async () => {
+  it("keeps the current scene subscription while workspace switches across markdown-only notes under a stable targetView", async () => {
     const elementsByView: Record<string, RawExcalidrawElement[]> = {
       "A.excalidraw": [{ id: "A", type: "rectangle", isDeleted: false }],
     }
@@ -204,7 +204,7 @@ describe("runtime scene-change subscription lifecycle", () => {
             }
           }
 
-          if (path === "plain.md") {
+          if (path === "plain-a.md" || path === "plain-b.md") {
             return {
               frontmatter: {},
             }
@@ -286,7 +286,16 @@ describe("runtime scene-change subscription lifecycle", () => {
     await flushAsync()
     expect([...runtime.getSnapshot().selectedIds]).toEqual(["A"])
 
-    workspaceActiveFilePath = "plain.md"
+    workspaceActiveFilePath = "plain-a.md"
+    runtime.refresh()
+    await flushAsync()
+
+    expect(subscribeCount).toBe(1)
+    expect(unsubscribeCount).toBe(0)
+    expect(listeners.size).toBe(1)
+    expect([...runtime.getSnapshot().selectedIds]).toEqual(["A"])
+
+    workspaceActiveFilePath = "plain-b.md"
     runtime.refresh()
     await flushAsync()
 

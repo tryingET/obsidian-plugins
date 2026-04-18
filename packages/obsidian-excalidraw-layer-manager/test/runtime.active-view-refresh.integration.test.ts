@@ -1028,6 +1028,7 @@ describe("runtime active-view refresh", () => {
         "plain.md": {
           elements: [],
           frontmatter: {},
+          viewType: "markdown",
         },
       },
       "A.excalidraw",
@@ -1044,6 +1045,74 @@ describe("runtime active-view refresh", () => {
 
     let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
     expectInactiveSidepanelState(contentRoot, "Active leaf is not Excalidraw.")
+
+    runtime.emitSceneChange({
+      selectedElementIds: {
+        A: true,
+      },
+    })
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    expectInactiveSidepanelState(contentRoot, "Active leaf is not Excalidraw.")
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Alpha")).toBeUndefined()
+  })
+
+  it("stays inactive across markdown-only workspace note switches while stale Excalidraw authority remains bound", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      {
+        "A.excalidraw": [{ id: "A", type: "rectangle", name: "Alpha", isDeleted: false }],
+        "plain-a.md": {
+          elements: [],
+          frontmatter: {},
+          viewType: "markdown",
+        },
+        "plain-b.md": {
+          elements: [],
+          frontmatter: {},
+          viewType: "markdown",
+        },
+      },
+      "A.excalidraw",
+      {
+        requireSetViewForReadCalls: true,
+      },
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+    const setView = runtime.ea.setView as ReturnType<typeof vi.fn>
+    setView.mockClear()
+
+    runtime.switchWorkspaceToView("plain-a.md")
+    runtime.emitWorkspaceEvent("file-open")
+    await flushAsync()
+
+    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    expectInactiveSidepanelState(contentRoot, "Active leaf is not Excalidraw.")
+    expect(setView).not.toHaveBeenCalled()
+    expect(runtime.ea.targetView).toEqual(
+      expect.objectContaining({
+        file: expect.objectContaining({
+          path: "A.excalidraw",
+        }),
+      }),
+    )
+
+    runtime.switchWorkspaceToView("plain-b.md")
+    runtime.emitWorkspaceEvent("active-leaf-change")
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    expectInactiveSidepanelState(contentRoot, "Active leaf is not Excalidraw.")
+    expect(setView).not.toHaveBeenCalled()
+    expect(runtime.ea.targetView).toEqual(
+      expect.objectContaining({
+        file: expect.objectContaining({
+          path: "A.excalidraw",
+        }),
+      }),
+    )
 
     runtime.emitSceneChange({
       selectedElementIds: {
