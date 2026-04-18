@@ -16,3 +16,4 @@ Planned scope:
 - vault/workspace helpers
 - Excalidraw / PDF++ / CLI / URI integration helpers
 - shared host-facing UI patterns
+- shared debug utilities for host/runtime instrumentation
