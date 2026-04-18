@@ -16,7 +16,7 @@ import { ConsoleRenderer, type LayerManagerRenderer } from "./ui/renderer.js"
 import {
   clearKeyEventTrace,
   installKeyEventFlightRecorderGlobals,
-} from "./ui/sidepanel/keyboard/keyEventFlightRecorder.js"
+} from "./ui/sidepanel/keyboard/layerManagerKeyboardEventFlightRecorder.js"
 import {
   type SidepanelHostPrimarySignal,
   createSidepanelHostContextCoordinator,

@@ -3,6 +3,7 @@ import {
   createGlobalKeyboardEventFlightRecorder,
 } from "obsidian-plugin-kit/debug/keyboard-event-flight-recorder"
 
+/** LayerManager-specific adapter around the shared plugin-kit keyboard trace utility. */
 export const KEY_EVENT_DEBUG_FLAG = "LMX_DEBUG_KEY_CAPTURE"
 
 const recorder = createGlobalKeyboardEventFlightRecorder({

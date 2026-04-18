@@ -15,12 +15,12 @@ import {
   SidepanelDragDropController,
 } from "./sidepanel/dragdrop/dragDropController.js"
 import { SidepanelFocusOwnershipCoordinator } from "./sidepanel/focus/focusOwnershipCoordinator.js"
-import { traceKeyboardEventIfRelevant } from "./sidepanel/keyboard/keyEventFlightRecorder.js"
 import {
   type KeyboardShortcutContext,
   type RowSelectionGesture,
   SidepanelKeyboardShortcutController,
 } from "./sidepanel/keyboard/keyboardShortcutController.js"
+import { traceKeyboardEventIfRelevant } from "./sidepanel/keyboard/layerManagerKeyboardEventFlightRecorder.js"
 import {
   type SidepanelMountHostLike,
   SidepanelMountManager,

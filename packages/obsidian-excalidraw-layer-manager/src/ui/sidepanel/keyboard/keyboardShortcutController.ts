@@ -8,7 +8,7 @@ import {
   resolveExplicitSelectionNodeIds,
   resolveFocusedNodeStructuralMove,
 } from "../selection/structuralMoveSelection.js"
-import { traceKeyboardEventIfRelevant } from "./keyEventFlightRecorder.js"
+import { traceKeyboardEventIfRelevant } from "./layerManagerKeyboardEventFlightRecorder.js"
 
 export interface KeyboardShortcutContext {
   readonly actions: LayerManagerUiActions
