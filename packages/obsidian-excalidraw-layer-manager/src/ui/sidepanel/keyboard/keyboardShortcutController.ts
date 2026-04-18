@@ -60,10 +60,6 @@ const isSpaceShortcutEvent = (event: KeyboardEvent): boolean => {
   )
 }
 
-const isKeyTShortcut = (event: KeyboardEvent): boolean => {
-  return normalizeKeyboardKey(event.key) === "t" || event.code === "KeyT"
-}
-
 interface SidepanelKeyboardShortcutControllerHost {
   getKeyboardContext: () => KeyboardShortcutContext | null
   resolveKeyboardContext: (context: KeyboardShortcutContext) => KeyboardShortcutContext
@@ -111,10 +107,6 @@ interface SidepanelKeyboardShortcutControllerHost {
 
 export class SidepanelKeyboardShortcutController {
   readonly #host: SidepanelKeyboardShortcutControllerHost
-  #lastHandledSelectionAliasKeydown: {
-    readonly signature: string
-    readonly atMs: number
-  } | null = null
 
   constructor(host: SidepanelKeyboardShortcutControllerHost) {
     this.#host = host
@@ -166,29 +158,20 @@ export class SidepanelKeyboardShortcutController {
 
     const normalizedKey = normalizeKeyboardKey(event.key)
     const isSpaceSelectionAliasKey = isSpaceShortcutEvent(event)
-    const isTSelectionAliasKey = isKeyTShortcut(event)
     const isSelectionAliasKey =
-      isSpaceSelectionAliasKey ||
-      isTSelectionAliasKey ||
-      normalizedKey === "n" ||
-      normalizedKey === "m"
+      isSpaceSelectionAliasKey || normalizedKey === "n" || normalizedKey === "m"
     const isCtrlMetaToggleAliasKey =
       isSpaceSelectionAliasKey || normalizedKey === "n" || normalizedKey === "m"
     const hasToggleModifier = event.ctrlKey || event.metaKey
-    const isShiftTRangeToggleShortcut = isTSelectionAliasKey && event.shiftKey && !hasToggleModifier
-    const isAltTToggleShortcut =
-      isTSelectionAliasKey && event.altKey && !event.shiftKey && !event.ctrlKey && !event.metaKey
-    const isCtrlAltTToggleShortcut =
-      isTSelectionAliasKey && event.altKey && event.ctrlKey && !event.shiftKey && !event.metaKey
 
-    if (event.altKey && !isAltTToggleShortcut && !isCtrlAltTToggleShortcut) {
+    if (event.altKey) {
       traceKeyboardEventIfRelevant("controller:keydown-ignored", event, {
         reason: "altShortcutNotAuthorized",
       })
       return
     }
 
-    if (hasToggleModifier && !isCtrlMetaToggleAliasKey && !isCtrlAltTToggleShortcut) {
+    if (hasToggleModifier && !isCtrlMetaToggleAliasKey) {
       traceKeyboardEventIfRelevant("controller:keydown-ignored", event, {
         reason: "modifierShortcutNotAuthorized",
       })
@@ -270,23 +253,17 @@ export class SidepanelKeyboardShortcutController {
     }
 
     if (isSelectionAliasKey) {
-      this.noteSelectionAliasKeydown(event)
       this.#host.suppressTransientFocusOut()
       claimHandledKeyboardEvent(event)
-      if (isShiftTRangeToggleShortcut) {
+      if (event.shiftKey) {
         traceKeyboardEventIfRelevant("controller:selection-alias", event, {
           action: "rangeAdd",
         })
-        this.selectVisibleRangeToFocusedNode(context, true)
-      } else if (isAltTToggleShortcut || isCtrlAltTToggleShortcut) {
-        traceKeyboardEventIfRelevant("controller:selection-alias", event, {
-          action: "toggleFocusedNodeSelection",
-          ctrlAltFallback: isCtrlAltTToggleShortcut,
-        })
-        this.toggleFocusedNodeSelection(context)
-      } else if (event.shiftKey) {
         this.selectVisibleRangeToFocusedNode(context, hasToggleModifier)
       } else if (hasToggleModifier) {
+        traceKeyboardEventIfRelevant("controller:selection-alias", event, {
+          action: "toggleFocusedNodeSelection",
+        })
         this.toggleFocusedNodeSelection(context)
       } else {
         this.selectFocusedNodeLikePlainClick(context)
@@ -349,43 +326,6 @@ export class SidepanelKeyboardShortcutController {
         "Keyboard ungroup-like failed",
       )
     }
-  }
-
-  handleDocumentKeyupFallback(event: KeyboardEvent): boolean {
-    if (this.#host.isTextInputTarget(event.target) || this.#host.isKeyboardSuppressed()) {
-      return false
-    }
-
-    const isAltKeyupToggleShortcut =
-      isKeyTShortcut(event) && event.altKey && !event.shiftKey && !event.metaKey
-    if (!isAltKeyupToggleShortcut) {
-      return false
-    }
-
-    const baseContext = this.#host.getKeyboardContext()
-    if (!baseContext) {
-      traceKeyboardEventIfRelevant("controller:keyup-fallback-ignored", event, {
-        reason: "keyboardContextUnavailable",
-      })
-      return false
-    }
-
-    if (this.wasMatchingSelectionAliasKeydownRecentlyHandled(event)) {
-      traceKeyboardEventIfRelevant("controller:keyup-fallback-ignored", event, {
-        reason: "matchingKeydownAlreadyHandled",
-      })
-      return false
-    }
-
-    const context = this.#host.resolveKeyboardContext(baseContext)
-    this.#host.suppressTransientFocusOut()
-    claimHandledKeyboardEvent(event)
-    traceKeyboardEventIfRelevant("controller:selection-alias-keyup-fallback", event, {
-      action: "toggleFocusedNodeSelection",
-      ctrlAltFallback: event.ctrlKey,
-    })
-    this.toggleFocusedNodeSelection(context)
-    return true
   }
 
   handleContentFocusOut(event: FocusEvent, contentRoot: HTMLElement | null): void {
@@ -548,36 +488,6 @@ export class SidepanelKeyboardShortcutController {
     }
 
     return Math.max(1, Math.floor(Math.max(1, context.visibleNodes.length) / 2))
-  }
-
-  private buildSelectionAliasSignature(event: KeyboardEvent): string {
-    return [
-      event.code || normalizeKeyboardKey(event.key),
-      event.altKey ? "alt" : "no-alt",
-      event.ctrlKey ? "ctrl" : "no-ctrl",
-      event.metaKey ? "meta" : "no-meta",
-      event.shiftKey ? "shift" : "no-shift",
-    ].join("|")
-  }
-
-  private noteSelectionAliasKeydown(event: KeyboardEvent): void {
-    this.#lastHandledSelectionAliasKeydown = {
-      signature: this.buildSelectionAliasSignature(event),
-      atMs: Date.now(),
-    }
-  }
-
-  private wasMatchingSelectionAliasKeydownRecentlyHandled(event: KeyboardEvent): boolean {
-    const previous = this.#lastHandledSelectionAliasKeydown
-    if (!previous) {
-      return false
-    }
-
-    if (previous.signature !== this.buildSelectionAliasSignature(event)) {
-      return false
-    }
-
-    return Date.now() - previous.atMs <= 750
   }
 
   private resolveFocusedNodeForSelectionGesture(

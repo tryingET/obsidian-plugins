@@ -1315,7 +1315,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect(groupC).toEqual(groupA)
   })
 
-  it("supports keyboard-only replace-and-range selection with T alias semantics", async () => {
+  it("does not treat T as a selection shortcut anymore", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
       [
@@ -1328,109 +1328,11 @@ describe("sidepanel keyboard + lifecycle parity", () => {
 
     createLayerManagerRuntime(runtime.ea)
 
-    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
     dispatchKeydown(contentRoot, "t")
     await flushAsync()
 
-    let lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
-    let selectedIds = runtime.selectInView.mock.calls[lastSelectCallIndex]?.[0] as
-      | readonly string[]
-      | undefined
-
-    expect(selectedIds).toEqual(["A"])
-
-    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    dispatchKeydown(contentRoot, "ArrowDown")
-    await flushAsync()
-
-    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    dispatchKeydown(contentRoot, "ArrowDown")
-    await flushAsync()
-
-    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    dispatchKeydown(contentRoot, "t")
-    await flushAsync()
-
-    lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
-    selectedIds = runtime.selectInView.mock.calls[lastSelectCallIndex]?.[0] as
-      | readonly string[]
-      | undefined
-
-    expect(selectedIds).toEqual(["C"])
-
-    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    dispatchKeydown(contentRoot, "ArrowUp")
-    await flushAsync()
-
-    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    dispatchKeydown(contentRoot, "ArrowUp")
-    await flushAsync()
-
-    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    dispatchKeydown(contentRoot, "t", { shiftKey: true })
-    await flushAsync()
-
-    lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
-    selectedIds = runtime.selectInView.mock.calls[lastSelectCallIndex]?.[0] as
-      | readonly string[]
-      | undefined
-
-    expect([...(selectedIds ?? [])].sort()).toEqual(["A", "B", "C"])
-  })
-
-  it("supports keyboard-only select-toggle-range parity with T alias semantics", async () => {
-    const runtime = makeRuntimeWithSidepanel(
-      fakeDocument,
-      [
-        { id: "C", type: "rectangle", isDeleted: false },
-        { id: "B", type: "rectangle", isDeleted: false },
-        { id: "A", type: "rectangle", isDeleted: false },
-      ],
-      [],
-    )
-
-    createLayerManagerRuntime(runtime.ea)
-
-    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    dispatchKeydown(contentRoot, "t")
-    await flushAsync()
-
-    let lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
-    let selectedIds = runtime.selectInView.mock.calls[lastSelectCallIndex]?.[0] as
-      | readonly string[]
-      | undefined
-
-    expect(selectedIds).toEqual(["A"])
-
-    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    dispatchKeydown(contentRoot, "ArrowDown")
-    await flushAsync()
-
-    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    dispatchKeydown(contentRoot, "†", { altKey: true, code: "KeyT" })
-    await flushAsync()
-
-    lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
-    selectedIds = runtime.selectInView.mock.calls[lastSelectCallIndex]?.[0] as
-      | readonly string[]
-      | undefined
-
-    expect([...(selectedIds ?? [])].sort()).toEqual(["A", "B"])
-
-    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    dispatchKeydown(contentRoot, "ArrowDown")
-    await flushAsync()
-
-    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    dispatchKeydown(contentRoot, "t", { shiftKey: true })
-    await flushAsync()
-
-    lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
-    selectedIds = runtime.selectInView.mock.calls[lastSelectCallIndex]?.[0] as
-      | readonly string[]
-      | undefined
-
-    expect([...(selectedIds ?? [])].sort()).toEqual(["A", "B", "C"])
+    expect(runtime.selectInView).not.toHaveBeenCalled()
   })
 
   it("supports Ctrl+Space toggle selection even when the host reports key=Unidentified and code=Space", async () => {
@@ -1447,7 +1349,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     createLayerManagerRuntime(runtime.ea)
 
     let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    dispatchKeydown(contentRoot, "t")
+    dispatchKeydown(contentRoot, "Space")
     await flushAsync()
 
     contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
@@ -1466,202 +1368,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect([...(selectedIds ?? [])].sort()).toEqual(["A", "B"])
   })
 
-  it("supports Ctrl+Alt+KeyT as the same toggle-selection fallback alias", async () => {
-    const runtime = makeRuntimeWithSidepanel(
-      fakeDocument,
-      [
-        { id: "C", type: "rectangle", isDeleted: false },
-        { id: "B", type: "rectangle", isDeleted: false },
-        { id: "A", type: "rectangle", isDeleted: false },
-      ],
-      [],
-    )
-
-    createLayerManagerRuntime(runtime.ea)
-
-    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    dispatchKeydown(contentRoot, "t")
-    await flushAsync()
-
-    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    dispatchKeydown(contentRoot, "ArrowDown")
-    await flushAsync()
-
-    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    dispatchKeydown(contentRoot, "†", { altKey: true, ctrlKey: true, code: "KeyT" })
-    await flushAsync()
-
-    const lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
-    const selectedIds = runtime.selectInView.mock.calls[lastSelectCallIndex]?.[0] as
-      | readonly string[]
-      | undefined
-
-    expect([...(selectedIds ?? [])].sort()).toEqual(["A", "B"])
-  })
-
-  it("falls back to Alt+KeyT keyup toggle selection when host swallows the keydown", async () => {
-    const runtime = makeRuntimeWithSidepanel(
-      fakeDocument,
-      [
-        { id: "C", type: "rectangle", isDeleted: false },
-        { id: "B", type: "rectangle", isDeleted: false },
-        { id: "A", type: "rectangle", isDeleted: false },
-      ],
-      [],
-    )
-
-    createLayerManagerRuntime(runtime.ea)
-
-    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    dispatchKeydown(contentRoot, "t")
-    await flushAsync()
-
-    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    dispatchKeydown(contentRoot, "ArrowDown")
-    await flushAsync()
-
-    dispatchDocumentKeyup(fakeDocument, "t", {
-      altKey: true,
-      code: "KeyT",
-      eventTarget: contentRoot,
-    })
-    await flushAsync()
-
-    const lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
-    const selectedIds = runtime.selectInView.mock.calls[lastSelectCallIndex]?.[0] as
-      | readonly string[]
-      | undefined
-
-    expect([...(selectedIds ?? [])].sort()).toEqual(["A", "B"])
-  })
-
-  it("falls back to Ctrl+Alt+KeyT keyup toggle selection when host swallows the keydown", async () => {
-    const runtime = makeRuntimeWithSidepanel(
-      fakeDocument,
-      [
-        { id: "C", type: "rectangle", isDeleted: false },
-        { id: "B", type: "rectangle", isDeleted: false },
-        { id: "A", type: "rectangle", isDeleted: false },
-      ],
-      [],
-    )
-
-    createLayerManagerRuntime(runtime.ea)
-
-    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    dispatchKeydown(contentRoot, "t")
-    await flushAsync()
-
-    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    dispatchKeydown(contentRoot, "ArrowDown")
-    await flushAsync()
-
-    dispatchDocumentKeyup(fakeDocument, "t", {
-      altKey: true,
-      ctrlKey: true,
-      code: "KeyT",
-      eventTarget: contentRoot,
-    })
-    await flushAsync()
-
-    const lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
-    const selectedIds = runtime.selectInView.mock.calls[lastSelectCallIndex]?.[0] as
-      | readonly string[]
-      | undefined
-
-    expect([...(selectedIds ?? [])].sort()).toEqual(["A", "B"])
-  })
-
-  it("does not double-toggle when both Alt+KeyT keydown and keyup arrive", async () => {
-    const runtime = makeRuntimeWithSidepanel(
-      fakeDocument,
-      [
-        { id: "C", type: "rectangle", isDeleted: false },
-        { id: "B", type: "rectangle", isDeleted: false },
-        { id: "A", type: "rectangle", isDeleted: false },
-      ],
-      [],
-    )
-
-    createLayerManagerRuntime(runtime.ea)
-
-    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    dispatchKeydown(contentRoot, "t")
-    await flushAsync()
-
-    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    dispatchKeydown(contentRoot, "ArrowDown")
-    await flushAsync()
-
-    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    dispatchKeydown(contentRoot, "†", { altKey: true, code: "KeyT" })
-    await flushAsync()
-
-    dispatchDocumentKeyup(fakeDocument, "t", {
-      altKey: true,
-      code: "KeyT",
-      eventTarget: contentRoot,
-    })
-    await flushAsync()
-
-    const lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
-    const selectedIds = runtime.selectInView.mock.calls[lastSelectCallIndex]?.[0] as
-      | readonly string[]
-      | undefined
-
-    expect([...(selectedIds ?? [])].sort()).toEqual(["A", "B"])
-  })
-
-  it("reroutes Alt+KeyT toggle selection through document keyboard continuity after outside blur even when the key value is remapped", async () => {
-    const runtime = makeRuntimeWithSidepanel(
-      fakeDocument,
-      [
-        { id: "B", type: "rectangle", isDeleted: false },
-        { id: "A", type: "rectangle", isDeleted: false },
-      ],
-      [],
-    )
-
-    createLayerManagerRuntime(runtime.ea)
-
-    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    dispatchKeydown(contentRoot, "t")
-    await flushAsync()
-
-    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    dispatchKeydown(contentRoot, "ArrowDown")
-    await flushAsync()
-
-    const outsideTarget = fakeDocument.createElement("div")
-    fakeDocument.activeElement = outsideTarget
-
-    const focusOutEvent = new FakeDomEvent("focusout")
-    ;(focusOutEvent as unknown as { relatedTarget?: EventTarget | null }).relatedTarget =
-      outsideTarget as unknown as EventTarget
-
-    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    contentRoot.dispatchEvent(focusOutEvent)
-    await flushAsync()
-
-    dispatchDocumentKeydown(fakeDocument, "†", {
-      altKey: true,
-      code: "KeyT",
-      eventTarget: outsideTarget,
-    })
-    await flushAsync()
-
-    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    expect(fakeDocument.activeElement).toBe(findRowTreeRoot(contentRoot))
-
-    const lastSelectCallIndex = runtime.selectInView.mock.calls.length - 1
-    const selectedIds = runtime.selectInView.mock.calls[lastSelectCallIndex]?.[0] as
-      | readonly string[]
-      | undefined
-
-    expect([...(selectedIds ?? [])].sort()).toEqual(["A", "B"])
-  })
-
-  it("keeps T alias on stable replace-selection debug semantics", async () => {
+  it("keeps Space shortcut on stable replace-selection debug semantics", async () => {
     const debugFlagKey = "LMX_DEBUG_SIDEPANEL_INTERACTION"
     const hadDebugFlag = Object.prototype.hasOwnProperty.call(globalRecord, debugFlagKey)
     const previousDebugFlag = globalRecord[debugFlagKey]
@@ -1683,7 +1390,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
       createLayerManagerRuntime(runtime.ea)
 
       let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-      dispatchKeydown(contentRoot, "t")
+      dispatchKeydown(contentRoot, "Space")
       await flushAsync()
 
       contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
@@ -1691,7 +1398,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
       await flushAsync()
 
       contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-      dispatchKeydown(contentRoot, "t")
+      dispatchKeydown(contentRoot, "Space")
       await flushAsync()
 
       contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
@@ -1699,7 +1406,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
       await flushAsync()
 
       contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-      dispatchKeydown(contentRoot, "t")
+      dispatchKeydown(contentRoot, "Space")
       await flushAsync()
 
       const gesturePayloads = logSpy.mock.calls
@@ -1739,7 +1446,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     }
   })
 
-  it("keeps Alt+T alias on stable toggle-selection debug semantics", async () => {
+  it("keeps Ctrl+Space shortcut on stable toggle-selection debug semantics", async () => {
     const debugFlagKey = "LMX_DEBUG_SIDEPANEL_INTERACTION"
     const hadDebugFlag = Object.prototype.hasOwnProperty.call(globalRecord, debugFlagKey)
     const previousDebugFlag = globalRecord[debugFlagKey]
@@ -1761,7 +1468,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
       createLayerManagerRuntime(runtime.ea)
 
       let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-      dispatchKeydown(contentRoot, "t")
+      dispatchKeydown(contentRoot, "Space")
       await flushAsync()
 
       contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
@@ -1769,7 +1476,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
       await flushAsync()
 
       contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-      dispatchKeydown(contentRoot, "t", { altKey: true })
+      dispatchKeydown(contentRoot, "Space", { ctrlKey: true })
       await flushAsync()
 
       contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
@@ -1777,7 +1484,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
       await flushAsync()
 
       contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-      dispatchKeydown(contentRoot, "t", { altKey: true })
+      dispatchKeydown(contentRoot, "Space", { ctrlKey: true })
       await flushAsync()
 
       const gesturePayloads = logSpy.mock.calls

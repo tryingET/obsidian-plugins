@@ -160,9 +160,9 @@ const SIDEPANEL_KEYBOARD_HINT_TEXT = [
   "Home/End bounds",
   "PgUp/PgDn page",
   "Shift+PgUp/PgDn extend page",
-  "T select row",
-  "Alt+T toggle row",
-  "Shift+T add range to selection",
+  "Space select row",
+  "Ctrl+Space toggle row",
+  "Shift+Space add range to selection",
   "←/→ collapse/expand",
   "Enter rename",
   "Del delete",
@@ -440,32 +440,8 @@ const isSpaceShortcutEvent = (event: KeyboardEvent): boolean => {
   return event.code === "Space" || isSpaceLikeKey(event.key)
 }
 
-const normalizeKeyboardKey = (key: string): string => {
-  return key.length === 1 ? key.toLowerCase() : key
-}
-
-const isKeyTShortcut = (event: KeyboardEvent): boolean => {
-  return normalizeKeyboardKey(event.key) === "t" || event.code === "KeyT"
-}
-
 const isDocumentReroutableModifierSpaceShortcut = (event: KeyboardEvent): boolean => {
   return (event.ctrlKey || event.metaKey) && !event.altKey && isSpaceShortcutEvent(event)
-}
-
-const isDocumentReroutableTSelectionShortcut = (event: KeyboardEvent): boolean => {
-  if (!isKeyTShortcut(event) || event.metaKey) {
-    return false
-  }
-
-  if (event.shiftKey && !event.altKey && !event.ctrlKey) {
-    return true
-  }
-
-  if (event.altKey && !event.shiftKey) {
-    return true
-  }
-
-  return false
 }
 
 const shouldClaimDocumentSpaceLikeEvent = (event: KeyboardEvent): boolean => {
@@ -477,10 +453,7 @@ const shouldClaimDocumentSpaceLikeEvent = (event: KeyboardEvent): boolean => {
 }
 
 const isDocumentRoutingContinuationKey = (event: KeyboardEvent): boolean => {
-  if (
-    isDocumentReroutableModifierSpaceShortcut(event) ||
-    isDocumentReroutableTSelectionShortcut(event)
-  ) {
+  if (isDocumentReroutableModifierSpaceShortcut(event)) {
     return true
   }
 
@@ -678,10 +651,6 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     })
 
     if (!this.#focusOwnership.isKeyboardRoutingActive()) {
-      return
-    }
-
-    if (this.#keyboardController.handleDocumentKeyupFallback(event)) {
       return
     }
 
