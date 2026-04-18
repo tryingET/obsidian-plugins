@@ -1,8 +1,8 @@
 ---
-summary: "Current-vs-target comparison for LayerManager host-context authority, shell truthfulness, and document-level focus routing."
+summary: "Current-vs-target comparison for LayerManager host-context authority, shell truthfulness, document-level focus routing, and the remaining workspace-truth separation gap."
 read_when:
   - "You need the shortest comparison between today's LayerManager switching model and the target architecture proposed in the host-context RFC chain."
-  - "You are about to implement or review work on LayerManager host binding, rebinding, unbound/inactive shell states, or focus-routing release behavior."
+  - "You are about to implement or review work on LayerManager host binding, rebinding, unbound/inactive shell states, focus-routing release behavior, or markdown-only workspace-truth classification."
 type: "reference"
 ---
 
@@ -17,15 +17,17 @@ This note now compares:
   - `2026-04-16-rfc-layer-manager-host-context-authority-and-focus-routing.md`
 - against the **current packet status** after AK tasks `1570-1573` closed under umbrella `1569`
 - plus the **follow-on hardening** from AK tasks `1596-1598` documented under umbrella `1599`
+- plus the **freshly reopened gap** under umbrella `1608`, where workspace-only note truth still needs to be separated cleanly from Excalidraw host authority
 
 Use this as the shortest fresh-session answer to:
 - what changed
 - what is now authoritative
-- and what still remains intentionally bounded fallback rather than primary truth
+- what still remains intentionally bounded fallback rather than primary truth
+- and what new gap is open without pretending the main host-context architecture regressed
 
 ## One-sentence summary
 
-LayerManager now routes host switching through **scene-bound authority**: the coordinator emits `SceneRef` / `sceneBinding`-backed snapshots, renderer and selection mirroring consume the same refresh key, and host-context flight-recorder evidence explains drift without reopening renderer-local recovery heuristics.
+LayerManager now routes host switching through **scene-bound authority**: the coordinator emits `SceneRef` / `sceneBinding`-backed snapshots, renderer and selection mirroring consume the same refresh key, and host-context flight-recorder evidence explains drift without reopening renderer-local recovery heuristics. For live Excalidraw authority, that target is substantially landed; the main still-open gap is that workspace-only note truth is not yet fully separated from `targetView`-oriented observation helpers.
 
 ## Original target in brief
 
@@ -148,8 +150,25 @@ This keeps the architectural story intact:
 - bounded rebinding remains a fallback
 - but it is now constrained tightly enough that it behaves like reconciliation rather than a standing retry loop
 
-For the focused root cause, upstream-host constraints, and operator run sheet, read:
+For the focused rebind-loop root cause, upstream-host constraints, and operator run sheet, read:
 - `packages/obsidian-excalidraw-layer-manager/docs/project/2026-04-18-layer-manager-host-context-loop-root-cause-and-manual-verification-path.md`
+
+For the fresh workspace-truth separation diagnosis that reopened the next packet, read:
+- `packages/obsidian-excalidraw-layer-manager/docs/project/2026-04-18-layer-manager-markdown-note-workspace-truth-root-cause.md`
+
+## Freshly identified remaining gap: markdown-only workspace truth is not yet fully separated
+
+The 1569 and 1599 packets still hold.
+But one smaller boundary remains open:
+- runtime workspace subscriptions and polling should bind to the canonical workspace app, not a targetView-preferred app candidate chain
+- active workspace leaf/file/view-type truth should be observable independently from Excalidraw host authority
+- only after that separation should the package compare workspace truth with `targetView` authority to derive `live`, `inactive`, or `unbound`
+
+That means a fresh session should currently describe LayerManager this way:
+- scene-bound live authority is landed
+- shell truth is explicit and substantially correct
+- bounded rebinding remains a fallback only
+- but markdown-only workspace classification still has one open packet because workspace truth and host authority are not yet fully disentangled
 
 ## Verification packet to treat as current proof
 
@@ -177,10 +196,11 @@ node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs docs/project -
 
 ## Smallest truthful conclusion
 
-The original target is now substantially the current model.
-LayerManager should be understood as:
+For live Excalidraw host authority, the original target is now substantially the current model.
+LayerManager should currently be understood as:
 - coordinator-centered for host context
 - scene-bound in its live authority token
 - explicit about `live` / `inactive` / `unbound` shell truth
 - fail-safe about document-level routing outside live Excalidraw
-- and backed by one bounded verification packet rather than a pile of local patch claims
+- backed by one bounded verification packet rather than a pile of local patch claims
+- and still carrying one open follow-on packet: workspace-only note truth must be split cleanly from `targetView`-oriented observation before markdown-only detection is fully trustworthy
