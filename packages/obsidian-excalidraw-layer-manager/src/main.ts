@@ -14,6 +14,10 @@ import { LayerManagerController } from "./ui/controller.js"
 import { createExcalidrawSidepanelRenderer } from "./ui/excalidrawSidepanelRenderer.js"
 import { ConsoleRenderer, type LayerManagerRenderer } from "./ui/renderer.js"
 import {
+  clearKeyEventTrace,
+  installKeyEventFlightRecorderGlobals,
+} from "./ui/sidepanel/keyboard/keyEventFlightRecorder.js"
+import {
   type SidepanelHostPrimarySignal,
   createSidepanelHostContextCoordinator,
 } from "./ui/sidepanel/selection/hostContextCoordinator.js"
@@ -715,7 +719,9 @@ const scriptEa = resolveScriptEa()
 if (scriptEa) {
   const Notice = scriptEa.obsidian?.Notice
   installHostContextFlightRecorderGlobals({ Notice })
+  installKeyEventFlightRecorderGlobals()
   clearHostContextFlightRecorder()
+  clearKeyEventTrace()
   traceHostContextLifecycleEvent("startup", "LayerManager script executed", {
     runtimeAppResolved: resolveRuntimeApp(scriptEa) !== null,
     ...describeHostViewContext(scriptEa),
@@ -736,7 +742,9 @@ if (scriptEa) {
   runtimeGlobal.excalidrawLayerManagerRuntime = createLayerManagerRuntime(scriptEa)
 } else {
   installHostContextFlightRecorderGlobals()
+  installKeyEventFlightRecorderGlobals()
   clearHostContextFlightRecorder()
+  clearKeyEventTrace()
   traceHostContextLifecycleEvent(
     "startup",
     "No active Excalidraw context (ea missing). Open an Excalidraw drawing and rerun LayerManager.",

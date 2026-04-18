@@ -15,6 +15,7 @@ import {
   SidepanelDragDropController,
 } from "./sidepanel/dragdrop/dragDropController.js"
 import { SidepanelFocusOwnershipCoordinator } from "./sidepanel/focus/focusOwnershipCoordinator.js"
+import { traceKeyboardEventIfRelevant } from "./sidepanel/keyboard/keyEventFlightRecorder.js"
 import {
   type KeyboardShortcutContext,
   type RowSelectionGesture,
@@ -594,12 +595,24 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   }
 
   readonly #contentKeydownHandler = (event: KeyboardEvent): void => {
+    traceKeyboardEventIfRelevant("renderer:content-keydown", event, {
+      keyboardRoutingActive: this.#focusOwnership.isKeyboardRoutingActive(),
+      keyboardCaptureActive: this.#focusOwnership.isKeyboardCaptureActive(),
+      focusedNodeId: this.#focusedNodeId,
+    })
     this.#lastHandledContentKeydownEvent = event
     this.#focusOwnership.activateKeyboardCapture()
     this.#keyboardController.handleContentKeydown(event)
   }
 
   readonly #documentKeydownHandler = (event: KeyboardEvent): void => {
+    traceKeyboardEventIfRelevant("renderer:document-keydown", event, {
+      keyboardRoutingActive: this.#focusOwnership.isKeyboardRoutingActive(),
+      keyboardCaptureActive: this.#focusOwnership.isKeyboardCaptureActive(),
+      focusedNodeId: this.#focusedNodeId,
+      sameAsLastContentEvent: event === this.#lastHandledContentKeydownEvent,
+    })
+
     if (event === this.#lastHandledContentKeydownEvent) {
       this.#lastHandledContentKeydownEvent = null
       return
@@ -636,6 +649,12 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   }
 
   readonly #documentKeypressHandler = (event: KeyboardEvent): void => {
+    traceKeyboardEventIfRelevant("renderer:document-keypress", event, {
+      keyboardRoutingActive: this.#focusOwnership.isKeyboardRoutingActive(),
+      keyboardCaptureActive: this.#focusOwnership.isKeyboardCaptureActive(),
+      focusedNodeId: this.#focusedNodeId,
+    })
+
     if (!this.#focusOwnership.isKeyboardRoutingActive()) {
       return
     }
@@ -648,6 +667,12 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   }
 
   readonly #documentKeyupHandler = (event: KeyboardEvent): void => {
+    traceKeyboardEventIfRelevant("renderer:document-keyup", event, {
+      keyboardRoutingActive: this.#focusOwnership.isKeyboardRoutingActive(),
+      keyboardCaptureActive: this.#focusOwnership.isKeyboardCaptureActive(),
+      focusedNodeId: this.#focusedNodeId,
+    })
+
     if (!this.#focusOwnership.isKeyboardRoutingActive()) {
       return
     }

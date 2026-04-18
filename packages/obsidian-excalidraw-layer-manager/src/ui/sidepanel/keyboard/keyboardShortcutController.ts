@@ -8,6 +8,7 @@ import {
   resolveExplicitSelectionNodeIds,
   resolveFocusedNodeStructuralMove,
 } from "../selection/structuralMoveSelection.js"
+import { traceKeyboardEventIfRelevant } from "./keyEventFlightRecorder.js"
 
 export interface KeyboardShortcutContext {
   readonly actions: LayerManagerUiActions
@@ -117,6 +118,7 @@ export class SidepanelKeyboardShortcutController {
 
     this.#host.debugInteraction?.("keydown received", {
       key: event.key,
+      code: event.code ?? "",
       shiftKey: event.shiftKey,
       ctrlKey: event.ctrlKey,
       metaKey: event.metaKey,
@@ -124,18 +126,31 @@ export class SidepanelKeyboardShortcutController {
       focusedNodeId: this.#host.getFocusedNodeId(),
       targetTagName,
     })
+    traceKeyboardEventIfRelevant("controller:keydown-received", event, {
+      focusedNodeId: this.#host.getFocusedNodeId(),
+      targetTagName,
+    })
 
     const baseContext = this.#host.getKeyboardContext()
     if (!baseContext) {
       this.#host.debugInteraction?.("keydown ignored: keyboard context unavailable")
+      traceKeyboardEventIfRelevant("controller:keydown-ignored", event, {
+        reason: "keyboardContextUnavailable",
+      })
       return
     }
 
     if (this.#host.isTextInputTarget(event.target)) {
+      traceKeyboardEventIfRelevant("controller:keydown-ignored", event, {
+        reason: "textInputTarget",
+      })
       return
     }
 
     if (this.#host.isKeyboardSuppressed()) {
+      traceKeyboardEventIfRelevant("controller:keydown-ignored", event, {
+        reason: "keyboardSuppressed",
+      })
       return
     }
 
@@ -158,10 +173,16 @@ export class SidepanelKeyboardShortcutController {
       isTSelectionAliasKey && event.altKey && event.ctrlKey && !event.shiftKey && !event.metaKey
 
     if (event.altKey && !isAltTToggleShortcut && !isCtrlAltTToggleShortcut) {
+      traceKeyboardEventIfRelevant("controller:keydown-ignored", event, {
+        reason: "altShortcutNotAuthorized",
+      })
       return
     }
 
     if (hasToggleModifier && !isCtrlMetaToggleAliasKey && !isCtrlAltTToggleShortcut) {
+      traceKeyboardEventIfRelevant("controller:keydown-ignored", event, {
+        reason: "modifierShortcutNotAuthorized",
+      })
       return
     }
 
@@ -243,8 +264,15 @@ export class SidepanelKeyboardShortcutController {
       this.#host.suppressTransientFocusOut()
       claimHandledKeyboardEvent(event)
       if (isShiftTRangeToggleShortcut) {
+        traceKeyboardEventIfRelevant("controller:selection-alias", event, {
+          action: "rangeAdd",
+        })
         this.selectVisibleRangeToFocusedNode(context, true)
       } else if (isAltTToggleShortcut || isCtrlAltTToggleShortcut) {
+        traceKeyboardEventIfRelevant("controller:selection-alias", event, {
+          action: "toggleFocusedNodeSelection",
+          ctrlAltFallback: isCtrlAltTToggleShortcut,
+        })
         this.toggleFocusedNodeSelection(context)
       } else if (event.shiftKey) {
         this.selectVisibleRangeToFocusedNode(context, hasToggleModifier)
