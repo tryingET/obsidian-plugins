@@ -344,6 +344,64 @@ describe("sidepanel keyboard shortcut controller", () => {
     expect(reorder).not.toHaveBeenCalled()
   })
 
+  it("normalizes uppercase single-letter reorder shortcuts", async () => {
+    const selectedNode = makeNode("el:A", "Alpha")
+    const reorder = vi.fn(async () => ({ status: "applied", attempts: 1 as const }))
+    const runUiAction = vi.fn<(action: () => Promise<unknown>, fallbackMessage: string) => void>(
+      (action) => {
+        void action()
+      },
+    )
+
+    const context: KeyboardShortcutContext = {
+      actions: {
+        reorderFromNodeIds: vi.fn(async () => ({ status: "applied", attempts: 1 as const })),
+        commands: {
+          reorder,
+        },
+      } as unknown as LayerManagerUiActions,
+      selection: {
+        elementIds: [selectedNode.id],
+        nodes: [selectedNode],
+        frameResolution: makeFrameResolution(null),
+      },
+      visibleNodes: [selectedNode],
+      nodeById: new Map([[selectedNode.id, selectedNode]]),
+      parentById: new Map([[selectedNode.id, null]]),
+    }
+
+    const controller = new SidepanelKeyboardShortcutController({
+      getKeyboardContext: () => context,
+      resolveKeyboardContext: (resolvedContext) => resolvedContext,
+      getFocusedNodeId: () => selectedNode.id,
+      setFocusedNodeIdSilently: () => {},
+      setFocusedNode: () => {},
+      getInlineRenameNodeId: () => null,
+      beginInlineRename: () => {},
+      commitInlineRename: vi.fn(async () => {}),
+      setSelectionOverride: () => {},
+      ensureHostViewContext: () => true,
+      moveSelectionToRoot: vi.fn(async () => {}),
+      setLastQuickMoveDestinationToRoot: () => {},
+      isTextInputTarget: () => false,
+      isKeyboardSuppressed: () => false,
+      releaseKeyboardCapture: () => {},
+      suppressTransientFocusOut: () => {},
+      notify: () => {},
+      runUiAction,
+      requestRenderFromLatestModel: () => {},
+    })
+
+    controller.handleContentKeydown(makeKeyboardEvent("F"))
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(reorder).toHaveBeenCalledWith({
+      orderedElementIds: [selectedNode.id],
+      mode: "forward",
+    })
+  })
+
   it("uses canonical element selection before focused-row fallback when tree selection is absent", async () => {
     const selectedNode = makeNode("el:A", "Alpha")
     const focusedNode = makeNode("el:B", "Beta")

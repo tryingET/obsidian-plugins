@@ -113,10 +113,7 @@ export class SidepanelKeyboardShortcutController {
   }
 
   handleContentKeydown(event: KeyboardEvent): void {
-    const targetTagName =
-      event.target && typeof event.target === "object" && "tagName" in event.target
-        ? `${(event.target as { readonly tagName?: unknown }).tagName ?? ""}`
-        : null
+    const targetTagName = this.resolveTargetTagName(event.target)
 
     this.#host.debugInteraction?.("keydown received", {
       key: event.key,
@@ -135,196 +132,220 @@ export class SidepanelKeyboardShortcutController {
 
     const baseContext = this.#host.getKeyboardContext()
     if (!baseContext) {
-      this.#host.debugInteraction?.("keydown ignored: keyboard context unavailable")
-      traceKeyboardEventIfRelevant("controller:keydown-ignored", event, {
-        reason: "keyboardContextUnavailable",
-      })
-      return
-    }
-
-    if (this.#host.isTextInputTarget(event.target)) {
-      traceKeyboardEventIfRelevant("controller:keydown-ignored", event, {
-        reason: "textInputTarget",
-      })
-      return
-    }
-
-    if (this.#host.isKeyboardSuppressed()) {
-      traceKeyboardEventIfRelevant("controller:keydown-ignored", event, {
-        reason: "keyboardSuppressed",
-      })
+      this.traceIgnoredKeydown(
+        event,
+        "keyboardContextUnavailable",
+        "keydown ignored: keyboard context unavailable",
+      )
       return
     }
 
     const normalizedKey = normalizeKeyboardKey(event.key)
-    const isSpaceSelectionAliasKey = isSpaceShortcutEvent(event)
-    const isSelectionAliasKey =
-      isSpaceSelectionAliasKey || normalizedKey === "n" || normalizedKey === "m"
-    const isCtrlMetaToggleAliasKey =
-      isSpaceSelectionAliasKey || normalizedKey === "n" || normalizedKey === "m"
     const hasToggleModifier = event.ctrlKey || event.metaKey
-
-    if (event.altKey) {
-      traceKeyboardEventIfRelevant("controller:keydown-ignored", event, {
-        reason: "altShortcutNotAuthorized",
-      })
-      return
-    }
-
-    if (hasToggleModifier && !isCtrlMetaToggleAliasKey) {
-      traceKeyboardEventIfRelevant("controller:keydown-ignored", event, {
-        reason: "modifierShortcutNotAuthorized",
-      })
+    if (this.shouldIgnoreKeydown(event, normalizedKey, hasToggleModifier)) {
       return
     }
 
     const context = this.#host.resolveKeyboardContext(baseContext)
-
-    if (event.key === "ArrowDown") {
-      this.#host.suppressTransientFocusOut()
-      claimHandledKeyboardEvent(event)
-      if (event.shiftKey) {
-        this.extendSelectionWithKeyboard(context, 1)
-      } else {
-        this.moveFocusedNode(context, 1)
-      }
+    if (this.handleNavigationShortcut(event, context)) {
       return
     }
 
-    if (event.key === "ArrowUp") {
-      this.#host.suppressTransientFocusOut()
-      claimHandledKeyboardEvent(event)
-      if (event.shiftKey) {
-        this.extendSelectionWithKeyboard(context, -1)
-      } else {
-        this.moveFocusedNode(context, -1)
-      }
+    if (this.handleSelectionAliasShortcut(event, context, normalizedKey, hasToggleModifier)) {
       return
     }
 
-    if (event.key === "Home") {
-      this.#host.suppressTransientFocusOut()
-      claimHandledKeyboardEvent(event)
-      this.moveFocusedNodeToBoundary(context, "start")
-      return
+    this.handleMutationShortcut(event, context, normalizedKey)
+  }
+
+  private resolveTargetTagName(target: EventTarget | null): string | null {
+    return target && typeof target === "object" && "tagName" in target
+      ? `${(target as { readonly tagName?: unknown }).tagName ?? ""}`
+      : null
+  }
+
+  private traceIgnoredKeydown(event: KeyboardEvent, reason: string, debugMessage?: string): void {
+    if (debugMessage) {
+      this.#host.debugInteraction?.(debugMessage)
     }
 
-    if (event.key === "End") {
-      this.#host.suppressTransientFocusOut()
-      claimHandledKeyboardEvent(event)
-      this.moveFocusedNodeToBoundary(context, "end")
-      return
+    traceKeyboardEventIfRelevant("controller:keydown-ignored", event, {
+      reason,
+    })
+  }
+
+  private shouldIgnoreKeydown(
+    event: KeyboardEvent,
+    normalizedKey: string,
+    hasToggleModifier: boolean,
+  ): boolean {
+    if (this.#host.isTextInputTarget(event.target)) {
+      this.traceIgnoredKeydown(event, "textInputTarget")
+      return true
     }
 
-    if (event.key === "PageDown") {
-      this.#host.suppressTransientFocusOut()
-      claimHandledKeyboardEvent(event)
-      if (event.shiftKey) {
-        this.extendSelectionByPage(context, 1)
-      } else {
-        this.moveFocusedNodeByPage(context, 1)
-      }
-      return
+    if (this.#host.isKeyboardSuppressed()) {
+      this.traceIgnoredKeydown(event, "keyboardSuppressed")
+      return true
     }
 
-    if (event.key === "PageUp") {
-      this.#host.suppressTransientFocusOut()
-      claimHandledKeyboardEvent(event)
-      if (event.shiftKey) {
-        this.extendSelectionByPage(context, -1)
-      } else {
-        this.moveFocusedNodeByPage(context, -1)
-      }
-      return
+    if (event.altKey) {
+      this.traceIgnoredKeydown(event, "altShortcutNotAuthorized")
+      return true
     }
 
-    if (event.key === "ArrowRight") {
-      this.#host.suppressTransientFocusOut()
-      claimHandledKeyboardEvent(event)
-      this.handleArrowRight(context)
-      return
+    if (hasToggleModifier && !this.isSelectionAliasShortcut(event, normalizedKey)) {
+      this.traceIgnoredKeydown(event, "modifierShortcutNotAuthorized")
+      return true
     }
 
-    if (event.key === "ArrowLeft") {
-      this.#host.suppressTransientFocusOut()
-      claimHandledKeyboardEvent(event)
-      this.handleArrowLeft(context)
-      return
+    return false
+  }
+
+  private isSelectionAliasShortcut(event: KeyboardEvent, normalizedKey: string): boolean {
+    return isSpaceShortcutEvent(event) || normalizedKey === "n" || normalizedKey === "m"
+  }
+
+  private claimKeyboardShortcut(event: KeyboardEvent): void {
+    this.#host.suppressTransientFocusOut()
+    claimHandledKeyboardEvent(event)
+  }
+
+  private handleNavigationShortcut(
+    event: KeyboardEvent,
+    context: KeyboardShortcutContext,
+  ): boolean {
+    switch (event.key) {
+      case "ArrowDown":
+        this.claimKeyboardShortcut(event)
+        if (event.shiftKey) {
+          this.extendSelectionWithKeyboard(context, 1)
+        } else {
+          this.moveFocusedNode(context, 1)
+        }
+        return true
+      case "ArrowUp":
+        this.claimKeyboardShortcut(event)
+        if (event.shiftKey) {
+          this.extendSelectionWithKeyboard(context, -1)
+        } else {
+          this.moveFocusedNode(context, -1)
+        }
+        return true
+      case "Home":
+        this.claimKeyboardShortcut(event)
+        this.moveFocusedNodeToBoundary(context, "start")
+        return true
+      case "End":
+        this.claimKeyboardShortcut(event)
+        this.moveFocusedNodeToBoundary(context, "end")
+        return true
+      case "PageDown":
+        this.claimKeyboardShortcut(event)
+        if (event.shiftKey) {
+          this.extendSelectionByPage(context, 1)
+        } else {
+          this.moveFocusedNodeByPage(context, 1)
+        }
+        return true
+      case "PageUp":
+        this.claimKeyboardShortcut(event)
+        if (event.shiftKey) {
+          this.extendSelectionByPage(context, -1)
+        } else {
+          this.moveFocusedNodeByPage(context, -1)
+        }
+        return true
+      case "ArrowRight":
+        this.claimKeyboardShortcut(event)
+        this.handleArrowRight(context)
+        return true
+      case "ArrowLeft":
+        this.claimKeyboardShortcut(event)
+        this.handleArrowLeft(context)
+        return true
+      default:
+        return false
+    }
+  }
+
+  private handleSelectionAliasShortcut(
+    event: KeyboardEvent,
+    context: KeyboardShortcutContext,
+    normalizedKey: string,
+    hasToggleModifier: boolean,
+  ): boolean {
+    if (!this.isSelectionAliasShortcut(event, normalizedKey)) {
+      return false
     }
 
-    if (isSelectionAliasKey) {
-      this.#host.suppressTransientFocusOut()
-      claimHandledKeyboardEvent(event)
-      if (event.shiftKey) {
-        traceKeyboardEventIfRelevant("controller:selection-alias", event, {
-          action: "rangeAdd",
-        })
-        this.selectVisibleRangeToFocusedNode(context, hasToggleModifier)
-      } else if (hasToggleModifier) {
-        traceKeyboardEventIfRelevant("controller:selection-alias", event, {
-          action: "toggleFocusedNodeSelection",
-        })
-        this.toggleFocusedNodeSelection(context)
-      } else {
-        this.selectFocusedNodeLikePlainClick(context)
-      }
-      return
+    this.claimKeyboardShortcut(event)
+    if (event.shiftKey) {
+      traceKeyboardEventIfRelevant("controller:selection-alias", event, {
+        action: "rangeAdd",
+      })
+      this.selectVisibleRangeToFocusedNode(context, hasToggleModifier)
+      return true
     }
 
+    if (hasToggleModifier) {
+      traceKeyboardEventIfRelevant("controller:selection-alias", event, {
+        action: "toggleFocusedNodeSelection",
+      })
+      this.toggleFocusedNodeSelection(context)
+      return true
+    }
+
+    this.selectFocusedNodeLikePlainClick(context)
+    return true
+  }
+
+  private runClaimedKeyboardUiAction(
+    event: KeyboardEvent,
+    fallbackMessage: string,
+    action: () => Promise<void>,
+  ): boolean {
+    this.claimKeyboardShortcut(event)
+    this.#host.runUiAction(action, fallbackMessage)
+    return true
+  }
+
+  private handleMutationShortcut(
+    event: KeyboardEvent,
+    context: KeyboardShortcutContext,
+    normalizedKey: string,
+  ): boolean {
     if (event.key === "Enter") {
-      this.#host.suppressTransientFocusOut()
-      claimHandledKeyboardEvent(event)
-      this.#host.runUiAction(() => this.runKeyboardRenameFocused(context), "Keyboard rename failed")
-      return
+      return this.runClaimedKeyboardUiAction(event, "Keyboard rename failed", () =>
+        this.runKeyboardRenameFocused(context),
+      )
     }
 
     if (event.key === "Delete" || event.key === "Backspace") {
-      this.#host.suppressTransientFocusOut()
-      claimHandledKeyboardEvent(event)
-      this.#host.runUiAction(
-        () => this.runKeyboardDeleteSelectionOrFocused(context),
-        "Keyboard delete failed",
+      return this.runClaimedKeyboardUiAction(event, "Keyboard delete failed", () =>
+        this.runKeyboardDeleteSelectionOrFocused(context),
       )
-      return
     }
 
-    if (normalizedKey === "f") {
-      this.#host.suppressTransientFocusOut()
-      claimHandledKeyboardEvent(event)
-      this.#host.runUiAction(
-        () => this.runKeyboardReorder(context, event.shiftKey ? "front" : "forward"),
-        "Keyboard reorder failed",
-      )
-      return
-    }
-
-    if (normalizedKey === "b") {
-      this.#host.suppressTransientFocusOut()
-      claimHandledKeyboardEvent(event)
-      this.#host.runUiAction(
-        () => this.runKeyboardReorder(context, event.shiftKey ? "back" : "backward"),
-        "Keyboard reorder failed",
-      )
-      return
-    }
-
-    if (normalizedKey === "g") {
-      this.#host.suppressTransientFocusOut()
-      claimHandledKeyboardEvent(event)
-      this.#host.runUiAction(
-        () => this.runKeyboardGroupSelection(context),
-        "Keyboard grouping failed",
-      )
-      return
-    }
-
-    if (normalizedKey === "u") {
-      this.#host.suppressTransientFocusOut()
-      claimHandledKeyboardEvent(event)
-      this.#host.runUiAction(
-        () => this.runKeyboardUngroupLike(context),
-        "Keyboard ungroup-like failed",
-      )
+    switch (normalizedKey) {
+      case "f":
+        return this.runClaimedKeyboardUiAction(event, "Keyboard reorder failed", () =>
+          this.runKeyboardReorder(context, event.shiftKey ? "front" : "forward"),
+        )
+      case "b":
+        return this.runClaimedKeyboardUiAction(event, "Keyboard reorder failed", () =>
+          this.runKeyboardReorder(context, event.shiftKey ? "back" : "backward"),
+        )
+      case "g":
+        return this.runClaimedKeyboardUiAction(event, "Keyboard grouping failed", () =>
+          this.runKeyboardGroupSelection(context),
+        )
+      case "u":
+        return this.runClaimedKeyboardUiAction(event, "Keyboard ungroup-like failed", () =>
+          this.runKeyboardUngroupLike(context),
+        )
+      default:
+        return false
     }
   }
 
