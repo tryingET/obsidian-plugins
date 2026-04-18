@@ -1,8 +1,8 @@
 ---
-summary: "Current-vs-target comparison for LayerManager host-context authority, shell truthfulness, document-level focus routing, and the now-closed markdown-only workspace-truth packet."
+summary: "Current-vs-target comparison for LayerManager host-context authority, source-aware focus preservation, shell truthfulness, document-level focus routing, and the now-closed markdown-only workspace-truth packet."
 read_when:
   - "You need the shortest comparison between today's LayerManager switching model and the target architecture proposed in the host-context RFC chain."
-  - "You are about to implement or review work on LayerManager host binding, rebinding, unbound/inactive shell states, focus-routing release behavior, or markdown-only workspace-truth classification."
+  - "You are about to implement or review work on LayerManager host binding, rebinding, unbound/inactive shell states, source-aware focus preservation, focus-routing release behavior, or markdown-only workspace-truth classification."
 type: "reference"
 ---
 
@@ -18,6 +18,7 @@ This note now compares:
 - against the **current packet status** after AK tasks `1570-1573` closed under umbrella `1569`
 - plus the **follow-on hardening** from AK tasks `1596-1598` documented under umbrella `1599`
 - plus the **workspace-truth separation packet** under umbrella `1608`, now closed by AK tasks `1610-1613`
+- plus the **source-aware focus-policy follow-on** under umbrella `1630`, implemented by AK tasks `1631-1633`
 
 Use this as the shortest fresh-session answer to:
 - what changed
@@ -27,7 +28,7 @@ Use this as the shortest fresh-session answer to:
 
 ## One-sentence summary
 
-LayerManager now routes host switching through **scene-bound authority** while deriving workspace note truth from the canonical workspace surface: runtime subscriptions bind to the canonical workspace app, `hostViewContext` observes active workspace file/leaf/view type independently from `targetView` authority, markdown-only notes force truthful `inactive` shells, and host-context flight-recorder evidence explains drift without reopening renderer-local recovery heuristics.
+LayerManager now routes host switching through **scene-bound authority** while deriving workspace note truth from the canonical workspace surface: runtime subscriptions bind to the canonical workspace app, `hostViewContext` observes active workspace file/leaf/view type independently from `targetView` authority, source-aware focus policy distinguishes workspace-driven switches from sidepanel-driven `onViewChange` rebinds, markdown-only notes force truthful `inactive` shells, and host-context flight-recorder evidence explains drift without reopening renderer-local recovery heuristics.
 
 ## Original target in brief
 
@@ -92,14 +93,19 @@ Result:
 - stale scene pressure does not repopulate inactive shells as if nothing changed
 - unbound/inactive copy is now a truthful product state, not just a presentation fallback
 
-### 5. Document-level focus routing now derives from host authority
+### 5. Document-level focus routing now derives from host authority, with source-aware focus preservation on live rebinds
 Focus/keyboard ownership is no longer allowed to float independently of host truth.
 The focus-ownership coordinator now drops document routing when scene binding is not live and only reacquires it through the same canonical live-binding path.
+Within that live-binding contract, focus preservation is now source-aware rather than inferred only from current DOM containment:
+- workspace-driven Excalidraw switches keep row-tree focus only when LayerManager already owned it
+- workspace-driven switches that start from the drawing or another outside target do not steal focus back
+- sidepanel-driven `onViewChange` rebinds may reclaim row-tree focus on live reactivation even if focus briefly sat outside the sidepanel, because the sidepanel event itself is the authoritative source of the transition
 
 Result:
 - typing outside live Excalidraw does not keep triggering LayerManager document shortcuts
 - tabbing outside live Excalidraw no longer gets trapped by sticky sidepanel capture
 - confirmed outside blur and inactive/unbound transitions keep routing released until real live authority returns
+- focus preservation now follows the origin of the host/view change instead of overreacting to transient outside focus
 
 ## Current packet vs original target table
 
@@ -115,6 +121,7 @@ Result:
 | Shell meaning | Truthful visually and interactionally | Landed via explicit `live` / `inactive` / `unbound` rendering |
 | Selection mirroring boundary | Host writes only against the still-live bound scene | Landed via scene-binding-guarded host selection bridge |
 | Focus-routing ownership | Derived from live authority | Landed via focus-ownership gating + release/reacquire contract |
+| Focus preservation across host/view switches | Preserve only legitimate sidepanel-owned focus, but allow sidepanel-driven live rebinds to reclaim row-tree focus | Landed as source-aware policy: workspace-driven switches respect prior focus ownership, while sidepanel `onViewChange` rebinds reclaim row-tree focus on live reactivation |
 | Typing/tabbing outside live Excalidraw | Must stay outside LayerManager routing | Landed and regression-covered |
 | Polling | Fallback only | Still present only at the workspace-refresh edge; renderer-local recovery heuristics removed |
 
