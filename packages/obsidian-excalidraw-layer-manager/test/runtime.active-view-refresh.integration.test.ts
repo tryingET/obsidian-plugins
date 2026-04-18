@@ -1220,9 +1220,12 @@ describe("runtime active-view refresh", () => {
 
     expect(rendererEvent?.payload).toEqual(
       expect.objectContaining({
-        targetViewPresent: true,
-        targetViewUsable: true,
+        sceneBindingSource: "target-view",
+        sceneBindingState: "live",
+        sceneBindingShouldAttemptRebind: false,
         activeFilePath: "A.excalidraw",
+        activeLeafIdentity: "A.excalidraw",
+        activeViewType: "excalidraw",
         targetViewIdentity: "A.excalidraw",
         targetViewFilePath: "A.excalidraw",
         hostEligible: true,
@@ -1317,7 +1320,7 @@ describe("runtime active-view refresh", () => {
     )
   })
 
-  it("auto-refreshes host applicability from workspace note changes", async () => {
+  it("auto-refreshes host applicability from workspace note changes without rebinding an already-bound targetView", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
       {
@@ -1344,18 +1347,17 @@ describe("runtime active-view refresh", () => {
     await flushAsync()
 
     expect(runtime.detachLeaf).not.toHaveBeenCalled()
+    expect(setView).not.toHaveBeenCalled()
     expectInactiveSidepanelState(
       getContentRoot(runtime.sidepanelTab.contentEl),
       "Active leaf is not Excalidraw.",
     )
 
-    setView.mockClear()
-
     runtime.switchWorkspaceToView("A.excalidraw")
     runtime.emitWorkspaceEvent("active-leaf-change")
     await flushAsync()
 
-    expect(setView).toHaveBeenCalledTimes(1)
+    expect(setView).not.toHaveBeenCalled()
 
     const contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
     expect(findInteractiveRowByLabel(contentRoot, "[element] Alpha")).toBeDefined()

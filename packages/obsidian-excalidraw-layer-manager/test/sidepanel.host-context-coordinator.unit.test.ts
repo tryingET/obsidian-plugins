@@ -183,6 +183,7 @@ const makeHostHarness = (
 }
 
 describe("sidepanel host-context coordinator", () => {
+  const globalRecord = globalThis as Record<string, unknown>
   it("captures a live initial snapshot and caches the usable targetView", () => {
     const harness = makeHostHarness([makeViewFixture("A.excalidraw")], "A.excalidraw")
 
@@ -417,6 +418,111 @@ describe("sidepanel host-context coordinator", () => {
     expect(result.snapshot.targetViewIdentity).toBe(null)
   })
 
+  it("does not attempt rebind when targetView is unavailable and the active leaf is markdown without an active file", () => {
+    const app = {
+      workspace: {
+        getActiveFile: () => null,
+        get activeLeaf() {
+          return {
+            id: "markdown-leaf",
+            view: {
+              getViewType: () => "markdown",
+            },
+          }
+        },
+      },
+    }
+
+    const setView = vi.fn(() => null)
+    const host = {
+      app,
+      obsidian: {
+        app,
+      },
+      setView,
+      targetView: null,
+    } satisfies SidepanelHostContextCoordinatorHost & { targetView: unknown | null }
+
+    const coordinator = new SidepanelHostContextCoordinator(host)
+    const result = coordinator.handleWorkspaceLeafChange()
+
+    expect(result.rebound).toBe(false)
+    expect(setView).not.toHaveBeenCalled()
+    expect(result.snapshot.state).toBe("unbound")
+    expect(result.snapshot.shouldAttemptRebind).toBe(false)
+  })
+
+  it("still attempts rebind when targetView is unavailable and the active leaf reports excalidraw without an active file", () => {
+    const app = {
+      workspace: {
+        getActiveFile: () => null,
+        get activeLeaf() {
+          return {
+            id: "live-excalidraw-leaf",
+            view: {
+              getViewType: () => "excalidraw",
+            },
+          }
+        },
+      },
+    }
+
+    const setView = vi.fn(() => null)
+    const host = {
+      app,
+      obsidian: {
+        app,
+      },
+      setView,
+      targetView: null,
+    } satisfies SidepanelHostContextCoordinatorHost & { targetView: unknown | null }
+
+    const coordinator = new SidepanelHostContextCoordinator(host)
+    const result = coordinator.reconcile("manual")
+
+    expect(result.rebound).toBe(false)
+    expect(setView).toHaveBeenCalledTimes(4)
+    expect(result.snapshot.state).toBe("unbound")
+    expect(result.snapshot.shouldAttemptRebind).toBe(true)
+  })
+
+  it("suppresses repeated manual and poll rebind attempts after an unchanged failure", () => {
+    const app = {
+      workspace: {
+        getActiveFile: () => null,
+        get activeLeaf() {
+          return {
+            id: "live-excalidraw-leaf",
+            view: {
+              getViewType: () => "excalidraw",
+            },
+          }
+        },
+      },
+    }
+
+    const setView = vi.fn(() => null)
+    const host = {
+      app,
+      obsidian: {
+        app,
+      },
+      setView,
+      targetView: null,
+    } satisfies SidepanelHostContextCoordinatorHost & { targetView: unknown | null }
+
+    const coordinator = new SidepanelHostContextCoordinator(host)
+
+    const firstResult = coordinator.reconcile("manual")
+    const secondResult = coordinator.handlePollingFallback()
+    const thirdResult = coordinator.reconcile("manual")
+
+    expect(firstResult.snapshot.shouldAttemptRebind).toBe(true)
+    expect(secondResult.snapshot.shouldAttemptRebind).toBe(true)
+    expect(thirdResult.snapshot.shouldAttemptRebind).toBe(true)
+    expect(setView).toHaveBeenCalledTimes(4)
+  })
+
   it("uses an active-leaf fallback scene binding when targetView truth is unavailable", () => {
     const harness = makeHostHarness(
       [makeViewFixture("A.excalidraw"), makeViewFixture("B.excalidraw")],
@@ -474,6 +580,70 @@ describe("sidepanel host-context coordinator", () => {
     expect(result.snapshot.targetViewIdentity).toBe("card-back-view")
     expect(result.snapshot.bindingKey).not.toBe(before)
     expect(result.snapshot.cachedTargetViewIdentity).toBe("card-back-view")
+  })
+
+  it("logs failed same-file markdown-to-excalidraw rebind attempts under lifecycle debug", () => {
+    const debugFlagKey = "LMX_DEBUG_SIDEPANEL_LIFECYCLE"
+    const hadDebugFlag = Object.prototype.hasOwnProperty.call(globalRecord, debugFlagKey)
+    const previousDebugFlag = globalRecord[debugFlagKey]
+    globalRecord[debugFlagKey] = true
+
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {})
+
+    try {
+      const harness = makeHostHarness(
+        [
+          makeViewFixture("markdown", {
+            filePath: "Card.excalidraw",
+            viewId: "Card.excalidraw#markdown",
+            leafId: "card-leaf",
+            viewType: "markdown",
+            bindTargetView: false,
+          }),
+          makeViewFixture("excalidraw", {
+            filePath: "Card.excalidraw",
+            viewId: "Card.excalidraw#front",
+            leafId: "card-leaf",
+            viewType: "excalidraw",
+          }),
+        ],
+        "markdown",
+        null,
+      )
+
+      harness.setView.mockImplementation(() => harness.host.targetView)
+
+      const coordinator = new SidepanelHostContextCoordinator(harness.host)
+
+      harness.setActiveView("excalidraw")
+      const result = coordinator.handlePollingFallback()
+
+      expect(result.rebound).toBe(false)
+      expect(result.snapshot.state).toBe("unbound")
+      expect(logSpy).toHaveBeenCalledWith(
+        "[LMX:lifecycle] host context rebind attempt did not confirm a usable targetView",
+        expect.objectContaining({
+          signal: "poll",
+          state: "unbound",
+          activeFilePath: "Card.excalidraw",
+          activeLeafIdentity: "card-leaf",
+          activeViewType: "excalidraw",
+          targetViewIdentity: null,
+          targetViewFilePath: null,
+          targetViewUsable: false,
+          shouldAttemptRebind: true,
+          cachedTargetViewIdentity: null,
+        }),
+      )
+    } finally {
+      if (hadDebugFlag) {
+        globalRecord[debugFlagKey] = previousDebugFlag
+      } else {
+        Reflect.deleteProperty(globalRecord, debugFlagKey)
+      }
+
+      logSpy.mockRestore()
+    }
   })
 
   it("uses the legacy getExcalidrawAPI fallback when the host has no explicit targetView property", () => {

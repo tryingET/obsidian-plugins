@@ -624,6 +624,16 @@ const renderViewBindStrategyLabel = (strategy: {
   return `${viewArgLabel}|reveal:${strategy.reveal}`
 }
 
+const normalizeWorkspaceViewType = (value: string | null): string | null => {
+  const normalized = value?.trim().toLowerCase() ?? null
+  return normalized && normalized.length > 0 ? normalized : null
+}
+
+const isDefinitelyNonRebindableActiveWorkspaceViewType = (value: string | null): boolean => {
+  const normalizedViewType = normalizeWorkspaceViewType(value)
+  return normalizedViewType !== null && normalizedViewType !== "excalidraw"
+}
+
 export const shouldRebindHostViewToActiveWorkspaceView = (
   host: SidepanelHostViewContextHost,
 ): boolean => {
@@ -633,8 +643,22 @@ export const shouldRebindHostViewToActiveWorkspaceView = (
     return false
   }
 
+  if (isDefinitelyNonRebindableActiveWorkspaceViewType(description.activeWorkspaceViewType)) {
+    return false
+  }
+
   if (!description.targetViewUsable) {
-    return true
+    if (
+      description.activeFileMetadataAvailable &&
+      description.activeFileExcalidrawCapable === false
+    ) {
+      return false
+    }
+
+    return (
+      normalizeWorkspaceViewType(description.activeWorkspaceViewType) === "excalidraw" ||
+      description.activeFilePath !== null
+    )
   }
 
   if (!description.activeFilePath) {

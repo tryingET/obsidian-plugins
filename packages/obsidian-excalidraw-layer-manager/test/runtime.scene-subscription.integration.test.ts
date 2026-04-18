@@ -177,7 +177,7 @@ describe("runtime scene-change subscription lifecycle", () => {
     expect(ea.getExcalidrawAPI as ReturnType<typeof vi.fn>).not.toHaveBeenCalled()
   })
 
-  it("resubscribes when the workspace active file changes eligibility under a stable targetView", async () => {
+  it("keeps the current scene subscription when workspace active-file eligibility changes under a stable targetView", async () => {
     const elementsByView: Record<string, RawExcalidrawElement[]> = {
       "A.excalidraw": [{ id: "A", type: "rectangle", isDeleted: false }],
     }
@@ -290,8 +290,8 @@ describe("runtime scene-change subscription lifecycle", () => {
     runtime.refresh()
     await flushAsync()
 
-    expect(subscribeCount).toBe(2)
-    expect(unsubscribeCount).toBe(1)
+    expect(subscribeCount).toBe(1)
+    expect(unsubscribeCount).toBe(0)
     expect(listeners.size).toBe(1)
     expect([...runtime.getSnapshot().selectedIds]).toEqual(["A"])
     expect(setView).not.toHaveBeenCalled()

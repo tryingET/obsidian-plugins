@@ -139,12 +139,30 @@ const haveEquivalentSnapshots = (
   )
 }
 
+const buildRepeatedFailedRebindSuppressionKey = (input: {
+  readonly observation: SidepanelHostViewObservation
+  readonly cachedTargetViewIdentity: string | null
+}): string => {
+  const { description } = input.observation
+
+  return [
+    description.activeFilePath ?? "none",
+    description.activeWorkspaceLeafIdentity ?? "none",
+    description.activeWorkspaceViewType ?? "none",
+    description.targetViewIdentity ?? "none",
+    description.targetViewFilePath ?? "none",
+    description.targetViewUsable ? "usable:yes" : "usable:no",
+    input.cachedTargetViewIdentity ?? "cached:none",
+  ].join("::")
+}
+
 export class SidepanelHostContextCoordinator {
   readonly #host: SidepanelHostContextCoordinatorHost
   readonly #autoRebindSignals: ReadonlySet<SidepanelHostPrimarySignal>
   #cachedTargetView: unknown | null = null
   #snapshot: SidepanelHostContextSnapshot | null = null
   #lastFailedRebindDebugKey: string | null = null
+  #lastRepeatedFailedRebindSuppressionKey: string | null = null
 
   constructor(
     host: SidepanelHostContextCoordinatorHost,
@@ -202,8 +220,17 @@ export class SidepanelHostContextCoordinator {
 
     let rebound = false
     let shouldAttemptRebind = shouldRebindHostViewToActiveWorkspaceView(this.#host)
+    const cachedTargetViewIdentityBeforeAttempt = resolveTargetViewIdentity(this.#cachedTargetView)
+    const repeatedFailedRebindSuppressionKey = buildRepeatedFailedRebindSuppressionKey({
+      observation,
+      cachedTargetViewIdentity: cachedTargetViewIdentityBeforeAttempt,
+    })
+    const shouldSuppressRepeatedFailedAutoRebind =
+      attemptRebind &&
+      (signal === "manual" || signal === "poll") &&
+      this.#lastRepeatedFailedRebindSuppressionKey === repeatedFailedRebindSuppressionKey
 
-    if (attemptRebind && shouldAttemptRebind) {
+    if (attemptRebind && shouldAttemptRebind && !shouldSuppressRepeatedFailedAutoRebind) {
       const rebindResult = bindHostViewToActiveWorkspaceView(this.#host)
       rebound = rebindResult.rebound
       observation = observeHostViewContext(this.#host)
@@ -218,6 +245,17 @@ export class SidepanelHostContextCoordinator {
       signal,
       shouldAttemptRebind,
     })
+
+    if (attemptRebind && shouldAttemptRebind && !rebound) {
+      this.#lastRepeatedFailedRebindSuppressionKey = repeatedFailedRebindSuppressionKey
+    } else if (
+      !shouldAttemptRebind ||
+      rebound ||
+      this.#lastRepeatedFailedRebindSuppressionKey !== repeatedFailedRebindSuppressionKey
+    ) {
+      this.#lastRepeatedFailedRebindSuppressionKey = null
+    }
+
     const changed = !haveEquivalentSnapshots(this.#snapshot, snapshot)
 
     if (attemptRebind && !rebound && shouldAttemptRebind) {
