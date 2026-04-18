@@ -555,6 +555,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   #lastSnapshotSelectionIds: readonly string[] = []
   #pendingFocusedRowRevealNodeId: string | null = null
   #lastRenderedSceneBinding: SidepanelSceneBinding | null = null
+  #preserveSidepanelFocusForCurrentHostViewChange = false
   #handlingHostViewClose = false
   #rowFilterQuery = ""
   #shouldAutofocusRowFilterInput = false
@@ -1607,11 +1608,14 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
 
     const sceneBinding = resolveSceneBindingFromHost(this.#host)
     const hostViewContext = describeHostViewContext(this.#host)
+    const preserveSidepanelFocus =
+      sceneBinding.state === "live" && !sceneBinding.shouldAttemptRebind
     this.debugLifecycle("sidepanel onViewChange received", {
       sceneBindingSource: sceneBinding.source,
       sceneBindingState: sceneBinding.state,
       sceneBindingRefreshKey: sceneBinding.refreshKey,
       sceneBindingShouldAttemptRebind: sceneBinding.shouldAttemptRebind,
+      preserveSidepanelFocus,
       activeFilePath: hostViewContext.activeFilePath,
       activeLeafIdentity: hostViewContext.activeWorkspaceLeafIdentity,
       activeViewType: hostViewContext.activeWorkspaceViewType,
@@ -1620,7 +1624,9 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       hostEligible: hostViewContext.hostEligible,
     })
     this.syncFocusOwnershipHostAuthority(sceneBinding)
-    this.requestRenderFromLatestModel()
+    this.runWithCurrentHostViewChangeFocusPreservation(preserveSidepanelFocus, () => {
+      this.requestRenderFromLatestModel()
+    })
   }
 
   private clearInteractiveBindings(): void {
@@ -2001,6 +2007,10 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   }
 
   private shouldPreserveSidepanelFocusAcrossHostViewContextChange(): boolean {
+    if (this.#preserveSidepanelFocusForCurrentHostViewChange) {
+      return true
+    }
+
     const contentRoot = this.#contentRoot
     if (!contentRoot) {
       return false
@@ -2008,6 +2018,20 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
 
     const activeElement = contentRoot.ownerDocument.activeElement
     return !!(activeElement && contentRoot.contains(activeElement as HTMLElement))
+  }
+
+  private runWithCurrentHostViewChangeFocusPreservation<T>(
+    preserveSidepanelFocus: boolean,
+    action: () => T,
+  ): T {
+    const previous = this.#preserveSidepanelFocusForCurrentHostViewChange
+    this.#preserveSidepanelFocusForCurrentHostViewChange = preserveSidepanelFocus
+
+    try {
+      return action()
+    } finally {
+      this.#preserveSidepanelFocusForCurrentHostViewChange = previous
+    }
   }
 
   private resetForHostViewContextChange(preserveSidepanelFocus: boolean): void {
