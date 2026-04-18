@@ -6,6 +6,7 @@ import type { SidepanelHostContextCoordinatorHost } from "../src/ui/sidepanel/se
 interface ViewFixture {
   readonly key: string
   readonly filePath: string
+  readonly workspaceFilePath?: string | null
   readonly viewId: string
   readonly leafId: string
   readonly viewType: string
@@ -80,11 +81,18 @@ const makeHostHarness = (
     workspace: {
       getActiveFile: () => {
         const fixture = fixtureByKey.get(activeViewKey)
-        return fixture
-          ? {
-              path: fixture.filePath,
+        if (!fixture) {
+          return null
+        }
+
+        const workspaceFilePath =
+          fixture.workspaceFilePath === undefined ? fixture.filePath : fixture.workspaceFilePath
+
+        return workspaceFilePath === null
+          ? null
+          : {
+              path: workspaceFilePath,
             }
-          : null
       },
       get activeLeaf() {
         const fixture = fixtureByKey.get(activeViewKey)
@@ -95,6 +103,9 @@ const makeHostHarness = (
         return {
           id: fixture.leafId,
           view: {
+            file: {
+              path: fixture.filePath,
+            },
             getViewType: () => fixture.viewType,
           },
         }
@@ -358,6 +369,33 @@ describe("sidepanel host-context coordinator", () => {
     expect(result.snapshot.state).toBe("inactive")
     expect(result.snapshot.shouldAttemptRebind).toBe(false)
     expect(result.snapshot.canOwnKeyboardRouting).toBe(false)
+  })
+
+  it("derives active-file truth from activeLeaf.view.file when workspace.getActiveFile() returns null", () => {
+    const harness = makeHostHarness(
+      [
+        makeViewFixture("plain.md", {
+          filePath: "plain.md",
+          workspaceFilePath: null,
+          viewId: "plain.md:view",
+          leafId: "plain.md:leaf",
+          viewType: "markdown",
+          frontmatter: {},
+          bindTargetView: false,
+        }),
+      ],
+      "plain.md",
+      null,
+    )
+
+    const coordinator = new SidepanelHostContextCoordinator(harness.host)
+    const snapshot = coordinator.getSnapshot()
+
+    expect(snapshot.activeFilePath).toBe("plain.md")
+    expect(snapshot.state).toBe("inactive")
+    expect(snapshot.shouldAttemptRebind).toBe(false)
+    expect(snapshot.sceneBinding.source).toBe("active-leaf")
+    expect(snapshot.bindingKey).toContain("plain.md")
   })
 
   it("keeps the shell unbound while preserving a cached targetView identity when auto-rebind is disabled", () => {

@@ -243,6 +243,11 @@ const makeRuntimeWithSidepanel = (
         return {
           id: fixture?.leafId ?? activeViewPath,
           view: {
+            file: fixture
+              ? {
+                  path: fixture.filePath,
+                }
+              : null,
             getViewType: () => fixture?.viewType ?? "unknown",
           },
         }
@@ -633,6 +638,71 @@ describe("runtime active-view refresh", () => {
         "B.excalidraw": {
           elements: [],
           bindTargetView: false,
+          frontmatter: {
+            "excalidraw-plugin": "parsed",
+          },
+        },
+      },
+      "A.excalidraw",
+      {
+        requireSetViewForReadCalls: true,
+      },
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+
+    const traceRead = globalRecord["LMX_HOST_CONTEXT_TRACE_READ"] as
+      | (() => readonly {
+          readonly category: string
+          readonly message: string
+          readonly payload: Record<string, unknown> | null
+        }[])
+      | undefined
+    const traceClear = globalRecord["LMX_HOST_CONTEXT_TRACE_CLEAR"] as (() => void) | undefined
+
+    expectUnboundSidepanelState(getContentRoot(runtime.sidepanelTab.contentEl))
+
+    traceClear?.()
+
+    runtime.switchWorkspaceToView("B.excalidraw")
+    runtime.emitWorkspaceEvent("active-leaf-change")
+    await flushAsync()
+
+    expectUnboundSidepanelState(getContentRoot(runtime.sidepanelTab.contentEl))
+
+    const signalEvent = traceRead?.().find(
+      (event) => event.category === "signal" && event.message === "host-context signal reconciled",
+    )
+
+    expect(signalEvent?.payload).toEqual(
+      expect.objectContaining({
+        source: "workspace:active-leaf-change",
+        scheduledRefresh: true,
+        previousState: "unbound",
+        nextState: "unbound",
+        sceneRefSource: "active-leaf",
+      }),
+    )
+    expect(`${signalEvent?.payload?.["previousBindingKey"] ?? ""}`).toContain("A.excalidraw")
+    expect(`${signalEvent?.payload?.["nextBindingKey"] ?? ""}`).toContain("B.excalidraw")
+  })
+
+  it("derives active-leaf file truth from leaf.view.file when workspace.getActiveFile() returns null", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      {
+        "A.excalidraw": {
+          elements: [],
+          bindTargetView: false,
+          workspaceFilePath: null,
+          frontmatter: {
+            "excalidraw-plugin": "parsed",
+          },
+        },
+        "B.excalidraw": {
+          elements: [],
+          bindTargetView: false,
+          workspaceFilePath: null,
           frontmatter: {
             "excalidraw-plugin": "parsed",
           },

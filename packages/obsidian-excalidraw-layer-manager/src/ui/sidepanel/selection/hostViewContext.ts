@@ -229,27 +229,12 @@ const resolveWorkspace = (
   return resolveMetadataApp(host, targetView)?.workspace ?? null
 }
 
-const resolveActiveWorkspaceFile = (
-  host: SidepanelHostViewContextHost,
-  targetView: unknown,
-): unknown | null => {
-  const getActiveFile = resolveWorkspace(host, targetView)?.getActiveFile
-  if (!getActiveFile) {
-    return null
+const normalizeFilePath = (file: unknown): string | null => {
+  if (typeof file === "string") {
+    const trimmed = file.trim()
+    return trimmed.length > 0 ? trimmed : null
   }
 
-  try {
-    return getActiveFile() ?? null
-  } catch {
-    return null
-  }
-}
-
-const resolveActiveWorkspaceFilePath = (
-  host: SidepanelHostViewContextHost,
-  targetView: unknown,
-): string | null => {
-  const file = resolveActiveWorkspaceFile(host, targetView)
   if (!file || typeof file !== "object") {
     return null
   }
@@ -257,6 +242,15 @@ const resolveActiveWorkspaceFilePath = (
   return typeof (file as Record<string, unknown>)["path"] === "string"
     ? ((file as Record<string, unknown>)["path"] as string)
     : null
+}
+
+const normalizeFileLike = (file: unknown): unknown | null => {
+  if (file && typeof file === "object") {
+    return file
+  }
+
+  const path = normalizeFilePath(file)
+  return path ? { path } : null
 }
 
 const resolveActiveWorkspaceLeaf = (
@@ -291,6 +285,80 @@ const resolveActiveWorkspaceLeaf = (
   }
 
   return null
+}
+
+const resolveActiveWorkspaceLeafFile = (
+  host: SidepanelHostViewContextHost,
+  targetView: unknown,
+): unknown | null => {
+  const activeLeaf = resolveActiveWorkspaceLeaf(host, targetView)
+  if (!activeLeaf) {
+    return null
+  }
+
+  const viewRecord =
+    activeLeaf["view"] && typeof activeLeaf["view"] === "object"
+      ? (activeLeaf["view"] as Record<string, unknown>)
+      : null
+
+  const directCandidates = [viewRecord?.["file"], activeLeaf["file"]]
+  for (const candidate of directCandidates) {
+    const normalizedCandidate = normalizeFileLike(candidate)
+    if (normalizedCandidate) {
+      return normalizedCandidate
+    }
+  }
+
+  const methodCandidates: readonly {
+    readonly owner: Record<string, unknown>
+    readonly getFile: unknown
+  }[] = [
+    { owner: activeLeaf, getFile: activeLeaf["getFile"] },
+    ...(viewRecord ? [{ owner: viewRecord, getFile: viewRecord["getFile"] }] : []),
+  ]
+
+  for (const candidate of methodCandidates) {
+    if (typeof candidate.getFile !== "function") {
+      continue
+    }
+
+    try {
+      const resolvedFile = normalizeFileLike(candidate.getFile.call(candidate.owner))
+      if (resolvedFile) {
+        return resolvedFile
+      }
+    } catch {
+      // no-op: best-effort active leaf file probing only
+    }
+  }
+
+  return null
+}
+
+const resolveActiveWorkspaceFile = (
+  host: SidepanelHostViewContextHost,
+  targetView: unknown,
+): unknown | null => {
+  const getActiveFile = resolveWorkspace(host, targetView)?.getActiveFile
+  if (getActiveFile) {
+    try {
+      const activeFile = normalizeFileLike(getActiveFile())
+      if (activeFile) {
+        return activeFile
+      }
+    } catch {
+      // no-op: fall through to active-leaf file probing
+    }
+  }
+
+  return resolveActiveWorkspaceLeafFile(host, targetView)
+}
+
+const resolveActiveWorkspaceFilePath = (
+  host: SidepanelHostViewContextHost,
+  targetView: unknown,
+): string | null => {
+  return normalizeFilePath(resolveActiveWorkspaceFile(host, targetView))
 }
 
 const resolveActiveWorkspaceLeafIdentity = (
