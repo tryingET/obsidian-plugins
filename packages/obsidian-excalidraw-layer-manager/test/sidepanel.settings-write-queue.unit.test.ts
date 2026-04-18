@@ -114,6 +114,77 @@ describe("sidepanel settings write queue", () => {
     expect(settings["flag"]?.value).toBe(false)
   })
 
+  it("retries from the latest snapshot when an external writer wins the first persist attempt", async () => {
+    let settings: ScriptSettingsLike = {
+      baseline: { value: 1 },
+    }
+
+    let attempt = 0
+    const setScriptSettings = vi.fn(async (nextSettings: ScriptSettingsLike) => {
+      attempt += 1
+
+      if (attempt === 1) {
+        settings = {
+          ...structuredClone(settings),
+          external: { value: "keep" },
+        }
+        return
+      }
+
+      settings = structuredClone(nextSettings)
+    })
+
+    const queue = new SidepanelSettingsWriteQueue({
+      getScriptSettings: () => settings,
+      setScriptSettings,
+      notify: vi.fn(),
+    })
+
+    const writeResult = queue.enqueue((nextSettings) => {
+      nextSettings["owned"] = { value: "persisted" }
+    }, "write failed")
+
+    await flushAsync(20)
+
+    await expect(writeResult).resolves.toBe(true)
+    expect(setScriptSettings).toHaveBeenCalledTimes(2)
+    expect(settings["baseline"]?.value).toBe(1)
+    expect(settings["external"]?.value).toBe("keep")
+    expect(settings["owned"]?.value).toBe("persisted")
+  })
+
+  it("fails closed after bounded verification retries when intended settings never stick", async () => {
+    let settings: ScriptSettingsLike = {
+      baseline: { value: 1 },
+    }
+
+    const notify = vi.fn<(message: string) => void>()
+    const setScriptSettings = vi.fn(async () => {
+      settings = {
+        ...structuredClone(settings),
+        external: { value: "keep" },
+      }
+    })
+
+    const queue = new SidepanelSettingsWriteQueue({
+      getScriptSettings: () => settings,
+      setScriptSettings,
+      notify,
+    })
+
+    const writeResult = queue.enqueue((nextSettings) => {
+      nextSettings["owned"] = { value: "persisted" }
+    }, "verification failed")
+
+    await flushAsync(20)
+
+    await expect(writeResult).resolves.toBe(false)
+    expect(setScriptSettings).toHaveBeenCalledTimes(2)
+    expect(notify).toHaveBeenCalledWith("verification failed")
+    expect(settings["external"]?.value).toBe("keep")
+    expect(settings["owned"]).toBeUndefined()
+  })
+
   it("reports the batch error message on failed writes", async () => {
     const notify = vi.fn<(message: string) => void>()
 

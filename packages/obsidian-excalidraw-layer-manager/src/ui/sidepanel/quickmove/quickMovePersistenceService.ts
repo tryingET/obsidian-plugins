@@ -138,7 +138,7 @@ const areSamePresetPaths = (left: readonly string[], right: readonly string[]): 
   return left.every((segment, index) => segment === right[index])
 }
 
-export const areEquivalentDestinations = (
+const areEquivalentDestinations = (
   left: LastQuickMoveDestination | null,
   right: LastQuickMoveDestination | null,
 ): boolean => {
@@ -164,7 +164,7 @@ export const areEquivalentDestinations = (
   )
 }
 
-export const areEquivalentDestinationLists = (
+const areEquivalentDestinationLists = (
   left: readonly LastQuickMoveDestination[],
   right: readonly LastQuickMoveDestination[],
 ): boolean => {

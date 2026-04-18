@@ -515,6 +515,71 @@ describe("sidepanel quick-move + persistence integration", () => {
     expect(settings["lmx_persist_last_move_destination"]?.value).toBe(true)
   })
 
+  it("retries remember-last-move persistence against the latest snapshot when an external key appears mid-write", async () => {
+    let settings: ScriptSettings = {
+      lmx_persist_last_move_destination: {
+        value: false,
+      },
+      lmx_last_move_destination: {
+        value: null,
+      },
+      external_existing: {
+        value: "baseline",
+      },
+    }
+
+    let attempt = 0
+    const setScriptSettings = vi.fn(async (nextSettings: ScriptSettings) => {
+      attempt += 1
+
+      if (attempt === 1) {
+        settings = {
+          ...cloneSettings(settings),
+          external_midflight: {
+            value: "keep",
+          },
+        }
+        return
+      }
+
+      settings = cloneSettings(nextSettings)
+    })
+
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => settings,
+      setScriptSettings,
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [makeElementNode("A")],
+      selectedIds: new Set(),
+      sceneVersion: 4.5,
+    })
+
+    const contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const rememberButton = findButtonByExactText(contentRoot, "Remember last move: off")
+    if (!rememberButton) {
+      throw new Error("Expected remember-last-move toggle button to exist.")
+    }
+
+    rememberButton.click()
+    await flushAsync(20)
+
+    expect(setScriptSettings).toHaveBeenCalledTimes(2)
+    expect(rememberButton.disabled).toBe(false)
+    expect(rememberButton.textContent).toBe("Remember last move: on")
+    expect(settings["external_existing"]?.value).toBe("baseline")
+    expect(settings["external_midflight"]?.value).toBe("keep")
+    expect(settings["lmx_persist_last_move_destination"]?.value).toBe(true)
+  })
+
   it("keeps remember-last-move toggle honest when async persistence fails", async () => {
     const settings: ScriptSettings = {
       lmx_persist_last_move_destination: {

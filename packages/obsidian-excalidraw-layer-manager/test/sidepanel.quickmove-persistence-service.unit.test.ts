@@ -746,7 +746,7 @@ describe("sidepanel quick-move persistence service", () => {
   })
 
   it("clears remembered-destination suppression after a later successful persisted change", async () => {
-    const settings: ScriptSettingsLike = {
+    let settings: ScriptSettingsLike = {
       lmx_persist_last_move_destination: {
         value: true,
       },
@@ -761,10 +761,10 @@ describe("sidepanel quick-move persistence service", () => {
     }
 
     const notify = vi.fn<(message: string) => void>()
-    const setScriptSettings = vi
-      .fn<(nextSettings: ScriptSettingsLike) => Promise<void>>()
-      .mockRejectedValueOnce(new Error("disk full"))
-      .mockResolvedValue(undefined)
+    const setScriptSettings = vi.fn(async (nextSettings: ScriptSettingsLike) => {
+      settings = structuredClone(nextSettings)
+    })
+    setScriptSettings.mockRejectedValueOnce(new Error("disk full"))
 
     const queue = new SidepanelSettingsWriteQueue({
       getScriptSettings: () => settings,

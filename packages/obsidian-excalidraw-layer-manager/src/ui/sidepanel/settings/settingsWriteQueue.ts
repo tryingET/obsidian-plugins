@@ -42,6 +42,8 @@ interface PersistSettingsBatchActorInput {
   readonly batch: readonly PendingSettingsWrite[]
 }
 
+const SETTINGS_WRITE_VERIFICATION_MAX_ATTEMPTS = 2
+
 const isPromiseLike = <T>(value: unknown): value is PromiseLike<T> => {
   return !!value && typeof value === "object" && "then" in value
 }
@@ -72,17 +74,84 @@ const readScriptSettingsSnapshot = (getScriptSettings?: () => ScriptSettingsLike
   return snapshot
 }
 
-const persistSettingsBatch = async (input: PersistSettingsBatchActorInput): Promise<void> => {
+const buildNextSettingsSnapshot = (input: PersistSettingsBatchActorInput): ScriptSettingsLike => {
   const nextSettings = readScriptSettingsSnapshot(input.getScriptSettings)
 
   for (const entry of input.batch) {
     entry.mutator(nextSettings)
   }
 
-  const result = input.setScriptSettings(nextSettings)
-  if (isPromiseLike<void>(result)) {
-    await result
+  return nextSettings
+}
+
+const areEquivalentSettingValues = (left: unknown, right: unknown): boolean => {
+  if (Object.is(left, right)) {
+    return true
   }
+
+  if (Array.isArray(left) || Array.isArray(right)) {
+    if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) {
+      return false
+    }
+
+    return left.every((entry, index) => areEquivalentSettingValues(entry, right[index]))
+  }
+
+  if (!left || !right || typeof left !== "object" || typeof right !== "object") {
+    return false
+  }
+
+  const leftEntries = Object.entries(left as Record<string, unknown>)
+  const rightEntries = Object.entries(right as Record<string, unknown>)
+
+  if (leftEntries.length !== rightEntries.length) {
+    return false
+  }
+
+  return leftEntries.every(([key, value]) =>
+    areEquivalentSettingValues(value, (right as Record<string, unknown>)[key]),
+  )
+}
+
+const areEquivalentSettingEntries = (
+  left: ScriptSettingsEntryLike | undefined,
+  right: ScriptSettingsEntryLike | undefined,
+): boolean => {
+  if (!left || !right) {
+    return left === right
+  }
+
+  return (
+    areEquivalentSettingValues(left.value, right.value) && left.description === right.description
+  )
+}
+
+const doesSettingsSnapshotContain = (
+  currentSettings: ScriptSettingsLike,
+  expectedSettings: ScriptSettingsLike,
+): boolean => {
+  return Object.entries(expectedSettings).every(([key, entry]) =>
+    areEquivalentSettingEntries(currentSettings[key], entry),
+  )
+}
+
+const persistSettingsBatch = async (input: PersistSettingsBatchActorInput): Promise<void> => {
+  for (let attempt = 0; attempt < SETTINGS_WRITE_VERIFICATION_MAX_ATTEMPTS; attempt += 1) {
+    const nextSettings = buildNextSettingsSnapshot(input)
+    const result = input.setScriptSettings(nextSettings)
+    if (isPromiseLike<void>(result)) {
+      await result
+    }
+
+    await Promise.resolve()
+
+    const persistedSettings = readScriptSettingsSnapshot(input.getScriptSettings)
+    if (doesSettingsSnapshotContain(persistedSettings, nextSettings)) {
+      return
+    }
+  }
+
+  throw new Error("Script settings verification failed after bounded retries.")
 }
 
 const resolveBatch = (batch: readonly PendingSettingsWrite[], result: boolean): void => {
