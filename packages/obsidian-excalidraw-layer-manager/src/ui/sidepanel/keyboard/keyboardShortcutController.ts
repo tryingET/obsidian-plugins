@@ -132,19 +132,26 @@ export class SidepanelKeyboardShortcutController {
     }
 
     const normalizedKey = event.key.length === 1 ? event.key.toLowerCase() : event.key
+    const isSpaceSelectionAliasKey =
+      event.key === " " || event.key === "Space" || event.key === "Spacebar"
+    const isTSelectionAliasKey = normalizedKey === "t"
     const isSelectionAliasKey =
-      event.key === " " ||
-      event.key === "Space" ||
-      event.key === "Spacebar" ||
+      isSpaceSelectionAliasKey ||
+      isTSelectionAliasKey ||
       normalizedKey === "n" ||
       normalizedKey === "m"
+    const isCtrlMetaToggleAliasKey =
+      isSpaceSelectionAliasKey || normalizedKey === "n" || normalizedKey === "m"
     const hasToggleModifier = event.ctrlKey || event.metaKey
+    const isShiftTRangeToggleShortcut = isTSelectionAliasKey && event.shiftKey && !hasToggleModifier
+    const isAltTToggleShortcut =
+      isTSelectionAliasKey && event.altKey && !event.shiftKey && !event.ctrlKey && !event.metaKey
 
-    if (event.altKey) {
+    if (event.altKey && !isAltTToggleShortcut) {
       return
     }
 
-    if (hasToggleModifier && !isSelectionAliasKey) {
+    if (hasToggleModifier && !isCtrlMetaToggleAliasKey) {
       return
     }
 
@@ -225,7 +232,11 @@ export class SidepanelKeyboardShortcutController {
     if (isSelectionAliasKey) {
       this.#host.suppressTransientFocusOut()
       claimHandledKeyboardEvent(event)
-      if (event.shiftKey) {
+      if (isShiftTRangeToggleShortcut) {
+        this.selectVisibleRangeToFocusedNode(context, true)
+      } else if (isAltTToggleShortcut) {
+        this.toggleFocusedNodeSelection(context)
+      } else if (event.shiftKey) {
         this.selectVisibleRangeToFocusedNode(context, hasToggleModifier)
       } else if (hasToggleModifier) {
         this.toggleFocusedNodeSelection(context)

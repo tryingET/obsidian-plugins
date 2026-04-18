@@ -236,7 +236,7 @@ describe("sidepanel focus + keyboard integration", () => {
       .filter((text) => text.length > 0)
 
     expect(textFragments).toContain(
-      "Shortcuts: ↑/↓ focus rows · Shift+↑/↓ extend row selection · Home/End bounds · PgUp/PgDn page · Shift+PgUp/PgDn extend page · Space/M/N select row · Ctrl/Cmd+Space/M/N toggle row · Shift+Space/M/N range rows · ←/→ collapse/expand · Enter rename · Del delete · F/B reorder · Shift+F/B front/back · G/U structural",
+      "Shortcuts: ↑/↓ focus rows · Shift+↑/↓ extend row selection · Home/End bounds · PgUp/PgDn page · Shift+PgUp/PgDn extend page · T select row · Alt+T toggle row · Shift+T add range to selection · ←/→ collapse/expand · Enter rename · Del delete · F/B reorder · Shift+F/B front/back · G/U structural",
     )
   })
 
@@ -407,6 +407,8 @@ describe("sidepanel focus + keyboard integration", () => {
       { key: "PageUp", ctrlKey: true },
       { key: "Enter", metaKey: true },
       { key: "Delete", altKey: true },
+      { key: "t", ctrlKey: true },
+      { key: "t", metaKey: true },
       { key: "f", ctrlKey: true },
       { key: "g", metaKey: true },
       { key: "u", altKey: true },

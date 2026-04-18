@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "exported_at": "2026-04-18T09:03:49.542294862+00:00",
+  "task_id": 1627,
+  "entity_version": 1,
+  "commit_sha": "7f1d9ae",
+  "scope": {
+    "allowed_paths": [
+      "packages/obsidian-excalidraw-layer-manager/src/ui/sidepanel/keyboard/keyboardShortcutController.ts",
+      "packages/obsidian-excalidraw-layer-manager/test/sidepanel.keyboard-shortcut-controller.unit.test.ts"
+    ],
+    "required_paths": [
+      "packages/obsidian-excalidraw-layer-manager/src/ui/sidepanel/keyboard/keyboardShortcutController.ts",
+      "packages/obsidian-excalidraw-layer-manager/test/sidepanel.keyboard-shortcut-controller.unit.test.ts"
+    ],
+    "forbidden_paths": []
+  },
+  "default_applies": false,
+  "export_tool": "ak task scope export",
+  "export_tool_version": "snapshot-v1"
+}
