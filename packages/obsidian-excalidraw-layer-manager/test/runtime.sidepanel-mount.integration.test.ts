@@ -647,6 +647,59 @@ describe("sidepanel mount-focused integration", () => {
     expect(textFragments).not.toEqual(expect.arrayContaining(["Layer Manager unbound"]))
   })
 
+  it("reclaims row-tree focus for sidepanel-driven onViewChange rebinds even when focus was outside", async () => {
+    const sidepanelTab = makeViewChangeAwareSidepanelTab(fakeDocument)
+    const eligibleBinding = makeHostViewBinding("eligible.excalidraw", {
+      "excalidraw-plugin": "parsed",
+    })
+
+    const host: {
+      sidepanelTab: typeof sidepanelTab.tab
+      createSidepanelTab: () => typeof sidepanelTab.tab
+      getScriptSettings: () => ScriptSettings
+      targetView: typeof eligibleBinding.targetView | null
+      app: typeof eligibleBinding.app
+    } = {
+      sidepanelTab: sidepanelTab.tab,
+      createSidepanelTab: () => sidepanelTab.tab,
+      getScriptSettings: () => ({}),
+      ...eligibleBinding,
+    }
+
+    const renderer = createExcalidrawSidepanelRenderer(host)
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [makeElementNode("A")],
+      selectedIds: new Set(),
+      sceneVersion: 1,
+    })
+
+    host.targetView = null
+    renderer.render({
+      tree: [makeElementNode("A")],
+      selectedIds: new Set(),
+      sceneVersion: 2,
+    })
+    await flushAsync()
+
+    const outsideTarget = fakeDocument.createElement("button")
+    fakeDocument.activeElement = outsideTarget
+
+    sidepanelTab.tab.onViewChange?.(eligibleBinding.targetView)
+    await flushAsync()
+
+    const contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const rowTreeRoot = findRowTreeRoot(contentRoot)
+
+    expect(host.targetView).toBe(eligibleBinding.targetView)
+    expect(rowTreeRoot).toBeDefined()
+    expect(fakeDocument.activeElement).toBe(rowTreeRoot)
+    expect(sidepanelTab.close).not.toHaveBeenCalled()
+  })
+
   it("remounts into an explicit unbound shell instead of reinstating a cached targetView heuristically", () => {
     const firstTab = makeSidepanelTab(fakeDocument, null)
     const secondTab = makeSidepanelTab(fakeDocument, null)

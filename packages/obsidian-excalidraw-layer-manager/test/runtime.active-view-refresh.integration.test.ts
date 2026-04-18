@@ -641,6 +641,65 @@ describe("runtime active-view refresh", () => {
     expect(focusedRowLabel).not.toContain("Alpha")
   })
 
+  it("keeps row-tree focus when a workspace-driven Excalidraw switch starts inside the sidepanel", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      {
+        "A.excalidraw": [
+          { id: "A", type: "rectangle", name: "Alpha", isDeleted: false },
+          { id: "B", type: "rectangle", name: "Beta", isDeleted: false },
+        ],
+        "B.excalidraw": [
+          { id: "C", type: "rectangle", name: "Gamma", isDeleted: false },
+          { id: "D", type: "rectangle", name: "Delta", isDeleted: false },
+        ],
+      },
+      "A.excalidraw",
+      {
+        requireSetViewForReadCalls: true,
+      },
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+
+    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const searchInput = findRowFilterInput(contentRoot)
+    if (!searchInput) {
+      throw new Error("Expected row filter input in the initial drawing.")
+    }
+
+    searchInput.focus()
+    searchInput.value = "Alpha"
+    searchInput.dispatchEvent(new FakeDomEvent("input"))
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const alphaRow = findInteractiveRowByLabel(contentRoot, "[element] Alpha")
+    if (!alphaRow) {
+      throw new Error("Expected Alpha row while the first drawing filter is active.")
+    }
+
+    alphaRow.click()
+    await flushAsync()
+
+    runtime.switchWorkspaceToView("B.excalidraw")
+    runtime.emitWorkspaceEvent("active-leaf-change")
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const rowTreeRoot = findRowTreeRoot(contentRoot)
+    const focusedRow = findFocusedInteractiveRow(contentRoot)
+    const focusedRowLabel = (focusedRow as (FakeDomElement & { ariaLabel?: string }) | undefined)
+      ?.ariaLabel
+
+    expect(rowTreeRoot).toBeDefined()
+    expect(fakeDocument.activeElement).toBe(rowTreeRoot)
+    expect([focusedRowLabel]).toEqual(
+      expect.arrayContaining([expect.stringMatching(/Gamma|Delta/)]),
+    )
+    expect(focusedRowLabel).not.toContain("Alpha")
+  })
+
   it("does not steal focus from the host drawing when a workspace-driven Excalidraw switch starts outside the sidepanel", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
