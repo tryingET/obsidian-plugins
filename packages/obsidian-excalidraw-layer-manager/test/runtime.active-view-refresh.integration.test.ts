@@ -131,11 +131,14 @@ const normalizeDrawingFixture = (
   }
 }
 
+type TargetViewAppWorkspaceMode = "shared" | "no-events" | "none"
+
 interface MakeRuntimeWithSidepanelOptions {
   readonly disableWorkspaceEvents?: boolean
   readonly omitEaApp?: boolean
   readonly requireSetViewForReadCalls?: boolean
   readonly requireSetViewForApiCalls?: boolean
+  readonly targetViewAppWorkspaceMode?: TargetViewAppWorkspaceMode
 }
 
 const makeRuntimeWithSidepanel = (
@@ -177,83 +180,98 @@ const makeRuntimeWithSidepanel = (
     [...normalizedByPath.entries()].map(([viewPath, fixture]) => [fixture.viewId, viewPath]),
   )
 
-  const app = {
-    metadataCache: {
-      getFileCache: (file: unknown) => {
-        const path =
-          file && typeof file === "object" && typeof (file as { path?: unknown }).path === "string"
-            ? ((file as { path: string }).path as string)
-            : null
+  const metadataCache = {
+    getFileCache: (file: unknown) => {
+      const path =
+        file && typeof file === "object" && typeof (file as { path?: unknown }).path === "string"
+          ? ((file as { path: string }).path as string)
+          : null
 
-        if (!path) {
-          return null
-        }
+      if (!path) {
+        return null
+      }
 
-        const fixture = fixtureByFilePath.get(path)
-        if (!fixture) {
-          return null
-        }
+      const fixture = fixtureByFilePath.get(path)
+      if (!fixture) {
+        return null
+      }
 
-        return {
-          frontmatter: fixture.frontmatter,
-        }
-      },
-    },
-    workspace: {
-      ...(options.disableWorkspaceEvents
-        ? {}
-        : {
-            on: (eventName: string, callback: (...args: unknown[]) => unknown) => {
-              let listeners = workspaceListeners.get(eventName)
-              if (!listeners) {
-                listeners = new Set()
-                workspaceListeners.set(eventName, listeners)
-              }
-
-              listeners.add(callback)
-              return {
-                eventName,
-                callback,
-              }
-            },
-            offref: (ref: unknown) => {
-              if (!ref || typeof ref !== "object") {
-                return
-              }
-
-              const eventName = (ref as { eventName?: unknown }).eventName
-              const callback = (ref as { callback?: unknown }).callback
-              if (typeof eventName !== "string" || typeof callback !== "function") {
-                return
-              }
-
-              workspaceListeners.get(eventName)?.delete(callback as (...args: unknown[]) => unknown)
-            },
-          }),
-      getActiveFile: () => {
-        const workspaceFilePath = normalizedByPath.get(activeViewPath)?.workspaceFilePath
-        return workspaceFilePath === null
-          ? null
-          : {
-              path: workspaceFilePath ?? activeViewPath,
-            }
-      },
-      get activeLeaf() {
-        const fixture = normalizedByPath.get(activeViewPath)
-        return {
-          id: fixture?.leafId ?? activeViewPath,
-          view: {
-            file: fixture
-              ? {
-                  path: fixture.filePath,
-                }
-              : null,
-            getViewType: () => fixture?.viewType ?? "unknown",
-          },
-        }
-      },
+      return {
+        frontmatter: fixture.frontmatter,
+      }
     },
   }
+
+  const createWorkspace = (includeEventApis: boolean) => ({
+    ...(includeEventApis
+      ? {
+          on: (eventName: string, callback: (...args: unknown[]) => unknown) => {
+            let listeners = workspaceListeners.get(eventName)
+            if (!listeners) {
+              listeners = new Set()
+              workspaceListeners.set(eventName, listeners)
+            }
+
+            listeners.add(callback)
+            return {
+              eventName,
+              callback,
+            }
+          },
+          offref: (ref: unknown) => {
+            if (!ref || typeof ref !== "object") {
+              return
+            }
+
+            const eventName = (ref as { eventName?: unknown }).eventName
+            const callback = (ref as { callback?: unknown }).callback
+            if (typeof eventName !== "string" || typeof callback !== "function") {
+              return
+            }
+
+            workspaceListeners.get(eventName)?.delete(callback as (...args: unknown[]) => unknown)
+          },
+        }
+      : {}),
+    getActiveFile: () => {
+      const workspaceFilePath = normalizedByPath.get(activeViewPath)?.workspaceFilePath
+      return workspaceFilePath === null
+        ? null
+        : {
+            path: workspaceFilePath ?? activeViewPath,
+          }
+    },
+    get activeLeaf() {
+      const fixture = normalizedByPath.get(activeViewPath)
+      return {
+        id: fixture?.leafId ?? activeViewPath,
+        view: {
+          file: fixture
+            ? {
+                path: fixture.filePath,
+              }
+            : null,
+          getViewType: () => fixture?.viewType ?? "unknown",
+        },
+      }
+    },
+  })
+
+  const app = {
+    metadataCache,
+    workspace: createWorkspace(options.disableWorkspaceEvents !== true),
+  }
+
+  const targetViewAppWorkspaceMode = options.targetViewAppWorkspaceMode ?? "shared"
+  const targetViewApp =
+    targetViewAppWorkspaceMode === "shared"
+      ? app
+      : {
+          metadataCache,
+          ...(targetViewAppWorkspaceMode === "none"
+            ? {}
+            : { workspace: createWorkspace(false) }),
+        }
 
   const buildTargetViewForPath = (viewPath: string): Record<string, unknown> | null => {
     const fixture = normalizedByPath.get(viewPath)
@@ -270,7 +288,7 @@ const makeRuntimeWithSidepanel = (
       leaf: {
         id: fixture.leafId,
       },
-      app,
+      app: targetViewApp,
     }
   }
 
@@ -1139,6 +1157,46 @@ describe("runtime active-view refresh", () => {
     app.dispose()
   })
 
+  it("prefers the canonical ea.app workspace when targetView.app lacks workspace infrastructure", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      {
+        "A.excalidraw": [{ id: "A", type: "rectangle", name: "Alpha", isDeleted: false }],
+      },
+      "A.excalidraw",
+      {
+        targetViewAppWorkspaceMode: "none",
+      },
+    )
+
+    const app = createLayerManagerRuntime(runtime.ea)
+    await flushAsync()
+
+    const traceRead = globalRecord["LMX_HOST_CONTEXT_TRACE_READ"] as
+      | (() => readonly {
+          readonly message: string
+          readonly payload: Record<string, unknown> | null
+        }[])
+      | undefined
+
+    const startupEvent = traceRead?.().find(
+      (event) => event.message === "workspace refresh infrastructure ready",
+    )
+
+    expect(startupEvent?.payload).toEqual(
+      expect.objectContaining({
+        runtimeAppResolved: true,
+        hasWorkspace: true,
+        hasWorkspaceOn: true,
+        hasWorkspaceOffref: true,
+        pollArmed: true,
+        targetViewFilePath: "A.excalidraw",
+      }),
+    )
+
+    app.dispose()
+  })
+
   it("records startup health when workspace refresh infrastructure is unavailable", async () => {
     const traceRead = globalRecord["LMX_HOST_CONTEXT_TRACE_READ"] as
       | (() => readonly {
@@ -1361,6 +1419,36 @@ describe("runtime active-view refresh", () => {
 
     const contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
     expect(findInteractiveRowByLabel(contentRoot, "[element] Alpha")).toBeDefined()
+  })
+
+  it("subscribes workspace note-change events from the canonical ea.app workspace", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      {
+        "A.excalidraw": [{ id: "A", type: "rectangle", name: "Alpha", isDeleted: false }],
+        "plain.md": {
+          elements: [],
+          frontmatter: {},
+        },
+      },
+      "A.excalidraw",
+      {
+        requireSetViewForReadCalls: true,
+        targetViewAppWorkspaceMode: "no-events",
+      },
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+    expect(runtime.sidepanelTab.contentEl.children.length).toBeGreaterThan(0)
+
+    runtime.switchWorkspaceToView("plain.md")
+    runtime.emitWorkspaceEvent("file-open")
+    await flushAsync()
+
+    expectInactiveSidepanelState(
+      getContentRoot(runtime.sidepanelTab.contentEl),
+      "Active leaf is not Excalidraw.",
+    )
   })
 
   it("polls workspace active-file changes when workspace events are unavailable", async () => {

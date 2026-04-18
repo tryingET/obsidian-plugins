@@ -67,28 +67,46 @@ const toSceneChangeUnsubscribe = (value: unknown): (() => void) | null => {
 
 const WORKSPACE_ACTIVE_FILE_POLL_MS = 350
 
-const resolveRuntimeApp = (ea: EaLike): ObsidianAppLike | null => {
-  const targetViewApp =
-    ea.targetView && typeof ea.targetView === "object"
-      ? ((ea.targetView as Record<string, unknown>)["app"] ?? null)
-      : null
+const toAppCandidate = (candidate: unknown): ObsidianAppLike | null => {
+  return candidate && typeof candidate === "object" ? (candidate as ObsidianAppLike) : null
+}
 
-  const candidates = [
-    targetViewApp,
+const hasWorkspaceSurface = (candidate: ObsidianAppLike | null): boolean => {
+  return !!candidate?.workspace && typeof candidate.workspace === "object"
+}
+
+const resolveRuntimeApp = (ea: EaLike): ObsidianAppLike | null => {
+  const targetViewApp = toAppCandidate(
+    ea.targetView && typeof ea.targetView === "object"
+      ? (ea.targetView as Record<string, unknown>)["app"]
+      : null,
+  )
+
+  const canonicalCandidates = [
     ea.app,
     ea.obsidian?.app,
     (globalThis as Record<string, unknown>)["app"],
     (globalThis as { window?: { app?: unknown } }).window?.app,
     (globalThis as { obsidian?: { app?: unknown } }).obsidian?.app,
-  ]
+  ].map(toAppCandidate)
 
-  for (const candidate of candidates) {
-    if (candidate && typeof candidate === "object") {
-      return candidate as ObsidianAppLike
+  for (const candidate of canonicalCandidates) {
+    if (hasWorkspaceSurface(candidate)) {
+      return candidate
     }
   }
 
-  return null
+  if (hasWorkspaceSurface(targetViewApp)) {
+    return targetViewApp
+  }
+
+  for (const candidate of canonicalCandidates) {
+    if (candidate) {
+      return candidate
+    }
+  }
+
+  return targetViewApp
 }
 
 export interface LayerManagerRuntime {
