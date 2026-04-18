@@ -1,6 +1,6 @@
 import { vi } from "vitest"
 
-export interface FakeDomEventInit {
+interface FakeDomEventInit {
   key?: string
   code?: string
   ctrlKey?: boolean
@@ -628,7 +628,7 @@ export const dispatchKeydown = (
   receiver.dispatchEvent(event)
 }
 
-export const dispatchKeyup = (
+const dispatchKeyup = (
   receiver: FakeDomEventReceiver,
   key: string,
   options: DispatchKeydownOptions = {},

@@ -34,7 +34,7 @@ const createSceneRef = (input: SidepanelSceneRef): SidepanelSceneRef => {
   return input
 }
 
-export const resolveSceneRefFromObservation = (
+const resolveSceneRefFromObservation = (
   observation: SidepanelHostViewObservation,
 ): SidepanelSceneRef | null => {
   const { description } = observation

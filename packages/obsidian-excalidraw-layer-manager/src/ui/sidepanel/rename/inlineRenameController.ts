@@ -4,7 +4,7 @@ import type { ExecuteIntentOutcome } from "../../../runtime/intentExecution.js"
 import { didInteractionApply } from "../../interactionOutcome.js"
 import type { LayerManagerUiActions } from "../../renderer.js"
 
-export interface InlineRenameState {
+interface InlineRenameState {
   readonly nodeId: string
   readonly draft: string
   readonly shouldAutofocusInput: boolean
@@ -14,7 +14,7 @@ interface InlineRenameLogPayload {
   readonly [key: string]: unknown
 }
 
-export interface SidepanelInlineRenameControllerHost {
+interface SidepanelInlineRenameControllerHost {
   notify: (message: string) => void
   requestRenderFromLatestModel: () => void
   setShouldAutofocusContentRoot: (value: boolean) => void

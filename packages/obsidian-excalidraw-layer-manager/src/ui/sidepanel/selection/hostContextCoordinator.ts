@@ -25,7 +25,7 @@ export type SidepanelHostPrimarySignal =
   | "sidepanel-view-change"
   | "poll"
 
-export interface SidepanelHostContextSnapshot {
+interface SidepanelHostContextSnapshot {
   readonly bindingKey: string
   readonly sceneRef: SidepanelSceneRef | null
   readonly sceneBinding: SidepanelSceneBinding
@@ -47,7 +47,7 @@ export interface SidepanelHostContextSnapshot {
   readonly signal: SidepanelHostPrimarySignal
 }
 
-export interface SidepanelHostContextReconcileResult {
+interface SidepanelHostContextReconcileResult {
   readonly snapshot: SidepanelHostContextSnapshot
   readonly changed: boolean
   readonly rebound: boolean
@@ -57,7 +57,7 @@ export interface SidepanelHostContextCoordinatorHost extends SidepanelHostViewCo
   readonly getExcalidrawAPI?: () => unknown
 }
 
-export interface SidepanelHostContextCoordinatorOptions {
+interface SidepanelHostContextCoordinatorOptions {
   readonly autoRebindSignals?: readonly SidepanelHostPrimarySignal[]
 }
 

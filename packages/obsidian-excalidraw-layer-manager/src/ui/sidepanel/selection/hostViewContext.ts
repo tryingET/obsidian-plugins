@@ -40,7 +40,7 @@ export interface SidepanelHostViewObservation {
   readonly description: SidepanelHostViewContextDescription
 }
 
-export interface SidepanelHostViewContextEnsureResult {
+interface SidepanelHostViewContextEnsureResult {
   readonly ok: boolean
   readonly rebound: boolean
 }
@@ -71,7 +71,7 @@ const invokeHostSetView = (
   return setView.call(host, viewArg, reveal)
 }
 
-export const hasExplicitTargetViewProperty = (host: SidepanelHostViewContextHost): boolean => {
+const hasExplicitTargetViewProperty = (host: SidepanelHostViewContextHost): boolean => {
   return Object.prototype.hasOwnProperty.call(host, "targetView")
 }
 
@@ -653,7 +653,7 @@ export const resolveHostViewContextKeyFromObservation = (
   )
 }
 
-export const resolveHostViewContextKey = (host: SidepanelHostViewContextHost): string => {
+const resolveHostViewContextKey = (host: SidepanelHostViewContextHost): string => {
   return resolveHostViewContextKeyFromObservation(observeHostViewContext(host))
 }
 

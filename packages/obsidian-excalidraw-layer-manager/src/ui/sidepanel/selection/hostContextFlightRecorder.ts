@@ -3,7 +3,7 @@ import type { ObsidianLike } from "../../../adapter/excalidraw-types.js"
 export const SIDEPANEL_LIFECYCLE_DEBUG_FLAG = "LMX_DEBUG_SIDEPANEL_LIFECYCLE"
 export const HOST_CONTEXT_FLIGHT_RECORDER_MAX_EVENTS = 240
 
-export interface HostContextFlightRecorderEvent {
+interface HostContextFlightRecorderEvent {
   readonly sequence: number
   readonly atMs: number
   readonly atIso: string
@@ -147,7 +147,7 @@ export const isLifecycleDebugEnabled = (): boolean => {
   return getRuntime()[SIDEPANEL_LIFECYCLE_DEBUG_FLAG] === true
 }
 
-export const logLifecycleDebug = (message: string, payload?: Record<string, unknown>): void => {
+const logLifecycleDebug = (message: string, payload?: Record<string, unknown>): void => {
   if (!isLifecycleDebugEnabled()) {
     return
   }
@@ -234,7 +234,7 @@ const resolveClipboard = (): { writeText?: (text: string) => Promise<void> } | n
     : null
 }
 
-export const copyHostContextFlightRecorderDump = async (options?: {
+const copyHostContextFlightRecorderDump = async (options?: {
   Notice?: ObsidianLike["Notice"]
 }): Promise<string> => {
   const dump = formatHostContextFlightRecorderDump()

@@ -28,7 +28,7 @@ interface BuildSidepanelRowDescriptorsInput {
   readonly filterMatchKind?: SidepanelFilterMatchKind
 }
 
-export interface SidepanelRowDescriptors {
+interface SidepanelRowDescriptors {
   readonly typeBadge: SidepanelRowBadgeDescriptor
   readonly metaBadges: readonly SidepanelRowBadgeDescriptor[]
   readonly ariaLabel: string
@@ -48,7 +48,7 @@ const normalizeSearchFragment = (value: string): string => {
     .toLowerCase()
 }
 
-export const resolveSidepanelTypeBadgeLabel = (node: LayerNode): string => {
+const resolveSidepanelTypeBadgeLabel = (node: LayerNode): string => {
   if (node.type === "freedrawBucket") {
     return "[strokes]"
   }

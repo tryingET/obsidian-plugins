@@ -8,12 +8,7 @@ import {
   buildSidepanelRowSearchText,
 } from "./rowPresentation.js"
 
-export type {
-  SidepanelFilterMatchKind,
-  SidepanelLockState,
-  SidepanelRowVisualState,
-  SidepanelVisibilityState,
-} from "./rowPresentation.js"
+export type { SidepanelFilterMatchKind, SidepanelRowVisualState } from "./rowPresentation.js"
 
 interface SidepanelRowFilterResult {
   readonly visibleTree: readonly VisibleRowNode[]

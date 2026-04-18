@@ -9,7 +9,7 @@ interface PromptSource {
   readonly prompt: PromptFunctionLike
 }
 
-export interface SidepanelPromptInteractionServiceHost {
+interface SidepanelPromptInteractionServiceHost {
   readonly getOwnerDocument: () => Document | null
   readonly notify: (message: string) => void
   readonly suppressKeyboardAfterPrompt: () => void
