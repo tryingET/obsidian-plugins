@@ -372,6 +372,123 @@ describe("sidepanel host-context coordinator", () => {
     expect(result.snapshot.canOwnKeyboardRouting).toBe(false)
   })
 
+  it("prefers canonical host workspace truth over stale targetView.app workspace truth", () => {
+    let hostWorkspaceState: "live" | "markdown" = "live"
+
+    const resolveFixture = (state: "live" | "markdown") => {
+      return state === "live"
+        ? {
+            filePath: "A.excalidraw",
+            leafId: "A.excalidraw:leaf",
+            viewType: "excalidraw",
+            frontmatter: { "excalidraw-plugin": "parsed" },
+          }
+        : {
+            filePath: "plain.md",
+            leafId: "plain.md:leaf",
+            viewType: "markdown",
+            frontmatter: {},
+          }
+    }
+
+    const hostApp = {
+      metadataCache: {
+        getFileCache: (file: unknown) => {
+          const path =
+            file && typeof file === "object" && typeof (file as { path?: unknown }).path === "string"
+              ? ((file as { path: string }).path as string)
+              : null
+
+          if (!path) {
+            return null
+          }
+
+          return {
+            frontmatter: resolveFixture(hostWorkspaceState).filePath === path
+              ? resolveFixture(hostWorkspaceState).frontmatter
+              : path === "A.excalidraw"
+                ? { "excalidraw-plugin": "parsed" }
+                : {},
+          }
+        },
+      },
+      workspace: {
+        getActiveFile: () => ({
+          path: resolveFixture(hostWorkspaceState).filePath,
+        }),
+        get activeLeaf() {
+          const fixture = resolveFixture(hostWorkspaceState)
+          return {
+            id: fixture.leafId,
+            view: {
+              file: {
+                path: fixture.filePath,
+              },
+              getViewType: () => fixture.viewType,
+            },
+          }
+        },
+      },
+    }
+
+    const staleTargetViewApp = {
+      metadataCache: hostApp.metadataCache,
+      workspace: {
+        getActiveFile: () => ({
+          path: "A.excalidraw",
+        }),
+        get activeLeaf() {
+          return {
+            id: "stale-excalidraw-leaf",
+            view: {
+              file: {
+                path: "A.excalidraw",
+              },
+              getViewType: () => "excalidraw",
+            },
+          }
+        },
+      },
+    }
+
+    let host: SidepanelHostContextCoordinatorHost & { targetView: unknown | null }
+    const setView = vi.fn(() => host.targetView)
+
+    host = {
+      app: hostApp,
+      obsidian: {
+        app: hostApp,
+      },
+      setView,
+      targetView: {
+        id: "A.excalidraw:view",
+        _loaded: true,
+        file: {
+          path: "A.excalidraw",
+        },
+        leaf: {
+          id: "A.excalidraw:leaf",
+        },
+        app: staleTargetViewApp,
+        excalidrawAPI: { name: "api:A.excalidraw" },
+      },
+    }
+
+    const coordinator = new SidepanelHostContextCoordinator(host)
+    expect(coordinator.getSnapshot().state).toBe("live")
+
+    hostWorkspaceState = "markdown"
+    const result = coordinator.handleWorkspaceLeafChange()
+
+    expect(result.rebound).toBe(false)
+    expect(host.setView).not.toHaveBeenCalled()
+    expect(result.snapshot.state).toBe("inactive")
+    expect(result.snapshot.activeFilePath).toBe("plain.md")
+    expect(result.snapshot.activeLeafIdentity).toBe("plain.md:leaf")
+    expect(result.snapshot.activeViewType).toBe("markdown")
+    expect(result.snapshot.shouldAttemptRebind).toBe(false)
+  })
+
   it("derives active-file truth from activeLeaf.view.file when workspace.getActiveFile() returns null", () => {
     const harness = makeHostHarness(
       [

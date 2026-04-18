@@ -145,29 +145,78 @@ export const resolveTargetViewIdentity = (targetView: unknown): string | null =>
   return null
 }
 
-const resolveMetadataApp = (
-  host: SidepanelHostViewContextHost,
-  targetView: unknown,
-): ObsidianAppLike | null => {
+const toAppCandidate = (candidate: unknown): ObsidianAppLike | null => {
+  return candidate && typeof candidate === "object" ? (candidate as ObsidianAppLike) : null
+}
+
+const hasMetadataCacheSurface = (candidate: ObsidianAppLike | null): boolean => {
+  return !!candidate?.metadataCache && typeof candidate.metadataCache === "object"
+}
+
+const hasWorkspaceSurface = (candidate: ObsidianAppLike | null): boolean => {
+  return !!candidate?.workspace && typeof candidate.workspace === "object"
+}
+
+const resolveTargetViewApp = (targetView: unknown): ObsidianAppLike | null => {
   const targetViewRecord =
     targetView && typeof targetView === "object" ? (targetView as Record<string, unknown>) : null
 
-  const candidates = [
-    targetViewRecord?.["app"],
+  return toAppCandidate(targetViewRecord?.["app"])
+}
+
+const resolveCanonicalHostAppCandidates = (
+  host: SidepanelHostViewContextHost,
+): readonly ObsidianAppLike[] => {
+  return [
     host.app,
     host.obsidian?.app,
     (globalThis as Record<string, unknown>)["app"],
     (globalThis as { window?: { app?: unknown } }).window?.app,
     (globalThis as { obsidian?: { app?: unknown } }).obsidian?.app,
-  ]
+  ].flatMap((candidate) => {
+    const resolvedCandidate = toAppCandidate(candidate)
+    return resolvedCandidate ? [resolvedCandidate] : []
+  })
+}
 
-  for (const candidate of candidates) {
-    if (candidate && typeof candidate === "object") {
-      return candidate as ObsidianAppLike
+const resolveTargetViewMetadataApp = (
+  host: SidepanelHostViewContextHost,
+  targetView: unknown,
+): ObsidianAppLike | null => {
+  const targetViewApp = resolveTargetViewApp(targetView)
+  const canonicalHostApps = resolveCanonicalHostAppCandidates(host)
+
+  if (hasMetadataCacheSurface(targetViewApp)) {
+    return targetViewApp
+  }
+
+  for (const candidate of canonicalHostApps) {
+    if (hasMetadataCacheSurface(candidate)) {
+      return candidate
     }
   }
 
-  return null
+  return targetViewApp ?? canonicalHostApps[0] ?? null
+}
+
+const resolveActiveWorkspaceApp = (
+  host: SidepanelHostViewContextHost,
+  targetView: unknown = getCurrentHostTargetView(host),
+): ObsidianAppLike | null => {
+  const canonicalHostApps = resolveCanonicalHostAppCandidates(host)
+  const targetViewApp = resolveTargetViewApp(targetView)
+
+  for (const candidate of canonicalHostApps) {
+    if (hasWorkspaceSurface(candidate)) {
+      return candidate
+    }
+  }
+
+  if (hasWorkspaceSurface(targetViewApp)) {
+    return targetViewApp
+  }
+
+  return canonicalHostApps[0] ?? targetViewApp ?? null
 }
 
 const resolveFileExcalidrawMetadata = (
@@ -217,16 +266,13 @@ const resolveTargetViewExcalidrawMetadata = (
   readonly value: string | null
 } => {
   return resolveFileExcalidrawMetadata(
-    resolveMetadataApp(host, targetView),
+    resolveTargetViewMetadataApp(host, targetView),
     resolveTargetViewFile(targetView),
   )
 }
 
-const resolveWorkspace = (
-  host: SidepanelHostViewContextHost,
-  targetView: unknown,
-): WorkspaceLike | null => {
-  return resolveMetadataApp(host, targetView)?.workspace ?? null
+const resolveWorkspace = (app: ObsidianAppLike | null): WorkspaceLike | null => {
+  return app?.workspace ?? null
 }
 
 const normalizeFilePath = (file: unknown): string | null => {
@@ -253,26 +299,23 @@ const normalizeFileLike = (file: unknown): unknown | null => {
   return path ? { path } : null
 }
 
-const resolveActiveWorkspaceLeaf = (
-  host: SidepanelHostViewContextHost,
-  targetView: unknown,
-): Record<string, unknown> | null => {
-  const workspace = resolveWorkspace(host, targetView) as
+const resolveActiveWorkspaceLeaf = (workspace: WorkspaceLike | null): Record<string, unknown> | null => {
+  const workspaceRecord = workspace as
     | (WorkspaceLike & {
         activeLeaf?: unknown
         getMostRecentLeaf?: () => unknown
       })
     | null
 
-  if (!workspace) {
+  if (!workspaceRecord) {
     return null
   }
 
-  const leafCandidates = [workspace.activeLeaf]
+  const leafCandidates = [workspaceRecord.activeLeaf]
 
-  if (typeof workspace.getMostRecentLeaf === "function") {
+  if (typeof workspaceRecord.getMostRecentLeaf === "function") {
     try {
-      leafCandidates.push(workspace.getMostRecentLeaf())
+      leafCandidates.push(workspaceRecord.getMostRecentLeaf())
     } catch {
       // no-op: best-effort active leaf probing only
     }
@@ -287,11 +330,7 @@ const resolveActiveWorkspaceLeaf = (
   return null
 }
 
-const resolveActiveWorkspaceLeafFile = (
-  host: SidepanelHostViewContextHost,
-  targetView: unknown,
-): unknown | null => {
-  const activeLeaf = resolveActiveWorkspaceLeaf(host, targetView)
+const resolveActiveWorkspaceLeafFile = (activeLeaf: Record<string, unknown> | null): unknown | null => {
   if (!activeLeaf) {
     return null
   }
@@ -336,10 +375,10 @@ const resolveActiveWorkspaceLeafFile = (
 }
 
 const resolveActiveWorkspaceFile = (
-  host: SidepanelHostViewContextHost,
-  targetView: unknown,
+  workspace: WorkspaceLike | null,
+  activeLeaf: Record<string, unknown> | null,
 ): unknown | null => {
-  const getActiveFile = resolveWorkspace(host, targetView)?.getActiveFile
+  const getActiveFile = workspace?.getActiveFile
   if (getActiveFile) {
     try {
       const activeFile = normalizeFileLike(getActiveFile())
@@ -351,21 +390,10 @@ const resolveActiveWorkspaceFile = (
     }
   }
 
-  return resolveActiveWorkspaceLeafFile(host, targetView)
+  return resolveActiveWorkspaceLeafFile(activeLeaf)
 }
 
-const resolveActiveWorkspaceFilePath = (
-  host: SidepanelHostViewContextHost,
-  targetView: unknown,
-): string | null => {
-  return normalizeFilePath(resolveActiveWorkspaceFile(host, targetView))
-}
-
-const resolveActiveWorkspaceLeafIdentity = (
-  host: SidepanelHostViewContextHost,
-  targetView: unknown,
-): string | null => {
-  const activeLeaf = resolveActiveWorkspaceLeaf(host, targetView)
+const resolveActiveWorkspaceLeafIdentity = (activeLeaf: Record<string, unknown> | null): string | null => {
   if (!activeLeaf) {
     return null
   }
@@ -392,11 +420,7 @@ const resolveActiveWorkspaceLeafIdentity = (
   return null
 }
 
-const resolveActiveWorkspaceViewType = (
-  host: SidepanelHostViewContextHost,
-  targetView: unknown,
-): string | null => {
-  const activeLeaf = resolveActiveWorkspaceLeaf(host, targetView)
+const resolveActiveWorkspaceViewType = (activeLeaf: Record<string, unknown> | null): string | null => {
   if (!activeLeaf) {
     return null
   }
@@ -443,13 +467,14 @@ const resolveHostViewContextDescription = (
   const targetViewExcalidrawCapable = targetViewMetadata.available
     ? isExcalidrawCapableMetadataValue(targetViewMetadata.value)
     : null
-  const activeFile = resolveActiveWorkspaceFile(host, targetView)
-  const activeWorkspaceLeafIdentity = resolveActiveWorkspaceLeafIdentity(host, targetView)
-  const activeWorkspaceViewType = resolveActiveWorkspaceViewType(host, targetView)
-  const activeFileMetadata = resolveFileExcalidrawMetadata(
-    resolveMetadataApp(host, targetView),
-    activeFile,
-  )
+  const activeWorkspaceApp = resolveActiveWorkspaceApp(host, targetView)
+  const activeWorkspace = resolveWorkspace(activeWorkspaceApp)
+  const activeWorkspaceLeaf = resolveActiveWorkspaceLeaf(activeWorkspace)
+  const activeFile = resolveActiveWorkspaceFile(activeWorkspace, activeWorkspaceLeaf)
+  const activeFilePath = normalizeFilePath(activeFile)
+  const activeWorkspaceLeafIdentity = resolveActiveWorkspaceLeafIdentity(activeWorkspaceLeaf)
+  const activeWorkspaceViewType = resolveActiveWorkspaceViewType(activeWorkspaceLeaf)
+  const activeFileMetadata = resolveFileExcalidrawMetadata(activeWorkspaceApp, activeFile)
   const activeFileExcalidrawCapable = activeFileMetadata.available
     ? isExcalidrawCapableMetadataValue(activeFileMetadata.value)
     : null
@@ -467,7 +492,7 @@ const resolveHostViewContextDescription = (
     targetViewMetadataAvailable: targetViewMetadata.available,
     targetViewExcalidrawPlugin: targetViewMetadata.value,
     targetViewExcalidrawCapable,
-    activeFilePath: resolveActiveWorkspaceFilePath(host, targetView),
+    activeFilePath,
     activeWorkspaceLeafIdentity,
     activeWorkspaceViewType,
     activeFileMetadataAvailable: activeFileMetadata.available,
