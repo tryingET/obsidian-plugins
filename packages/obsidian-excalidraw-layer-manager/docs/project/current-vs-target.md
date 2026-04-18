@@ -1,5 +1,5 @@
 ---
-summary: "Current-vs-target comparison for LayerManager host-context authority, shell truthfulness, document-level focus routing, and the remaining workspace-truth separation gap."
+summary: "Current-vs-target comparison for LayerManager host-context authority, shell truthfulness, document-level focus routing, and the now-closed markdown-only workspace-truth packet."
 read_when:
   - "You need the shortest comparison between today's LayerManager switching model and the target architecture proposed in the host-context RFC chain."
   - "You are about to implement or review work on LayerManager host binding, rebinding, unbound/inactive shell states, focus-routing release behavior, or markdown-only workspace-truth classification."
@@ -17,7 +17,7 @@ This note now compares:
   - `2026-04-16-rfc-layer-manager-host-context-authority-and-focus-routing.md`
 - against the **current packet status** after AK tasks `1570-1573` closed under umbrella `1569`
 - plus the **follow-on hardening** from AK tasks `1596-1598` documented under umbrella `1599`
-- plus the **freshly reopened gap** under umbrella `1608`, where workspace-only note truth still needs to be separated cleanly from Excalidraw host authority
+- plus the **workspace-truth separation packet** under umbrella `1608`, now closed by AK tasks `1610-1613`
 
 Use this as the shortest fresh-session answer to:
 - what changed
@@ -27,7 +27,7 @@ Use this as the shortest fresh-session answer to:
 
 ## One-sentence summary
 
-LayerManager now routes host switching through **scene-bound authority**: the coordinator emits `SceneRef` / `sceneBinding`-backed snapshots, renderer and selection mirroring consume the same refresh key, and host-context flight-recorder evidence explains drift without reopening renderer-local recovery heuristics. For live Excalidraw authority, that target is substantially landed; the main still-open gap is that workspace-only note truth is not yet fully separated from `targetView`-oriented observation helpers.
+LayerManager now routes host switching through **scene-bound authority** while deriving workspace note truth from the canonical workspace surface: runtime subscriptions bind to the canonical workspace app, `hostViewContext` observes active workspace file/leaf/view type independently from `targetView` authority, markdown-only notes force truthful `inactive` shells, and host-context flight-recorder evidence explains drift without reopening renderer-local recovery heuristics.
 
 ## Original target in brief
 
@@ -153,22 +153,27 @@ This keeps the architectural story intact:
 For the focused rebind-loop root cause, upstream-host constraints, and operator run sheet, read:
 - `packages/obsidian-excalidraw-layer-manager/docs/project/2026-04-18-layer-manager-host-context-loop-root-cause-and-manual-verification-path.md`
 
-For the fresh workspace-truth separation diagnosis that reopened the next packet, read:
+For the historical workspace-truth diagnosis that motivated the next packet, read:
 - `packages/obsidian-excalidraw-layer-manager/docs/project/2026-04-18-layer-manager-markdown-note-workspace-truth-root-cause.md`
 
-## Freshly identified remaining gap: markdown-only workspace truth is not yet fully separated
+For the closeout note after tasks `1610-1613` landed, read:
+- `packages/obsidian-excalidraw-layer-manager/docs/project/2026-04-18-layer-manager-markdown-note-workspace-truth-closeout.md`
+
+## Markdown-only workspace-truth packet is now closed
 
 The 1569 and 1599 packets still hold.
-But one smaller boundary remains open:
-- runtime workspace subscriptions and polling should bind to the canonical workspace app, not a targetView-preferred app candidate chain
-- active workspace leaf/file/view-type truth should be observable independently from Excalidraw host authority
-- only after that separation should the package compare workspace truth with `targetView` authority to derive `live`, `inactive`, or `unbound`
+The narrower 1608 packet is no longer an open architectural gap:
+- runtime workspace subscriptions and polling now bind to the canonical workspace app surface instead of preferring `targetView.app`
+- active workspace leaf/file/view-type truth is now observed independently from Excalidraw host authority inside `hostViewContext.ts`
+- shell truth is now derived by comparing workspace truth against `targetView` authority rather than letting stale `targetView` evidence answer the workspace question
+- regression coverage now proves markdown-only switches render `inactive` and stay inactive even when stale Excalidraw authority or scene noise remains nearby
 
 That means a fresh session should currently describe LayerManager this way:
 - scene-bound live authority is landed
-- shell truth is explicit and substantially correct
+- shell truth is explicit and regression-covered
+- workspace truth is separated from `targetView` authority at the observation boundary
 - bounded rebinding remains a fallback only
-- but markdown-only workspace classification still has one open packet because workspace truth and host authority are not yet fully disentangled
+- the markdown-only workspace-truth packet is closed, with the root-cause note retained as historical diagnosis rather than current status
 
 ## Verification packet to treat as current proof
 
@@ -201,6 +206,6 @@ LayerManager should currently be understood as:
 - coordinator-centered for host context
 - scene-bound in its live authority token
 - explicit about `live` / `inactive` / `unbound` shell truth
+- grounded in canonical workspace note truth before comparing against `targetView` authority
 - fail-safe about document-level routing outside live Excalidraw
 - backed by one bounded verification packet rather than a pile of local patch claims
-- and still carrying one open follow-on packet: workspace-only note truth must be split cleanly from `targetView`-oriented observation before markdown-only detection is fully trustworthy

@@ -48,6 +48,8 @@ Provide an architecture-first Layer Manager for Obsidian Excalidraw scripts, wit
 - `docs/project/tactical_goals.md`
 - `docs/project/operating_plan.md`
 - `docs/project/current-vs-target.md`
+- `docs/project/2026-04-18-layer-manager-markdown-note-workspace-truth-closeout.md`
+- `docs/project/2026-04-18-layer-manager-markdown-note-workspace-truth-root-cause.md`
 - `docs/project/2026-04-18-layer-manager-markdown-sidepanel-rebind-stabilization-closeout.md`
 - `docs/project/2026-04-18-layer-manager-host-context-loop-root-cause-and-manual-verification-path.md`
 - `docs/project/2026-04-17-layer-manager-host-context-packet-closeout.md`
@@ -58,19 +60,21 @@ Provide an architecture-first Layer Manager for Obsidian Excalidraw scripts, wit
 - `docs/project/2026-04-14-safe-deployment-and-reload-workflow.md`
 - `docs/project/script-style-package-boundary.md`
 
-## Host-context switching packet
+## Host-context and workspace-truth packet
 
-Layer Manager host switching now treats **scene-bound authority** as the source of truth rather than a surviving sidepanel shell or renderer-local `targetView` recovery.
+Layer Manager host switching now treats **scene-bound authority** as the source of truth, while workspace note truth is observed from the canonical workspace surface before being compared against surviving `targetView` authority.
 
 The shortest read stack for that packet is:
 - `docs/project/current-vs-target.md`
+- `docs/project/2026-04-18-layer-manager-markdown-note-workspace-truth-closeout.md`
+- `docs/project/2026-04-18-layer-manager-markdown-note-workspace-truth-root-cause.md`
 - `docs/project/2026-04-18-layer-manager-markdown-sidepanel-rebind-stabilization-closeout.md`
 - `docs/project/2026-04-18-layer-manager-host-context-loop-root-cause-and-manual-verification-path.md`
 - `docs/project/2026-04-17-layer-manager-host-context-packet-closeout.md`
 - `docs/project/2026-04-17-layer-manager-host-context-fresh-context-implementation-note.md`
 - `docs/project/2026-04-16-layer-manager-manual-verification-matrix.md`
 
-Use the `2026-04-18` notes when the question is specifically about markdown/sidepanel empty-leaf rebind churn, upstream `setView(...)` / active-file constraints, the umbrella closeout for tasks `1596-1600`, or the focused manual verification path after that packet.
+Use the `2026-04-18` notes when the question is specifically about markdown/sidepanel empty-leaf rebind churn, canonical workspace app selection, separating active workspace truth from `targetView` authority, or the umbrella closeouts for packets `1599` and `1608`.
 
 ## AK direction (L3 package surface)
 
