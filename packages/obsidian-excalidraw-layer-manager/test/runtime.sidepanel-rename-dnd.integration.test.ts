@@ -5,6 +5,7 @@ import { createLayerManagerRuntime } from "../src/main.js"
 
 import {
   FakeDocument,
+  type FakeDomElement,
   FakeDomEvent,
   dispatchKeydown,
   findButtonByExactText,
@@ -156,6 +157,18 @@ const makeRuntimeWithSidepanel = (
     addToView,
     updateScene,
   }
+}
+
+const makeRowDragEvent = (
+  row: FakeDomElement,
+  type: "dragover" | "drop",
+  position: "before" | "inside" | "after",
+): FakeDomEvent => {
+  const rect = row.getBoundingClientRect()
+  const ratio = position === "before" ? 0.14 : position === "after" ? 0.86 : 0.5
+  return new FakeDomEvent(type, {
+    clientY: rect.top + rect.height * ratio,
+  })
 }
 
 describe("sidepanel rename + drag-drop integration", () => {
@@ -466,6 +479,55 @@ describe("sidepanel rename + drag-drop integration", () => {
     expect(refreshedTargetRow.style["boxShadow"]).toContain("inset 0 0 0 2px")
     expect(refreshedTargetRow.style["background"]).toContain("interactive-accent-hover")
     expect(previewText).toContain("drop into group")
+  })
+
+  it("treats the center of a same-scope group row as an explicit move-into-group target", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      [
+        { id: "A", type: "rectangle", name: "Source" },
+        { id: "B", type: "rectangle", groupIds: ["G"] },
+        { id: "C", type: "rectangle", groupIds: ["G"] },
+      ],
+      [],
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+    await flushAsync()
+
+    const contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const sourceRow = findInteractiveRowByLabel(contentRoot, "[element] Source")
+    const targetRow = findInteractiveRowByLabel(contentRoot, "[group] G")
+
+    if (!sourceRow || !targetRow) {
+      throw new Error("Expected source row and group-row target for same-scope contain test.")
+    }
+
+    sourceRow.dispatchEvent(new FakeDomEvent("dragstart"))
+    targetRow.dispatchEvent(makeRowDragEvent(targetRow, "dragover", "inside"))
+    await flushAsync()
+
+    const refreshedTargetRow = findInteractiveRowByLabel(
+      getContentRoot(runtime.sidepanelTab.contentEl),
+      "[group] G",
+    )
+    if (!refreshedTargetRow) {
+      throw new Error("Expected refreshed group row after same-scope contain preview dragover.")
+    }
+
+    const previewText = flattenElements(refreshedTargetRow)
+      .map((element) => element.textContent ?? "")
+      .filter((text) => text.length > 0)
+
+    expect(refreshedTargetRow.style["borderStyle"]).toBe("dashed")
+    expect(refreshedTargetRow.style["boxShadow"]).toContain("inset 0 0 0 999px")
+    expect(previewText).toContain("Into group")
+    expect(previewText).toContain("drop into group")
+
+    refreshedTargetRow.dispatchEvent(makeRowDragEvent(refreshedTargetRow, "drop", "inside"))
+    await flushAsync()
+
+    expect(runtime.elements.find((element) => element.id === "A")?.groupIds ?? []).toEqual(["G"])
   })
 
   it("updates dragover preview without rebuilding the rendered row tree", async () => {

@@ -7,6 +7,8 @@ interface FakeDomEventInit {
   metaKey?: boolean
   altKey?: boolean
   shiftKey?: boolean
+  clientX?: number
+  clientY?: number
 }
 
 export class FakeDomEvent {
@@ -17,6 +19,8 @@ export class FakeDomEvent {
   readonly metaKey: boolean
   readonly altKey: boolean
   readonly shiftKey: boolean
+  readonly clientX: number
+  readonly clientY: number
   target: EventTarget | null = null
   defaultPrevented = false
   propagationStopped = false
@@ -29,6 +33,8 @@ export class FakeDomEvent {
     this.metaKey = init.metaKey ?? false
     this.altKey = init.altKey ?? false
     this.shiftKey = init.shiftKey ?? false
+    this.clientX = init.clientX ?? 0
+    this.clientY = init.clientY ?? 0
   }
 
   preventDefault(): void {
@@ -663,7 +669,12 @@ export const findButtonByTitle = (
   title: string,
 ): FakeDomElement | undefined => {
   const elements = flattenElements(root)
-  return elements.find((element) => element.tagName === "BUTTON" && element.title === title)
+  return elements.find(
+    (element) =>
+      element.tagName === "BUTTON" &&
+      (element.title === title ||
+        ((element as FakeDomElement & { ariaLabel?: string }).ariaLabel ?? "") === title),
+  )
 }
 
 export const findButtonByExactText = (

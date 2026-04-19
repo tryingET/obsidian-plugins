@@ -210,7 +210,7 @@ describe("sidepanel keyboard shortcut controller", () => {
     expect(reparentFromNodeIds).not.toHaveBeenCalled()
     expect(setLastQuickMoveDestinationToRoot).not.toHaveBeenCalled()
     expect(notify).toHaveBeenCalledWith(
-      "Keyboard ungroup-like failed: frame rows cannot be structurally moved.",
+      "Keyboard move out of group failed: frame rows cannot be structurally moved.",
     )
   })
 
@@ -766,7 +766,7 @@ describe("sidepanel keyboard shortcut controller", () => {
       "Keyboard delete requires an active selection or a focused row.",
       "Keyboard group requires an active selection or a focused row.",
       "Keyboard reorder requires an active selection or a focused row.",
-      "Keyboard ungroup-like requires an active selection or a focused row.",
+      "Keyboard move out of group requires an active selection or a focused row.",
     ])
     expect(deleteNode).not.toHaveBeenCalled()
     expect(createGroup).not.toHaveBeenCalled()
@@ -902,8 +902,9 @@ describe("sidepanel keyboard shortcut controller", () => {
     expect(requestRenderFromLatestModel).toHaveBeenCalledTimes(1)
   })
 
-  it("keeps the focused row as the sole explicit selection on Space when it is already selected", () => {
+  it("clears the focused row selection on Space when it is already selected", () => {
     const focusedNode = makeNode("el:A", "Alpha")
+    const setSelectionOverride = vi.fn<(elementIds: readonly string[] | null) => void>()
     const setSelectionOverrideWithNodes =
       vi.fn<(elementIds: readonly string[], nodes: readonly LayerNode[]) => void>()
     const setSelectionAnchorNodeId = vi.fn<(nodeId: string | null) => void>()
@@ -935,7 +936,7 @@ describe("sidepanel keyboard shortcut controller", () => {
       getInlineRenameNodeId: () => null,
       beginInlineRename: () => {},
       commitInlineRename: vi.fn(async () => {}),
-      setSelectionOverride: () => {},
+      setSelectionOverride,
       setSelectionOverrideWithNodes,
       setSelectionAnchorNodeId,
       mirrorSelectionToHost,
@@ -954,9 +955,10 @@ describe("sidepanel keyboard shortcut controller", () => {
 
     controller.handleContentKeydown(makeKeyboardEvent("Space"))
 
-    expect(setSelectionAnchorNodeId).toHaveBeenCalledWith(focusedNode.id)
-    expect(setSelectionOverrideWithNodes).toHaveBeenCalledWith([focusedNode.id], [focusedNode])
-    expect(mirrorSelectionToHost).toHaveBeenCalledWith([focusedNode.id])
+    expect(setSelectionAnchorNodeId).toHaveBeenCalledWith(null)
+    expect(setSelectionOverrideWithNodes).not.toHaveBeenCalled()
+    expect(setSelectionOverride).toHaveBeenCalledWith([])
+    expect(mirrorSelectionToHost).toHaveBeenCalledWith([])
     expect(requestRowTreeAutofocus).toHaveBeenCalledTimes(1)
     expect(requestRenderFromLatestModel).toHaveBeenCalledTimes(1)
   })
@@ -1285,6 +1287,60 @@ describe("sidepanel keyboard shortcut controller", () => {
     expect(mirrorSelectionToHost).toHaveBeenCalledWith(["el:B"])
     expect(requestRenderFromLatestModel).toHaveBeenCalledTimes(1)
     expect(setFocusedNode).not.toHaveBeenCalled()
+  })
+
+  it("deselects the focused row on Space when it is already selected", () => {
+    const focusedNode = makeNode("el:B", "Beta")
+    const setSelectionOverride = vi.fn<(elementIds: readonly string[] | null) => void>()
+    const setSelectionAnchorNodeId = vi.fn<(nodeId: string | null) => void>()
+    const mirrorSelectionToHost = vi.fn<(elementIds: readonly string[]) => void>()
+    const requestRenderFromLatestModel = vi.fn<() => void>()
+
+    const context: KeyboardShortcutContext = {
+      actions: {} as LayerManagerUiActions,
+      selection: {
+        elementIds: ["el:B"],
+        nodes: [focusedNode],
+        explicitSelectedNodes: [focusedNode],
+        frameResolution: makeFrameResolution(null),
+      },
+      explicitSelectedNodes: [focusedNode],
+      anchorNodeId: focusedNode.id,
+      visibleNodes: [focusedNode],
+      nodeById: new Map([[focusedNode.id, focusedNode]]),
+      parentById: new Map([[focusedNode.id, null]]),
+    }
+
+    const controller = new SidepanelKeyboardShortcutController({
+      getKeyboardContext: () => context,
+      resolveKeyboardContext: (resolvedContext) => resolvedContext,
+      getFocusedNodeId: () => focusedNode.id,
+      setFocusedNodeIdSilently: () => {},
+      setFocusedNode: () => {},
+      getInlineRenameNodeId: () => null,
+      beginInlineRename: () => {},
+      commitInlineRename: vi.fn(async () => {}),
+      setSelectionOverride,
+      setSelectionAnchorNodeId,
+      mirrorSelectionToHost,
+      ensureHostViewContext: () => true,
+      moveSelectionToRoot: vi.fn(async () => {}),
+      setLastQuickMoveDestinationToRoot: () => {},
+      isTextInputTarget: () => false,
+      isKeyboardSuppressed: () => false,
+      releaseKeyboardCapture: () => {},
+      suppressTransientFocusOut: () => {},
+      notify: () => {},
+      runUiAction: () => {},
+      requestRenderFromLatestModel,
+    })
+
+    controller.handleContentKeydown(makeKeyboardEvent("Space"))
+
+    expect(setSelectionAnchorNodeId).toHaveBeenCalledWith(null)
+    expect(setSelectionOverride).toHaveBeenCalledWith([])
+    expect(mirrorSelectionToHost).toHaveBeenCalledWith([])
+    expect(requestRenderFromLatestModel).toHaveBeenCalledTimes(1)
   })
 
   it("selects only the focused row on N alias to match mouse plain-click semantics", () => {

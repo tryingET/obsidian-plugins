@@ -99,6 +99,33 @@ const isLikelyPersistedTab = (
   }
 }
 
+export const SIDEPANEL_ROOT_ID = "lmx-sidepanel-content-root"
+
+const isLikelyLayerManagerContentRoot = (element: Element): boolean => {
+  const candidate = element as Element & {
+    readonly id?: unknown
+    readonly tabIndex?: unknown
+    readonly style?: {
+      readonly display?: unknown
+      readonly flexDirection?: unknown
+      readonly gap?: unknown
+      readonly padding?: unknown
+    }
+  }
+
+  if (candidate.id === SIDEPANEL_ROOT_ID) {
+    return true
+  }
+
+  return (
+    candidate.tabIndex === 0 &&
+    candidate.style?.display === "flex" &&
+    candidate.style?.flexDirection === "column" &&
+    candidate.style?.gap === "6px" &&
+    candidate.style?.padding === "8px"
+  )
+}
+
 const createSidepanelMountStrategy = (input: {
   readonly tab: SidepanelMountTabLike
   readonly existingContentRoot: HTMLElement | null
@@ -111,6 +138,14 @@ const createSidepanelMountStrategy = (input: {
       kind: "contentEl",
       resolveOwnerDocument: () => contentEl.ownerDocument,
       attach: (contentRoot) => {
+        for (const child of Array.from(contentEl.children)) {
+          if (child === contentRoot || !isLikelyLayerManagerContentRoot(child)) {
+            continue
+          }
+
+          child.remove()
+        }
+
         if (!contentEl.contains(contentRoot)) {
           contentEl.appendChild(contentRoot)
         }

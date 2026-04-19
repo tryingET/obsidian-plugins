@@ -175,7 +175,7 @@ describe("sidepanel row renderer", () => {
         action: () => Promise<unknown>,
       ): HTMLButtonElement => {
         const button = (ownerDocument as unknown as FakeDocument).createElement("button")
-        button.title = icon.title ?? ""
+        ;(button as FakeDomElement & { ariaLabel?: string }).ariaLabel = icon.title ?? ""
         button.addEventListener("click", () => {
           void action()
         })
@@ -244,17 +244,16 @@ describe("sidepanel row renderer", () => {
     expect(renderedRow.style["cursor"]).toBe("pointer")
     expect(renderedRow.style["background"]).toContain("interactive-accent-hover")
     expect(renderedRow.style["borderColor"]).toContain("interactive-accent")
-    expect(renderedRow.style["outline"]).toContain("1px solid")
+    expect(renderedRow.style["outline"]).toContain("2px solid")
+    expect(renderedRow.style["outline"]).toContain("text-normal")
     expect(renderedRow.style["boxShadow"]).toContain("inset")
     expect(renderedRow.ariaLabel).toBe("[element] Alpha")
     expect(renderedRow.ariaSelected).toBe("true")
     expect(renderedRow.ariaLevel).toBe("3")
     expect(renderedRow.ariaExpanded).toBe("false")
     expect(expandButton?.textContent).toBe("▸")
-    expect(expandButton?.title).toBe("Expand row Alpha")
     expect(expandButton?.ariaLabel).toBe("Expand row Alpha")
     expect(typeBadge).toBeDefined()
-    expect(label?.title).toBe("Alpha")
     expect(textFragments).toContain("drop to root")
     expect(dropHintAssistiveLabel?.style["position"]).toBe("absolute")
     expect(dropHintAssistiveLabel?.style["clipPath"]).toBe("inset(50%)")
@@ -424,7 +423,7 @@ describe("sidepanel row renderer", () => {
         _action,
       ): HTMLButtonElement => {
         const button = (ownerDocument as unknown as FakeDocument).createElement("button")
-        button.title = icon.title ?? ""
+        ;(button as FakeDomElement & { ariaLabel?: string }).ariaLabel = icon.title ?? ""
         return button as unknown as HTMLButtonElement
       },
     })
@@ -439,7 +438,10 @@ describe("sidepanel row renderer", () => {
 
     expect(textFragments).toContain("collapsed")
     expect(textFragments).toContain("2 items")
-    expect((renderedRow.children[0] as FakeDomElement).title).toBe("Expand row Collapsed Group")
+    expect(
+      (renderedRow.children[0] as FakeDomElement as FakeDomElement & { ariaLabel?: string })
+        .ariaLabel,
+    ).toBe("Expand row Collapsed Group")
     expect(renderedRow.ariaExpanded).toBe("false")
     expect(renderedRow.ariaLabel).toBe("[group] Collapsed Group · collapsed · 2 items")
   })
@@ -484,7 +486,7 @@ describe("sidepanel row renderer", () => {
         _action,
       ): HTMLButtonElement => {
         const button = (ownerDocument as unknown as FakeDocument).createElement("button")
-        button.title = icon.title ?? ""
+        ;(button as FakeDomElement & { ariaLabel?: string }).ariaLabel = icon.title ?? ""
         return button as unknown as HTMLButtonElement
       },
     })
@@ -496,9 +498,9 @@ describe("sidepanel row renderer", () => {
     const textFragments = flattenElements(renderedRow)
       .map((child) => child.textContent ?? "")
       .filter((text) => text.length > 0)
-    const actionTitles = renderedRow.children
+    const actionLabels = renderedRow.children
       .filter((child) => child.tagName === "BUTTON")
-      .map((child) => child.title)
+      .map((child) => (child as FakeDomElement & { ariaLabel?: string }).ariaLabel ?? "")
 
     expect(textFragments).toContain("[group]")
     expect(textFragments).toContain("Group Alpha")
@@ -513,11 +515,15 @@ describe("sidepanel row renderer", () => {
     expect(renderedRow.ariaLabel).toBe(
       "[group] Group Alpha · 2 child rows · 3 items · nested match · some hidden · some locked",
     )
-    expect(actionTitles).toContain("Collapse row Group Alpha")
-    expect(actionTitles).toContain("Show hidden items")
-    expect(actionTitles).toContain("Lock unlocked items")
+    expect(actionLabels).toContain("Collapse row Group Alpha")
+    expect(actionLabels).toContain("Show hidden items")
+    expect(actionLabels).toContain("Lock unlocked items")
     const actionButtons = renderedRow.children.filter(
-      (child) => child.tagName === "BUTTON" && !child.title.startsWith("Collapse row"),
+      (child) =>
+        child.tagName === "BUTTON" &&
+        !((child as FakeDomElement & { ariaLabel?: string }).ariaLabel ?? "").startsWith(
+          "Collapse row",
+        ),
     )
     for (const button of actionButtons) {
       expect(button.style["background"]).toContain("background-primary-alt")
@@ -565,7 +571,7 @@ describe("sidepanel row renderer", () => {
         _action,
       ): HTMLButtonElement => {
         const button = (ownerDocument as unknown as FakeDocument).createElement("button")
-        button.title = icon.title ?? ""
+        ;(button as FakeDomElement & { ariaLabel?: string }).ariaLabel = icon.title ?? ""
         return button as unknown as HTMLButtonElement
       },
     })
@@ -590,7 +596,7 @@ describe("sidepanel row renderer", () => {
         action: () => Promise<unknown>,
       ): HTMLButtonElement => {
         const button = (ownerDocument as unknown as FakeDocument).createElement("button")
-        button.title = icon.title ?? ""
+        ;(button as FakeDomElement & { ariaLabel?: string }).ariaLabel = icon.title ?? ""
         button.addEventListener("click", () => {
           void action()
         })
@@ -629,10 +635,20 @@ describe("sidepanel row renderer", () => {
       (child) => child.tagName === "SPAN" && child.textContent === "Alpha",
     )
     const buttons = renderedRow.children.filter((child) => child.tagName === "BUTTON")
-    const showButton = buttons.find((button) => button.title === "Show all items")
-    const unlockButton = buttons.find((button) => button.title === "Unlock all items")
-    const renameButton = buttons.find((button) => button.title === "Rename layer")
-    const deleteButton = buttons.find((button) => button.title === "Delete layer")
+    const showButton = buttons.find(
+      (button) =>
+        (button as FakeDomElement & { ariaLabel?: string }).ariaLabel === "Show all items",
+    )
+    const unlockButton = buttons.find(
+      (button) =>
+        (button as FakeDomElement & { ariaLabel?: string }).ariaLabel === "Unlock all items",
+    )
+    const renameButton = buttons.find(
+      (button) => (button as FakeDomElement & { ariaLabel?: string }).ariaLabel === "Rename layer",
+    )
+    const deleteButton = buttons.find(
+      (button) => (button as FakeDomElement & { ariaLabel?: string }).ariaLabel === "Delete layer",
+    )
 
     showButton?.click()
     unlockButton?.click()

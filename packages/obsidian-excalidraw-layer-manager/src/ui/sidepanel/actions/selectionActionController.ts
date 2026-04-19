@@ -182,7 +182,7 @@ export class SidepanelSelectionActionController {
     actions: LayerManagerUiActions,
     selection: ResolvedSelection,
   ): Promise<void> {
-    const selectionIssue = resolveStructuralReparentIssue(selection, "Ungroup-like")
+    const selectionIssue = resolveStructuralReparentIssue(selection, "Move out of group")
     if (selectionIssue) {
       this.#host.notify(selectionIssue)
       return

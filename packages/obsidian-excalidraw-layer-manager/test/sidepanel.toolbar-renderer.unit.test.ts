@@ -114,13 +114,22 @@ const findButtonByText = (root: FakeDomElement, label: string): FakeDomElement |
   )
 }
 
+const findButtonByTitle = (root: FakeDomElement, title: string): FakeDomElement | undefined => {
+  return flattenElements(root).find(
+    (element) =>
+      element.tagName === "BUTTON" &&
+      (((element as FakeDomElement & { ariaLabel?: string }).ariaLabel ?? "") === title ||
+        element.title === title),
+  )
+}
+
 const flushAsync = async (): Promise<void> => {
   await Promise.resolve()
   await Promise.resolve()
 }
 
 describe("sidepanel toolbar renderer", () => {
-  it("renders toolbar controls and routes action callbacks", async () => {
+  it("renders only layer-operation controls and routes action callbacks", async () => {
     const document = new FakeDocument()
     const container = document.createElement("div")
 
@@ -154,6 +163,14 @@ describe("sidepanel toolbar renderer", () => {
         })
         return button as unknown as HTMLButtonElement
       },
+      createToolbarIconButton: (ownerDocument, icon, action): HTMLButtonElement => {
+        const button = (ownerDocument as unknown as FakeDocument).createElement("button")
+        ;(button as FakeDomElement & { ariaLabel?: string }).ariaLabel = icon.title ?? ""
+        button.addEventListener("click", () => {
+          void action()
+        })
+        return button as unknown as HTMLButtonElement
+      },
       onGroupSelected,
       onReorderSelected,
       onUngroupLikeSelection,
@@ -164,16 +181,12 @@ describe("sidepanel toolbar renderer", () => {
     })
 
     const renderedContainer = container as unknown as FakeDomElement
-
-    const persistButton = findButtonByText(renderedContainer, "Persist tab")
-    const closeButton = findButtonByText(renderedContainer, "Close tab")
-    const rememberButton = findButtonByText(renderedContainer, "Remember last move: off")
     const groupButton = findButtonByText(renderedContainer, "Group selected")
-    const sendToBackButton = findButtonByText(renderedContainer, "Send to back")
-    const sendBackwardButton = findButtonByText(renderedContainer, "Send backward")
-    const bringForwardButton = findButtonByText(renderedContainer, "Bring forward")
-    const bringToFrontButton = findButtonByText(renderedContainer, "Bring to front")
-    const ungroupButton = findButtonByText(renderedContainer, "Ungroup-like")
+    const sendToBackButton = findButtonByTitle(renderedContainer, "Send to back")
+    const sendBackwardButton = findButtonByTitle(renderedContainer, "Send backward")
+    const bringForwardButton = findButtonByTitle(renderedContainer, "Bring forward")
+    const bringToFrontButton = findButtonByTitle(renderedContainer, "Bring to front")
+    const moveOutOfGroupButton = findButtonByText(renderedContainer, "Move out of group")
 
     expect((renderedContainer.children[0] as FakeDomElement | undefined)?.style["padding"]).toBe(
       "4px 6px",
@@ -184,31 +197,31 @@ describe("sidepanel toolbar renderer", () => {
     expect(groupButton?.style["minHeight"]).toBe("20px")
     expect(groupButton?.style["borderRadius"]).toBe("5px")
     expect(groupButton?.style["background"]).toContain("background-secondary-alt")
+    expect(sendToBackButton?.style["minWidth"]).toBe("24px")
 
-    persistButton?.click()
-    closeButton?.click()
-    rememberButton?.click()
+    expect(findButtonByText(renderedContainer, "Persist tab")).toBeUndefined()
+    expect(findButtonByText(renderedContainer, "Close tab")).toBeUndefined()
+    expect(findButtonByText(renderedContainer, "Remember last move: off")).toBeUndefined()
+
     groupButton?.click()
     sendToBackButton?.click()
     sendBackwardButton?.click()
     bringForwardButton?.click()
     bringToFrontButton?.click()
-    ungroupButton?.click()
+    moveOutOfGroupButton?.click()
 
     await flushAsync()
 
-    expect(onPersistTab).toHaveBeenCalledTimes(1)
-    expect(onCloseTab).toHaveBeenCalledTimes(1)
-    expect(onTogglePersistLastMoveAcrossRestarts).toHaveBeenCalledWith(true)
-    expect(onNotify).toHaveBeenCalledWith("Layer Manager sidepanel persisted.")
-    expect(onNotify).toHaveBeenCalledWith("Last move destination will persist across restarts.")
-    expect(rememberButton?.textContent).toBe("Remember last move: on")
+    expect(onPersistTab).not.toHaveBeenCalled()
+    expect(onCloseTab).not.toHaveBeenCalled()
+    expect(onTogglePersistLastMoveAcrossRestarts).not.toHaveBeenCalled()
+    expect(onNotify).not.toHaveBeenCalled()
     expect(groupButton?.disabled).toBe(false)
     expect(sendToBackButton?.disabled).toBe(false)
     expect(sendBackwardButton?.disabled).toBe(false)
     expect(bringForwardButton?.disabled).toBe(false)
     expect(bringToFrontButton?.disabled).toBe(false)
-    expect(ungroupButton?.disabled).toBe(false)
+    expect(moveOutOfGroupButton?.disabled).toBe(false)
     expect(findButtonByText(renderedContainer, "Reparent selected")).toBeUndefined()
     expect(onGroupSelected).toHaveBeenCalledTimes(1)
     expect(onReorderSelected).toHaveBeenNthCalledWith(1, "back")
@@ -218,7 +231,7 @@ describe("sidepanel toolbar renderer", () => {
     expect(onUngroupLikeSelection).toHaveBeenCalledTimes(1)
   })
 
-  it("renders persisted badge and keeps selection actions disabled when no selection", () => {
+  it("keeps layer-operation controls disabled when no selection exists", () => {
     const document = new FakeDocument()
     const container = document.createElement("div")
 
@@ -239,6 +252,11 @@ describe("sidepanel toolbar renderer", () => {
         button.textContent = label
         return button as unknown as HTMLButtonElement
       },
+      createToolbarIconButton: (ownerDocument, icon, _action): HTMLButtonElement => {
+        const button = (ownerDocument as unknown as FakeDocument).createElement("button")
+        ;(button as FakeDomElement & { ariaLabel?: string }).ariaLabel = icon.title ?? ""
+        return button as unknown as HTMLButtonElement
+      },
       onGroupSelected: async () => {},
       onReorderSelected: async () => {},
       onUngroupLikeSelection: async () => {},
@@ -249,21 +267,13 @@ describe("sidepanel toolbar renderer", () => {
     })
 
     const renderedContainer = container as unknown as FakeDomElement
-    const elements = flattenElements(renderedContainer)
-
-    const persistedBadge = elements.find(
-      (element) => element.tagName === "SPAN" && element.textContent === "Persisted ✓",
-    )
-
     const groupButton = findButtonByText(renderedContainer, "Group selected")
-    const sendToBackButton = findButtonByText(renderedContainer, "Send to back")
-    const sendBackwardButton = findButtonByText(renderedContainer, "Send backward")
-    const bringForwardButton = findButtonByText(renderedContainer, "Bring forward")
-    const bringToFrontButton = findButtonByText(renderedContainer, "Bring to front")
-    const ungroupButton = findButtonByText(renderedContainer, "Ungroup-like")
+    const sendToBackButton = findButtonByTitle(renderedContainer, "Send to back")
+    const sendBackwardButton = findButtonByTitle(renderedContainer, "Send backward")
+    const bringForwardButton = findButtonByTitle(renderedContainer, "Bring forward")
+    const bringToFrontButton = findButtonByTitle(renderedContainer, "Bring to front")
+    const moveOutOfGroupButton = findButtonByText(renderedContainer, "Move out of group")
 
-    expect(persistedBadge).toBeDefined()
-    expect(persistedBadge?.style["background"]).toContain("background-secondary-alt")
     expect(findButtonByText(renderedContainer, "Persist tab")).toBeUndefined()
     expect(findButtonByText(renderedContainer, "Close tab")).toBeUndefined()
     expect(findButtonByText(renderedContainer, "Remember last move: off")).toBeUndefined()
@@ -273,10 +283,10 @@ describe("sidepanel toolbar renderer", () => {
     expect(sendBackwardButton?.disabled).toBe(true)
     expect(bringForwardButton?.disabled).toBe(true)
     expect(bringToFrontButton?.disabled).toBe(true)
-    expect(ungroupButton?.disabled).toBe(true)
+    expect(moveOutOfGroupButton?.disabled).toBe(true)
   })
 
-  it("adds review-scope titles and mixed-state disable reasons for board-scale actions", () => {
+  it("keeps board-scale controls available without hover tooltips", () => {
     const document = new FakeDocument()
     const container = document.createElement("div")
 
@@ -297,6 +307,11 @@ describe("sidepanel toolbar renderer", () => {
         button.textContent = label
         return button as unknown as HTMLButtonElement
       },
+      createToolbarIconButton: (ownerDocument, icon, _action): HTMLButtonElement => {
+        const button = (ownerDocument as unknown as FakeDocument).createElement("button")
+        ;(button as FakeDomElement & { ariaLabel?: string }).ariaLabel = icon.title ?? ""
+        return button as unknown as HTMLButtonElement
+      },
       onGroupSelected: async () => {},
       onReorderSelected: async () => {},
       onUngroupLikeSelection: async () => {},
@@ -308,13 +323,11 @@ describe("sidepanel toolbar renderer", () => {
 
     const renderedContainer = container as unknown as FakeDomElement
     const groupButton = findButtonByText(renderedContainer, "Group selected")
-    const bringToFrontButton = findButtonByText(renderedContainer, "Bring to front")
-    const ungroupButton = findButtonByText(renderedContainer, "Ungroup-like")
+    const bringToFrontButton = findButtonByTitle(renderedContainer, "Bring to front")
+    const moveOutOfGroupButton = findButtonByText(renderedContainer, "Move out of group")
 
-    expect(groupButton?.title).toContain("canonical selected rows")
-    expect(bringToFrontButton?.title).toContain("Review scope does not narrow command targets.")
-    expect(ungroupButton?.disabled).toBe(true)
-    expect(ungroupButton?.title).toContain("Selection includes mixed or multiple group rows.")
-    expect(ungroupButton?.title).toContain("Review scope does not narrow command targets.")
+    expect(groupButton?.disabled).toBe(false)
+    expect(bringToFrontButton?.disabled).toBe(false)
+    expect(moveOutOfGroupButton?.disabled).toBe(true)
   })
 })

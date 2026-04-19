@@ -17,6 +17,15 @@ interface SidepanelToolbarRenderInput {
     label: string,
     action: () => Promise<unknown>,
   ) => HTMLButtonElement
+  readonly createToolbarIconButton: (
+    ownerDocument: Document,
+    icon: {
+      readonly iconName: string
+      readonly fallbackLabel: string
+      readonly title?: string
+    },
+    action: () => Promise<unknown>,
+  ) => HTMLButtonElement
   readonly onGroupSelected: () => Promise<void>
   readonly onReorderSelected: (mode: ReorderMode) => Promise<void>
   readonly onUngroupLikeSelection: () => Promise<void>
@@ -24,12 +33,6 @@ interface SidepanelToolbarRenderInput {
   readonly onNotify: (message: string) => void
   readonly onPersistTab: () => boolean
   readonly onCloseTab: () => void
-}
-
-const qualifyReviewScopeActionTitle = (baseTitle: string, reviewScopeActive: boolean): string => {
-  return reviewScopeActive
-    ? `${baseTitle} Review scope does not narrow command targets.`
-    : baseTitle
 }
 
 const styleToolbarButton = (button: HTMLButtonElement, tone: "neutral" | "primary" = "neutral") => {
@@ -57,6 +60,26 @@ const createStyledToolbarButton = (
   return button
 }
 
+const createStyledToolbarIconButton = (
+  input: SidepanelToolbarRenderInput,
+  icon: {
+    readonly iconName: string
+    readonly fallbackLabel: string
+    readonly title?: string
+  },
+  action: () => Promise<unknown>,
+  tone: "neutral" | "primary" = "neutral",
+): HTMLButtonElement => {
+  const button = input.createToolbarIconButton(input.ownerDocument, icon, action)
+  styleToolbarButton(button, tone)
+  button.style.display = "inline-flex"
+  button.style.alignItems = "center"
+  button.style.justifyContent = "center"
+  button.style.minWidth = "24px"
+  button.style.padding = "2px 6px"
+  return button
+}
+
 export const renderSidepanelToolbar = (input: SidepanelToolbarRenderInput): HTMLDivElement => {
   const toolbar = input.ownerDocument.createElement("div")
   toolbar.style.display = "flex"
@@ -68,10 +91,6 @@ export const renderSidepanelToolbar = (input: SidepanelToolbarRenderInput): HTML
   toolbar.style.border = "1px solid var(--background-modifier-border, rgba(120,120,120,0.16))"
   toolbar.style.background = "var(--background-primary-alt, rgba(120,120,120,0.04))"
   input.container.appendChild(toolbar)
-
-  appendPersistenceControl(input, toolbar)
-  appendCloseControl(input, toolbar)
-  appendLastMovePersistenceControl(input, toolbar)
 
   if (!input.hasActions) {
     return toolbar
@@ -86,182 +105,64 @@ export const renderSidepanelToolbar = (input: SidepanelToolbarRenderInput): HTML
     "primary",
   )
   groupButton.disabled = input.selectedElementCount < 2
-  if (groupButton.disabled) {
-    groupButton.title = qualifyReviewScopeActionTitle(
-      "Group selected requires at least two selected elements.",
-      input.reviewScopeActive,
-    )
-  } else if (input.reviewScopeActive) {
-    groupButton.title = qualifyReviewScopeActionTitle(
-      "Group selected acts on canonical selected rows.",
-      input.reviewScopeActive,
-    )
-  }
   toolbar.appendChild(groupButton)
 
   appendReorderControls(input, toolbar)
 
-  const ungroupLikeButton = createStyledToolbarButton(input, "Ungroup-like", async () => {
+  const moveOutOfGroupButton = createStyledToolbarButton(input, "Move out of group", async () => {
     await input.onUngroupLikeSelection()
   })
-  ungroupLikeButton.disabled = input.selectedElementCount === 0 || !!input.ungroupLikeIssue
-  if (input.ungroupLikeIssue) {
-    ungroupLikeButton.title = qualifyReviewScopeActionTitle(
-      input.ungroupLikeIssue,
-      input.reviewScopeActive,
-    )
-  } else if (ungroupLikeButton.disabled) {
-    ungroupLikeButton.title = qualifyReviewScopeActionTitle(
-      "Ungroup-like requires at least one selected element.",
-      input.reviewScopeActive,
-    )
-  } else if (input.reviewScopeActive) {
-    ungroupLikeButton.title = qualifyReviewScopeActionTitle(
-      "Ungroup-like acts on canonical selected rows.",
-      input.reviewScopeActive,
-    )
-  }
-  toolbar.appendChild(ungroupLikeButton)
+  moveOutOfGroupButton.disabled = input.selectedElementCount === 0 || !!input.ungroupLikeIssue
+  toolbar.appendChild(moveOutOfGroupButton)
 
   return toolbar
 }
-
 const appendReorderControls = (input: SidepanelToolbarRenderInput, toolbar: HTMLElement): void => {
   const controls: ReadonlyArray<{
     readonly label: string
     readonly mode: ReorderMode
+    readonly iconName: string
+    readonly fallbackLabel: string
   }> = [
     {
       label: "Send to back",
       mode: "back",
+      iconName: "zindex-send-to-back",
+      fallbackLabel: "⇊",
     },
     {
       label: "Send backward",
       mode: "backward",
+      iconName: "zindex-send-backward",
+      fallbackLabel: "↓",
     },
     {
       label: "Bring forward",
       mode: "forward",
+      iconName: "zindex-bring-forward",
+      fallbackLabel: "↑",
     },
     {
       label: "Bring to front",
       mode: "front",
+      iconName: "zindex-bring-to-front",
+      fallbackLabel: "⇈",
     },
   ]
 
   for (const control of controls) {
-    const button = createStyledToolbarButton(input, control.label, async () => {
-      await input.onReorderSelected(control.mode)
-    })
+    const button = createStyledToolbarIconButton(
+      input,
+      {
+        iconName: control.iconName,
+        fallbackLabel: control.fallbackLabel,
+        title: control.label,
+      },
+      async () => {
+        await input.onReorderSelected(control.mode)
+      },
+    )
     button.disabled = input.selectedElementCount === 0
-    if (button.disabled) {
-      button.title = qualifyReviewScopeActionTitle(
-        `${control.label} requires at least one selected row.`,
-        input.reviewScopeActive,
-      )
-    } else if (input.reviewScopeActive) {
-      button.title = qualifyReviewScopeActionTitle(
-        `${control.label} acts on canonical selected rows.`,
-        input.reviewScopeActive,
-      )
-    }
     toolbar.appendChild(button)
   }
-}
-
-const appendLastMovePersistenceControl = (
-  input: SidepanelToolbarRenderInput,
-  toolbar: HTMLElement,
-): void => {
-  if (!input.canPersistLastMovePreference) {
-    return
-  }
-
-  let persistAcrossRestarts = input.persistLastMoveAcrossRestarts
-
-  const label = persistAcrossRestarts ? "Remember last move: on" : "Remember last move: off"
-
-  let toggleInFlight = false
-
-  const toggleButton = createStyledToolbarButton(input, label, async () => {
-    if (toggleInFlight) {
-      return
-    }
-
-    const nextPreference = !persistAcrossRestarts
-    toggleInFlight = true
-    toggleButton.disabled = true
-
-    const persisted = await input.onTogglePersistLastMoveAcrossRestarts(nextPreference)
-
-    toggleInFlight = false
-    toggleButton.disabled = false
-
-    if (!persisted) {
-      input.onNotify("Remember-last-move preference did not persist.")
-      toggleButton.textContent = persistAcrossRestarts
-        ? "Remember last move: on"
-        : "Remember last move: off"
-      return
-    }
-
-    persistAcrossRestarts = nextPreference
-    toggleButton.textContent = nextPreference ? "Remember last move: on" : "Remember last move: off"
-
-    if (nextPreference) {
-      input.onNotify("Last move destination will persist across restarts.")
-      return
-    }
-
-    input.onNotify("Last move persistence disabled.")
-  })
-
-  toolbar.appendChild(toggleButton)
-}
-
-const appendPersistenceControl = (
-  input: SidepanelToolbarRenderInput,
-  toolbar: HTMLElement,
-): void => {
-  if (!input.canPersistTab) {
-    return
-  }
-
-  if (input.didPersistTab) {
-    const badge = input.ownerDocument.createElement("span")
-    badge.textContent = "Persisted ✓"
-    badge.style.fontSize = "11px"
-    badge.style.fontWeight = "600"
-    badge.style.opacity = "0.78"
-    badge.style.padding = "2px 6px"
-    badge.style.border = "1px solid var(--background-modifier-border, rgba(120,120,120,0.35))"
-    badge.style.borderRadius = "5px"
-    badge.style.background = "var(--background-secondary-alt, rgba(120,120,120,0.08))"
-    toolbar.appendChild(badge)
-    return
-  }
-
-  const persistButton = createStyledToolbarButton(input, "Persist tab", async () => {
-    const persisted = input.onPersistTab()
-    if (!persisted) {
-      input.onNotify("Could not persist sidepanel tab.")
-      return
-    }
-
-    input.onNotify("Layer Manager sidepanel persisted.")
-  })
-
-  toolbar.appendChild(persistButton)
-}
-
-const appendCloseControl = (input: SidepanelToolbarRenderInput, toolbar: HTMLElement): void => {
-  if (!input.canCloseTab) {
-    return
-  }
-
-  const closeButton = createStyledToolbarButton(input, "Close tab", async () => {
-    input.onCloseTab()
-  })
-
-  toolbar.appendChild(closeButton)
 }

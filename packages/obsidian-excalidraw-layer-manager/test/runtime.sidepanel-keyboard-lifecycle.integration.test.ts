@@ -356,6 +356,12 @@ const makeRuntimeWithSidepanel = (
     createSidepanelTab: () => sidepanelTab.tab,
   }
 
+  ea.closeSidepanelTab = () => {
+    ea.sidepanelTab = null
+    sidepanelTab.close()
+    sidepanelTab.contentEl.innerHTML = ""
+  }
+
   if (!options.disableElementEditCapabilities) {
     ea.copyViewElementsToEAforEditing = copyForEditing
     ea.getElement = (id: string) => {
@@ -601,14 +607,14 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     )
   })
 
-  it("autofocuses sidepanel content root on initial mount and after close/reopen", async () => {
+  it("autofocuses sidepanel content root on initial mount", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,
       [{ id: "A", type: "rectangle", isDeleted: false }],
       [],
     )
 
-    const layerManagerRuntime = createLayerManagerRuntime(runtime.ea)
+    createLayerManagerRuntime(runtime.ea)
 
     const firstRoot = getContentRoot(runtime.sidepanelTab.contentEl)
     const firstRowTree = findRowTreeRoot(firstRoot)
@@ -619,27 +625,6 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect(
       (firstRowTree as FakeDomElement & { ariaActivedescendant?: string }).ariaActivedescendant,
     ).toBe((firstFocusedRow as FakeDomElement & { id?: string }).id)
-
-    const closeButton = findButtonByExactText(firstRoot, "Close tab")
-    if (!closeButton) {
-      throw new Error("Expected close button to exist for sidepanel renderer.")
-    }
-
-    closeButton.click()
-    await flushAsync()
-
-    layerManagerRuntime.refresh()
-
-    const secondRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-    const secondRowTree = findRowTreeRoot(secondRoot)
-    const secondFocusedRow = findFocusedInteractiveRow(secondRoot)
-    expect(secondRoot).not.toBe(firstRoot)
-    expect(secondRowTree).toBeDefined()
-    expect(secondFocusedRow).toBeDefined()
-    expect(fakeDocument.activeElement).toBe(secondRowTree)
-    expect(
-      (secondRowTree as FakeDomElement & { ariaActivedescendant?: string }).ariaActivedescendant,
-    ).toBe((secondFocusedRow as FakeDomElement & { id?: string }).id)
   })
 
   it("switches row visibility action icon/title for hidden node state", async () => {
@@ -828,20 +813,81 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     )
 
     expect(textFragments).toContain(
-      "Review scope: 1 match + 1 context row · 2 shown of 4 searchable · Selected elements: 0",
-    )
-    expect(textFragments).toContain(
       "Review scope only — move and toolbar commands still act on canonical selected rows.",
     )
-    expect((reviewMoveTitle as (FakeDomElement & { title?: string }) | undefined)?.title).toContain(
-      "Filtered review scope: 1 matching row + 1 context row.",
-    )
+    expect(
+      textFragments.some(
+        (text) =>
+          text.includes("shown of") ||
+          text.includes("searchable") ||
+          text.includes("Selected elements:"),
+      ),
+    ).toBe(false)
 
     const filteredRows = flattenElements(contentRoot).filter(
       (element) => element.tagName === "DIV" && element.style["cursor"] === "pointer",
     )
 
     expect(filteredRows).toHaveLength(2)
+  })
+
+  it("filters collapsed grouped rows by merged bound-text aliases even when the visible row label differs", async () => {
+    const runtime = makeRuntimeWithSidepanel(
+      fakeDocument,
+      [
+        {
+          id: "A",
+          type: "rectangle",
+          name: "Task card",
+          groupIds: ["G"],
+          isDeleted: false,
+        },
+        {
+          id: "T",
+          type: "text",
+          text: "Grouped descendant searchable tail",
+          containerId: "A",
+          groupIds: ["G"],
+          isDeleted: false,
+        },
+        { id: "B", type: "text", text: "Beta", groupIds: ["G"], isDeleted: false },
+        { id: "C", type: "rectangle", name: "Gamma", isDeleted: false },
+      ],
+      [],
+    )
+
+    createLayerManagerRuntime(runtime.ea)
+
+    let contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+    const searchInput = findRowFilterInput(contentRoot)
+
+    if (!searchInput) {
+      throw new Error("Expected row filter input to exist.")
+    }
+
+    searchInput.value = "searchable tail"
+    searchInput.dispatchEvent(new FakeDomEvent("input"))
+    await flushAsync()
+
+    contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
+
+    expect(findInteractiveRowByLabel(contentRoot, "[group] G")).toBeDefined()
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Task card")).toBeDefined()
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Beta")).toBeUndefined()
+    expect(findInteractiveRowByLabel(contentRoot, "[element] Gamma")).toBeUndefined()
+
+    const textFragments = flattenElements(contentRoot)
+      .map((element) => element.textContent ?? "")
+      .filter((text) => text.length > 0)
+
+    expect(
+      textFragments.some(
+        (text) =>
+          text.includes("shown of") ||
+          text.includes("searchable") ||
+          text.includes("Selected elements:"),
+      ),
+    ).toBe(false)
   })
 
   it("clears row filters on Escape and returns focus to the row tree", async () => {
@@ -928,7 +974,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     await flushAsync()
 
     contentRoot = getContentRoot(sidepanelTab.contentEl)
-    const reorderButton = findButtonByExactText(contentRoot, "Bring to front")
+    const reorderButton = findButtonByTitle(contentRoot, "Bring to front")
     if (!reorderButton) {
       throw new Error("Expected toolbar reorder button to exist for collapsed group selection.")
     }
@@ -1077,7 +1123,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     await flushAsync()
 
     contentRoot = getContentRoot(sidepanelTab.contentEl)
-    const reorderButton = findButtonByExactText(contentRoot, "Bring to front")
+    const reorderButton = findButtonByTitle(contentRoot, "Bring to front")
     if (!reorderButton) {
       throw new Error("Expected toolbar reorder button to exist after filtering rows.")
     }
@@ -2221,12 +2267,12 @@ describe("sidepanel keyboard + lifecycle parity", () => {
 
     try {
       const contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
-      const ungroupButton = findButtonByExactText(contentRoot, "Ungroup-like")
-      if (!ungroupButton) {
-        throw new Error("Expected ungroup-like toolbar button to exist.")
+      const moveOutOfGroupButton = findButtonByExactText(contentRoot, "Move out of group")
+      if (!moveOutOfGroupButton) {
+        throw new Error("Expected move-out-of-group toolbar button to exist.")
       }
 
-      ungroupButton.click()
+      moveOutOfGroupButton.click()
       await flushAsync()
 
       expect(promptSpy).not.toHaveBeenCalled()
@@ -2868,156 +2914,6 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     }
   })
 
-  for (const mountCase of SIDEPANEL_MOUNT_MODE_CASES) {
-    it(`mount parity (${mountCase.label}): close/reopen clears stale keyboard root and rebinds once`, async () => {
-      const sidepanelTab = makeSidepanelTabForMountMode(fakeDocument, null, mountCase.mountMode)
-      const createSidepanelTab = vi.fn(() => sidepanelTab.tab)
-
-      const host: {
-        sidepanelTab: typeof sidepanelTab.tab | null
-        createSidepanelTab: () => typeof sidepanelTab.tab
-        getScriptSettings: () => ScriptSettings
-      } = {
-        sidepanelTab: null,
-        createSidepanelTab,
-        getScriptSettings: () => ({}),
-      }
-
-      const { actions } = makeUiActions()
-
-      const renderer = createExcalidrawSidepanelRenderer(host)
-      if (!renderer) {
-        throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
-      }
-
-      renderer.render({
-        tree: [makeElementNode("A")],
-        selectedIds: new Set(),
-        sceneVersion: 1,
-        actions,
-      })
-
-      expectMountedOutputForMode(sidepanelTab, mountCase.mountMode)
-
-      const firstRoot = getContentRoot(sidepanelTab.contentEl)
-      const closeButton = findButtonByExactText(firstRoot, "Close tab")
-      if (!closeButton) {
-        throw new Error("Expected close button to exist for sidepanel renderer.")
-      }
-
-      closeButton.click()
-      await flushAsync()
-
-      expect(host.sidepanelTab).toBeNull()
-
-      dispatchKeydown(firstRoot, "f")
-      await flushAsync()
-      expect(actions.reorderFromNodeIds).not.toHaveBeenCalled()
-
-      renderer.render({
-        tree: [makeElementNode("A")],
-        selectedIds: new Set(),
-        sceneVersion: 2,
-        actions,
-      })
-
-      expectMountedOutputForMode(sidepanelTab, mountCase.mountMode)
-
-      const secondRoot = getContentRoot(sidepanelTab.contentEl)
-      expect(secondRoot).not.toBe(firstRoot)
-
-      dispatchKeydown(secondRoot, "f")
-      await flushAsync()
-
-      expect(createSidepanelTab).toHaveBeenCalledTimes(2)
-      expect(actions.reorderFromNodeIds).toHaveBeenCalledTimes(1)
-      expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(["el:A"], "forward")
-    })
-  }
-
-  for (const transitionCase of SIDEPANEL_MOUNT_TRANSITION_CASES) {
-    it(`mount transition parity (${transitionCase.label}): close/reopen reattaches deterministically`, async () => {
-      const firstTab = makeSidepanelTabForMountMode(
-        fakeDocument,
-        null,
-        transitionCase.fromMountMode,
-      )
-      const secondTab = makeSidepanelTabForMountMode(fakeDocument, null, transitionCase.toMountMode)
-
-      const queuedTabs = [firstTab.tab, secondTab.tab]
-      const createSidepanelTab = vi.fn(() => {
-        const nextTab = queuedTabs.shift()
-        if (!nextTab) {
-          throw new Error("Expected queued sidepanel tab for mount transition test.")
-        }
-
-        return nextTab
-      })
-
-      const host: {
-        sidepanelTab: typeof firstTab.tab | typeof secondTab.tab | null
-        createSidepanelTab: () => typeof firstTab.tab | typeof secondTab.tab
-        getScriptSettings: () => ScriptSettings
-      } = {
-        sidepanelTab: null,
-        createSidepanelTab,
-        getScriptSettings: () => ({}),
-      }
-
-      const { actions } = makeUiActions()
-
-      const renderer = createExcalidrawSidepanelRenderer(host)
-      if (!renderer) {
-        throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
-      }
-
-      renderer.render({
-        tree: [makeElementNode("A")],
-        selectedIds: new Set(),
-        sceneVersion: 1,
-        actions,
-      })
-
-      expect(host.sidepanelTab).toBe(firstTab.tab)
-      expectMountedOutputForMode(firstTab, transitionCase.fromMountMode)
-
-      const firstRoot = getContentRoot(firstTab.contentEl)
-      const closeButton = findButtonByExactText(firstRoot, "Close tab")
-      if (!closeButton) {
-        throw new Error("Expected close button to exist for sidepanel renderer.")
-      }
-
-      closeButton.click()
-      await flushAsync()
-
-      expect(host.sidepanelTab).toBeNull()
-
-      dispatchKeydown(firstRoot, "f")
-      await flushAsync()
-      expect(actions.reorderFromNodeIds).not.toHaveBeenCalled()
-
-      renderer.render({
-        tree: [makeElementNode("A")],
-        selectedIds: new Set(),
-        sceneVersion: 2,
-        actions,
-      })
-
-      expect(host.sidepanelTab).toBe(secondTab.tab)
-      expectMountedOutputForMode(secondTab, transitionCase.toMountMode)
-
-      const secondRoot = getContentRoot(secondTab.contentEl)
-      expect(secondRoot).not.toBe(firstRoot)
-
-      dispatchKeydown(secondRoot, "f")
-      await flushAsync()
-
-      expect(createSidepanelTab).toHaveBeenCalledTimes(2)
-      expect(actions.reorderFromNodeIds).toHaveBeenCalledTimes(1)
-      expect(actions.reorderFromNodeIds).toHaveBeenCalledWith(["el:A"], "forward")
-    })
-  }
-
   for (const transitionCase of SIDEPANEL_MOUNT_TRANSITION_CASES) {
     it(`mount transition parity (${transitionCase.label}): stale host tab invalidation reattaches deterministically`, async () => {
       const firstTab = makeSidepanelTabForMountMode(
@@ -3157,7 +3053,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
       throw new Error("Expected quick-move root/dropdown controls to exist.")
     }
 
-    const reorderButton = findButtonByExactText(contentRoot, "Bring to front")
+    const reorderButton = findButtonByTitle(contentRoot, "Bring to front")
     if (!reorderButton) {
       throw new Error("Expected toolbar reorder button to exist.")
     }

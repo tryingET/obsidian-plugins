@@ -1,5 +1,6 @@
 import type { ObsidianAppLike, SidepanelLeafLike } from "../adapter/excalidraw-types.js"
-import type { LayerNode } from "../model/tree.js"
+import { type LayerNode, resolveFrameRowElementId } from "../model/tree.js"
+import { didInteractionApply } from "./interactionOutcome.js"
 import {
   ConsoleRenderer,
   type LayerManagerRenderer,
@@ -11,6 +12,7 @@ import {
   type DragDropBranchContext,
   type DragDropDestination,
   type DragDropHint,
+  type DragDropIntentOptions,
   type NodeDropTarget,
   SidepanelDragDropController,
 } from "./sidepanel/dragdrop/dragDropController.js"
@@ -22,6 +24,7 @@ import {
 } from "./sidepanel/keyboard/keyboardShortcutController.js"
 import { traceKeyboardEventIfRelevant } from "./sidepanel/keyboard/layerManagerKeyboardEventFlightRecorder.js"
 import {
+  SIDEPANEL_ROOT_ID,
   type SidepanelMountHostLike,
   SidepanelMountManager,
   type SidepanelMountTabLike,
@@ -40,7 +43,11 @@ import {
 } from "./sidepanel/quickmove/quickMovePersistenceService.js"
 import { createRememberedDestinationReconcileActor } from "./sidepanel/quickmove/rememberedDestinationReconcileMachine.js"
 import { SidepanelInlineRenameController } from "./sidepanel/rename/inlineRenameController.js"
-import { renderSidepanelQuickMove } from "./sidepanel/render/quickMoveRenderer.js"
+import { createExcalidrawLikeIconNode } from "./sidepanel/render/excalidrawIconNode.js"
+import {
+  renderSidepanelQuickMove,
+  resolveQuickMoveShortcutTargets,
+} from "./sidepanel/render/quickMoveRenderer.js"
 import { bindSidepanelRowInteractions } from "./sidepanel/render/rowInteractionBinder.js"
 import {
   type SidepanelFilterMatchKind,
@@ -79,7 +86,10 @@ import {
   resolveCurrentSidepanelSelectionNodes,
   resolveSidepanelSelection,
 } from "./sidepanel/selection/selectionResolution.js"
-import { resolveStructuralSelectionIssue } from "./sidepanel/selection/structuralMoveSelection.js"
+import {
+  resolveFocusedNodeStructuralMove,
+  resolveStructuralSelectionIssue,
+} from "./sidepanel/selection/structuralMoveSelection.js"
 import {
   type ScriptSettingsLike,
   SidepanelSettingsWriteQueue,
@@ -106,6 +116,7 @@ interface RenderedRowPreviewState {
   readonly filterMatchKind: SidepanelFilterMatchKind
   readonly nodeVisualState: SidepanelRowVisualState
   dropHintAssistiveLabel: HTMLSpanElement | null
+  dropHintIndicator: HTMLSpanElement | null
 }
 
 interface SelectedElementLike {
@@ -169,28 +180,35 @@ const ROW_FONT_SIZE_PX = 11
 const ICON_SIZE_PX = 13
 const ICON_BUTTON_SIZE_PX = 16
 const TOOLBAR_FONT_SIZE_PX = 11
+const GROUP_ROW_DROP_EDGE_RATIO = 0.24
+const GROUP_ROW_DROP_EDGE_MIN_PX = 4
 const SIDEPANEL_INTERACTION_DEBUG_FLAG = "LMX_DEBUG_SIDEPANEL_INTERACTION"
 const SIDEPANEL_VIEW_CHANGE_UNSET = Symbol("sidepanel-view-change-unset")
-/**
- * On-panel summary of the keyboard-first tree selection model so the row surface
- * advertises row intent before command fallback behavior.
- */
-const SIDEPANEL_KEYBOARD_HINT_TEXT = [
-  "Shortcuts: ↑/↓ focus rows",
+const SIDEPANEL_KEYBOARD_HINT_LINES = [
+  "↑/↓ focus rows",
   "Shift+↑/↓ extend row selection",
   "Home/End bounds",
   "PgUp/PgDn page",
   "Shift+PgUp/PgDn extend page",
-  "Space select row",
+  "Space select/deselect row",
   "Ctrl+Space toggle row",
   "Shift+Space add range to selection",
   "←/→ collapse/expand",
   "Enter rename",
   "Del delete",
+  "Alt+↑/↓ nudge order",
+  "Alt+[ / ] out/in group",
+  "Alt+0 root",
+  "Alt+1..9 pick group",
   "F/B reorder",
   "Shift+F/B front/back",
   "G/U structural",
-].join(" · ")
+] as const
+
+const SIDEPANEL_KEYBOARD_HINT_TOOLTIP = [
+  "Keyboard shortcuts",
+  ...SIDEPANEL_KEYBOARD_HINT_LINES,
+].join("\n")
 
 const resolveRowSelectionDebugSemantics = (
   source: RowSelectionGesture["source"],
@@ -298,6 +316,7 @@ const resolveSidepanelRowDropHintKind = (
 }
 
 const resolveRowPreviewBoxShadow = (
+  node: LayerNode,
   state: SidepanelRowVisualState,
   dropHintKind: SidepanelRowDropHintKind | null,
 ): string => {
@@ -317,6 +336,9 @@ const resolveRowPreviewBoxShadow = (
 
   if (dropHintKind === "reparent") {
     shadows.push("inset 0 0 0 2px var(--interactive-accent, rgba(120,120,120,0.68))")
+    if (node.type === "group") {
+      shadows.push("inset 0 0 0 999px var(--interactive-accent-hover, rgba(120,120,120,0.1))")
+    }
   }
 
   if (dropHintKind === "reorderBefore") {
@@ -333,15 +355,21 @@ const resolveRowPreviewBoxShadow = (
 const applyRenderedRowPreviewShellState = (
   row: HTMLDivElement,
   input: {
+    readonly node: LayerNode
     readonly nodeVisualState: SidepanelRowVisualState
     readonly filterMatchKind: SidepanelFilterMatchKind
     readonly selected: boolean
     readonly dropHintKind: SidepanelRowDropHintKind | null
   },
 ): void => {
-  row.style.boxShadow = resolveRowPreviewBoxShadow(input.nodeVisualState, input.dropHintKind)
+  row.style.boxShadow = resolveRowPreviewBoxShadow(
+    input.node,
+    input.nodeVisualState,
+    input.dropHintKind,
+  )
   row.style.background = ""
   row.style.borderColor = ""
+  row.style.borderStyle = "solid"
 
   if (input.filterMatchKind === "self") {
     row.style.background = "var(--background-modifier-hover, rgba(120,120,120,0.12))"
@@ -354,8 +382,16 @@ const applyRenderedRowPreviewShellState = (
   }
 
   if (input.dropHintKind === "reparent" && !input.selected) {
-    row.style.background = "var(--interactive-accent-hover, rgba(120,120,120,0.16))"
+    row.style.background =
+      input.node.type === "group"
+        ? "var(--interactive-accent-hover, rgba(120,120,120,0.22))"
+        : "var(--interactive-accent-hover, rgba(120,120,120,0.16))"
     row.style.borderColor = "var(--interactive-accent, rgba(120,120,120,0.68))"
+  }
+
+  if (input.dropHintKind === "reparent" && input.node.type === "group") {
+    row.style.borderColor = "var(--interactive-accent, rgba(120,120,120,0.78))"
+    row.style.borderStyle = "dashed"
   }
 }
 
@@ -372,12 +408,48 @@ const styleDropHintAssistiveLabel = (label: HTMLSpanElement): void => {
   label.style.border = "0"
 }
 
+const styleVisibleDropHintIndicator = (label: HTMLSpanElement): void => {
+  label.style.position = "absolute"
+  label.style.top = "50%"
+  label.style.left = "50%"
+  label.style.transform = "translate(-50%, -50%)"
+  label.style.display = "inline-flex"
+  label.style.alignItems = "center"
+  label.style.justifyContent = "center"
+  label.style.padding = "1px 6px"
+  label.style.borderRadius = "999px"
+  label.style.border = "1px solid var(--interactive-accent, rgba(120,120,120,0.72))"
+  label.style.background = "var(--background-primary, rgba(24,24,24,0.92))"
+  label.style.color = "var(--text-normal, inherit)"
+  label.style.fontSize = "9px"
+  label.style.lineHeight = "1.3"
+  label.style.letterSpacing = "0.02em"
+  label.style.whiteSpace = "nowrap"
+  label.style.pointerEvents = "none"
+  label.style.boxShadow = "0 0 0 1px rgba(0,0,0,0.12)"
+}
+
 const isDropHintAssistiveLabel = (element: Element): element is HTMLSpanElement => {
   return (
     element.tagName === "SPAN" &&
     (element as HTMLSpanElement).style.position === "absolute" &&
     (element as HTMLSpanElement).style.clipPath === "inset(50%)"
   )
+}
+
+const resolveVisibleDropHintIndicatorText = (
+  hint: DragDropHint | null,
+  node: LayerNode,
+): string | null => {
+  if (!hint || node.type !== "group") {
+    return null
+  }
+
+  if (hint.kind === "reparent") {
+    return "Into group"
+  }
+
+  return hint.placement === "before" ? "Before group" : "After group"
 }
 
 const findRenderedRowDropHintAssistiveLabel = (row: HTMLDivElement): HTMLSpanElement | null => {
@@ -476,8 +548,55 @@ const shouldClaimDocumentSpaceLikeEvent = (event: KeyboardEvent): boolean => {
   return (!event.ctrlKey && !event.metaKey) || isDocumentReroutableModifierSpaceShortcut(event)
 }
 
+const resolveDocumentAltMoveDigit = (event: KeyboardEvent): number | null => {
+  if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+    return null
+  }
+
+  if (typeof event.code === "string") {
+    const match = /^Digit([0-9])$/.exec(event.code)
+    if (match) {
+      return Number(match[1])
+    }
+  }
+
+  return /^[0-9]$/.test(event.key) ? Number(event.key) : null
+}
+
+const resolveDocumentAltStructuralMoveDirection = (event: KeyboardEvent): "in" | "out" | null => {
+  if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+    return null
+  }
+
+  if (event.code === "BracketLeft" || event.key === "[") {
+    return "out"
+  }
+
+  if (event.code === "BracketRight" || event.key === "]") {
+    return "in"
+  }
+
+  return null
+}
+
+const isDocumentReroutableAltMovementShortcut = (event: KeyboardEvent): boolean => {
+  if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+    return false
+  }
+
+  return (
+    event.key === "ArrowDown" ||
+    event.key === "ArrowUp" ||
+    resolveDocumentAltStructuralMoveDirection(event) !== null ||
+    resolveDocumentAltMoveDigit(event) !== null
+  )
+}
+
 const isDocumentRoutingContinuationKey = (event: KeyboardEvent): boolean => {
-  if (isDocumentReroutableModifierSpaceShortcut(event)) {
+  if (
+    isDocumentReroutableModifierSpaceShortcut(event) ||
+    isDocumentReroutableAltMovementShortcut(event)
+  ) {
     return true
   }
 
@@ -507,31 +626,6 @@ const claimHandledKeyboardEvent = (event: KeyboardEvent): void => {
   event.preventDefault()
   event.stopPropagation?.()
   ;(event as KeyboardEvent & { stopImmediatePropagation?: () => void }).stopImmediatePropagation?.()
-}
-
-const pluralize = (count: number, singular: string, plural = `${singular}s`): string => {
-  return count === 1 ? singular : plural
-}
-
-const formatRowScopeSummary = (
-  rowFilter: ReturnType<typeof buildSidepanelVisibleRowTreeResult>,
-  selectedElementCount: number,
-): string => {
-  if (!rowFilter.active) {
-    return `Visible rows: ${rowFilter.renderedRowCount} of ${rowFilter.searchableRowCount} searchable · Selected elements: ${selectedElementCount}`
-  }
-
-  const reviewScopeParts = [
-    `${rowFilter.matchingRowCount} ${pluralize(rowFilter.matchingRowCount, "match")}`,
-  ]
-
-  if (rowFilter.contextRowCount > 0) {
-    reviewScopeParts.push(
-      `${rowFilter.contextRowCount} ${pluralize(rowFilter.contextRowCount, "context row")}`,
-    )
-  }
-
-  return `Review scope: ${reviewScopeParts.join(" + ")} · ${rowFilter.renderedRowCount} shown of ${rowFilter.searchableRowCount} searchable · Selected elements: ${selectedElementCount}`
 }
 
 class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
@@ -576,6 +670,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   #preserveSidepanelFocusForCurrentHostViewChange = false
   #handlingHostViewClose = false
   #rowFilterQuery = ""
+  #showQuickMoveShortcutHints = false
   #shouldAutofocusRowFilterInput = false
   #cachedRowFilterResult: {
     readonly structuralTree: readonly LayerNode[]
@@ -601,6 +696,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       keyboardCaptureActive: this.#focusOwnership.isKeyboardCaptureActive(),
       focusedNodeId: this.#focusedNodeId,
     })
+    this.updateQuickMoveShortcutHintVisibilityFromKeydown(event)
     this.#lastHandledContentKeydownEvent = event
     this.#focusOwnership.activateKeyboardCapture()
     this.#keyboardController.handleContentKeydown(event)
@@ -612,6 +708,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       keyboardCaptureActive: this.#focusOwnership.isKeyboardCaptureActive(),
       focusedNodeId: this.#focusedNodeId,
       sameAsLastContentEvent: event === this.#lastHandledContentKeydownEvent,
+      documentReroutableAltMovement: isDocumentReroutableAltMovementShortcut(event),
     })
 
     if (event === this.#lastHandledContentKeydownEvent) {
@@ -641,6 +738,12 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     if (isTextInputTarget(eventTarget) || !isDocumentRoutingContinuationKey(event)) {
       this.#focusOwnership.confirmOutsideFocusOut()
       return
+    }
+
+    if (event.altKey) {
+      traceKeyboardEventIfRelevant("renderer:document-keydown-reroute", event, {
+        focusedNodeId: this.#focusedNodeId,
+      })
     }
 
     this.focusContentRootImmediate()
@@ -674,6 +777,8 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       focusedNodeId: this.#focusedNodeId,
     })
 
+    this.updateQuickMoveShortcutHintVisibilityFromKeyup(event)
+
     if (!this.#focusOwnership.isKeyboardRoutingActive()) {
       return
     }
@@ -686,6 +791,8 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   }
 
   readonly #contentFocusOutHandler = (event: FocusEvent): void => {
+    this.setQuickMoveShortcutHintsVisible(false)
+
     if (this.#focusOwnership.isFocusOutSuppressed()) {
       this.debugInteraction("content focusout suppressed")
       return
@@ -891,6 +998,9 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
           targetFrameId,
         })
       },
+      runNumberedQuickMoveDestination: (index, context) =>
+        this.runNumberedQuickMoveDestination(index, context),
+      runAltStructuralMove: (direction, context) => this.runAltStructuralMove(direction, context),
       isTextInputTarget,
       isKeyboardSuppressed: () => this.isKeyboardSuppressed(),
       releaseKeyboardCapture: () => {
@@ -1131,13 +1241,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   ): void {
     const { contentRoot, ownerDocument } = liveRenderRoot
 
-    this.renderLiveStatusHeader(
-      contentRoot,
-      ownerDocument,
-      this.#latestModel?.sceneVersion ?? 0,
-      liveRenderState.rowFilter,
-      liveRenderState.selectedElementIds.length,
-    )
+    this.renderLiveStatusHeader(contentRoot, ownerDocument, this.#latestModel?.sceneVersion ?? 0)
     this.renderRowFilterControls(contentRoot, ownerDocument, liveRenderState.rowFilter)
 
     const toolbar = this.renderLiveToolbar(contentRoot, ownerDocument, actions, liveRenderState)
@@ -1152,28 +1256,21 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     container: HTMLElement,
     ownerDocument: Document,
     sceneVersion: number,
-    rowFilter: ReturnType<typeof buildSidepanelVisibleRowTreeResult>,
-    selectedElementCount: number,
   ): void {
     const header = ownerDocument.createElement("div")
-    header.style.fontWeight = "600"
-    header.style.marginBottom = "4px"
-    header.textContent = `Layer Manager · v${sceneVersion}`
+    header.style.display = "flex"
+    header.style.alignItems = "center"
+    header.style.justifyContent = "space-between"
+    header.style.gap = "8px"
+    header.style.marginBottom = "6px"
+
+    const title = ownerDocument.createElement("div")
+    title.style.fontWeight = "600"
+    title.textContent = `Layer Manager · v${sceneVersion}`
+    header.appendChild(title)
+    header.appendChild(this.createKeyboardHelpButton(ownerDocument))
+
     container.appendChild(header)
-
-    const info = ownerDocument.createElement("div")
-    info.style.opacity = "0.75"
-    info.style.fontSize = "12px"
-    info.style.marginBottom = "4px"
-    info.textContent = formatRowScopeSummary(rowFilter, selectedElementCount)
-    container.appendChild(info)
-
-    const keyboardHint = ownerDocument.createElement("div")
-    keyboardHint.style.opacity = "0.65"
-    keyboardHint.style.fontSize = "11px"
-    keyboardHint.style.marginBottom = "8px"
-    keyboardHint.textContent = SIDEPANEL_KEYBOARD_HINT_TEXT
-    container.appendChild(keyboardHint)
   }
 
   private renderLiveToolbar(
@@ -1199,6 +1296,8 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         this.#quickMovePersistenceService.persistLastMoveAcrossRestarts,
       createToolbarButton: (nextOwnerDocument, label, action) =>
         this.createToolbarButton(nextOwnerDocument, label, action),
+      createToolbarIconButton: (nextOwnerDocument, icon, action) =>
+        this.createIconActionButton(nextOwnerDocument, icon, action),
       onGroupSelected: async () => {
         if (!actions) {
           return
@@ -1283,6 +1382,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       recentQuickMoveDestinations: this.#quickMovePersistenceService.recentQuickMoveDestinations,
       quickPresetInlineMax: QUICK_PRESET_INLINE_MAX,
       lastMoveLabelMax: LAST_MOVE_LABEL_MAX,
+      showShortcutHints: false,
       createToolbarButton: (nextOwnerDocument, label, action) =>
         this.createToolbarButton(nextOwnerDocument, label, action),
       onMoveSelectionToRoot: async (targetFrameId) => {
@@ -1311,6 +1411,344 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         this.notify(message)
       },
     })
+  }
+
+  private resolveStructuralNodeLocation(
+    targetNodeId: string,
+    nodes: readonly LayerNode[] = this.#latestModel?.tree ?? [],
+    parentPath: readonly string[] = [],
+    frameId: string | null = null,
+  ): {
+    readonly node: LayerNode
+    readonly parentPath: readonly string[]
+    readonly frameId: string | null
+  } | null {
+    for (const node of nodes) {
+      const nodeFrameId = resolveFrameRowElementId(node) ?? node.frameId ?? frameId
+      if (node.id === targetNodeId) {
+        return {
+          node,
+          parentPath: [...parentPath],
+          frameId: nodeFrameId,
+        }
+      }
+
+      if (node.children.length === 0) {
+        continue
+      }
+
+      const childParentPath =
+        node.type === "group" && node.groupId ? [...parentPath, node.groupId] : parentPath
+      const nestedMatch = this.resolveStructuralNodeLocation(
+        targetNodeId,
+        node.children,
+        childParentPath,
+        nodeFrameId,
+      )
+      if (nestedMatch) {
+        return nestedMatch
+      }
+    }
+
+    return null
+  }
+
+  private resolveQuickMoveShortcutTargets(selection: ResolvedSelection) {
+    const latestStructuralTree = this.#latestModel?.tree ?? []
+    const destinationProjection = this.getQuickMoveDestinationProjection(latestStructuralTree)
+
+    return resolveQuickMoveShortcutTargets({
+      frameResolution: selection.frameResolution,
+      topLevelPresets: destinationProjection.topLevelPresets,
+      lastQuickMoveDestination: projectQuickMoveDestination(
+        this.#quickMovePersistenceService.lastQuickMoveDestination,
+        destinationProjection.destinationByKey,
+        destinationProjection.liveFrameIds,
+      ),
+      recentQuickMoveDestinations: projectQuickMoveDestinations(
+        this.#quickMovePersistenceService.recentQuickMoveDestinations,
+        destinationProjection.destinationByKey,
+        destinationProjection.liveFrameIds,
+      ),
+      quickPresetInlineMax: QUICK_PRESET_INLINE_MAX,
+    })
+  }
+
+  private async rememberStructuralMoveDestination(
+    targetParentPath: readonly string[],
+    targetFrameId: string | null,
+  ): Promise<void> {
+    if (targetParentPath.length === 0) {
+      await this.setLastQuickMoveDestination({
+        kind: "root",
+        targetFrameId,
+      })
+      return
+    }
+
+    await this.setLastQuickMoveDestination({
+      kind: "preset",
+      preset: {
+        key: makePresetKey(targetParentPath, targetFrameId),
+        label: makePresetOptionLabel(targetParentPath),
+        targetParentPath: [...targetParentPath],
+        targetFrameId,
+      },
+    })
+  }
+
+  private async runSelectionReparentToPath(
+    actions: LayerManagerUiActions,
+    selection: ResolvedSelection,
+    targetParentPath: readonly string[],
+    targetFrameId: string | null,
+  ) {
+    if (selection.structuralMove) {
+      return actions.reparentFromNodeIds({
+        nodeIds: selection.structuralMove.nodeIds,
+        sourceGroupId: selection.structuralMove.sourceGroupId,
+        targetParentPath,
+        targetFrameId,
+      })
+    }
+
+    return actions.commands.reparent({
+      elementIds: selection.elementIds,
+      sourceGroupId: null,
+      targetParentPath,
+      targetFrameId,
+    })
+  }
+
+  private async runAltStructuralMove(
+    direction: "in" | "out",
+    context: KeyboardShortcutContext,
+  ): Promise<void> {
+    if (direction === "in") {
+      if (context.selection.elementIds.length === 0) {
+        this.notify(
+          "Keyboard move into group failed: select rows first, then focus a target group.",
+        )
+        return
+      }
+
+      const targetGroupNodeId = this.#focusedNodeId
+      if (!targetGroupNodeId) {
+        this.notify("Keyboard move into group failed: focus a target group row first.")
+        return
+      }
+
+      const targetGroup = context.nodeById.get(targetGroupNodeId)
+      if (!targetGroup || targetGroup.type !== "group" || !targetGroup.groupId) {
+        this.notify("Keyboard move into group failed: focused row is not a group target.")
+        return
+      }
+
+      if (context.selection.nodes.some((node) => node.id === targetGroupNodeId)) {
+        this.notify(
+          "Keyboard move into group failed: target group must differ from the current selection.",
+        )
+        return
+      }
+
+      const targetLocation = this.resolveStructuralNodeLocation(targetGroupNodeId)
+      if (!targetLocation) {
+        this.notify("Keyboard move into group failed: target group is stale.")
+        return
+      }
+
+      const targetParentPath = [...targetLocation.parentPath, targetGroup.groupId]
+      const targetFrameId = targetLocation.frameId
+      const outcome = await this.runSelectionReparentToPath(
+        context.actions,
+        context.selection,
+        targetParentPath,
+        targetFrameId,
+      )
+
+      if (didInteractionApply(outcome)) {
+        await this.rememberStructuralMoveDestination(targetParentPath, targetFrameId)
+      }
+      return
+    }
+
+    if (context.selection.elementIds.length > 0) {
+      const selectionIssue = resolveStructuralSelectionIssue(context.selection)
+      if (selectionIssue) {
+        this.notify(`Move out of group failed: ${selectionIssue}`)
+        return
+      }
+
+      const sourceNode = context.selection.nodes[0] ?? null
+      if (!sourceNode) {
+        this.notify("Move out of group failed: selected rows are unavailable.")
+        return
+      }
+
+      const sourceLocation = this.resolveStructuralNodeLocation(sourceNode.id)
+      if (!sourceLocation) {
+        this.notify("Move out of group failed: selected rows are stale.")
+        return
+      }
+
+      if (sourceLocation.parentPath.length === 0) {
+        this.notify("Move out of group failed: selection is already at the outermost level.")
+        return
+      }
+
+      const targetParentPath = sourceLocation.parentPath.slice(0, -1)
+      const targetFrameId = context.selection.frameResolution.frameId ?? sourceLocation.frameId
+      const outcome = await this.runSelectionReparentToPath(
+        context.actions,
+        context.selection,
+        targetParentPath,
+        targetFrameId,
+      )
+
+      if (didInteractionApply(outcome)) {
+        await this.rememberStructuralMoveDestination(targetParentPath, targetFrameId)
+      }
+      return
+    }
+
+    const focusedNodeId = this.#focusedNodeId ?? context.visibleNodes[0]?.id ?? null
+    if (!focusedNodeId) {
+      this.notify("Keyboard move out of group failed: focused row is unavailable.")
+      return
+    }
+
+    if (!this.#focusedNodeId) {
+      this.#focusedNodeId = focusedNodeId
+    }
+
+    const focusedNode = context.nodeById.get(focusedNodeId)
+    if (!focusedNode) {
+      this.notify("Keyboard move out of group failed: focused row is stale.")
+      return
+    }
+
+    const structuralMove = resolveFocusedNodeStructuralMove(focusedNode)
+    if (!structuralMove) {
+      this.notify("Keyboard move out of group failed: frame rows cannot be structurally moved.")
+      return
+    }
+
+    const sourceLocation = this.resolveStructuralNodeLocation(focusedNode.id)
+    if (!sourceLocation) {
+      this.notify("Keyboard move out of group failed: focused row is stale.")
+      return
+    }
+
+    if (sourceLocation.parentPath.length === 0) {
+      this.notify(
+        "Keyboard move out of group failed: focused row is already at the outermost level.",
+      )
+      return
+    }
+
+    const targetParentPath = sourceLocation.parentPath.slice(0, -1)
+    const targetFrameId = focusedNode.frameId ?? sourceLocation.frameId ?? null
+    const outcome = await context.actions.reparentFromNodeIds({
+      nodeIds: structuralMove.nodeIds,
+      sourceGroupId: structuralMove.sourceGroupId,
+      targetParentPath,
+      targetFrameId,
+    })
+
+    if (didInteractionApply(outcome)) {
+      await this.rememberStructuralMoveDestination(targetParentPath, targetFrameId)
+    }
+  }
+
+  private async runNumberedQuickMoveDestination(
+    index: number,
+    context: KeyboardShortcutContext,
+  ): Promise<void> {
+    const destination = this.resolveQuickMoveShortcutTargets(context.selection).find(
+      (target) => target.digit === index,
+    )?.destination
+
+    if (!destination) {
+      this.notify(`No move target is mapped to Alt+${index}.`)
+      return
+    }
+
+    if (context.selection.elementIds.length > 0) {
+      if (destination.kind === "root") {
+        await this.#selectionActionController.moveSelectionToRoot(
+          context.actions,
+          context.selection,
+          destination.targetFrameId,
+        )
+        return
+      }
+
+      await this.#selectionActionController.applyGroupPreset(
+        context.actions,
+        context.selection,
+        destination.preset,
+      )
+      return
+    }
+
+    const focusedNodeId = this.#focusedNodeId ?? context.visibleNodes[0]?.id ?? null
+    if (!focusedNodeId) {
+      this.notify("Keyboard move failed: focused row is unavailable.")
+      return
+    }
+
+    if (!this.#focusedNodeId) {
+      this.#focusedNodeId = focusedNodeId
+    }
+
+    const focusedNode = context.nodeById.get(focusedNodeId)
+    if (!focusedNode) {
+      this.notify("Keyboard move failed: focused row is stale.")
+      return
+    }
+
+    const structuralMove = resolveFocusedNodeStructuralMove(focusedNode)
+    if (!structuralMove) {
+      this.notify("Keyboard move failed: frame rows cannot be structurally moved.")
+      return
+    }
+
+    if (destination.kind === "root") {
+      const targetFrameId = destination.targetFrameId ?? focusedNode.frameId ?? null
+      const outcome = await context.actions.reparentFromNodeIds({
+        nodeIds: structuralMove.nodeIds,
+        sourceGroupId: structuralMove.sourceGroupId,
+        targetParentPath: [],
+        targetFrameId,
+      })
+
+      if (didInteractionApply(outcome)) {
+        await this.setLastQuickMoveDestination({
+          kind: "root",
+          targetFrameId,
+        })
+      }
+      return
+    }
+
+    if (focusedNode.frameId !== destination.preset.targetFrameId) {
+      this.notify("Keyboard move failed: focused row is in a different frame.")
+      return
+    }
+
+    const outcome = await context.actions.reparentFromNodeIds({
+      nodeIds: structuralMove.nodeIds,
+      sourceGroupId: structuralMove.sourceGroupId,
+      targetParentPath: destination.preset.targetParentPath,
+      targetFrameId: destination.preset.targetFrameId,
+    })
+
+    if (didInteractionApply(outcome)) {
+      await this.setLastQuickMoveDestination({
+        kind: "preset",
+        preset: destination.preset,
+      })
+    }
   }
 
   private renderLiveRows(
@@ -1379,6 +1817,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       this.autofocusContentRootIfNeeded(focusTargetRoot)
     }
 
+    this.applyQuickMoveShortcutHintVisibility(this.#showQuickMoveShortcutHints)
     this.#lastRenderedDragDropHint = cloneDragDropHint(this.#dragDropController.dropHint)
     this.revealFocusedRowWithinComfortBandIfNeeded()
     this.scheduleDeferredFocusedRowReveal(contentRoot)
@@ -1486,6 +1925,10 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   }
 
   dispose(): void {
+    if (this.#contentRoot) {
+      this.clearMountedOutput()
+    }
+
     this.clearInteractiveBindings()
     this.#settingsWriteQueue.dispose()
     this.#rememberedDestinationReconcileActor.stop()
@@ -1859,6 +2302,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.#lastSnapshotSelectionIds = []
     this.#lastHandledContentKeydownEvent = null
     this.#pendingFocusedRowRevealNodeId = null
+    this.#showQuickMoveShortcutHints = false
     this.#cachedRowFilterResult = null
     this.#cachedQuickMoveDestinationProjection = null
     this.#focusOwnership.reset()
@@ -1867,6 +2311,8 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   }
 
   private clearMountedOutput(): void {
+    this.#showQuickMoveShortcutHints = false
+
     const sidepanelTab = this.#host.sidepanelTab
     const contentRoot = this.#contentRoot
     const attachedRootParent = contentRoot?.parentElement as HTMLElement | null
@@ -2076,6 +2522,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       this.#focusOwnership.cancelPendingFocusOut()
 
       const nextContentRoot = ownerDocument.createElement("div")
+      nextContentRoot.id = SIDEPANEL_ROOT_ID
       nextContentRoot.style.display = "flex"
       nextContentRoot.style.flexDirection = "column"
       nextContentRoot.style.gap = "6px"
@@ -2163,6 +2610,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     const dropHintKind = resolveSidepanelRowDropHintKind(activeDropHint)
 
     applyRenderedRowPreviewShellState(renderedRow.row, {
+      node: renderedRow.node,
       nodeVisualState: renderedRow.nodeVisualState,
       filterMatchKind: renderedRow.filterMatchKind,
       selected: renderedRow.selected,
@@ -2173,6 +2621,10 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       if (renderedRow.dropHintAssistiveLabel) {
         renderedRow.dropHintAssistiveLabel.textContent = ""
         renderedRow.dropHintAssistiveLabel.style.display = "none"
+      }
+      if (renderedRow.dropHintIndicator) {
+        renderedRow.dropHintIndicator.textContent = ""
+        renderedRow.dropHintIndicator.style.display = "none"
       }
       return
     }
@@ -2193,6 +2645,23 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     )
     assistiveLabel.style.display = ""
     renderedRow.dropHintAssistiveLabel = assistiveLabel
+
+    const visibleIndicatorText = resolveVisibleDropHintIndicatorText(
+      activeDropHint,
+      renderedRow.node,
+    )
+    if (!visibleIndicatorText) {
+      if (renderedRow.dropHintIndicator) {
+        renderedRow.dropHintIndicator.textContent = ""
+        renderedRow.dropHintIndicator.style.display = "none"
+      }
+      return
+    }
+
+    const indicator = renderedRow.dropHintIndicator ?? this.createDropHintIndicator(renderedRow.row)
+    indicator.textContent = visibleIndicatorText
+    indicator.style.display = "inline-flex"
+    renderedRow.dropHintIndicator = indicator
   }
 
   private createDropHintAssistiveLabel(row: HTMLDivElement): HTMLSpanElement {
@@ -2200,6 +2669,13 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     styleDropHintAssistiveLabel(assistiveLabel)
     row.appendChild(assistiveLabel)
     return assistiveLabel
+  }
+
+  private createDropHintIndicator(row: HTMLDivElement): HTMLSpanElement {
+    const indicator = row.ownerDocument.createElement("span")
+    styleVisibleDropHintIndicator(indicator)
+    row.appendChild(indicator)
+    return indicator
   }
 
   private resetForViewContextBoundary(): void {
@@ -2212,6 +2688,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.#latestSelectionResolution = null
     this.#lastSnapshotSelectionIds = []
     this.#pendingFocusedRowRevealNodeId = null
+    this.#showQuickMoveShortcutHints = false
     this.#rowFilterQuery = ""
     this.#shouldAutofocusRowFilterInput = false
     this.#cachedRowFilterResult = null
@@ -2514,6 +2991,121 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.#keyboardSuppressedUntilMs = Date.now() + KEYBOARD_PROMPT_SUPPRESSION_MS
   }
 
+  private styleLiveQuickMoveShortcutBadge(label: HTMLSpanElement): void {
+    label.style.position = "absolute"
+    label.style.top = "-5px"
+    label.style.right = "-5px"
+    label.style.display = "inline-flex"
+    label.style.alignItems = "center"
+    label.style.justifyContent = "center"
+    label.style.minWidth = "12px"
+    label.style.height = "12px"
+    label.style.padding = "0 2px"
+    label.style.borderRadius = "999px"
+    label.style.border = "1px solid var(--background-modifier-border, rgba(120,120,120,0.28))"
+    label.style.background = "var(--background-primary, rgba(24,24,24,0.95))"
+    label.style.color = "var(--text-muted, inherit)"
+    label.style.fontSize = "8px"
+    label.style.fontWeight = "700"
+    label.style.lineHeight = "1"
+    label.style.pointerEvents = "none"
+  }
+
+  private collectQuickMoveShortcutButtons(root: HTMLElement | null): HTMLButtonElement[] {
+    if (!root) {
+      return []
+    }
+
+    const collected: HTMLButtonElement[] = []
+    const walk = (element: HTMLElement): void => {
+      const buttonCandidate = element as HTMLButtonElement & {
+        readonly __lmxQuickMoveShortcutDigit?: unknown
+      }
+      if (
+        element.tagName === "BUTTON" &&
+        typeof buttonCandidate.__lmxQuickMoveShortcutDigit === "number"
+      ) {
+        collected.push(buttonCandidate)
+      }
+
+      for (const child of Array.from(element.children) as HTMLElement[]) {
+        walk(child)
+      }
+    }
+
+    walk(root)
+    return collected
+  }
+
+  private findLiveQuickMoveShortcutBadge(button: HTMLButtonElement): HTMLSpanElement | null {
+    return (
+      (Array.from(button.children).find((child) => {
+        return (
+          (child as HTMLElement & { __lmxQuickMoveShortcutBadge?: unknown })
+            .__lmxQuickMoveShortcutBadge === true
+        )
+      }) as HTMLSpanElement | undefined) ?? null
+    )
+  }
+
+  private applyQuickMoveShortcutHintVisibility(visible: boolean): void {
+    const buttons = this.collectQuickMoveShortcutButtons(this.#contentRoot)
+
+    for (const button of buttons) {
+      const digit = (
+        button as HTMLButtonElement & { readonly __lmxQuickMoveShortcutDigit?: number }
+      ).__lmxQuickMoveShortcutDigit
+      if (typeof digit !== "number") {
+        continue
+      }
+
+      const existingBadge = this.findLiveQuickMoveShortcutBadge(button)
+      if (!visible) {
+        existingBadge?.remove()
+        continue
+      }
+
+      if (existingBadge) {
+        continue
+      }
+
+      const badge = button.ownerDocument.createElement("span")
+      ;(
+        badge as HTMLSpanElement & { __lmxQuickMoveShortcutBadge?: true }
+      ).__lmxQuickMoveShortcutBadge = true
+      badge.textContent = `${digit}`
+      badge.ariaHidden = "true"
+      this.styleLiveQuickMoveShortcutBadge(badge)
+      button.appendChild(badge)
+    }
+  }
+
+  private setQuickMoveShortcutHintsVisible(visible: boolean): void {
+    if (this.#showQuickMoveShortcutHints === visible) {
+      return
+    }
+
+    this.#showQuickMoveShortcutHints = visible
+    this.applyQuickMoveShortcutHintVisibility(visible)
+  }
+
+  private updateQuickMoveShortcutHintVisibilityFromKeydown(event: KeyboardEvent): void {
+    if (event.key === "Alt" || event.altKey) {
+      this.setQuickMoveShortcutHintsVisible(true)
+      return
+    }
+
+    if (this.#showQuickMoveShortcutHints) {
+      this.setQuickMoveShortcutHintsVisible(false)
+    }
+  }
+
+  private updateQuickMoveShortcutHintVisibilityFromKeyup(event: KeyboardEvent): void {
+    if ((event.key === "Alt" || !event.altKey) && this.#showQuickMoveShortcutHints) {
+      this.setQuickMoveShortcutHintsVisible(false)
+    }
+  }
+
   private isKeyboardSuppressed(): boolean {
     return Date.now() < this.#keyboardSuppressedUntilMs
   }
@@ -2709,6 +3301,57 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.requestRenderFromLatestModel()
   }
 
+  private resolveRowDragDropIntentOptions(
+    row: HTMLDivElement,
+    node: LayerNode,
+    event: DragEvent,
+  ): DragDropIntentOptions | undefined {
+    if (node.type !== "group") {
+      return undefined
+    }
+
+    const clientY = (event as DragEvent & { readonly clientY?: unknown }).clientY
+    if (typeof clientY !== "number" || !Number.isFinite(clientY)) {
+      return undefined
+    }
+
+    const rowRect = row.getBoundingClientRect?.()
+    if (!rowRect || !Number.isFinite(rowRect.top) || !Number.isFinite(rowRect.height)) {
+      return undefined
+    }
+
+    const rowHeight = rowRect.height
+    if (rowHeight <= 0) {
+      return undefined
+    }
+
+    const offsetY = clientY - rowRect.top
+    if (!Number.isFinite(offsetY)) {
+      return undefined
+    }
+
+    const edgeZoneHeight = Math.min(
+      Math.max(rowHeight * GROUP_ROW_DROP_EDGE_RATIO, GROUP_ROW_DROP_EDGE_MIN_PX),
+      rowHeight / 2,
+    )
+
+    if (offsetY <= edgeZoneHeight) {
+      return {
+        zone: "before",
+      }
+    }
+
+    if (offsetY >= rowHeight - edgeZoneHeight) {
+      return {
+        zone: "after",
+      }
+    }
+
+    return {
+      zone: "inside",
+    }
+  }
+
   private resolveNodeFrameId(node: LayerNode, branchContext: DragDropBranchContext): string | null {
     return this.#dragDropController.resolveNodeFrameId(node, branchContext)
   }
@@ -2781,11 +3424,13 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     actions: LayerManagerUiActions,
     targetNodeId: string,
     dropTarget: NodeDropTarget,
+    options?: DragDropIntentOptions,
   ): Promise<void> {
     const outcome = await this.#dragDropController.runDragDropMove(
       actions,
       targetNodeId,
       dropTarget,
+      options,
     )
     if (outcome.status !== "applied") {
       return
@@ -2800,9 +3445,10 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     actions: LayerManagerUiActions,
     targetNodeId: string,
     dropTarget: NodeDropTarget,
+    options?: DragDropIntentOptions,
   ): Promise<void> {
     try {
-      await this.runDragDropMove(actions, targetNodeId, dropTarget)
+      await this.runDragDropMove(actions, targetNodeId, dropTarget, options)
     } catch (error: unknown) {
       if (error instanceof Error) {
         this.notify(`Drag and drop move failed: ${error.message}`)
@@ -2904,7 +3550,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
             this.createIconActionButton(nextOwnerDocument, icon, action),
         })
 
-        this.#renderedRowPreviewStateByNodeId.set(node.id, {
+        const renderedRowPreviewState: RenderedRowPreviewState = {
           row,
           node,
           branchContext: nodeBranchContext,
@@ -2913,7 +3559,14 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
           filterMatchKind,
           nodeVisualState,
           dropHintAssistiveLabel: findRenderedRowDropHintAssistiveLabel(row),
-        })
+          dropHintIndicator: null,
+        }
+
+        this.#renderedRowPreviewStateByNodeId.set(node.id, renderedRowPreviewState)
+
+        if (activeDropHint) {
+          this.updateRenderedRowPreview(renderedRowPreviewState, activeDropHint)
+        }
 
         if (actions) {
           bindSidepanelRowInteractions({
@@ -2965,10 +3618,20 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
               this.#dragDropController.endRowDrag()
             },
             onDragEnter: (event) => {
-              this.#dragDropController.handleDragEnter(node.id, nodeDropTarget, event)
+              this.#dragDropController.handleDragEnter(
+                node.id,
+                nodeDropTarget,
+                event,
+                this.resolveRowDragDropIntentOptions(row, node, event),
+              )
             },
             onDragOver: (event) => {
-              this.#dragDropController.handleDragOver(node.id, nodeDropTarget, event)
+              this.#dragDropController.handleDragOver(
+                node.id,
+                nodeDropTarget,
+                event,
+                this.resolveRowDragDropIntentOptions(row, node, event),
+              )
             },
             onDragLeave: (relatedTarget) => {
               this.#dragDropController.handleDragLeave(
@@ -2976,11 +3639,16 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
                 !!(relatedTarget && row.contains(relatedTarget)),
               )
             },
-            onDrop: () => {
+            onDrop: (event) => {
               // Architecture seam note:
               // Drag/drop emits reorder-or-reparent intent through UI actions only.
               // The actual mutation path remains command facade -> executeIntent -> adapter.
-              void this.handleRowDrop(actions, node.id, nodeDropTarget)
+              void this.handleRowDrop(
+                actions,
+                node.id,
+                nodeDropTarget,
+                this.resolveRowDragDropIntentOptions(row, node, event),
+              )
             },
           })
         }
@@ -3001,6 +3669,16 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   }
 
   private createIconNode(ownerDocument: Document, iconName: string, fallbackLabel: string): Node {
+    const excalidrawLikeIcon = createExcalidrawLikeIconNode(
+      ownerDocument,
+      iconName,
+      fallbackLabel,
+      ICON_SIZE_PX,
+    )
+    if (excalidrawLikeIcon) {
+      return excalidrawLikeIcon
+    }
+
     const iconFactory = this.#host.obsidian?.getIcon
     if (iconFactory) {
       try {
@@ -3052,7 +3730,6 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     button.style.boxShadow = "none"
     button.style.fontSize = `${TOOLBAR_FONT_SIZE_PX}px`
     if (icon.title) {
-      button.title = icon.title
       button.ariaLabel = icon.title
     }
 
@@ -3066,6 +3743,24 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     })
 
     return button
+  }
+
+  private createKeyboardHelpButton(ownerDocument: Document): HTMLSpanElement {
+    const helpGlyph = ownerDocument.createElement("span")
+    helpGlyph.title = SIDEPANEL_KEYBOARD_HINT_TOOLTIP
+    helpGlyph.style.minWidth = `${ICON_BUTTON_SIZE_PX}px`
+    helpGlyph.style.minHeight = `${ICON_BUTTON_SIZE_PX}px`
+    helpGlyph.style.display = "inline-flex"
+    helpGlyph.style.alignItems = "center"
+    helpGlyph.style.justifyContent = "center"
+    helpGlyph.style.color = "var(--text-muted, inherit)"
+    helpGlyph.style.cursor = "help"
+    helpGlyph.style.userSelect = "none"
+
+    const iconNode = this.createIconNode(ownerDocument, "help-circle", "?")
+    helpGlyph.appendChild(iconNode)
+
+    return helpGlyph
   }
 
   private createToolbarButton(

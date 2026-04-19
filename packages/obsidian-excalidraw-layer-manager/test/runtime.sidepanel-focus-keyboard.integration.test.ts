@@ -12,7 +12,9 @@ import {
   FakeDomEvent,
   dispatchClick,
   dispatchDocumentKeydown,
+  dispatchDocumentKeyup,
   dispatchKeydown,
+  findButtonByExactText,
   findButtonByTitle,
   findFirstInput,
   findFocusedInteractiveRow,
@@ -210,7 +212,7 @@ describe("sidepanel focus + keyboard integration", () => {
     expect(actions.reorderFromNodeIds).toHaveBeenNthCalledWith(2, ["group:Outer"], "forward")
   })
 
-  it("renders keyboard hint copy in row-selection terms", () => {
+  it("renders keyboard shortcuts behind a compact help tooltip", () => {
     const sidepanelTab = makeSidepanelTab(fakeDocument, null)
     const { actions } = makeUiActions()
 
@@ -231,13 +233,269 @@ describe("sidepanel focus + keyboard integration", () => {
     })
 
     const contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const helpGlyph = flattenElements(contentRoot).find(
+      (element) =>
+        element.title.includes("Keyboard shortcuts") &&
+        element.title.includes("Alt+0 root") &&
+        element.title.includes("Ctrl+Space toggle row"),
+    )
+    const textFragments = flattenElements(contentRoot)
+      .map((element) => element.textContent ?? "")
+      .filter((text) => text.length > 0)
+    expect(helpGlyph).toBeDefined()
+    expect((helpGlyph as FakeDomElement | undefined)?.tagName).toBe("SPAN")
+    expect(textFragments).not.toContain(
+      "Shortcuts: ↑/↓ focus rows · Shift+↑/↓ extend row selection · Home/End bounds · PgUp/PgDn page · Shift+PgUp/PgDn extend page · Space select/deselect row · Ctrl+Space toggle row · Shift+Space add range to selection · ←/→ collapse/expand · Enter rename · Del delete · Alt+↑/↓ nudge order · Alt+[ / ] out/in group · Alt+0 root · Alt+1..9 pick group · F/B reorder · Shift+F/B front/back · G/U structural",
+    )
+  })
+
+  it("shows Alt-number group hints and runs the numbered destination without mouse input", async () => {
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    const { actions, commandSpies } = makeUiActions()
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => ({}),
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [
+        makeElementNode("A"),
+        makeGroupNode("G1", [makeElementNode("B")]),
+        makeGroupNode("G2", [makeElementNode("C")]),
+      ],
+      selectedIds: new Set(["A"]),
+      sceneVersion: 29.25,
+      actions,
+    })
+
+    let contentRoot = getContentRoot(sidepanelTab.contentEl)
+    expect(flattenElements(contentRoot).some((element) => element.textContent === "0")).toBe(false)
+    expect(flattenElements(contentRoot).some((element) => element.textContent === "1")).toBe(false)
+
+    dispatchKeydown(contentRoot, "Alt", { altKey: true })
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const rootButton = findButtonByExactText(contentRoot, "Root")
+    const inlinePresetButton = findButtonByExactText(contentRoot, "Inside G1")
+    const secondPresetButton = findButtonByExactText(contentRoot, "Inside G2")
     const textFragments = flattenElements(contentRoot)
       .map((element) => element.textContent ?? "")
       .filter((text) => text.length > 0)
 
-    expect(textFragments).toContain(
-      "Shortcuts: ↑/↓ focus rows · Shift+↑/↓ extend row selection · Home/End bounds · PgUp/PgDn page · Shift+PgUp/PgDn extend page · Space select row · Ctrl+Space toggle row · Shift+Space add range to selection · ←/→ collapse/expand · Enter rename · Del delete · F/B reorder · Shift+F/B front/back · G/U structural",
-    )
+    expect(rootButton).toBeDefined()
+    expect(textFragments).toContain("0")
+    expect(textFragments).toContain("1")
+    expect(textFragments).toContain("2")
+
+    dispatchKeydown(contentRoot, "0", { altKey: true, code: "Digit0" })
+    await flushAsync()
+
+    expect(commandSpies.reparent).toHaveBeenCalledWith({
+      elementIds: ["A"],
+      sourceGroupId: null,
+      targetParentPath: [],
+      targetFrameId: null,
+    })
+
+    dispatchDocumentKeyup(fakeDocument, "Alt")
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    expect(flattenElements(contentRoot).some((element) => element.textContent === "0")).toBe(false)
+    expect(flattenElements(contentRoot).some((element) => element.textContent === "1")).toBe(false)
+  })
+
+  it("uses Alt+[ and Alt+] for out/in group movement", async () => {
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    const { actions, commandSpies } = makeUiActions()
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => ({}),
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [
+        makeGroupNode("Outer", [makeElementNode("A")]),
+        makeGroupNode("Target", [makeElementNode("B")]),
+      ],
+      selectedIds: new Set(["A"]),
+      sceneVersion: 29.4,
+      actions,
+    })
+
+    let contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "Alt", { altKey: true })
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "[", { altKey: true, code: "BracketLeft" })
+    await flushAsync()
+
+    expect(commandSpies.reparent).toHaveBeenNthCalledWith(1, {
+      elementIds: ["A"],
+      sourceGroupId: null,
+      targetParentPath: [],
+      targetFrameId: null,
+    })
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowDown")
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowDown")
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "]", { altKey: true, code: "BracketRight" })
+    await flushAsync()
+
+    expect(commandSpies.reparent).toHaveBeenNthCalledWith(2, {
+      elementIds: ["A"],
+      sourceGroupId: null,
+      targetParentPath: ["Target"],
+      targetFrameId: null,
+    })
+  })
+
+  it("uses Alt+[ to move an explicitly selected group row one level out", async () => {
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    const { actions } = makeUiActions()
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => ({}),
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [
+        makeGroupNode("Outer", [makeGroupNode("Inner", [makeElementNode("A")])]),
+        makeElementNode("B"),
+      ],
+      selectedIds: new Set(),
+      sceneVersion: 29.41,
+      actions,
+    })
+
+    let contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowRight")
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const innerGroupRow = findInteractiveRowByLabel(contentRoot, "[group] Inner")
+    if (!innerGroupRow) {
+      throw new Error("Expected nested group row to exist before Alt+[ group test.")
+    }
+
+    innerGroupRow.click()
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "[", { altKey: true, code: "BracketLeft" })
+    await flushAsync()
+
+    expect(actions.reparentFromNodeIds).toHaveBeenCalledWith({
+      nodeIds: ["group:Inner"],
+      sourceGroupId: "Inner",
+      targetParentPath: [],
+      targetFrameId: null,
+    })
+  })
+
+  it("restores normal arrow navigation after pressing and releasing Alt", async () => {
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    const { actions } = makeUiActions()
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => ({}),
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [makeElementNode("A"), makeElementNode("B"), makeElementNode("C")],
+      selectedIds: new Set(),
+      sceneVersion: 29.45,
+      actions,
+    })
+
+    let contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "Alt", { altKey: true })
+    await flushAsync()
+    dispatchDocumentKeyup(fakeDocument, "Alt")
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowDown")
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    const focusedRow = findFocusedInteractiveRow(contentRoot)
+    const focusedLabel =
+      (focusedRow as (FakeDomElement & { ariaLabel?: string }) | undefined)?.ariaLabel ?? ""
+    expect(focusedLabel).toContain("B")
+  })
+
+  it("uses Alt+ArrowUp and Alt+ArrowDown as reorder aliases with selection precedence", async () => {
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    const { actions } = makeUiActions()
+
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => ({}),
+    })
+
+    if (!renderer) {
+      throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+    }
+
+    renderer.render({
+      tree: [makeElementNode("A"), makeElementNode("B"), makeElementNode("C")],
+      selectedIds: new Set(),
+      sceneVersion: 29.5,
+      actions,
+    })
+
+    let contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowDown")
+    await flushAsync()
+
+    dispatchKeydown(contentRoot, "ArrowUp", { altKey: true })
+    await flushAsync()
+
+    expect(actions.reorderFromNodeIds).toHaveBeenNthCalledWith(1, ["el:B"], "forward")
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "Space")
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowDown", { shiftKey: true })
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(contentRoot, "ArrowDown", { altKey: true })
+    await flushAsync()
+
+    expect(actions.reorderFromNodeIds).toHaveBeenNthCalledWith(2, ["el:B", "el:C"], "backward")
   })
 
   it("interaction debug tags mouse and keyboard row-selection provenance while converging on the same rows", async () => {
@@ -370,7 +628,7 @@ describe("sidepanel focus + keyboard integration", () => {
     }
   })
 
-  it("ignores modified shortcuts and text-input event targets", async () => {
+  it("ignores unsupported modified shortcuts and text-input event targets", async () => {
     const sidepanelTab = makeSidepanelTab(fakeDocument, null)
     const { actions, commandSpies } = makeUiActions()
 
@@ -399,7 +657,6 @@ describe("sidepanel focus + keyboard integration", () => {
     > = [
       { key: "ArrowDown", ctrlKey: true },
       { key: "ArrowUp", metaKey: true },
-      { key: "ArrowRight", altKey: true },
       { key: "ArrowLeft", ctrlKey: true },
       { key: "Home", metaKey: true },
       { key: "End", ctrlKey: true },
@@ -544,7 +801,7 @@ describe("sidepanel focus + keyboard integration", () => {
     expect(reorderFromNodeIdsMock).toHaveBeenNthCalledWith(4, ["el:1"], "forward")
   })
 
-  it("does not add extra scroll when Space selects the row focused via arrow-key navigation", async () => {
+  it("does not add extra scroll when Space toggles the row focused via arrow-key navigation", async () => {
     fakeDocument.focusScrollDelta = 96
 
     const sidepanelTab = makeSidepanelTab(fakeDocument, null)
@@ -598,10 +855,21 @@ describe("sidepanel focus + keyboard integration", () => {
     await flushAsync()
 
     contentRoot = getContentRoot(sidepanelTab.contentEl)
-    const selectedRow = findInteractiveRowByLabel(contentRoot, selectedRowLabelPrefix)
+    let selectedRow = findInteractiveRowByLabel(contentRoot, selectedRowLabelPrefix)
     expect(
       (selectedRow as (FakeDomElement & { ariaSelected?: string }) | undefined)?.ariaSelected,
     ).toBe("true")
+
+    dispatchKeydown(contentRoot, "Space")
+    fakeDocument.dispatchEvent(new FakeDomEvent("keypress", { key: " " }))
+    fakeDocument.dispatchEvent(new FakeDomEvent("keyup", { key: " " }))
+    await flushAsync()
+
+    contentRoot = getContentRoot(sidepanelTab.contentEl)
+    selectedRow = findInteractiveRowByLabel(contentRoot, selectedRowLabelPrefix)
+    expect(
+      (selectedRow as (FakeDomElement & { ariaSelected?: string }) | undefined)?.ariaSelected,
+    ).toBe("false")
     expect(followupKeypress.defaultPrevented).toBe(true)
     expect(followupKeypress.propagationStopped).toBe(true)
     expect(followupKeyup.defaultPrevented).toBe(true)

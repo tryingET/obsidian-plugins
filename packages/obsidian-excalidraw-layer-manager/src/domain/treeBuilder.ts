@@ -9,8 +9,12 @@ import {
 
 const makeNodeId = (prefix: string, id: string): string => `${prefix}:${id}`
 
+const normalizeSearchSourceText = (value: string): string => {
+  return value.replaceAll("\n", " ").trim()
+}
+
 const normalizeLabelText = (value: string, maxLength = 24): string => {
-  const normalized = value.replaceAll("\n", " ").trim()
+  const normalized = normalizeSearchSourceText(value)
   if (normalized.length <= maxLength) {
     return normalized
   }
@@ -27,24 +31,71 @@ const normalizeExplicitLabel = (value: string | undefined): string | null => {
   return trimmed.length > 0 ? trimmed : null
 }
 
-const getBoundTextContainerLabel = (element: ElementDTO, indexes: SceneIndexes): string | null => {
+const collectBoundTextContainerSearchFragments = (
+  element: ElementDTO,
+  indexes: SceneIndexes,
+): readonly string[] => {
   if (element.type === "text") {
-    return null
+    return []
   }
 
+  const fragments: string[] = []
   const boundTextEntries = indexes.boundTextByContainer.get(element.id) ?? []
+
   for (const entry of boundTextEntries) {
     if (entry.type !== "text" || !entry.text) {
       continue
     }
 
-    const label = normalizeLabelText(entry.text)
-    if (label.length > 0) {
-      return label
+    const fragment = normalizeSearchSourceText(entry.text)
+    if (fragment.length > 0) {
+      fragments.push(fragment)
     }
   }
 
-  return null
+  return fragments
+}
+
+const getBoundTextContainerLabel = (element: ElementDTO, indexes: SceneIndexes): string | null => {
+  const [firstFragment] = collectBoundTextContainerSearchFragments(element, indexes)
+  return firstFragment ? normalizeLabelText(firstFragment) : null
+}
+
+const joinUniqueSearchFragments = (
+  fragments: readonly (string | null | undefined)[],
+): string | undefined => {
+  const normalizedFragments: string[] = []
+  const seen = new Set<string>()
+
+  for (const fragment of fragments) {
+    if (typeof fragment !== "string") {
+      continue
+    }
+
+    const normalized = normalizeSearchSourceText(fragment)
+    if (normalized.length === 0) {
+      continue
+    }
+
+    const fingerprint = normalized.toLowerCase()
+    if (seen.has(fingerprint)) {
+      continue
+    }
+
+    seen.add(fingerprint)
+    normalizedFragments.push(normalized)
+  }
+
+  return normalizedFragments.length > 0 ? normalizedFragments.join(" ") : undefined
+}
+
+const getElementSearchText = (element: ElementDTO, indexes: SceneIndexes): string | undefined => {
+  return joinUniqueSearchFragments([
+    readLmxElementLabel(element.customData),
+    normalizeExplicitLabel(element.name),
+    ...collectBoundTextContainerSearchFragments(element, indexes),
+    element.type === "text" ? element.text : undefined,
+  ])
 }
 
 const getElementLabel = (element: ElementDTO, indexes: SceneIndexes): string => {
@@ -119,6 +170,8 @@ const makeElementNode = (
   }
 
   const nodeId = makeNodeId("el", element.id)
+  const searchText = getElementSearchText(element, indexes)
+
   return {
     id: nodeId,
     type: "element",
@@ -130,6 +183,7 @@ const makeElementNode = (
     groupId: null,
     frameId: element.frameId,
     label: getElementLabel(element, indexes),
+    ...(searchText ? { searchText } : {}),
   }
 }
 
@@ -377,6 +431,8 @@ const makeFrameNode = (
     appendUniqueElementIds(elementIds, seenElementIds, child.elementIds)
   }
 
+  const searchText = getElementSearchText(frame, indexes)
+
   return {
     id: nodeId,
     type: "frame",
@@ -388,6 +444,7 @@ const makeFrameNode = (
     groupId: null,
     frameId: null,
     label: getElementLabel(frame, indexes),
+    ...(searchText ? { searchText } : {}),
   }
 }
 

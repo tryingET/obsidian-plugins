@@ -21,6 +21,8 @@ export interface LayerNode {
   readonly groupId: string | null
   readonly frameId: string | null
   readonly label: string
+  /** Optional alias text for filtering when the visible row label is abbreviated. */
+  readonly searchText?: string
 }
 
 /** Authoritative full-tree projection over scene truth. */

@@ -217,6 +217,7 @@ const makeBaseInput = (
     lastQuickMoveDestination: LastQuickMoveDestination | null
     recentQuickMoveDestinations: readonly LastQuickMoveDestination[]
     quickPresetInlineMax: number
+    showShortcutHints: boolean
     quickPresetTotalMax: number
     allDestinationTotalMax: number
     onMoveSelectionToRoot: (targetFrameId: string | null) => Promise<void>
@@ -258,6 +259,7 @@ const makeBaseInput = (
     recentQuickMoveDestinations: overrides.recentQuickMoveDestinations ?? [],
     quickPresetInlineMax: overrides.quickPresetInlineMax ?? 4,
     lastMoveLabelMax: 26,
+    showShortcutHints: overrides.showShortcutHints ?? false,
     createToolbarButton,
     onMoveSelectionToRoot,
     onApplyGroupPreset,
@@ -396,7 +398,35 @@ describe("sidepanel quick-move renderer", () => {
     expect(onApplyGroupPreset.mock.calls[1]?.[0]?.key).toBe("F1:G2")
   })
 
-  it("renders recent targets plus a full destination picker", async () => {
+  it("shows numbered shortcut badges for visible group destinations when move hints are active", () => {
+    const document = new FakeDocument()
+    const container = document.createElement("div")
+
+    renderSidepanelQuickMove(
+      makeBaseInput(document, container, {
+        tree: [
+          makeElementNode("A"),
+          makeGroupNode("G1", [makeElementNode("B")]),
+          makeGroupNode("G2", [makeElementNode("C")]),
+        ],
+        showShortcutHints: true,
+      }),
+    )
+
+    const renderedContainer = container as unknown as FakeDomElement
+    const rootButton = findButtonByText(renderedContainer, "Root")
+    const firstPresetButton = findButtonByText(renderedContainer, "Inside G1")
+    const secondPresetButton = findButtonByText(renderedContainer, "Inside G2")
+    const textFragments = flattenElements(renderedContainer)
+      .map((element) => element.textContent ?? "")
+      .filter((text) => text.length > 0)
+
+    expect(textFragments).toContain("0")
+    expect(textFragments).toContain("1")
+    expect(textFragments).toContain("2")
+  })
+
+  it("renders recent targets without a secondary destination picker", async () => {
     const document = new FakeDocument()
     const container = document.createElement("div")
 
@@ -453,44 +483,21 @@ describe("sidepanel quick-move renderer", () => {
 
     const renderedContainer = container as unknown as FakeDomElement
     const recentButton = findButtonByText(renderedContainer, "Inside Outer › Inner")
-    const moveToPickedButton = findButtonByText(renderedContainer, "Move to picked")
-    const selects = findSelects(renderedContainer)
-    const pickerSelect = selects[0]
 
-    if (!recentButton || !moveToPickedButton || !pickerSelect) {
-      throw new Error("Expected recent-target and destination-picker controls to exist.")
+    if (!recentButton) {
+      throw new Error("Expected recent-target control to exist.")
     }
 
     recentButton.click()
     await flushAsync()
 
-    expect(onApplyGroupPreset).toHaveBeenNthCalledWith(1, {
+    expect(onApplyGroupPreset).toHaveBeenCalledWith({
       key: makePresetKey(["Outer", "Inner"], "F1"),
       label: "Inside Outer › Inner",
       targetParentPath: ["Outer", "Inner"],
       targetFrameId: "F1",
     })
-
-    const nestedOption = pickerSelect.children.find(
-      (child) =>
-        child.tagName === "OPTION" && child.value === makePresetKey(["Outer", "Inner"], "F1"),
-    )
-
-    if (!nestedOption) {
-      throw new Error("Expected nested destination option to exist in picker.")
-    }
-
-    pickerSelect.value = nestedOption.value
-    pickerSelect.dispatchEvent(new FakeDomEvent("change"))
-    moveToPickedButton.click()
-    await flushAsync()
-
-    expect(onApplyGroupPreset).toHaveBeenNthCalledWith(2, {
-      key: makePresetKey(["Outer", "Inner"], "F1"),
-      label: "Inside Outer › Inner",
-      targetParentPath: ["Outer", "Inner"],
-      targetFrameId: "F1",
-    })
+    expect(findButtonByText(renderedContainer, "Move to picked")).toBeUndefined()
   })
 
   it("projects persisted destinations onto live labels and hides stale presets", () => {
@@ -552,9 +559,7 @@ describe("sidepanel quick-move renderer", () => {
     const presetButton = findButtonByText(renderedContainer, "Inside G1")
 
     expect(rootButton?.disabled).toBe(true)
-    expect(rootButton?.title).toBe("Selection includes frame rows.")
     expect(presetButton?.disabled).toBe(true)
-    expect(presetButton?.title).toBe("Selection includes frame rows.")
   })
 
   it("disables repeat-last root when it points at a different frame root", () => {
@@ -584,7 +589,6 @@ describe("sidepanel quick-move renderer", () => {
     }
 
     expect(repeatButton.disabled).toBe(true)
-    expect(repeatButton.title).toBe("Last destination is in a different frame.")
     expect(findButtonByText(renderedContainer, "Root ★")).toBeUndefined()
   })
 
@@ -680,51 +684,6 @@ describe("sidepanel quick-move renderer", () => {
     expect(findButtonByText(renderedContainer, "Inside Keep")).toBeDefined()
   })
 
-  it("keeps remembered destinations available in the picker when the base list is capped", () => {
-    const document = new FakeDocument()
-    const container = document.createElement("div")
-
-    renderSidepanelQuickMove(
-      makeBaseInput(document, container, {
-        tree: [
-          makeElementNode("A", "F1"),
-          makeGroupNode("G1", [makeElementNode("B", "F1")], "F1"),
-          makeGroupNode("G2", [makeElementNode("C", "F1")], "F1"),
-          makeGroupNode("G3", [makeElementNode("D", "F1")], "F1"),
-        ],
-        selection: {
-          elementIds: ["A"],
-          nodes: [makeElementNode("A", "F1")],
-          frameResolution: makeFrameResolution("F1"),
-        },
-        lastQuickMoveDestination: {
-          kind: "preset",
-          preset: {
-            key: makePresetKey(["G3"], "F1"),
-            label: "Inside G3",
-            targetParentPath: ["G3"],
-            targetFrameId: "F1",
-          },
-        },
-        allDestinationTotalMax: 1,
-      }),
-    )
-
-    const renderedContainer = container as unknown as FakeDomElement
-    const selects = findSelects(renderedContainer)
-    const pickerSelect = selects.at(-1)
-
-    if (!pickerSelect) {
-      throw new Error("Expected destination picker to exist.")
-    }
-
-    const rememberedOption = pickerSelect.children.find(
-      (child) => child.tagName === "OPTION" && child.value === makePresetKey(["G3"], "F1"),
-    )
-
-    expect(rememberedOption).toBeDefined()
-  })
-
   it("surfaces review-scope copy and richer destination context for board-scale quick moves", () => {
     const document = new FakeDocument()
     const container = document.createElement("div")
@@ -769,29 +728,17 @@ describe("sidepanel quick-move renderer", () => {
       (element) =>
         element.tagName === "SPAN" && element.textContent === "Move selection from review scope:",
     )
-    const reviewDestinationsTitle = flattenElements(renderedContainer).find(
-      (element) => element.tagName === "SPAN" && element.textContent === "Review destinations:",
-    )
     const repeatButton = findButtonWithPrefix(renderedContainer, "↺ Last:")
-    const pickerSelect = findSelects(renderedContainer).at(-1)
 
-    if (!reviewMoveTitle || !reviewDestinationsTitle || !repeatButton || !pickerSelect) {
+    if (!reviewMoveTitle || !repeatButton) {
       throw new Error("Expected review-scope quick-move controls to exist.")
     }
 
-    const rememberedOption = pickerSelect.children.find(
-      (child) =>
-        child.tagName === "OPTION" && child.value === makePresetKey(["Outer", "Inner"], "F1"),
-    )
-
-    expect(reviewMoveTitle.title).toContain("Filtered review scope")
-    expect(reviewMoveTitle.title).toContain("1 context row")
-    expect(reviewDestinationsTitle.title).toContain("canonical selected rows")
-    expect(repeatButton.title).toContain("frame F1")
-    expect(repeatButton.title).toContain("path Outer / Inner")
-    expect(repeatButton.title).toContain("canonical selected rows")
-    expect(pickerSelect.title).toContain("Review-scope destination picker")
-    expect(rememberedOption?.textContent).toBe("Inside Outer › Inner · frame F1 ★")
+    expect(
+      flattenElements(renderedContainer).some(
+        (element) => element.tagName === "SPAN" && element.textContent === "Review destinations:",
+      ),
+    ).toBe(false)
   })
 
   it("keeps mixed-selection disable reasons review-scope honest", () => {
@@ -829,19 +776,13 @@ describe("sidepanel quick-move renderer", () => {
     const renderedContainer = container as unknown as FakeDomElement
     const rootButton = findButtonByText(renderedContainer, "Root ★")
     const repeatButton = findButtonWithPrefix(renderedContainer, "↺ Last:")
-    const pickerSelect = findSelects(renderedContainer).at(-1)
 
-    if (!rootButton || !repeatButton || !pickerSelect) {
+    if (!rootButton || !repeatButton) {
       throw new Error("Expected mixed-selection quick-move controls to exist.")
     }
 
     expect(rootButton.disabled).toBe(true)
-    expect(rootButton.title).toContain("Selection includes mixed or multiple group rows.")
-    expect(rootButton.title).toContain("canonical selected rows")
     expect(repeatButton.disabled).toBe(true)
-    expect(repeatButton.title).toContain("Selection includes mixed or multiple group rows.")
-    expect(pickerSelect.disabled).toBe(true)
-    expect(pickerSelect.title).toContain("Selection includes mixed or multiple group rows.")
   })
 
   it("skips rendering when actions are unavailable", () => {

@@ -41,7 +41,11 @@ const DEFAULT_VISUAL_STATE: SidepanelRowVisualState = {
   lock: "unlocked",
 }
 
-const normalizeSearchFragment = (value: string): string => {
+const normalizeSearchFragment = (value: string | undefined): string => {
+  if (typeof value !== "string") {
+    return ""
+  }
+
   return value
     .replace(/[\[\]·]/g, " ")
     .trim()
@@ -205,6 +209,7 @@ export const buildSidepanelRowDescriptors = (
   ]
   const searchFragments = [
     input.node.label,
+    input.node.searchText,
     input.node.type,
     typeBadge.text,
     ...metaBadges.map((badge) => badge.text),

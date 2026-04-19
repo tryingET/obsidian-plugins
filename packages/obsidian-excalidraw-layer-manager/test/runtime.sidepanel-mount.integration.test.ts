@@ -864,6 +864,83 @@ describe("sidepanel mount-focused integration", () => {
       expectMountedOutputForMode(asyncTab, mountCase.mountMode)
     })
 
+    it(`mount mode parity (${mountCase.label}): clears mounted output on renderer dispose`, () => {
+      const sidepanelTab = makeSidepanelTabForMountMode(fakeDocument, null, mountCase.mountMode)
+      const host: {
+        sidepanelTab: typeof sidepanelTab.tab | null
+        createSidepanelTab: () => typeof sidepanelTab.tab
+        getScriptSettings: () => ScriptSettings
+      } = {
+        sidepanelTab: null,
+        createSidepanelTab: () => sidepanelTab.tab,
+        getScriptSettings: () => ({}),
+      }
+
+      const renderer = createExcalidrawSidepanelRenderer(host)
+      if (!renderer) {
+        throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+      }
+
+      renderer.render({
+        tree: [makeElementNode("A")],
+        selectedIds: new Set(),
+        sceneVersion: 1,
+      })
+
+      expect(sidepanelTab.contentEl.children.length).toBeGreaterThan(0)
+
+      renderer.dispose?.()
+
+      expect(sidepanelTab.contentEl.children).toHaveLength(0)
+    })
+
+    it(`mount mode parity (${mountCase.label}): prunes stale LayerManager roots without deleting host-owned siblings`, () => {
+      const sidepanelTab = makeSidepanelTabForMountMode(fakeDocument, null, mountCase.mountMode)
+      const preservedSibling = fakeDocument.createElement("div")
+      preservedSibling.textContent = "keep me"
+      const staleLayerManagerRoot = fakeDocument.createElement("div")
+      staleLayerManagerRoot.id = "lmx-sidepanel-content-root"
+      staleLayerManagerRoot.tabIndex = 0
+      staleLayerManagerRoot.style["display"] = "flex"
+      staleLayerManagerRoot.style["flexDirection"] = "column"
+      staleLayerManagerRoot.style["gap"] = "6px"
+      staleLayerManagerRoot.style["padding"] = "8px"
+      sidepanelTab.contentEl.appendChild(preservedSibling)
+      sidepanelTab.contentEl.appendChild(staleLayerManagerRoot)
+
+      const host: {
+        sidepanelTab: typeof sidepanelTab.tab | null
+        createSidepanelTab: () => typeof sidepanelTab.tab
+        getScriptSettings: () => ScriptSettings
+      } = {
+        sidepanelTab: sidepanelTab.tab,
+        createSidepanelTab: () => sidepanelTab.tab,
+        getScriptSettings: () => ({}),
+      }
+
+      const renderer = createExcalidrawSidepanelRenderer(host)
+      if (!renderer) {
+        throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
+      }
+
+      renderer.render({
+        tree: [makeElementNode("A")],
+        selectedIds: new Set(),
+        sceneVersion: 1,
+      })
+
+      if (mountCase.mountMode === "contentEl") {
+        expect(sidepanelTab.contentEl.contains(preservedSibling)).toBe(true)
+        expect(sidepanelTab.contentEl.contains(staleLayerManagerRoot)).toBe(false)
+        expect(sidepanelTab.contentEl.children).toHaveLength(2)
+        return
+      }
+
+      expect(sidepanelTab.contentEl.contains(preservedSibling)).toBe(false)
+      expect(sidepanelTab.contentEl.contains(staleLayerManagerRoot)).toBe(false)
+      expect(sidepanelTab.contentEl.children).toHaveLength(1)
+    })
+
     it(`mount mode parity (${mountCase.label}): async create failure then recovery`, async () => {
       const recoveredTab = makeSidepanelTabForMountMode(fakeDocument, null, mountCase.mountMode)
       const createSidepanelTab = vi

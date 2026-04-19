@@ -6,7 +6,7 @@ import {
   resolveSidepanelRowVisualState,
 } from "../src/ui/sidepanel/render/rowModel.js"
 
-const makeElementNode = (elementId: string, label = elementId): LayerNode => ({
+const makeElementNode = (elementId: string, label = elementId, searchText?: string): LayerNode => ({
   id: `el:${elementId}`,
   type: "element",
   elementIds: [elementId],
@@ -17,6 +17,7 @@ const makeElementNode = (elementId: string, label = elementId): LayerNode => ({
   groupId: null,
   frameId: null,
   label,
+  ...(searchText ? { searchText } : {}),
 })
 
 const makeGroupNode = (
@@ -111,6 +112,30 @@ describe("sidepanel row model helpers", () => {
     expect(result.matchKindByNodeId.get("el:A")).toBe("self")
     expect(result.matchKindByNodeId.has("el:B")).toBe(false)
     expect(result.matchKindByNodeId.has("el:C")).toBe(false)
+  })
+
+  it("matches collapsed descendants through preserved search aliases instead of only visible labels", () => {
+    const searchableChild = makeElementNode(
+      "A",
+      "Task card",
+      "Task card Grouped descendant searchable tail",
+    )
+    const beta = makeElementNode("B", "Beta")
+    const collapsedGroup = makeGroupNode("G", [searchableChild, beta], {
+      isExpanded: false,
+      label: "Container",
+    })
+
+    const result = buildSidepanelVisibleRowTreeResult([collapsedGroup], "searchable tail")
+    const filteredGroup = result.visibleTree[0]
+
+    expect(result.active).toBe(true)
+    expect(result.renderedRowCount).toBe(2)
+    expect(result.matchingRowCount).toBe(1)
+    expect(result.contextRowCount).toBe(1)
+    expect(filteredGroup?.children.map((node) => node.id)).toEqual(["el:A"])
+    expect(result.matchKindByNodeId.get("group:G")).toBe("descendant")
+    expect(result.matchKindByNodeId.get("el:A")).toBe("self")
   })
 
   it("keeps self-matching containers expansion-invariant during filtering without dumping unrelated descendants", () => {

@@ -230,6 +230,54 @@ describe("sidepanel drag-drop controller", () => {
     })
   })
 
+  it("lets group rows prefer contain-style reparent when the pointer targets the center zone", () => {
+    const notify = vi.fn<(message: string) => void>()
+    const requestRenderFromLatestModel = vi.fn<() => void>()
+    const controller = new SidepanelDragDropController({
+      notify,
+      requestRenderFromLatestModel,
+    })
+
+    controller.startRowDrag({
+      node: makeElementNode("el:A", { frameId: "frame:A" }),
+      nodeFrameId: "frame:A",
+      branchGroupPath: [],
+      rowScope: makeScope("frame:A"),
+      siblingIndex: 2,
+      dragEvent: makeDragEvent().event,
+    })
+
+    const groupDropTarget = makeDropTarget({
+      targetParentPath: ["Dest"],
+      targetFrameId: "frame:A",
+      rowScope: makeScope("frame:A"),
+      siblingIndex: 0,
+      rowReorderEligible: true,
+    })
+
+    expect(controller.previewDropIntent("group:Dest", groupDropTarget)).toEqual({
+      kind: "reorder",
+      placement: "before",
+    })
+
+    expect(
+      controller.previewDropIntent("group:Dest", groupDropTarget, {
+        zone: "inside",
+      }),
+    ).toEqual({
+      kind: "reparent",
+    })
+
+    expect(
+      controller.previewDropIntent("group:Dest", groupDropTarget, {
+        zone: "after",
+      }),
+    ).toEqual({
+      kind: "reorder",
+      placement: "after",
+    })
+  })
+
   it("enforces drag-drop compatibility rules", () => {
     const notify = vi.fn<(message: string) => void>()
     const requestRenderFromLatestModel = vi.fn<() => void>()

@@ -90,6 +90,14 @@ interface SidepanelKeyboardShortcutControllerHost {
     targetFrameId?: string | null,
   ) => Promise<void>
   setLastQuickMoveDestinationToRoot: (targetFrameId: string | null) => void
+  runNumberedQuickMoveDestination?: (
+    index: number,
+    context: KeyboardShortcutContext,
+  ) => Promise<void>
+  runAltStructuralMove?: (
+    direction: "in" | "out",
+    context: KeyboardShortcutContext,
+  ) => Promise<void>
 
   isTextInputTarget: (target: EventTarget | null) => boolean
   isKeyboardSuppressed: () => boolean
@@ -130,6 +138,10 @@ export class SidepanelKeyboardShortcutController {
       targetTagName,
     })
 
+    if (this.isAltModifierStateKey(event)) {
+      return
+    }
+
     const baseContext = this.#host.getKeyboardContext()
     if (!baseContext) {
       this.traceIgnoredKeydown(
@@ -147,6 +159,18 @@ export class SidepanelKeyboardShortcutController {
     }
 
     const context = this.#host.resolveKeyboardContext(baseContext)
+    if (this.handleAltQuickMoveShortcut(event, context)) {
+      return
+    }
+
+    if (this.handleAltStructuralMoveShortcut(event, context)) {
+      return
+    }
+
+    if (this.handleAltReorderShortcut(event, context)) {
+      return
+    }
+
     if (this.handleNavigationShortcut(event, context)) {
       return
     }
@@ -189,7 +213,12 @@ export class SidepanelKeyboardShortcutController {
       return true
     }
 
-    if (event.altKey) {
+    if (
+      event.altKey &&
+      !this.isAltReorderShortcut(event) &&
+      !this.isAltQuickMoveShortcut(event) &&
+      !this.isAltStructuralMoveShortcut(event)
+    ) {
       this.traceIgnoredKeydown(event, "altShortcutNotAuthorized")
       return true
     }
@@ -206,9 +235,114 @@ export class SidepanelKeyboardShortcutController {
     return isSpaceShortcutEvent(event) || normalizedKey === "n" || normalizedKey === "m"
   }
 
+  private isAltModifierStateKey(event: KeyboardEvent): boolean {
+    if (event.ctrlKey || event.metaKey || event.shiftKey) {
+      return false
+    }
+
+    return event.key === "Alt" || event.code === "AltLeft" || event.code === "AltRight"
+  }
+
+  private resolveAltQuickMoveDigit(event: KeyboardEvent): number | null {
+    if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+      return null
+    }
+
+    if (typeof event.code === "string") {
+      const match = /^Digit([0-9])$/.exec(event.code)
+      if (match) {
+        return Number(match[1])
+      }
+    }
+
+    return /^[0-9]$/.test(event.key) ? Number(event.key) : null
+  }
+
+  private isAltQuickMoveShortcut(event: KeyboardEvent): boolean {
+    return this.resolveAltQuickMoveDigit(event) !== null
+  }
+
+  private resolveAltStructuralMoveDirection(event: KeyboardEvent): "in" | "out" | null {
+    if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+      return null
+    }
+
+    if (event.code === "BracketLeft" || event.key === "[") {
+      return "out"
+    }
+
+    if (event.code === "BracketRight" || event.key === "]") {
+      return "in"
+    }
+
+    return null
+  }
+
+  private isAltStructuralMoveShortcut(event: KeyboardEvent): boolean {
+    return this.resolveAltStructuralMoveDirection(event) !== null
+  }
+
+  private isAltReorderShortcut(event: KeyboardEvent): boolean {
+    if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+      return false
+    }
+
+    return event.key === "ArrowUp" || event.key === "ArrowDown"
+  }
+
   private claimKeyboardShortcut(event: KeyboardEvent): void {
     this.#host.suppressTransientFocusOut()
     claimHandledKeyboardEvent(event)
+  }
+
+  private handleAltQuickMoveShortcut(
+    event: KeyboardEvent,
+    context: KeyboardShortcutContext,
+  ): boolean {
+    const digit = this.resolveAltQuickMoveDigit(event)
+    if (digit === null || !this.#host.runNumberedQuickMoveDestination) {
+      return false
+    }
+
+    return this.runClaimedKeyboardUiAction(
+      event,
+      "Keyboard move failed",
+      () => this.#host.runNumberedQuickMoveDestination?.(digit, context) ?? Promise.resolve(),
+    )
+  }
+
+  private handleAltStructuralMoveShortcut(
+    event: KeyboardEvent,
+    context: KeyboardShortcutContext,
+  ): boolean {
+    const direction = this.resolveAltStructuralMoveDirection(event)
+    if (!direction || !this.#host.runAltStructuralMove) {
+      return false
+    }
+
+    traceKeyboardEventIfRelevant("controller:alt-structural-move", event, {
+      direction,
+      focusedNodeId: this.#host.getFocusedNodeId(),
+    })
+    return this.runClaimedKeyboardUiAction(
+      event,
+      direction === "in" ? "Keyboard move into group failed" : "Keyboard move out of group failed",
+      () => this.#host.runAltStructuralMove?.(direction, context) ?? Promise.resolve(),
+    )
+  }
+
+  private handleAltReorderShortcut(
+    event: KeyboardEvent,
+    context: KeyboardShortcutContext,
+  ): boolean {
+    if (!this.isAltReorderShortcut(event)) {
+      return false
+    }
+
+    const mode: ReorderMode = event.key === "ArrowUp" ? "forward" : "backward"
+    return this.runClaimedKeyboardUiAction(event, "Keyboard reorder failed", () =>
+      this.runKeyboardReorder(context, mode),
+    )
   }
 
   private handleNavigationShortcut(
@@ -341,7 +475,7 @@ export class SidepanelKeyboardShortcutController {
           this.runKeyboardGroupSelection(context),
         )
       case "u":
-        return this.runClaimedKeyboardUiAction(event, "Keyboard ungroup-like failed", () =>
+        return this.runClaimedKeyboardUiAction(event, "Keyboard move out of group failed", () =>
           this.runKeyboardUngroupLike(context),
         )
       default:
@@ -584,17 +718,20 @@ export class SidepanelKeyboardShortcutController {
       return
     }
 
+    const currentSelectedNodes = this.resolveCurrentSelectionNodes(context)
+    const focusedNodeIsSelected = currentSelectedNodes.some((node) => node.id === focusedNode.id)
+
     this.applyResolvedRowSelection(
-      "keyboardToggle",
+      focusedNodeIsSelected ? "keyboardModifierToggle" : "keyboardToggle",
       resolveRowClickSelection({
         clickedNode: focusedNode,
         visibleNodes: context.visibleNodes,
-        currentSelectedNodes: this.resolveCurrentSelectionNodes(context),
+        currentSelectedNodes,
         currentAnchorNodeId: context.anchorNodeId ?? null,
         fallbackAnchorNodeId: focusedNode.id,
         modifiers: {
           shiftKey: false,
-          toggleKey: false,
+          toggleKey: focusedNodeIsSelected,
         },
       }),
     )
@@ -871,7 +1008,7 @@ export class SidepanelKeyboardShortcutController {
 
     const focusedNodeId = this.resolveFocusedNodeIdOrNotify(
       context,
-      renderKeyboardSelectionRequirementMessage("ungroup-like"),
+      renderKeyboardSelectionRequirementMessage("move out of group"),
     )
     if (!focusedNodeId) {
       return
@@ -879,13 +1016,15 @@ export class SidepanelKeyboardShortcutController {
 
     const focusedNode = context.nodeById.get(focusedNodeId)
     if (!focusedNode) {
-      this.#host.notify("Keyboard ungroup-like failed: focused row is stale.")
+      this.#host.notify("Keyboard move out of group failed: focused row is stale.")
       return
     }
 
     const structuralMove = resolveFocusedNodeStructuralMove(focusedNode)
     if (!structuralMove) {
-      this.#host.notify("Keyboard ungroup-like failed: frame rows cannot be structurally moved.")
+      this.#host.notify(
+        "Keyboard move out of group failed: frame rows cannot be structurally moved.",
+      )
       return
     }
 

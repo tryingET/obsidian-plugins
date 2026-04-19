@@ -1,7 +1,11 @@
 import { spawnSync } from "node:child_process"
-import { homedir } from "node:os"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
+
+import {
+  DEFAULT_DEPLOY_RECEIPTS_RELATIVE_PATH,
+  DEFAULT_OBSIDIAN_SKRIPTE_TARGET_PATH,
+} from "../layer-manager.config.mjs"
 
 export const RECOVERY_PACKAGE_DOCS_PATH = "packages/obsidian-excalidraw-layer-manager/docs"
 export const DOCS_LIST_SCRIPT = "/home/tryinget/ai-society/core/agent-scripts/scripts/docs-list.mjs"
@@ -11,12 +15,7 @@ const buildRoot = dirname(scriptPath)
 export const packageRoot = resolve(buildRoot, "..")
 export const repoRoot = resolve(packageRoot, "..", "..")
 export const LAYER_MANAGER_BUNDLE_FILENAME = "LayerManager.md"
-export const DEFAULT_OBSIDIAN_SKRIPTE_TARGET_PATH = resolve(
-  homedir(),
-  "Documents/Obsidian/00-09_meta/02_HardwareSoftwareTools/02.01_Obsidian/Excalidraw/Skripte/LayerManager.md",
-)
-export const DEFAULT_DEPLOY_RECEIPTS_RELATIVE_PATH =
-  "../../.tmp/obsidian-excalidraw-layer-manager/deployments"
+export { DEFAULT_OBSIDIAN_SKRIPTE_TARGET_PATH, DEFAULT_DEPLOY_RECEIPTS_RELATIVE_PATH }
 export const DEFAULT_DEPLOY_RECEIPTS_PATH = resolve(
   packageRoot,
   DEFAULT_DEPLOY_RECEIPTS_RELATIVE_PATH,

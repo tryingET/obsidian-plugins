@@ -44,6 +44,7 @@ interface SidepanelQuickMoveRenderInput {
   readonly recentQuickMoveDestinations: readonly LastQuickMoveDestination[]
   readonly quickPresetInlineMax: number
   readonly lastMoveLabelMax: number
+  readonly showShortcutHints?: boolean
   readonly createToolbarButton: (
     ownerDocument: Document,
     label: string,
@@ -60,12 +61,27 @@ interface SidepanelQuickMoveRenderState {
   readonly selectionIssue: string | null
 }
 
+interface QuickMoveShortcutTarget {
+  readonly digit: number
+  readonly destination: LastQuickMoveDestination
+}
+
+interface QuickMoveShortcutResolutionInput {
+  readonly frameResolution: SharedFrameResolution
+  readonly topLevelPresets: readonly GroupReparentPreset[]
+  readonly lastQuickMoveDestination: LastQuickMoveDestination | null
+  readonly recentQuickMoveDestinations: readonly LastQuickMoveDestination[]
+  readonly quickPresetInlineMax: number
+}
+
 const RECENT_TARGET_BUTTON_MAX = 2
+const QUICK_MOVE_SHORTCUT_LIMIT = 10
 
 const styleQuickMoveButton = (
   button: HTMLButtonElement,
   tone: "neutral" | "primary" = "neutral",
 ): void => {
+  button.style.position = "relative"
   button.style.fontSize = "11px"
   button.style.lineHeight = "1.2"
   button.style.minHeight = "20px"
@@ -99,6 +115,134 @@ const createQuickMoveButton = (
   const button = input.createToolbarButton(input.ownerDocument, label, action)
   styleQuickMoveButton(button, tone)
   return button
+}
+
+const toQuickMoveDestinationKey = (destination: LastQuickMoveDestination): string => {
+  return destination.kind === "root"
+    ? `root:${destination.targetFrameId ?? "canvas"}`
+    : `preset:${destination.preset.key}`
+}
+
+const appendUniqueQuickMoveDestination = (
+  target: LastQuickMoveDestination[],
+  seenKeys: Set<string>,
+  destination: LastQuickMoveDestination,
+): void => {
+  const destinationKey = toQuickMoveDestinationKey(destination)
+  if (seenKeys.has(destinationKey)) {
+    return
+  }
+
+  seenKeys.add(destinationKey)
+  target.push(destination)
+}
+
+export const resolveQuickMoveShortcutTargets = (
+  input: QuickMoveShortcutResolutionInput,
+): readonly QuickMoveShortcutTarget[] => {
+  const rankedTopLevelPresets = rankGroupReparentPresetsByCompatibility(
+    input.topLevelPresets,
+    input.frameResolution,
+  )
+  const inlinePresets =
+    rankedTopLevelPresets.length <= input.quickPresetInlineMax ? rankedTopLevelPresets : []
+  const recentPresetDestinations = rankQuickMoveDestinationsByCompatibility(
+    input.recentQuickMoveDestinations
+      .filter(
+        (destination): destination is Extract<LastQuickMoveDestination, { kind: "preset" }> => {
+          return destination.kind === "preset"
+        },
+      )
+      .filter((destination) => {
+        const lastDestination = input.lastQuickMoveDestination
+        if (!lastDestination || lastDestination.kind !== "preset") {
+          return true
+        }
+
+        return !isSameDestination(destination, lastDestination)
+      }),
+    input.frameResolution,
+  ).slice(0, RECENT_TARGET_BUTTON_MAX)
+
+  const destinations: LastQuickMoveDestination[] = []
+  const seenKeys = new Set<string>()
+
+  appendUniqueQuickMoveDestination(destinations, seenKeys, {
+    kind: "root",
+    targetFrameId: input.frameResolution.frameId,
+  })
+
+  if (input.lastQuickMoveDestination?.kind === "preset") {
+    appendUniqueQuickMoveDestination(destinations, seenKeys, input.lastQuickMoveDestination)
+  }
+
+  for (const destination of recentPresetDestinations) {
+    appendUniqueQuickMoveDestination(destinations, seenKeys, destination)
+  }
+
+  for (const preset of inlinePresets) {
+    appendUniqueQuickMoveDestination(destinations, seenKeys, {
+      kind: "preset",
+      preset,
+    })
+  }
+
+  return destinations.slice(0, QUICK_MOVE_SHORTCUT_LIMIT).map((destination, index) => ({
+    digit: index,
+    destination,
+  }))
+}
+
+const resolveQuickMoveShortcutDigit = (
+  targets: readonly QuickMoveShortcutTarget[],
+  destination: LastQuickMoveDestination,
+): number | null => {
+  return targets.find((target) => isSameDestination(target.destination, destination))?.digit ?? null
+}
+
+const appendShortcutBadge = (button: HTMLButtonElement, digit: number): void => {
+  const badge = button.ownerDocument.createElement("span")
+  badge.textContent = `${digit}`
+  badge.ariaHidden = "true"
+  badge.style.position = "absolute"
+  badge.style.top = "-5px"
+  badge.style.right = "-5px"
+  badge.style.display = "inline-flex"
+  badge.style.alignItems = "center"
+  badge.style.justifyContent = "center"
+  badge.style.minWidth = "12px"
+  badge.style.height = "12px"
+  badge.style.padding = "0 2px"
+  badge.style.borderRadius = "999px"
+  badge.style.border = "1px solid var(--background-modifier-border, rgba(120,120,120,0.28))"
+  badge.style.background = "var(--background-primary, rgba(24,24,24,0.95))"
+  badge.style.color = "var(--text-muted, inherit)"
+  badge.style.fontSize = "8px"
+  badge.style.fontWeight = "700"
+  badge.style.lineHeight = "1"
+  badge.style.pointerEvents = "none"
+  button.appendChild(badge)
+}
+
+const decorateQuickMoveButtonWithShortcut = (
+  input: SidepanelQuickMoveRenderInput,
+  button: HTMLButtonElement,
+  targets: readonly QuickMoveShortcutTarget[],
+  destination: LastQuickMoveDestination,
+): void => {
+  const digit = resolveQuickMoveShortcutDigit(targets, destination)
+  if (digit === null) {
+    return
+  }
+  ;(
+    button as HTMLButtonElement & { __lmxQuickMoveShortcutDigit?: number }
+  ).__lmxQuickMoveShortcutDigit = digit
+
+  if (!input.showShortcutHints) {
+    return
+  }
+
+  appendShortcutBadge(button, digit)
 }
 
 const resolveSelectionIssue = (
@@ -177,42 +321,6 @@ const qualifyQuickMoveTitle = (
     : baseTitle
 }
 
-const appendUniquePreset = (
-  target: GroupReparentPreset[],
-  seenKeys: Set<string>,
-  preset: GroupReparentPreset,
-): void => {
-  if (seenKeys.has(preset.key)) {
-    return
-  }
-
-  seenKeys.add(preset.key)
-  target.push(preset)
-}
-
-const buildPickerPresets = (
-  basePresets: readonly GroupReparentPreset[],
-  lastDestination: LastQuickMoveDestination | null,
-  recentDestinations: readonly LastQuickMoveDestination[],
-): readonly GroupReparentPreset[] => {
-  const presets = [...basePresets]
-  const seenKeys = new Set(basePresets.map((preset) => preset.key))
-
-  if (lastDestination?.kind === "preset") {
-    appendUniquePreset(presets, seenKeys, lastDestination.preset)
-  }
-
-  for (const destination of recentDestinations) {
-    if (destination.kind !== "preset") {
-      continue
-    }
-
-    appendUniquePreset(presets, seenKeys, destination.preset)
-  }
-
-  return presets
-}
-
 const isSameDestination = (
   left: LastQuickMoveDestination,
   right: LastQuickMoveDestination,
@@ -260,44 +368,32 @@ export const renderSidepanelQuickMove = (
     projectedInput.reviewScope.active ? "Move selection from review scope:" : "Move selection:",
   )
 
-  appendLastQuickMoveControl(projectedInput, presetRow, renderState)
-  appendRecentDestinationControls(projectedInput, presetRow, renderState)
-  appendRootMoveControl(projectedInput, presetRow, renderState)
-
   const rankedTopLevelPresets = rankGroupReparentPresetsByCompatibility(
     projectedInput.destinationProjection.topLevelPresets,
     renderState.frameResolution,
   )
+  const shortcutTargets = resolveQuickMoveShortcutTargets({
+    frameResolution: renderState.frameResolution,
+    topLevelPresets: projectedInput.destinationProjection.topLevelPresets,
+    lastQuickMoveDestination: projectedInput.lastQuickMoveDestination,
+    recentQuickMoveDestinations: projectedInput.recentQuickMoveDestinations,
+    quickPresetInlineMax: projectedInput.quickPresetInlineMax,
+  })
+
+  appendLastQuickMoveControl(projectedInput, presetRow, renderState, shortcutTargets)
+  appendRecentDestinationControls(projectedInput, presetRow, renderState, shortcutTargets)
+  appendRootMoveControl(projectedInput, presetRow, renderState, shortcutTargets)
 
   if (rankedTopLevelPresets.length <= projectedInput.quickPresetInlineMax) {
-    appendInlinePresetButtons(projectedInput, presetRow, rankedTopLevelPresets, renderState)
+    appendInlinePresetButtons(
+      projectedInput,
+      presetRow,
+      rankedTopLevelPresets,
+      renderState,
+      shortcutTargets,
+    )
   } else {
     appendPresetDropdown(projectedInput, presetRow, rankedTopLevelPresets, renderState)
-  }
-
-  const pickerPresets = rankGroupReparentPresetsByCompatibility(
-    buildPickerPresets(
-      projectedInput.destinationProjection.allDestinations,
-      projectedInput.lastQuickMoveDestination,
-      projectedInput.recentQuickMoveDestinations,
-    ),
-    renderState.frameResolution,
-  )
-
-  if (pickerPresets.length > 0) {
-    const pickerRow = createControlRow(projectedInput)
-    appendRowTitle(
-      pickerRow,
-      projectedInput,
-      projectedInput.reviewScope.active ? "Review destinations:" : "Destination picker:",
-    )
-    appendDestinationPicker(
-      projectedInput,
-      pickerRow,
-      pickerPresets,
-      renderState,
-      input.destinationProjection.destinationPickerWasCapped,
-    )
   }
 
   return presetRow
@@ -330,10 +426,6 @@ const appendRowTitle = (
   title.style.opacity = "0.75"
   title.style.paddingRight = "2px"
 
-  if (input.reviewScope.active) {
-    title.title = describeReviewScopeTitle(input.reviewScope)
-  }
-
   row.appendChild(title)
 }
 
@@ -341,6 +433,7 @@ const appendRootMoveControl = (
   input: SidepanelQuickMoveRenderInput,
   presetRow: HTMLElement,
   renderState: SidepanelQuickMoveRenderState,
+  shortcutTargets: readonly QuickMoveShortcutTarget[],
 ): void => {
   const rootLabel =
     renderState.hasSelection &&
@@ -354,21 +447,12 @@ const appendRootMoveControl = (
 
   rootButton.disabled = !!renderState.selectionIssue
 
-  if (renderState.selectionIssue) {
-    rootButton.title = qualifyQuickMoveTitle(renderState.selectionIssue, input.reviewScope)
-  } else {
-    rootButton.title = qualifyQuickMoveTitle(
-      `Move selection to ${describeRootDestination(
-        {
-          kind: "root",
-          targetFrameId: renderState.frameResolution.frameId,
-        },
-        input.destinationProjection.frameLabelById,
-      )}.`,
-      input.reviewScope,
-    )
+  const rootDestination: LastQuickMoveDestination = {
+    kind: "root",
+    targetFrameId: renderState.frameResolution.frameId,
   }
 
+  decorateQuickMoveButtonWithShortcut(input, rootButton, shortcutTargets, rootDestination)
   presetRow.appendChild(rootButton)
 }
 
@@ -376,6 +460,7 @@ const appendLastQuickMoveControl = (
   input: SidepanelQuickMoveRenderInput,
   presetRow: HTMLElement,
   renderState: SidepanelQuickMoveRenderState,
+  shortcutTargets: readonly QuickMoveShortcutTarget[],
 ): void => {
   const lastDestination = input.lastQuickMoveDestination
   if (!lastDestination) {
@@ -402,7 +487,6 @@ const appendLastQuickMoveControl = (
 
   if (renderState.selectionIssue) {
     repeatButton.disabled = true
-    repeatButton.title = qualifyQuickMoveTitle(renderState.selectionIssue, input.reviewScope)
     presetRow.appendChild(repeatButton)
     return
   }
@@ -412,10 +496,6 @@ const appendLastQuickMoveControl = (
     !isRootFrameCompatible(renderState.frameResolution, lastDestination)
   ) {
     repeatButton.disabled = true
-    repeatButton.title = qualifyQuickMoveTitle(
-      "Last destination is in a different frame.",
-      input.reviewScope,
-    )
     presetRow.appendChild(repeatButton)
     return
   }
@@ -425,21 +505,11 @@ const appendLastQuickMoveControl = (
     !isPresetFrameCompatible(renderState.frameResolution, lastDestination.preset)
   ) {
     repeatButton.disabled = true
-    repeatButton.title = qualifyQuickMoveTitle(
-      "Last destination is in a different frame.",
-      input.reviewScope,
-    )
     presetRow.appendChild(repeatButton)
     return
   }
 
-  repeatButton.title = qualifyQuickMoveTitle(
-    lastDestination.kind === "root"
-      ? `Repeat move to ${describeRootDestination(lastDestination, input.destinationProjection.frameLabelById)}.`
-      : `Repeat move to ${describePresetDestinationTitle(lastDestination.preset, input.destinationProjection.frameLabelById)}.`,
-    input.reviewScope,
-  )
-
+  decorateQuickMoveButtonWithShortcut(input, repeatButton, shortcutTargets, lastDestination)
   presetRow.appendChild(repeatButton)
 }
 
@@ -447,6 +517,7 @@ const appendRecentDestinationControls = (
   input: SidepanelQuickMoveRenderInput,
   presetRow: HTMLElement,
   renderState: SidepanelQuickMoveRenderState,
+  shortcutTargets: readonly QuickMoveShortcutTarget[],
 ): void => {
   const recentDestinations = rankQuickMoveDestinationsByCompatibility(
     input.recentQuickMoveDestinations.filter((destination) => {
@@ -469,10 +540,6 @@ const appendRecentDestinationControls = (
   recentLabel.style.fontSize = "11px"
   recentLabel.style.opacity = "0.75"
 
-  if (input.reviewScope.active) {
-    recentLabel.title = describeReviewScopeTitle(input.reviewScope)
-  }
-
   presetRow.appendChild(recentLabel)
 
   for (const destination of recentDestinations) {
@@ -492,28 +559,17 @@ const appendRecentDestinationControls = (
 
     if (renderState.selectionIssue) {
       button.disabled = true
-      button.title = qualifyQuickMoveTitle(renderState.selectionIssue, input.reviewScope)
       presetRow.appendChild(button)
       continue
     }
 
     if (!isDestinationFrameCompatible(renderState.frameResolution, destination)) {
       button.disabled = true
-      button.title = qualifyQuickMoveTitle(
-        "Recent destination is in a different frame.",
-        input.reviewScope,
-      )
       presetRow.appendChild(button)
       continue
     }
 
-    button.title = qualifyQuickMoveTitle(
-      destination.kind === "root"
-        ? `Move selection to ${describeRootDestination(destination, input.destinationProjection.frameLabelById)}.`
-        : `Move selection to ${describePresetDestinationTitle(destination.preset, input.destinationProjection.frameLabelById)}.`,
-      input.reviewScope,
-    )
-
+    decorateQuickMoveButtonWithShortcut(input, button, shortcutTargets, destination)
     presetRow.appendChild(button)
   }
 }
@@ -523,6 +579,7 @@ const appendInlinePresetButtons = (
   presetRow: HTMLElement,
   presets: readonly GroupReparentPreset[],
   renderState: SidepanelQuickMoveRenderState,
+  shortcutTargets: readonly QuickMoveShortcutTarget[],
 ): void => {
   for (const preset of presets) {
     const lastDestination = input.lastQuickMoveDestination
@@ -537,20 +594,10 @@ const appendInlinePresetButtons = (
     const isFrameCompatible = isPresetFrameCompatible(renderState.frameResolution, preset)
     presetButton.disabled = !!renderState.selectionIssue || !isFrameCompatible
 
-    if (renderState.selectionIssue) {
-      presetButton.title = qualifyQuickMoveTitle(renderState.selectionIssue, input.reviewScope)
-    } else if (!isFrameCompatible) {
-      presetButton.title = qualifyQuickMoveTitle(
-        "Preset is in a different frame than the current selection.",
-        input.reviewScope,
-      )
-    } else {
-      presetButton.title = qualifyQuickMoveTitle(
-        `Move selection to ${describePresetDestinationTitle(preset, input.destinationProjection.frameLabelById)}.`,
-        input.reviewScope,
-      )
-    }
-
+    decorateQuickMoveButtonWithShortcut(input, presetButton, shortcutTargets, {
+      kind: "preset",
+      preset,
+    })
     presetRow.appendChild(presetButton)
   }
 }
@@ -573,8 +620,8 @@ const appendPresetDropdown = (
   const placeholder = input.ownerDocument.createElement("option")
   placeholder.value = ""
   placeholder.textContent = input.reviewScope.active
-    ? `Top-level review destinations (${presets.length})`
-    : `Top-level groups (${presets.length})`
+    ? `More review destinations (${presets.length})`
+    : `More groups (${presets.length})`
   select.appendChild(placeholder)
 
   let compatibleCount = 0
@@ -586,11 +633,6 @@ const appendPresetDropdown = (
       preset.key === lastPresetKey
         ? `${describePresetDestinationOptionLabel(preset, input.destinationProjection.frameLabelById)} ★`
         : describePresetDestinationOptionLabel(preset, input.destinationProjection.frameLabelById)
-    option.title = describePresetDestinationTitle(
-      preset,
-      input.destinationProjection.frameLabelById,
-    )
-
     const isFrameCompatible = isPresetFrameCompatible(renderState.frameResolution, preset)
     if (renderState.hasSelection && renderState.frameResolution.ok && !isFrameCompatible) {
       option.disabled = true
@@ -607,18 +649,8 @@ const appendPresetDropdown = (
     select.value = lastPresetKey
   }
 
-  if (renderState.selectionIssue) {
+  if (renderState.selectionIssue || compatibleCount === 0) {
     select.disabled = true
-    select.title = qualifyQuickMoveTitle(renderState.selectionIssue, input.reviewScope)
-  } else if (compatibleCount === 0) {
-    select.disabled = true
-    select.title = qualifyQuickMoveTitle(
-      "No compatible top-level group presets for this frame.",
-      input.reviewScope,
-    )
-  } else if (input.reviewScope.active) {
-    select.title =
-      "Review-scope move targets. Labels include frame context while commands still target canonical selected rows."
   }
 
   const applyButton = createQuickMoveButton(
@@ -650,27 +682,16 @@ const appendPresetDropdown = (
     applyButton.disabled = !canApply
 
     if (renderState.selectionIssue) {
-      applyButton.title = qualifyQuickMoveTitle(renderState.selectionIssue, input.reviewScope)
       return
     }
 
     if (!preset) {
-      applyButton.title = qualifyQuickMoveTitle("Choose a destination preset.", input.reviewScope)
       return
     }
 
     if (!isPresetFrameCompatible(renderState.frameResolution, preset)) {
-      applyButton.title = qualifyQuickMoveTitle(
-        "Preset is in a different frame than the current selection.",
-        input.reviewScope,
-      )
       return
     }
-
-    applyButton.title = qualifyQuickMoveTitle(
-      `Move selection to ${describePresetDestinationTitle(preset, input.destinationProjection.frameLabelById)}.`,
-      input.reviewScope,
-    )
   }
 
   select.addEventListener("change", updateApplyState)
@@ -678,131 +699,4 @@ const appendPresetDropdown = (
 
   presetRow.appendChild(select)
   presetRow.appendChild(applyButton)
-}
-
-const appendDestinationPicker = (
-  input: SidepanelQuickMoveRenderInput,
-  pickerRow: HTMLElement,
-  presets: readonly GroupReparentPreset[],
-  renderState: SidepanelQuickMoveRenderState,
-  wasCapped: boolean,
-): void => {
-  const presetByKey = new Map(presets.map((preset) => [preset.key, preset]))
-  const lastPresetKey =
-    input.lastQuickMoveDestination?.kind === "preset"
-      ? input.lastQuickMoveDestination.preset.key
-      : null
-
-  const select = input.ownerDocument.createElement("select")
-  styleQuickMoveSelect(select, 220)
-
-  const placeholder = input.ownerDocument.createElement("option")
-  placeholder.value = ""
-  placeholder.textContent = wasCapped
-    ? input.reviewScope.active
-      ? `All review destinations (${presets.length} shown, list capped)`
-      : `All group destinations (${presets.length} shown, list capped)`
-    : input.reviewScope.active
-      ? `All review destinations (${presets.length})`
-      : `All group destinations (${presets.length})`
-  select.appendChild(placeholder)
-
-  let compatibleCount = 0
-
-  for (const preset of presets) {
-    const option = input.ownerDocument.createElement("option")
-    option.value = preset.key
-    option.textContent =
-      preset.key === lastPresetKey
-        ? `${describePresetDestinationOptionLabel(preset, input.destinationProjection.frameLabelById)} ★`
-        : describePresetDestinationOptionLabel(preset, input.destinationProjection.frameLabelById)
-    option.title = describePresetDestinationTitle(
-      preset,
-      input.destinationProjection.frameLabelById,
-    )
-
-    const isFrameCompatible = isPresetFrameCompatible(renderState.frameResolution, preset)
-    if (renderState.hasSelection && renderState.frameResolution.ok && !isFrameCompatible) {
-      option.disabled = true
-    }
-
-    if (isFrameCompatible) {
-      compatibleCount += 1
-    }
-
-    select.appendChild(option)
-  }
-
-  if (renderState.selectionIssue) {
-    select.disabled = true
-    select.title = qualifyQuickMoveTitle(renderState.selectionIssue, input.reviewScope)
-  } else if (compatibleCount === 0) {
-    select.disabled = true
-    select.title = qualifyQuickMoveTitle(
-      "No compatible group destinations for this frame.",
-      input.reviewScope,
-    )
-  } else if (input.reviewScope.active) {
-    select.title =
-      "Review-scope destination picker. Labels include frame context and canonical path while commands still target canonical selected rows."
-  }
-
-  const applyButton = createQuickMoveButton(
-    input,
-    "Move to picked",
-    async () => {
-      const selectedKey = select.value
-      const preset = presetByKey.get(selectedKey)
-
-      if (!preset) {
-        input.onNotify("Choose a destination from the picker first.")
-        return
-      }
-
-      await input.onApplyGroupPreset(preset)
-    },
-    "primary",
-  )
-
-  const updateApplyState = (): void => {
-    const preset = presetByKey.get(select.value)
-    const canApply =
-      !!preset &&
-      !renderState.selectionIssue &&
-      isPresetFrameCompatible(renderState.frameResolution, preset)
-
-    applyButton.disabled = !canApply
-
-    if (renderState.selectionIssue) {
-      applyButton.title = qualifyQuickMoveTitle(renderState.selectionIssue, input.reviewScope)
-      return
-    }
-
-    if (!preset) {
-      applyButton.title = qualifyQuickMoveTitle(
-        "Choose a destination from the picker.",
-        input.reviewScope,
-      )
-      return
-    }
-
-    if (!isPresetFrameCompatible(renderState.frameResolution, preset)) {
-      applyButton.title = qualifyQuickMoveTitle(
-        "Destination is in a different frame than the current selection.",
-        input.reviewScope,
-      )
-      return
-    }
-
-    applyButton.title = qualifyQuickMoveTitle(
-      `Move selection to ${describePresetDestinationTitle(preset, input.destinationProjection.frameLabelById)}.`,
-      input.reviewScope,
-    )
-  }
-
-  select.addEventListener("change", updateApplyState)
-  updateApplyState()
-
-  pickerRow.appendChild(select)
-  pickerRow.appendChild(applyButton)
 }

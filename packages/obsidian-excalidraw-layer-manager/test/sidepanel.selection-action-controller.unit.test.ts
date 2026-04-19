@@ -467,7 +467,7 @@ describe("sidepanel selection action controller", () => {
     })
 
     expect(harness.notify).toHaveBeenCalledWith(
-      "Ungroup-like failed: frame rows cannot be structurally moved.",
+      "Move out of group failed: frame rows cannot be structurally moved.",
     )
     expect(harness.beginInteraction).not.toHaveBeenCalled()
     expect(harness.reparent).not.toHaveBeenCalled()
@@ -483,7 +483,7 @@ describe("sidepanel selection action controller", () => {
     })
 
     expect(harness.notify).toHaveBeenCalledWith(
-      "Ungroup-like failed: mixed or multiple group rows are not supported.",
+      "Move out of group failed: mixed or multiple group rows are not supported.",
     )
     expect(harness.beginInteraction).not.toHaveBeenCalled()
     expect(harness.reparent).not.toHaveBeenCalled()

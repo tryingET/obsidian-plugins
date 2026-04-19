@@ -202,6 +202,10 @@ const styleRowActionButton = (button: HTMLButtonElement): void => {
   button.style.opacity = "0.85"
 }
 
+const resolveFocusedRowOutline = (): string => {
+  return "2px solid var(--text-normal, rgba(255,255,255,0.92))"
+}
+
 export const renderSidepanelRow = (input: SidepanelRowRenderInput): SidepanelRowRenderResult => {
   const rowDescriptors = buildSidepanelRowDescriptors({
     node: input.node,
@@ -255,8 +259,8 @@ export const renderSidepanelRow = (input: SidepanelRowRenderInput): SidepanelRow
   }
 
   if (input.focused) {
-    row.style.outline = "1px solid var(--interactive-accent, rgba(120,120,120,0.6))"
-    row.style.outlineOffset = "-1px"
+    row.style.outline = resolveFocusedRowOutline()
+    row.style.outlineOffset = "-2px"
   }
 
   if (input.actions) {
@@ -299,7 +303,6 @@ const appendExpandControl = (
     expandButton.style.background = "transparent"
     expandButton.style.boxShadow = "none"
     if (expandButtonLabel) {
-      expandButton.title = expandButtonLabel
       expandButton.ariaLabel = expandButtonLabel
     }
     expandButton.addEventListener("click", (event) => {
@@ -380,7 +383,6 @@ const appendLabelOrRenameInput = (
 
   const label = input.ownerDocument.createElement("span")
   label.textContent = input.node.label
-  label.title = input.node.label
   label.style.flex = "1"
   label.style.minWidth = "0"
   label.style.fontSize = `${input.styleConfig.rowFontSizePx}px`

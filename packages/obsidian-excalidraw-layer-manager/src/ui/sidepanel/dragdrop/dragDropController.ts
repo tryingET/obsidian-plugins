@@ -31,6 +31,12 @@ export interface NodeDropTarget {
   readonly rowReorderEligible: boolean
 }
 
+export type DragDropTargetZone = "before" | "inside" | "after"
+
+export interface DragDropIntentOptions {
+  readonly zone?: DragDropTargetZone | null
+}
+
 export type DragDropDestination =
   | {
       readonly kind: "root"
@@ -253,12 +259,20 @@ export class SidepanelDragDropController {
     }
   }
 
-  canDropDraggedNode(targetNodeId: string, dropTarget: NodeDropTarget): boolean {
-    return this.qualifyDropIntent(targetNodeId, dropTarget).status === "qualified"
+  canDropDraggedNode(
+    targetNodeId: string,
+    dropTarget: NodeDropTarget,
+    options?: DragDropIntentOptions,
+  ): boolean {
+    return this.qualifyDropIntent(targetNodeId, dropTarget, options).status === "qualified"
   }
 
-  previewDropIntent(targetNodeId: string, dropTarget: NodeDropTarget): QualifiedDropIntent | null {
-    const resolution = this.qualifyDropIntent(targetNodeId, dropTarget)
+  previewDropIntent(
+    targetNodeId: string,
+    dropTarget: NodeDropTarget,
+    options?: DragDropIntentOptions,
+  ): QualifiedDropIntent | null {
+    const resolution = this.qualifyDropIntent(targetNodeId, dropTarget, options)
     if (resolution.status !== "qualified") {
       return null
     }
@@ -306,9 +320,14 @@ export class SidepanelDragDropController {
     this.updateDropHint(null)
   }
 
-  handleDragEnter(targetNodeId: string, dropTarget: NodeDropTarget, event: DragEvent): void {
+  handleDragEnter(
+    targetNodeId: string,
+    dropTarget: NodeDropTarget,
+    event: DragEvent,
+    options?: DragDropIntentOptions,
+  ): void {
     this.incrementHoverDepth(targetNodeId)
-    const nextDropHint = this.resolveDropHint(targetNodeId, dropTarget)
+    const nextDropHint = this.resolveDropHint(targetNodeId, dropTarget, options)
     if (!nextDropHint) {
       if (this.#dropHint?.nodeId === targetNodeId) {
         this.updateDropHint(null)
@@ -320,9 +339,14 @@ export class SidepanelDragDropController {
     this.updateDropHint(nextDropHint)
   }
 
-  handleDragOver(targetNodeId: string, dropTarget: NodeDropTarget, event: DragEvent): void {
+  handleDragOver(
+    targetNodeId: string,
+    dropTarget: NodeDropTarget,
+    event: DragEvent,
+    options?: DragDropIntentOptions,
+  ): void {
     this.ensureHoverDepth(targetNodeId)
-    const nextDropHint = this.resolveDropHint(targetNodeId, dropTarget)
+    const nextDropHint = this.resolveDropHint(targetNodeId, dropTarget, options)
     if (!nextDropHint) {
       if (this.#dropHint?.nodeId === targetNodeId) {
         this.updateDropHint(null)
@@ -361,8 +385,9 @@ export class SidepanelDragDropController {
     actions: LayerManagerUiActions,
     targetNodeId: string,
     dropTarget: NodeDropTarget,
+    options?: DragDropIntentOptions,
   ): Promise<DragDropMoveOutcome> {
-    const resolution = this.qualifyDropIntent(targetNodeId, dropTarget)
+    const resolution = this.qualifyDropIntent(targetNodeId, dropTarget, options)
     if (resolution.status !== "qualified") {
       this.#host.notify(
         resolution.status === "notReady"
@@ -457,6 +482,7 @@ export class SidepanelDragDropController {
   private qualifyDropIntent(
     targetNodeId: string,
     dropTarget: NodeDropTarget,
+    options?: DragDropIntentOptions,
   ): QualifiedDropResolution {
     const dragged = this.resolveCurrentDraggedNodeState()
     if (!dragged) {
@@ -478,7 +504,25 @@ export class SidepanelDragDropController {
       }
     }
 
+    const explicitReorderPlacement = this.resolveExplicitReorderPlacement(
+      dragged,
+      resolvedDropTarget,
+      options,
+    )
+    if (explicitReorderPlacement) {
+      return {
+        status: "qualified",
+        dragged,
+        dropTarget: resolvedDropTarget,
+        intent: {
+          kind: "reorder",
+          placement: explicitReorderPlacement,
+        },
+      }
+    }
+
     if (
+      options?.zone !== "inside" &&
       resolvedDropTarget.rowReorderEligible &&
       dragged.sharesSingleScope &&
       haveSameScope(dragged.sourceRowScope, resolvedDropTarget.rowScope)
@@ -524,6 +568,26 @@ export class SidepanelDragDropController {
         kind: "reparent",
       },
     }
+  }
+
+  private resolveExplicitReorderPlacement(
+    dragged: DraggedNodeState,
+    dropTarget: NodeDropTarget,
+    options?: DragDropIntentOptions,
+  ): ReorderPlacement | null {
+    if (options?.zone !== "before" && options?.zone !== "after") {
+      return null
+    }
+
+    if (!dropTarget.rowReorderEligible || !dragged.sharesSingleScope) {
+      return null
+    }
+
+    if (!haveSameScope(dragged.sourceRowScope, dropTarget.rowScope)) {
+      return null
+    }
+
+    return options.zone === "before" ? "before" : "after"
   }
 
   private resolveCurrentDraggedNodeState(): DraggedNodeState | null {
@@ -629,8 +693,12 @@ export class SidepanelDragDropController {
     )
   }
 
-  private resolveDropHint(targetNodeId: string, dropTarget: NodeDropTarget): DragDropHint | null {
-    const preview = this.previewDropIntent(targetNodeId, dropTarget)
+  private resolveDropHint(
+    targetNodeId: string,
+    dropTarget: NodeDropTarget,
+    options?: DragDropIntentOptions,
+  ): DragDropHint | null {
+    const preview = this.previewDropIntent(targetNodeId, dropTarget, options)
     if (!preview) {
       return null
     }

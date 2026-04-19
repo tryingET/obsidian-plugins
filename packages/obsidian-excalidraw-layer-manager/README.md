@@ -32,6 +32,14 @@ Provide an architecture-first Layer Manager for Obsidian Excalidraw scripts, wit
 - outcome-honest scene mutations
 - strong runtime/test coverage
 
+## Current UX snapshot
+
+Recent user-facing behavior now includes:
+- collapsed-group search that still reaches descendant rows, including merged bound-text aliases when the visible row label differs from the underlying text content
+- keyboard structural movement on `Alt+[ / ]`, quick root/group moves on `Alt+0` and `Alt+1..9`, and row-selection-first `Space` semantics (`Space` select/deselect, `Ctrl+Space` toggle, `Shift+Space` add range)
+- simplified main chrome: the row/status count line is gone, row/action hover tooltips are gone, and the header `?` remains as the single global keyboard-shortcuts help affordance
+- Excalidraw-style icon alignment for visibility, lock, rename, delete, help, and toolbar z-order controls
+
 ## Mutation contract
 
 - `executeIntent(...)` remains the canonical command path for planner-driven scene writes.
@@ -124,6 +132,14 @@ Recovery-wave verification contract:
 - `npm run sync:vault` now fails closed by running `npm run check` before copying into the vault target
 - `npm run bundle:and:sync` remains as a compatibility alias to `npm run sync:vault`
 
+Default sync/source defaults now live in the package-local config file:
+- `layer-manager.config.mjs`
+
+That config currently defines:
+- the generated bundle header source link: `https://github.com/tryingET/obsidian-plugins/tree/main/packages/obsidian-excalidraw-layer-manager`
+- the default Obsidian sync target path
+- the default deployment receipt root
+
 Default sync target now points at the primary personal Obsidian Excalidraw Skripte path:
 - `~/Documents/Obsidian/00-09_meta/02_HardwareSoftwareTools/02.01_Obsidian/Excalidraw/Skripte/LayerManager.md`
 
@@ -134,7 +150,7 @@ Default sync target now points at the primary personal Obsidian Excalidraw Skrip
 - it writes a deployment receipt with rollback guidance and the manual reload checklist
 - the recorded rollback command uses a portable Node copy helper instead of assuming `cp`
 
-Override the target or receipt root with:
+For one-off runs, environment overrides still win over the package config. Override the target or receipt root with:
 
 ```bash
 LMX_VAULT_TARGET="/custom/path/LayerManager.md" npm run sync:vault

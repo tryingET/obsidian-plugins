@@ -7,8 +7,8 @@ import { fileURLToPath } from "node:url"
 import {
   DEFAULT_DEPLOY_RECEIPTS_RELATIVE_PATH,
   DEFAULT_OBSIDIAN_SKRIPTE_TARGET_PATH,
-  LAYER_MANAGER_BUNDLE_FILENAME,
-} from "./recoveryVerificationGate.mjs"
+} from "../layer-manager.config.mjs"
+import { LAYER_MANAGER_BUNDLE_FILENAME } from "./recoveryVerificationGate.mjs"
 
 const scriptPath = fileURLToPath(import.meta.url)
 const projectRoot = process.cwd()
