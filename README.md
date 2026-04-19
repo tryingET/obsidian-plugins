@@ -48,6 +48,22 @@ scripts/         # CI/utility scripts
 - `tools/obsidian-plugin-template` — internal seed for general plugin packages
 - `tools/obsidian-excalidraw-script-template` — internal seed for Excalidraw-script-style packages
 
+## Public reference package
+
+The first public reference package in this repo is:
+- `packages/obsidian-excalidraw-layer-manager`
+
+Use it as a concrete example of a more hardcore Obsidian/Excalidraw extension package shape:
+- TypeScript source with a generated `LayerManager.md` script bundle
+- deterministic sync/deployment flow with receipts and rollback guidance
+- dense runtime/unit/integration coverage around host interaction seams
+- keyboard-first sidepanel UX, structural movement, and review-scope behavior
+
+GitHub source:
+- repo: `https://github.com/tryingET/obsidian-plugins`
+- package: `https://github.com/tryingET/obsidian-plugins/tree/main/packages/obsidian-excalidraw-layer-manager`
+- releases/tags in this repo are used to pin public snapshots of the package for external review and upstream reference
+
 ## Package manager
 
 - **npm** — root control-plane package manager

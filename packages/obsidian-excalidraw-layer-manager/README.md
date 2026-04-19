@@ -32,6 +32,17 @@ Provide an architecture-first Layer Manager for Obsidian Excalidraw scripts, wit
 - outcome-honest scene mutations
 - strong runtime/test coverage
 
+## Public reference implementation
+
+This package is now published from the public monorepo:
+- repo: `https://github.com/tryingET/obsidian-plugins`
+- package path: `https://github.com/tryingET/obsidian-plugins/tree/main/packages/obsidian-excalidraw-layer-manager`
+
+Intended use:
+- inspiration/reference for building a more advanced Obsidian-host-native extension package
+- stable source link for the generated `LayerManager.md` header comment
+- tag/release anchor when sharing the exact snapshot used for upstream discussion or review
+
 ## Current UX snapshot
 
 Recent user-facing behavior now includes:
