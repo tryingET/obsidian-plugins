@@ -177,6 +177,10 @@ Manual reload rule after sync:
 2. rerun `LayerManager` so the script disposes the previous runtime and mounts the fresh bundle
 3. if the rerun fails, restore the backup recorded in the deployment receipt and rerun the script
 
+## License
+
+MIT
+
 ## Non-goals
 
 - canonical runtime authority
