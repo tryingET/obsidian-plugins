@@ -100,13 +100,22 @@ const getElementSearchText = (element: ElementDTO, indexes: SceneIndexes): strin
 
 const getElementLabel = (element: ElementDTO, indexes: SceneIndexes): string => {
   const metadataLabel = readLmxElementLabel(element.customData)
-  if (metadataLabel) {
-    return metadataLabel
-  }
-
   const explicitName = normalizeExplicitLabel(element.name)
-  if (explicitName) {
-    return explicitName
+
+  if (element.type === "frame") {
+    if (explicitName) {
+      return explicitName
+    }
+    if (metadataLabel) {
+      return metadataLabel
+    }
+  } else {
+    if (metadataLabel) {
+      return metadataLabel
+    }
+    if (explicitName) {
+      return explicitName
+    }
   }
 
   const boundTextLabel = getBoundTextContainerLabel(element, indexes)

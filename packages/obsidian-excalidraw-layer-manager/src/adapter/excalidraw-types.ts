@@ -35,11 +35,18 @@ export interface ExcalidrawSidepanelTabLike {
   setContent?: (content: HTMLElement | string) => void
   setTitle?: (title: string) => void
   setDisabled?: (disabled: boolean) => void
-  setCloseCallback?: (callback: () => void) => void
-  open?: () => void
+  open?: (reveal?: boolean) => void
   close?: () => void
   getHostEA?: () => unknown
+  onOpen?: (() => Promise<void> | void) | undefined
+  onFocus?: ((view: unknown | null) => void) | undefined
+  onClose?: (() => void) | undefined
   onExcalidrawViewClosed?: (() => void) | undefined
+  onWindowMigrated?: ((win: Window) => void) | undefined
+
+  /** @deprecated Compatibility with older package-local fakes; not part of the verified host API. */
+  setCloseCallback?: ((callback: () => void) => void) | undefined
+  /** @deprecated Compatibility with older package-local fakes; use onFocus(view). */
   onViewChange?: ((targetView?: unknown | null) => void) | undefined
 }
 
