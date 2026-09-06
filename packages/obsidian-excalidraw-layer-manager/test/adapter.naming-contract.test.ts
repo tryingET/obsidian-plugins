@@ -4,7 +4,7 @@ import type { EaLike, RawExcalidrawElement } from "../src/adapter/excalidraw-typ
 import { applyPatch } from "../src/adapter/excalidrawAdapter.js"
 
 const makeEa = (initial: readonly RawExcalidrawElement[]) => {
-  let elements = initial.map((element) => ({
+  let elements: RawExcalidrawElement[] = initial.map((element) => ({
     ...element,
     groupIds: [...(element.groupIds ?? [])],
     customData: { ...(element.customData ?? {}) },
