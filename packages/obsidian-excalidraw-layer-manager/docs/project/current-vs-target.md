@@ -1,219 +1,145 @@
 ---
-summary: "Current-vs-target comparison for LayerManager host-context authority, source-aware focus preservation, shell truthfulness, document-level focus routing, and the now-closed markdown-only workspace-truth packet."
+summary: "Current-vs-target comparison after upstream PR #2737 feedback: preserve Layer Manager X's element-manager capabilities while correcting the real sidepanel lifecycle and metadata contract."
 read_when:
-  - "You need the shortest comparison between today's LayerManager switching model and the target architecture proposed in the host-context RFC chain."
-  - "You are about to implement or review work on LayerManager host binding, rebinding, unbound/inactive shell states, source-aware focus preservation, focus-routing release behavior, or markdown-only workspace-truth classification."
+  - "You need the shortest truthful comparison between the current Layer Manager package and the package-first target prompted by upstream maintainer feedback."
+  - "You are about to change sidepanel lifecycle binding, close/restart behavior, Markdown-to-Excalidraw rebinding, element labels, shared customData, or preview thumbnails."
 type: "reference"
 ---
 
 # Current vs Target
 
-## Scope
+## Status as of 2026-09-06
 
-This note now compares:
-- the **original target architecture** described in:
-  - `2026-04-16-evidence-layer-manager-host-context-authority-and-focus-routing.md`
-  - `2026-04-16-problem-intent-layer-manager-host-context-authority-and-focus-routing.md`
-  - `2026-04-16-rfc-layer-manager-host-context-authority-and-focus-routing.md`
-- against the **current packet status** after AK tasks `1570-1573` closed under umbrella `1569`
-- plus the **follow-on hardening** from AK tasks `1596-1598` documented under umbrella `1599`
-- plus the **workspace-truth separation packet** under umbrella `1608`, now closed by AK tasks `1610-1613`
-- plus the **source-aware focus-policy follow-on** under umbrella `1630`, implemented by AK tasks `1631-1633`
+The product direction remains strong: the upstream maintainer explicitly praised the feature set and recognized Layer Manager as a broader element-management surface.
 
-Use this as the shortest fresh-session answer to:
-- what changed
-- what is now authoritative
-- what still remains intentionally bounded fallback rather than primary truth
-- and what new gap is open without pretending the main host-context architecture regressed
+The newly open gap is trust at two boundaries:
+
+- the package's local sidepanel contract does not match the host's public lifecycle hooks
+- element naming currently writes two persisted representations of the same concept
+
+The authoritative design for this correction is:
+
+- `2026-09-06-layer-manager-maintainer-feedback-design.md`
+
+No upstream reply or PR update should happen until the package implementation and real-host smoke test are complete.
 
 ## One-sentence summary
 
-LayerManager now routes host switching through **scene-bound authority** while deriving workspace note truth from the canonical workspace surface: runtime subscriptions bind to the canonical workspace app, `hostViewContext` observes active workspace file/leaf/view type independently from `targetView` authority, source-aware focus policy distinguishes workspace-driven switches from sidepanel-driven `onViewChange` rebinds, markdown-only notes force truthful `inactive` shells, and host-context flight-recorder evidence explains drift without reopening renderer-local recovery heuristics.
+Layer Manager X already has a valuable element-management interaction surface, but it currently binds that surface to invented `onViewChange` / `setCloseCallback` hooks instead of the host's real `onFocus(view)` / `onClose()` lifecycle, and it duplicates ordinary-element labels into top-level `name`; the target preserves all features while making lifecycle ownership and metadata ownership explicit.
 
-## Original target in brief
+## Current vs target table
 
-The target architecture required five durable outcomes:
-1. one canonical host-context coordinator
-2. primary host signals based on cached `ea.targetView`, workspace leaf-change, and sidepanel `onViewChange`
-3. persistent but truthful shell states: `live`, `inactive`, `unbound`
-4. document-level focus/keyboard routing derived from live host authority
-5. polling only as bounded fallback
-
-The closing packet sharpened that target into one more explicit implementation truth:
-- host switching must be keyed by a shared scene-bound identity token rather than separate renderer/runtime/local bridge guesses
-
-## Current packet status
-
-### 1. Host truth is now coordinator-centered **and** scene-bound
-Current runtime boot creates one `createSidepanelHostContextCoordinator(ea)` owner in `src/main.ts`.
-That coordinator snapshot now carries both:
-- the canonical `bindingKey`
-- the derived `sceneBinding` packet (`sceneRef`, `sceneKey`, `refreshKey`, `state`, `shouldAttemptRebind`)
-
-Result:
-- runtime refresh no longer explains host truth through several unrelated local heuristics
-- scene identity is explicit instead of being reconstructed separately in multiple UI seams
-- selection/filter reset is keyed to coordinator-observed scene-binding change rather than stale shell continuity
-
-### 2. Primary host signals now match the intended contract
-The active packet now prioritizes the signals that the RFC asked for:
-1. cached / current `ea.targetView`
-2. workspace `file-open` and `active-leaf-change`
-3. sidepanel `onViewChange`
-4. workspace polling only when host events are unavailable or need bounded fallback coverage
-
-Result:
-- cross-file Excalidraw switching refreshes against the active host view rather than stale file-path inference
-- same-file note-card front/back switches are treated as real view-identity changes even when file path remains stable
-- sidepanel host rebinding no longer depends on force-closing the persistent shell
-
-### 3. Renderer and selection bridging now consume the same explicit scene binding
-The final packet no longer lets renderer lifecycle and host-selection mirroring invent their own repair logic.
-Instead:
-- renderer host-context reset now keys off `sceneBinding.refreshKey`
-- `SidepanelHostSelectionBridge` verifies that a selection write still targets the same rendered live scene binding before mirroring to the host
-- stale rendered bindings fail closed instead of retrying renderer-local `targetView` recovery heuristics
-
-Result:
-- host selection writes are now guarded by the same scene-bound truth used for runtime refresh
-- stale shell continuity cannot silently authorize writes against a drifted host scene
-- renderer-local target-loss polling and cached-target reinstatement are no longer part of the normal authority story
-
-### 4. Shell persistence stays, but shell meaning is stricter
-The sidepanel still remains mounted when the host keeps it visible.
-But shell visibility no longer implies live interaction authority.
-
-Current shell states are explicit:
-- `live`
-- `inactive`
-- `unbound`
-
-Result:
-- leaving Excalidraw can keep the shell visible without pretending the old scene is still live
-- stale scene pressure does not repopulate inactive shells as if nothing changed
-- unbound/inactive copy is now a truthful product state, not just a presentation fallback
-
-### 5. Document-level focus routing now derives from host authority, with source-aware focus preservation on live rebinds
-Focus/keyboard ownership is no longer allowed to float independently of host truth.
-The focus-ownership coordinator now drops document routing when scene binding is not live and only reacquires it through the same canonical live-binding path.
-Within that live-binding contract, focus preservation is now source-aware rather than inferred only from current DOM containment:
-- workspace-driven Excalidraw switches keep row-tree focus only when LayerManager already owned it
-- workspace-driven switches that start from the drawing or another outside target do not steal focus back
-- sidepanel-driven `onViewChange` rebinds may reclaim row-tree focus on live reactivation even if focus briefly sat outside the sidepanel, because the sidepanel event itself is the authoritative source of the transition
-
-Result:
-- typing outside live Excalidraw does not keep triggering LayerManager document shortcuts
-- tabbing outside live Excalidraw no longer gets trapped by sticky sidepanel capture
-- confirmed outside blur and inactive/unbound transitions keep routing released until real live authority returns
-- focus preservation now follows the origin of the host/view change instead of overreacting to transient outside focus
-
-## Current packet vs original target table
-
-| Concern | Original target | Current packet status |
+| Concern | Current package truth | Target |
 |---|---|---|
-| Source of host truth | One host-context coordinator | Landed as coordinator output plus explicit `sceneBinding` packet |
-| Canonical scene identity | One durable host-context identity token | Landed as `bindingKey` + `sceneBinding.refreshKey` / `sceneRef` |
-| Primary binding signal | Cached `ea.targetView` + leaf-change + `onViewChange` | Landed; polling remains workspace-level fallback only |
-| File path role | Supporting context only | Reduced to supporting context rather than primary truth |
-| Cross-file switching | First-class active-view transition | Covered by coordinator-driven refresh + regression tests |
-| Same-file note-card switching | First-class view-identity transition | Covered by targetView identity handling even when file path stays stable |
-| Persistent shell | Allowed | Preserved |
-| Shell meaning | Truthful visually and interactionally | Landed via explicit `live` / `inactive` / `unbound` rendering |
-| Selection mirroring boundary | Host writes only against the still-live bound scene | Landed via scene-binding-guarded host selection bridge |
-| Focus-routing ownership | Derived from live authority | Landed via focus-ownership gating + release/reacquire contract |
-| Focus preservation across host/view switches | Preserve only legitimate sidepanel-owned focus, but allow sidepanel-driven live rebinds to reclaim row-tree focus | Landed as source-aware policy: workspace-driven switches respect prior focus ownership, while sidepanel `onViewChange` rebinds reclaim row-tree focus on live reactivation |
-| Typing/tabbing outside live Excalidraw | Must stay outside LayerManager routing | Landed and regression-covered |
-| Polling | Fallback only | Still present only at the workspace-refresh edge; renderer-local recovery heuristics removed |
+| Product scope | Rich layer/element selection, naming, structure, visibility, lock, search, and review behavior | Preserve the full surface and continue toward a trusted element manager |
+| Sidepanel lifecycle contract | Local types and tests assume `onViewChange` and `setCloseCallback` | Use the public host hooks `onOpen`, `onFocus`, `onClose`, `onExcalidrawViewClosed`, and `onWindowMigrated` |
+| User close | The tab can disappear while runtime subscriptions remain alive; a later signal can remount it | `onClose()` terminally disposes the runtime and prevents remount |
+| Associated Excalidraw view closes | Renderer cleanup can close presentation or detach the shared sidepanel leaf while runtime survives | Release scene binding and show truthful inactive/unbound state; keep user-close semantics separate |
+| View rebinding | Workspace events and a nonexistent sidepanel `onViewChange` carry primary responsibility | `onFocus(view)` is the primary direct sidepanel signal; real-host proof determines the smallest supplemental same-leaf signal |
+| Same-leaf Markdown -> Excalidraw | Can remain uninitialized until another leaf transition happens | Rebind without rerunning the script through `onFocus(view)` plus only the smallest verified supplemental host/workspace signal if needed |
+| Runtime ownership | Previous global runtime is disposed on manual rerun, but user close does not clear the current owner | One current runtime per invocation; identity-safe global cleanup; disposed state is terminal |
+| Shared sidepanel ownership | Layer Manager may detach the entire sidepanel leaf | Layer Manager owns its tab only, not the shared host leaf |
+| Ordinary-element labels | Rename writes both `customData.lmx.label` and generic top-level `name` | `customData.lmx.label` is canonical; generic `name` is legacy read-only fallback |
+| Frame names | Frame `name` and LMX label can compete under one generic read/write path | Native frame `name` is canonical for frames; LMX data is compatibility fallback only |
+| Shared custom-data type | Shape exists informally in several package types/helpers | Formalize and export the existing `ElementCustomData` / `LmxMetadata` contract; preserve unknown keys; no new package |
+| Group labels | Replicated in member `customData.lmx.groupLabels` | Keep the current storage model and document its deterministic read/write contract |
+| Thumbnails | Not implemented | Follow-up: one bounded current-selection/group preview, not a per-row or generic rendering system |
+| Tests | Fakes expose APIs the production host does not | Contract fixture mirrors the real sidepanel API, plus real Obsidian smoke verification |
 
-## What is still intentionally bounded fallback
+## What remains valid from the earlier host-context work
 
-A few fallback paths remain on purpose:
-- workspace polling when host workspace events are unavailable
-- bounded `setView(...)` rebinding attempts inside `hostViewContext.ts` when active-leaf truth exists but explicit `targetView` truth drifted
-- operator/debug flight-recorder inspection when drift still needs diagnosis
+The following architectural outcomes remain useful and should not be reopened without evidence:
 
-These are still acceptable because they now serve **reconciliation or diagnosis**, not a second authority surface.
-A fresh session should not describe the model as:
-- distributed truth with patches
-- renderer-local target-loss repair
-- or cached-target resurrection as normal authority
+- one coordinator owns normalized host-context truth
+- live scene authority is explicit
+- shell states remain `live`, `inactive`, or `unbound`
+- document-level keyboard routing must release outside live authority
+- workspace polling remains fallback rather than primary truth
+- stale scene writes fail closed
 
-The truthful description is:
-- one coordinator owns host-context truth
-- scene binding is the shared identity packet consumed by runtime, renderer, and host-selection mirroring
-- fallback paths only ask the coordinator to reconcile again or produce evidence
+The correction is narrower but fundamental: those systems must consume the real host callbacks.
 
-## Post-closeout hardening that changed the fallback edge
+## What is superseded
 
-The main packet closed under `1569`, but follow-on tasks `1596-1598` tightened one still-important edge: repeated rebinding pressure when the shell survived a markdown / sidepanel / empty-leaf transition without a usable live `targetView`.
+Historical package documents that describe sidepanel `onViewChange` or `setCloseCallback` as public upstream lifecycle signals are no longer authoritative on that point.
 
-Current truthful follow-on status:
-- `setView(...)` rebinding now preserves the host `this` binding instead of treating the host API like a detached free function
-- active-file truth now falls back to `activeLeaf.view.file` / `getFile()` when `workspace.getActiveFile()` is `null`
-- definite non-Excalidraw active-leaf states no longer authorize blind rebinding just because a shell or `.excalidraw` file hint survives
-- repeated unchanged failed `manual` / `poll` rebind attempts are now suppressed until host evidence actually changes
+In particular, the earlier host-context RFC chain remains useful as architecture history, but its host-signal mapping must be read through the 2026-09-06 design.
 
-This keeps the architectural story intact:
-- bounded rebinding remains a fallback
-- but it is now constrained tightly enough that it behaves like reconciliation rather than a standing retry loop
+## Target lifecycle
 
-For the focused rebind-loop root cause, upstream-host constraints, and operator run sheet, read:
-- `packages/obsidian-excalidraw-layer-manager/docs/project/2026-04-18-layer-manager-host-context-loop-root-cause-and-manual-verification-path.md`
-
-For the historical workspace-truth diagnosis that motivated the next packet, read:
-- `packages/obsidian-excalidraw-layer-manager/docs/project/2026-04-18-layer-manager-markdown-note-workspace-truth-root-cause.md`
-
-For the closeout note after tasks `1610-1613` landed, read:
-- `packages/obsidian-excalidraw-layer-manager/docs/project/2026-04-18-layer-manager-markdown-note-workspace-truth-closeout.md`
-
-## Markdown-only workspace-truth packet is now closed
-
-The 1569 and 1599 packets still hold.
-The narrower 1608 packet is no longer an open architectural gap:
-- runtime workspace subscriptions and polling now bind to the canonical workspace app surface instead of preferring `targetView.app`
-- active workspace leaf/file/view-type truth is now observed independently from Excalidraw host authority inside `hostViewContext.ts`
-- shell truth is now derived by comparing workspace truth against `targetView` authority rather than letting stale `targetView` evidence answer the workspace question
-- markdown active-leaf truth now hard-vetoes stale live `targetView` authority even when metadata probing is unavailable in the host runtime
-- regression coverage now proves markdown-only switches render `inactive`, emit host-context signal evidence, and stay inactive even when stale Excalidraw authority or scene noise remains nearby
-
-That means a fresh session should currently describe LayerManager this way:
-- scene-bound live authority is landed
-- shell truth is explicit and regression-covered
-- workspace truth is separated from `targetView` authority at the observation boundary
-- bounded rebinding remains a fallback only
-- the markdown-only workspace-truth packet is closed, with the root-cause note retained as historical diagnosis rather than current status
-
-## Verification packet to treat as current proof
-
-### Automated
-```bash
-cd packages/obsidian-excalidraw-layer-manager
-npm run typecheck
-npm run lint
-npx vitest run \
-  test/runtime.active-view-refresh.integration.test.ts \
-  test/runtime.scene-subscription.integration.test.ts \
-  test/runtime.sidepanel-selection-sync.integration.test.ts \
-  test/runtime.sidepanel-mount.integration.test.ts \
-  test/runtime.sidepanel-focus-keyboard.integration.test.ts \
-  test/runtime.sidepanel-keyboard-lifecycle.integration.test.ts \
-  test/sidepanel.host-context-coordinator.unit.test.ts \
-  test/sidepanel.host-selection-bridge.unit.test.ts \
-  test/sidepanel.focus-ownership-coordinator.unit.test.ts
-node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs docs/project --strict
+```text
+run script
+   |
+   v
+runtime active + tab open
+   |
+   +-- onFocus(view) ------------> bind/rebind and refresh
+   |
+   +-- onFocus(null) ------------> inactive/unbound shell
+   |
+   +-- onExcalidrawViewClosed ---> release scene binding; remain available
+   |
+   +-- onClose ------------------> dispose terminally
+                                      |
+                                      +-- no workspace remount
+                                      +-- no scene remount
+                                      +-- no pending async remount
 ```
 
-### Manual
-- `packages/obsidian-excalidraw-layer-manager/docs/project/2026-04-18-layer-manager-host-context-loop-root-cause-and-manual-verification-path.md`
-- `packages/obsidian-excalidraw-layer-manager/docs/project/2026-04-16-layer-manager-manual-verification-matrix.md`
+A later explicit script run may create a new runtime. Navigation alone may not.
+
+## Target metadata contract
+
+### Ordinary elements
+
+```text
+canonical write: customData.lmx.label
+legacy read:     element.name
+```
+
+### Frames
+
+```text
+canonical write/read: native frame.name
+compatibility read:   customData.lmx.label
+```
+
+### Shared type
+
+The package exports the existing shape rather than creating another package or namespace:
+
+```ts
+interface LmxMetadata {
+  label?: string
+  groupLabels?: Readonly<Record<string, string>>
+  [key: string]: unknown
+}
+
+interface ElementCustomData {
+  originalOpacity?: number
+  lmx?: Readonly<LmxMetadata>
+  [namespace: string]: unknown
+}
+```
+
+Writes preserve unrelated namespaces and unknown LMX keys.
+
+## Immediate implementation order
+
+1. Replace the fake sidepanel contract in types and tests.
+2. Prove close-terminal and `onFocus` rebinding with failing regressions.
+3. Wire the existing disposal and host-context code to the real hooks.
+4. Prove the same-leaf mode transition in Obsidian and add only the smallest missing signal if required.
+5. Stop shared-leaf detachment.
+6. Correct ordinary-element and frame naming writes/reads.
+7. Run the existing package gate and build.
+8. Perform the real Obsidian close/navigate and same-leaf Markdown/Excalidraw smoke test.
+9. Only then update the generated upstream artifact or maintainer conversation.
+
+## Deferred product work
+
+The maintainer's thumbnail suggestion and presenter-note integration remain valid product directions. They are deferred until the lifecycle and metadata contract are trustworthy, not rejected.
 
 ## Smallest truthful conclusion
 
-For live Excalidraw host authority, the original target is now substantially the current model.
-LayerManager should currently be understood as:
-- coordinator-centered for host context
-- scene-bound in its live authority token
-- explicit about `live` / `inactive` / `unbound` shell truth
-- grounded in canonical workspace note truth before comparing against `targetView` authority
-- fail-safe about document-level routing outside live Excalidraw
-- backed by one bounded verification packet rather than a pile of local patch claims
+The package does not need fewer features. It needs the existing features to rest on the host's real lifecycle and on one documented metadata representation per concept.
