@@ -1,7 +1,4 @@
-import type {
-  EaLike,
-  ExcalidrawSidepanelTabLike,
-} from "../adapter/excalidraw-types.js"
+import type { EaLike, ExcalidrawSidepanelTabLike } from "../adapter/excalidraw-types.js"
 
 type VoidHandler = () => void
 type FocusHandler = (view: unknown | null) => void

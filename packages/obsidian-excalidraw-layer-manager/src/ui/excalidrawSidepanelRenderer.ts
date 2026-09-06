@@ -1,8 +1,8 @@
 import type { EaLike } from "../adapter/excalidraw-types.js"
 import { createRuntimeSidepanelLifecycleBinding } from "../runtime/sidepanelLifecycleBinding.js"
 import {
-  createExcalidrawSidepanelRenderer as createCoreExcalidrawSidepanelRenderer,
   type ExcalidrawSidepanelHost,
+  createExcalidrawSidepanelRenderer as createCoreExcalidrawSidepanelRenderer,
 } from "./excalidrawSidepanelRendererCore.js"
 import type { LayerManagerRenderer, RenderViewModel } from "./renderer.js"
 

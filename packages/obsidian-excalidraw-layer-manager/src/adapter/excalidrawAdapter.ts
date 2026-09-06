@@ -1,9 +1,6 @@
 import type { ScenePatch } from "../model/patch.js"
-import {
-  applyPatch as applyCorePatch,
-  type ApplyPatchOutcome,
-} from "./excalidrawAdapterCore.js"
 import type { EaLike } from "./excalidraw-types.js"
+import { type ApplyPatchOutcome, applyPatch as applyCorePatch } from "./excalidrawAdapterCore.js"
 
 export * from "./excalidrawAdapterCore.js"
 
