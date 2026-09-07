@@ -384,6 +384,24 @@ describe("runtime sidepanel lifecycle contract", () => {
     }
   })
 
+  it("registers a warm rerun through host creation/reuse rather than adopting a foreign EA tab", async () => {
+    const fixture = makeRuntimeFixture(fakeDocument)
+    fixture.tab.getHostEA = () => ({ targetView: null })
+    fixture.ea.checkForActiveSidepanelTabForScript = () => fixture.tab
+    const runtime = createLayerManagerRuntime(fixture.ea)
+    try {
+      await flushAsync(10)
+      expect(fixture.createSidepanelTab).toHaveBeenCalledTimes(1)
+      expect(fixture.ea.sidepanelTab).toBe(fixture.tab)
+      expect(hasText(fixture.contentEl, "Alpha")).toBe(true)
+      runtime.refresh()
+      await flushAsync(10)
+      expect(fixture.createSidepanelTab).toHaveBeenCalledTimes(1)
+    } finally {
+      runtime.dispose()
+    }
+  })
+
   it("explicit disposal clears only its own global reference", async () => {
     const fixture = makeRuntimeFixture(fakeDocument)
     const runtime = createLayerManagerRuntime(fixture.ea)

@@ -826,7 +826,8 @@ describe("sidepanel mount-focused integration", () => {
       })
 
       expect(host.checkForActiveSidepanelTabForScript).toHaveBeenCalledTimes(1)
-      expect(createSidepanelTab).not.toHaveBeenCalled()
+      expect(createSidepanelTab).toHaveBeenCalledTimes(1)
+      expect(createSidepanelTab).toHaveBeenCalledWith("Layer Manager", false, true)
       expect(host.sidepanelTab).toBe(activeTab.tab)
       expect(activeTab.setTitle).toHaveBeenCalledWith("Layer Manager")
       expect(activeTab.open).toHaveBeenCalledTimes(1)
