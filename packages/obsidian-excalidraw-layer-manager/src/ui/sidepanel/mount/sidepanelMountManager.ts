@@ -810,7 +810,11 @@ export class SidepanelMountManager {
     if (!tab && this.#host.checkForActiveSidepanelTabForScript) {
       const lookedUp = this.#host.checkForActiveSidepanelTabForScript(this.#host.activeScript)
       if (isTabRenderable(lookedUp)) {
-        tab = lookedUp
+        // The public create/reuse API refreshes the host's EA registry for warm reruns.
+        // Merely adopting a foreign tab would leave view-close delivery on the old EA.
+        if (!this.#host.createSidepanelTab || !isLikelyPersistedTab(this.#host, lookedUp)) {
+          tab = lookedUp
+        }
       } else if (lookedUp) {
         failureReason = "tabUnrenderable"
       }
