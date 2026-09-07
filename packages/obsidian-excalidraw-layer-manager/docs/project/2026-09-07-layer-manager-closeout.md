@@ -144,3 +144,20 @@ registry. Looking up and adopting a foreign-owned tab bypasses this registration
 BDD refinement: when rerunning into a tab created by another EA, use the existing
 public creation/reuse API exactly once so view-close notifications target the new
 invocation. Do not close/detach the shared leaf or invent a private registry write.
+
+## Observed asynchronous view teardown (before corrective tests)
+
+The first real-host replay of the bounded layout fix still failed. The released
+view's `leaf` is cleared by Excalidraw after unload, the script EA has no `app`
+property (the live view originally supplied it), and the last layout notification
+arrives before the replacement's `excalidrawAPI` is installed. Therefore retaining
+only the old mutable view is insufficient.
+
+BDD refinement: retain the originating leaf and workspace while they are known.
+Given a distinct replacement in that active/recent leaf is still initializing,
+allow one owned, coalesced readiness probe at the existing 350 ms cadence, bounded
+to 20 attempts per notification sequence. Stop probing on explicit focus, lost
+eligibility, success, exhaustion, or disposal; never write before readiness.
+Workspace listener cleanup must use its original workspace even after view unload.
+No timer is armed for a stale view, Markdown, or an unrelated leaf. A later host
+layout signal can retry an exhausted initialization; there is no self-rearming loop.
