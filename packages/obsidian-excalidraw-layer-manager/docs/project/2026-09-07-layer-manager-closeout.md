@@ -161,3 +161,14 @@ eligibility, success, exhaustion, or disposal; never write before readiness.
 Workspace listener cleanup must use its original workspace even after view unload.
 No timer is armed for a stale view, Markdown, or an unrelated leaf. A later host
 layout signal can retry an exhausted initialization; there is no self-rearming loop.
+
+## Real-host settings receiver (before corrective test)
+
+The feature smoke exposed an existing settings-call boundary defect: renderer
+construction passes `getScriptSettings` and `setScriptSettings` as unbound methods
+to its persistence owners. Real Excalidraw methods use `this.activeScript` and
+`this.plugin`, unlike the arrow-function fixtures. BDD: given native receiver-
+sensitive settings methods and persistence enabled, when a destination is read
+or saved, both methods must execute on the originating EA, preserve unrelated
+settings, and survive a warm manager rerun. The existing persistence integration
+scenario will use receiver-sensitive methods before correcting those bindings.
