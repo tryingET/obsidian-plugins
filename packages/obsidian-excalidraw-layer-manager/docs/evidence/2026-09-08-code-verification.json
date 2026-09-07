@@ -1,0 +1,7 @@
+{
+  "root_check": "pass",
+  "context": "clean local documentation commit; original gate unchanged",
+  "docs_strict": "failed: MODULE_NOT_FOUND",
+  "ak_direction": "unavailable: command not found",
+  "built_bundle_sha256": "651e881e6bfadd12f82513b6ff66cb30138333b4b7f1f86d8d972750bf220d1b"
+}

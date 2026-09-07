@@ -9,6 +9,9 @@ proposal_status: "evidence snapshot"
 
 # Evidence Note — LayerManager host-context authority and focus routing
 
+> **Historical record.** This document preserves the investigation and task/evidence state at its original date. It is not the current runtime contract or release verdict. For the published implementation, use the [runtime reference](../reference/runtime-and-host-contract.md), [current state](current-vs-target.md), and [September closeout](2026-09-07-layer-manager-closeout.md). In particular, historical `onViewChange` / `setCloseCallback` descriptions must not be implemented as current host hooks.
+
+
 ## Trigger
 
 The current decision pressure is no longer a single bug.

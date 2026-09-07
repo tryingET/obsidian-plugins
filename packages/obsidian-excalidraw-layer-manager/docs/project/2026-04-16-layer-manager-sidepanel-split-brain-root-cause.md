@@ -9,6 +9,9 @@ type: "investigation"
 
 # First-principles root-cause note — LayerManager sidepanel split-brain lifecycle
 
+> **Historical record.** This document preserves the investigation and task/evidence state at its original date. It is not the current runtime contract or release verdict. For the published implementation, use the [runtime reference](../reference/runtime-and-host-contract.md), [current state](current-vs-target.md), and [September closeout](2026-09-07-layer-manager-closeout.md). In particular, historical `onViewChange` / `setCloseCallback` descriptions must not be implemented as current host hooks.
+
+
 ## Task
 - AK task: `1424`
 - Scope: `packages/obsidian-excalidraw-layer-manager/docs/project/2026-04-16-layer-manager-sidepanel-split-brain-root-cause.md`

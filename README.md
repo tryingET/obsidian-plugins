@@ -64,6 +64,12 @@ GitHub source:
 - package: `https://github.com/tryingET/obsidian-plugins/tree/main/packages/obsidian-excalidraw-layer-manager`
 - releases/tags in this repo are used to pin public snapshots of the package for external review and upstream reference
 
+## Start with the implemented package
+
+Use the [Layer Manager README](packages/obsidian-excalidraw-layer-manager/README.md), [documentation index](packages/obsidian-excalidraw-layer-manager/docs/README.md), and [lab-vault setup](apps/lab-vault/README.md) for actual product behavior and commands. The [consolidated closeout](packages/obsidian-excalidraw-layer-manager/docs/project/2026-09-07-layer-manager-closeout.md) distinguishes published fixes from unpublished candidates and unresolved release blockers.
+
+The other family package directories are scaffolds, not additional verified shipping plugins. The [technology map](docs/tech-stack.local.md) documents installed-tool boundaries. Root direction and historical AK task references do not replace the current package evidence or live task database.
+
 ## Package manager
 
 - **npm** — root control-plane package manager
@@ -74,7 +80,7 @@ GitHub source:
 ```bash
 # Monorepo validation
 npm run check   # smoke + authoritative LayerManager release gate
-npm test        # smoke + package test suites
+npm test        # smoke + Layer Manager tests
 npm run ci      # smoke + authoritative LayerManager gate + repo extras
 npm run doctor
 

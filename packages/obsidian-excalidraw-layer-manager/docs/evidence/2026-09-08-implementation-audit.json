@@ -1,0 +1,103 @@
+{
+  "review_date": "2026-09-08",
+  "baseline_commit": "dc6defb5553f2946bcf75d15a04e7bf0efad4029",
+  "published_source_tree": "783ddbee2dad37cbe289f1812ef4be3a02c56d20",
+  "published_test_tree": "cfd2ac0f1d130d47abb43a4fe77670fda21a804c",
+  "dependency_lock_sha256": "6a10f2ceb5695eb7bf244ba315610883db8f26706935e47fda7927835c2f1e64",
+  "published_bundle_commit": "86bbae31d9efadbe30e4992ed4014761ddb71c3a",
+  "published_bundle_sha256": "651e881e6bfadd12f82513b6ff66cb30138333b4b7f1f86d8d972750bf220d1b",
+  "ordinary_baseline_ci": {
+    "run_id": 34158500250,
+    "conclusion": "success"
+  },
+  "dependency_candidate_ci": {
+    "run_id": 34158500309,
+    "conclusion": "failure",
+    "failed_step": "Refine callable fixture annotations with executable-equivalence proof",
+    "published": false
+  },
+  "published_suite_record": {
+    "tests_passed": 601,
+    "test_files": 58,
+    "statements_pct": 88.98,
+    "lines_pct": 88.98,
+    "branches_pct": 85.96,
+    "functions_pct": 93.7,
+    "source": "Actions artifact lmx-settings-verification, run 34156528457"
+  },
+  "unpublished_candidate": {
+    "patch_filename": "lmx-publication.patch",
+    "patch_sha256": "a6293e214c255bc5203a17e5020b8f30e7f9bae5b694ac9fae0cde7ae7e8184e",
+    "patch_base": "86bbae31d9efadbe30e4992ed4014761ddb71c3a",
+    "reported_test_count": 641,
+    "reported_bundle_sha256": "0ed0725b3b6e85d08b9cd6c79bc375f80ac7a7b1cf15e1f5fb7ee9f09883150c",
+    "published": false
+  },
+  "expanded_regression_replay": {
+    "production_modified": false,
+    "test_overlay": [
+      "test/adapter.naming-contract.test.ts",
+      "test/runtime.sidepanel-lifecycle-contract.integration.test.ts",
+      "test/runtime.sidepanel-rename-dnd.integration.test.ts"
+    ],
+    "tests_passed": 31,
+    "tests_failed": 13,
+    "test_total": 44,
+    "failures": [
+      {
+        "file": "test/adapter.naming-contract.test.ts",
+        "scenario": "adapter naming persistence contract does not replay stale native EA staging over unrelated canvas edits"
+      },
+      {
+        "file": "test/runtime.sidepanel-lifecycle-contract.integration.test.ts",
+        "scenario": "runtime sidepanel lifecycle contract Given a synchronous host close during initial open, no runtime or listeners survive"
+      },
+      {
+        "file": "test/runtime.sidepanel-lifecycle-contract.integration.test.ts",
+        "scenario": "runtime sidepanel lifecycle contract Given a pending legacy commit, disposal prevents fallback writes and selection on its late rejection"
+      },
+      {
+        "file": "test/runtime.sidepanel-lifecycle-contract.integration.test.ts",
+        "scenario": "runtime sidepanel lifecycle contract Given repeated unbound refreshes, recovery keeps snapshot versions monotonically increasing"
+      },
+      {
+        "file": "test/runtime.sidepanel-lifecycle-contract.integration.test.ts",
+        "scenario": "runtime sidepanel lifecycle contract Given script startup closes synchronously, the entry point never publishes a disposed global runtime"
+      },
+      {
+        "file": "test/runtime.sidepanel-lifecycle-contract.integration.test.ts",
+        "scenario": "runtime sidepanel lifecycle contract Given a fresh script evaluation replaces a pending invocation, its late tab cannot overwrite the replacement"
+      },
+      {
+        "file": "test/runtime.sidepanel-lifecycle-contract.integration.test.ts",
+        "scenario": "runtime sidepanel lifecycle contract Given observed same-leaf host behavior without onFocus, file-open binds only a ready replacement view"
+      },
+      {
+        "file": "test/runtime.sidepanel-lifecycle-contract.integration.test.ts",
+        "scenario": "runtime sidepanel lifecycle contract Given a loaded replacement without a scene API, workspace signals keep the panel unbound until readiness"
+      },
+      {
+        "file": "test/runtime.sidepanel-lifecycle-contract.integration.test.ts",
+        "scenario": "runtime sidepanel lifecycle contract Given workspace events precede scene readiness, recovers without another host event and stops retrying"
+      },
+      {
+        "file": "test/runtime.sidepanel-lifecycle-contract.integration.test.ts",
+        "scenario": "runtime sidepanel lifecycle contract Given close while a scene initializes, readiness cannot revive the invocation"
+      },
+      {
+        "file": "test/runtime.sidepanel-lifecycle-contract.integration.test.ts",
+        "scenario": "runtime sidepanel lifecycle contract Given a bound live shell without an API, API readiness refreshes an unchanged binding key"
+      },
+      {
+        "file": "test/runtime.sidepanel-rename-dnd.integration.test.ts",
+        "scenario": "sidepanel rename + drag-drop integration keeps a rectangle rename draft focused across refresh without committing detached blur"
+      },
+      {
+        "file": "test/runtime.sidepanel-rename-dnd.integration.test.ts",
+        "scenario": "sidepanel rename + drag-drop integration keeps a frame rename draft focused across refresh without committing detached blur"
+      }
+    ],
+    "raw_report_sha256": "162b01fa2324a805dcf5503bca3a970a13f3f2d926baf481c51d7b98a7c09a7a"
+  },
+  "qualification": "The published suite and expanded replay use different test sets. Historical host passes and candidate-reported results are not a new all-host or final-release certification."
+}

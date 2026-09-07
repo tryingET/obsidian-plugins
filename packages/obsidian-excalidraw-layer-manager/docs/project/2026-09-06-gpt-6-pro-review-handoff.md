@@ -8,6 +8,9 @@ type: "handoff"
 
 # GPT-6 Pro review handoff — Layer Manager X
 
+> **Review status — 2026-09-08.** This handoff preserves the original review questions and Must/Should/Could classification. It is not a live implementation status report. Current dispositions, published evidence, and remaining blockers are consolidated in the [closeout](2026-09-07-layer-manager-closeout.md); actual owners are in the [runtime reference](../reference/runtime-and-host-contract.md).
+
+
 ## Review objective
 
 Review and improve the package-first design for the maintainer feedback on `zsviczian/obsidian-excalidraw-plugin#2737`.

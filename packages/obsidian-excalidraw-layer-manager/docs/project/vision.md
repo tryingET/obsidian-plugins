@@ -9,6 +9,8 @@ proposal_status: "active product north star"
 
 # Vision
 
+This is a product north star, not a release checklist. See [current vs target](current-vs-target.md) for shipped behavior and known gaps. Future favorites, tags, adaptive assistance, and previews below are aspirations, not claimed implementations.
+
 ## North star
 
 `obsidian-excalidraw-layer-manager` should become **Layer Manager X**:
@@ -61,7 +63,7 @@ Native Excalidraw semantics remain native:
 - ordinary elements do not receive a duplicate generic top-level `name`
 - legacy generic `name` values may remain readable as compatibility fallback, but Layer Manager does not keep creating them
 
-The package should formalize and export its existing `ElementCustomData` and `LmxMetadata` types so adjacent scripts can consume one documented shape. That does not require a new package, a registry, or a speculative presenter-notes schema. A future neutral cross-feature namespace remains an upstream design decision.
+The package exports `ElementCustomData` and `LmxMetadata` from `src/model/entities.ts`; the [metadata reference](../reference/metadata-contract.md) documents their implemented shape. That does not require a new package, a registry, or a speculative presenter-notes schema. A future neutral cross-feature namespace remains an upstream design decision.
 
 ## Host lifecycle stance
 

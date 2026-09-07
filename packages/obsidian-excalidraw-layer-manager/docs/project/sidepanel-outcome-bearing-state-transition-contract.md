@@ -8,6 +8,8 @@ type: "reference"
 
 # Sidepanel Outcome-Bearing State Transition Contract
 
+This is a normative design/acceptance contract. It does not assert that all failure paths are already proven; the [current closeout](2026-09-07-layer-manager-closeout.md#remaining-blockers) records implementation gaps.
+
 ## Intent
 Prevent sidepanel features from inventing task-local success/failure semantics for user-visible state.
 

@@ -1,0 +1,504 @@
+[
+  {
+    "case": "fresh-start",
+    "time": "2026-09-07T19:27:04Z",
+    "result": "pass",
+    "details": {
+      "rows": 3,
+      "tabs": 1,
+      "liveTarget": "testing.md",
+      "tab": "excalidraw-sidepanel-tab-2"
+    }
+  },
+  {
+    "case": "same-leaf-repeat-recovery",
+    "result": "fail",
+    "error": "{'exceptionId': 4, 'text': 'Uncaught (in promise) Error: rows did not recover', 'lineNumber': 0, 'columnNumber': 0, 'exception': {'type': 'object', 'subtype': 'error', 'className': 'Error', 'description': 'Error: rows did not recover\\n    at hs.assert (<anonymous>:12:32)\\n    at <anonymous>:12:75', 'objectId': '7200133142789068461.1.1'}}"
+  },
+  {
+    "case": "final-start-and-same-leaf-repeated",
+    "time": "2026-09-07T19:35:42Z",
+    "result": "pass",
+    "details": {
+      "cycles": [
+        {
+          "cycle": 1,
+          "rows": 6,
+          "leaf": "33fe9770e4cd67f5",
+          "tab": "excalidraw-sidepanel-tab-4"
+        },
+        {
+          "cycle": 2,
+          "rows": 6,
+          "leaf": "33fe9770e4cd67f5",
+          "tab": "excalidraw-sidepanel-tab-4"
+        },
+        {
+          "cycle": 3,
+          "rows": 6,
+          "leaf": "33fe9770e4cd67f5",
+          "tab": "excalidraw-sidepanel-tab-4"
+        }
+      ],
+      "registeredTarget": true,
+      "trace": [
+        {
+          "sequence": 10,
+          "atMs": 1788809737021,
+          "atIso": "2026-09-07T19:35:37.021Z",
+          "category": "rebind",
+          "message": "same-leaf replacement ready",
+          "payload": {}
+        },
+        {
+          "sequence": 18,
+          "atMs": 1788809739110,
+          "atIso": "2026-09-07T19:35:39.110Z",
+          "category": "rebind",
+          "message": "same-leaf replacement ready",
+          "payload": {}
+        },
+        {
+          "sequence": 26,
+          "atMs": 1788809741223,
+          "atIso": "2026-09-07T19:35:41.223Z",
+          "category": "rebind",
+          "message": "same-leaf replacement ready",
+          "payload": {}
+        }
+      ]
+    }
+  },
+  {
+    "case": "naming-and-basic-actions",
+    "result": "fail",
+    "error": "{'exceptionId': 5, 'text': \"Uncaught (in promise) TypeError: Cannot read properties of undefined (reading 'textContent')\", 'lineNumber': 0, 'columnNumber': 0, 'exception': {'type': 'object', 'subtype': 'error', 'className': 'TypeError', 'description': \"TypeError: Cannot read properties of undefined (reading 'textContent')\\n    at <anonymous>:11:25\\n    at <anonymous>:25:3\", 'objectId': '7200133142789068461.1.1'}}"
+  },
+  {
+    "case": "naming-and-basic-actions",
+    "time": "2026-09-07T19:37:12Z",
+    "result": "pass",
+    "details": {
+      "beforeOrder": ["ssmqG5Tm", "1ZcITJuZ", "cE9cWRjl", "iDLRGyik", "FwEQeWZK", "7AMZqj4w"],
+      "afterOrder": ["iDLRGyik", "ssmqG5Tm", "1ZcITJuZ", "cE9cWRjl", "FwEQeWZK", "7AMZqj4w"],
+      "naming": [
+        {
+          "id": "iDLRGyik",
+          "customData": {
+            "foreign": {
+              "keep": "foreign"
+            },
+            "lmx": {
+              "label": "Renamed ordinary",
+              "future": {
+                "keep": 7
+              }
+            }
+          }
+        },
+        {
+          "id": "FwEQeWZK",
+          "name": "Legacy fallback",
+          "customData": {
+            "foreign": {
+              "keep": 8
+            },
+            "lmx": {
+              "future": {
+                "keep": 9
+              },
+              "label": "Renamed legacy"
+            }
+          }
+        },
+        {
+          "id": "7AMZqj4w",
+          "name": "Renamed frame",
+          "customData": {
+            "foreign": {
+              "keep": "frame"
+            },
+            "lmx": {
+              "label": "Old frame label",
+              "future": {
+                "keep": 10
+              }
+            },
+            "frameColor": {
+              "stroke": "#D4D4D4",
+              "fill": "#ADADAD",
+              "nameColor": "#7A7A7A"
+            }
+          }
+        }
+      ],
+      "visibilityAndLock": "both toggled and restored",
+      "filter": "one row then all six"
+    }
+  },
+  {
+    "case": "grouping-and-group-labels",
+    "time": "2026-09-07T19:37:34Z",
+    "result": "pass",
+    "details": {
+      "groupId": "Group",
+      "members": ["iDLRGyik", "FwEQeWZK"],
+      "rows": [
+        {
+          "id": "lmx-row-1-frame_3A7AMZqj4w",
+          "text": "[frame]Renamed frame1 items"
+        },
+        {
+          "id": "lmx-row-1-group_3AGroup",
+          "text": "\u25b8[group]Smoke groupcollapsed2 items"
+        },
+        {
+          "id": "lmx-row-1-el_3AcE9cWRjl",
+          "text": "[element]rectangle"
+        },
+        {
+          "id": "lmx-row-1-el_3A1ZcITJuZ",
+          "text": "[element]rectangle"
+        },
+        {
+          "id": "lmx-row-1-el_3AssmqG5Tm",
+          "text": "[element]rectangle"
+        }
+      ],
+      "controls": [
+        {
+          "tag": "BUTTON",
+          "label": null,
+          "text": "Group selected"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Send to back",
+          "text": ""
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Send backward",
+          "text": ""
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Bring forward",
+          "text": ""
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Bring to front",
+          "text": ""
+        },
+        {
+          "tag": "BUTTON",
+          "label": null,
+          "text": "Move out of group"
+        },
+        {
+          "tag": "BUTTON",
+          "label": null,
+          "text": "Root"
+        },
+        {
+          "tag": "BUTTON",
+          "label": null,
+          "text": "Inside Smoke group"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Hide all items",
+          "text": ""
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Lock all items",
+          "text": ""
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Rename layer",
+          "text": ""
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Delete layer",
+          "text": ""
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Expand row Smoke group",
+          "text": "\u25b8"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Hide all items",
+          "text": ""
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Lock all items",
+          "text": ""
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Rename layer",
+          "text": ""
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Delete layer",
+          "text": ""
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Hide all items",
+          "text": ""
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Lock all items",
+          "text": ""
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Rename layer",
+          "text": ""
+        }
+      ]
+    }
+  },
+  {
+    "case": "quick-move-and-remembered-reload",
+    "result": "fail",
+    "error": "{'exceptionId': 6, 'text': 'Uncaught (in promise) Error: remembered quick move absent after rerun', 'lineNumber': 0, 'columnNumber': 0, 'exception': {'type': 'object', 'subtype': 'error', 'className': 'Error', 'description': 'Error: remembered quick move absent after rerun\\n    at hs.assert (<anonymous>:12:32)\\n    at <anonymous>:9:36', 'objectId': '7200133142789068461.1.1'}}"
+  },
+  {
+    "case": "native-CDP-keyboard-arrow-space",
+    "result": "pass",
+    "details": {
+      "before": "lmx-row-1-el_3A1ZcITJuZ",
+      "after": "",
+      "active": "",
+      "selected": ["ssmqG5Tm"]
+    }
+  },
+  {
+    "case": "drag-drop-and-move-out",
+    "time": "2026-09-07T19:42:19Z",
+    "result": "pass",
+    "details": {
+      "element": "ssmqG5Tm",
+      "draggedInto": "Group",
+      "movedOut": true,
+      "rows": 7
+    }
+  },
+  {
+    "case": "final-native-settings-persistence-and-warm-reuse",
+    "time": "2026-09-07T19:42:54Z",
+    "result": "pass",
+    "details": {
+      "tab": "excalidraw-sidepanel-tab-5",
+      "persisted": {
+        "lmx_persist_last_move_destination": {
+          "value": true,
+          "description": "Persist LayerManager quick-move destination across Obsidian restarts"
+        },
+        "foreign_smoke_setting": {
+          "value": "keep"
+        },
+        "lmx_last_move_destination": {
+          "value": {
+            "kind": "preset",
+            "targetParentPath": ["Group"],
+            "targetFrameId": null,
+            "label": "Inside Smoke group"
+          },
+          "description": "LayerManager quick-move destination payload"
+        }
+      },
+      "lastButton": "\u21ba Last: Inside Smoke group",
+      "registeredToCurrentView": true
+    }
+  },
+  {
+    "case": "final-persisted-drawing-json-and-sameleaf",
+    "time": "2026-09-07T19:43:35Z",
+    "result": "pass",
+    "details": {
+      "sourcePath": "testing.md",
+      "serializedBytes": 5548,
+      "metadata": [
+        {
+          "id": "iDLRGyik",
+          "customData": {
+            "foreign": {
+              "keep": "foreign"
+            },
+            "lmx": {
+              "label": "Renamed ordinary",
+              "future": {
+                "keep": 7
+              },
+              "groupLabels": {
+                "Group": "Smoke group"
+              }
+            }
+          }
+        },
+        {
+          "id": "FwEQeWZK",
+          "name": "Legacy fallback",
+          "customData": {
+            "foreign": {
+              "keep": 8
+            },
+            "lmx": {
+              "future": {
+                "keep": 9
+              },
+              "label": "Renamed legacy",
+              "groupLabels": {
+                "Group": "Smoke group"
+              }
+            }
+          }
+        },
+        {
+          "id": "7AMZqj4w",
+          "name": "Renamed frame",
+          "customData": {
+            "foreign": {
+              "keep": "frame"
+            },
+            "lmx": {
+              "label": "Old frame label",
+              "future": {
+                "keep": 10
+              }
+            },
+            "frameColor": {
+              "stroke": "#D4D4D4",
+              "fill": "#ADADAD",
+              "nameColor": "#7A7A7A"
+            }
+          }
+        }
+      ],
+      "recovered": true
+    }
+  },
+  {
+    "case": "final-close-navigation-rerun-three-cycles",
+    "result": "fail",
+    "error": "{'exceptionId': 7, 'text': \"Uncaught (in promise) TypeError: Cannot read properties of undefined (reading 'click')\", 'lineNumber': 0, 'columnNumber': 0, 'exception': {'type': 'object', 'subtype': 'error', 'className': 'TypeError', 'description': \"TypeError: Cannot read properties of undefined (reading 'click')\\n    at <anonymous>:6:41\", 'objectId': '7200133142789068461.1.1'}}"
+  },
+  {
+    "case": "final-close-navigation-rerun-three-cycles",
+    "time": "2026-09-07T19:44:11Z",
+    "result": "pass",
+    "details": {
+      "cycles": [
+        {
+          "cycle": 1,
+          "tab": "excalidraw-sidepanel-tab-6",
+          "rows": 3,
+          "freshRuntime": true
+        },
+        {
+          "cycle": 2,
+          "tab": "excalidraw-sidepanel-tab-7",
+          "rows": 3,
+          "freshRuntime": true
+        },
+        {
+          "cycle": 3,
+          "tab": "excalidraw-sidepanel-tab-8",
+          "rows": 3,
+          "freshRuntime": true
+        }
+      ]
+    }
+  },
+  {
+    "case": "final-associated-view-close-preserves-shared-leaf",
+    "result": "fail",
+    "error": "{'exceptionId': 9, 'text': 'Uncaught (in promise) Error: new note must open as actual Excalidraw', 'lineNumber': 0, 'columnNumber': 0, 'exception': {'type': 'object', 'subtype': 'error', 'className': 'Error', 'description': 'Error: new note must open as actual Excalidraw\\n    at hs.assert (<anonymous>:12:32)\\n    at <anonymous>:15:5', 'objectId': '7200133142789068461.1.1'}}"
+  },
+  {
+    "case": "final-associated-view-rebind-with-sibling",
+    "result": "fail",
+    "error": "{'exceptionId': 10, 'text': 'Uncaught (in promise) Error: new drawing rows must load without script rerun', 'lineNumber': 0, 'columnNumber': 0, 'exception': {'type': 'object', 'subtype': 'error', 'className': 'Error', 'description': 'Error: new drawing rows must load without script rerun\\n    at hs.assert (<anonymous>:12:32)\\n    at <anonymous>:11:5', 'objectId': '7200133142789068461.1.1'}}"
+  },
+  {
+    "case": "final-associated-view-close-and-rebind-native-picker",
+    "result": "fail",
+    "error": "{'exceptionId': 11, 'text': 'Uncaught (in promise) Error: focus another drawing must rebind same runtime', 'lineNumber': 0, 'columnNumber': 0, 'exception': {'type': 'object', 'subtype': 'error', 'className': 'Error', 'description': 'Error: focus another drawing must rebind same runtime\\n    at hs.assert (<anonymous>:12:32)\\n    at <anonymous>:19:5', 'objectId': '7200133142789068461.1.1'}}"
+  },
+  {
+    "case": "final-shared-leaf-close-and-focus-rebind",
+    "time": "2026-09-07T19:50:36Z",
+    "result": "pass",
+    "details": {
+      "loss": {
+        "rows": 0,
+        "tabs": 2,
+        "leaf": "ced5102bc498d4df"
+      },
+      "rebound": {
+        "file": "second-smoke.md",
+        "rows": 3,
+        "managerTab": "excalidraw-sidepanel-tab-8",
+        "siblingTab": "excalidraw-sidepanel-tab-9",
+        "sameRuntime": true,
+        "signal": "native sidepanel workspace focus invokes onFocus(current drawing)"
+      }
+    }
+  },
+  {
+    "case": "final-native-window-migration",
+    "time": "2026-09-07T19:51:29Z",
+    "result": "pass",
+    "details": {
+      "sameRuntime": true,
+      "sameTab": true,
+      "rows": 3,
+      "newDocument": true,
+      "tabId": "excalidraw-sidepanel-tab-8",
+      "sourceFile": "second-smoke.md",
+      "selection": []
+    }
+  },
+  {
+    "case": "final-popout-native-keyboard",
+    "result": "pass",
+    "time": "2026-09-07T19:52:03Z",
+    "details": {
+      "before": ["7AMZqj4w"],
+      "after": ["iDLRGyik", "1ZcITJuZ", "cE9cWRjl", "FwEQeWZK"],
+      "keys": ["ArrowDown", "Space"],
+      "driver": "native CDP Input.dispatchKeyEvent in actual popout renderer"
+    }
+  },
+  {
+    "case": "final-popout-close-preserves-sibling",
+    "time": "2026-09-07T19:52:55Z",
+    "result": "pass",
+    "details": {
+      "runtimeDisposed": true,
+      "siblingPreserved": true,
+      "sharedLeaf": "ced5102bc498d4df",
+      "noResurrection": true
+    }
+  },
+  {
+    "case": "final-outside-typing-after-migrated-close",
+    "result": "pass",
+    "details": {
+      "nativeInputWorks": true,
+      "runtimeAbsent": true
+    }
+  }
+]

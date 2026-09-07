@@ -1,32 +1,26 @@
 ---
-summary: "Strategic goals for Layer Manager X after projection-kernel recovery closeout: interaction completion is active, bounded adaptive assistance stays next."
+summary: "Layer Manager strategy: trustworthy element management first, bounded assistance only after correctness and evidence closeout."
 read_when:
-  - "You are planning quarters or major waves for obsidian-excalidraw-layer-manager."
-  - "You need the package-level long-range goals before choosing implementation slices."
-type: "proposal"
-proposal_status: "active package direction"
+  - "You are choosing major Layer Manager work without confusing product ambition with completed implementation."
+type: "reference"
 ---
 
-# Strategic Goals
+# Strategic goals
 
-## Active strategic goal
+## SG1 — Make the element-management surface trustworthy end to end
 
-### SG1 — Turn the stabilized projection kernel into a finished operator-facing interaction surface
-- **Why now:** the projection-kernel recovery wave is now green, fail-closed, and materially complete, but the panel still lacks the finished operator interaction contract a real pro-grade layer surface needs. Selection, movement affordances, and keyboard/mouse parity are the clearest remaining product gap.
-- **Success signal:** Layer Manager X supports a clear, trustworthy interaction model for selection, structural movement, and operator feedback without weakening the projection-kernel authority split or reintroducing optimistic UI drift.
-- **Eisenhower-3D:** importance `5`, urgency `4`, difficulty `3`
+Layer Manager already provides a substantial operator surface: explicit selection, hierarchy, naming, movement, visibility, locking, filtering, keyboard interaction, and remembered destinations. The priority is to make those capabilities reliable at host transitions and mutation boundaries, not to describe them as absent or to add another lifecycle framework.
 
-## Next strategic goal
+Success requires consistent behavior across normal use and the remaining startup, asynchronous write, readiness, and editor-refresh cases. Source, tests, installed artifact, and real-host evidence must agree. The [current implementation](current-vs-target.md) and [closeout](2026-09-07-layer-manager-closeout.md) define the present gap.
 
-### SG2 — Add bounded adaptive assistance only after the interaction contract is trustworthy
-- **Why next:** the package vision still includes adaptive surfacing, cleanup help, and more semantic assistance, but those should come only after the basic sidepanel interaction model feels obvious, reliable, and professional.
-- **Success signal:** once the interaction surface is complete and trusted, later adaptive assistance can be added as bounded follow-ons without becoming a substitute for missing operator affordances.
-- **Eisenhower-3D:** importance `4`, urgency `2`, difficulty `4`
+## SG2 — Improve board-scale organization and review
 
-## Not current strategic goals
+Build on the existing dense rows, search aliases, structural selection, quick move, and destination memory. Favor visible improvements to navigation and review over generic infrastructure. Every new operation must remain honest about its selection scope and whether a change was applied or persisted.
 
-These matter, but they are not the top package-level bets right now:
-- waiting for upstream-native Excalidraw layers before improving the package UX
-- moving heavy graph/retrieval logic into the host package prematurely
-- treating `customData.lmx` as a second structural engine instead of bounded package-owned metadata
-- adding adaptive or semantic behavior before the interaction contract itself is complete
+## SG3 — Add bounded assistance after the foundation is verified
+
+A focused selection/group preview is a possible first follow-up. Adaptive surfacing, scene-cleanup assistance, and presenter-note interoperability remain future product work. Add schemas, caching, or a shared namespace only when a demonstrated consumer or measured cost requires them.
+
+## Strategy boundaries
+
+Do not wait for native Excalidraw layers, introduce a second canonical scene model, or move heavy graph/retrieval logic into the host. Preserve the [product vision](vision.md) while following the [operating plan](operating_plan.md). These documentary priorities are not a substitute for live AK task/direction reconciliation.

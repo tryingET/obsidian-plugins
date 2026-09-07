@@ -9,6 +9,9 @@ proposal_status: "package-owner approved; upstream unconfirmed"
 
 # Design — upstream maintainer feedback for Layer Manager X
 
+> **Implementation status — 2026-09-08.** This is the approved design, not a description of every shipped guarantee. The real-hook and naming corrections are published; broader startup, mutation, readiness, and editor races remain open. The [runtime reference](../reference/runtime-and-host-contract.md) describes actual code and the [closeout](2026-09-07-layer-manager-closeout.md) owns evidence. The conditional layout signal and bounded readiness timeout were justified by host observations. Preview/presenter work remains deferred.
+
+
 ## Status
 
 This is the package-first design baseline for work prompted by `zsviczian/obsidian-excalidraw-plugin#2737`.

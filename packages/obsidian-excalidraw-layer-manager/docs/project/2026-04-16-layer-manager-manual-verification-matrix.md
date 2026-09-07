@@ -1,137 +1,40 @@
 ---
-summary: "Manual verification matrix for LayerManager active-leaf rebinding, source-aware focus preservation, same-file note-card switching, truthful inactive/unbound shells, and document-routing release outside live Excalidraw."
+summary: "Maintained real-host acceptance matrix covering core features, lifecycle, naming, migration, and remaining race regressions."
 read_when:
-  - "You are closing the LayerManager host-context authority packet and need the operator-facing proof checklist."
-  - "You need the manual walk-through that complements the automated regression coverage for workspace-driven vs sidepanel-driven focus behavior, cross-file switches, same-file note-card switches, and typing/tabbing release outside live Excalidraw."
+  - "You are validating a candidate in the lab vault and need explicit expected outcomes and evidence boundaries."
 type: "reference"
 ---
 
-# Manual verification matrix — LayerManager host-context packet
+# Manual verification matrix
 
-## Task
-- AK closing task: `1525`
-- Depends on implementation slices: `1522`, `1523`, `1524`
-- Scope: `packages/obsidian-excalidraw-layer-manager/docs/project/2026-04-16-layer-manager-manual-verification-matrix.md`
-- Contract source: `packages/obsidian-excalidraw-layer-manager/docs/project/2026-04-16-layer-manager-active-leaf-guidance-and-plan.md`
+This is the maintained host checklist, not a completed test report. The dated path is kept for existing references. Recorded results belong in the [closeout](2026-09-07-layer-manager-closeout.md); known failing expanded scenarios remain blockers even when a normal smoke run passes.
 
-## Goal
-Provide one operator-facing packet that proves the package now behaves truthfully across:
-- workspace-driven Excalidraw file A -> Excalidraw file B switches
-- sidepanel-driven live rebinds after a persistent-shell unbound window
-- Excalidraw -> markdown / non-Excalidraw
-- markdown / non-Excalidraw -> Excalidraw
-- same-file front/back note-card mode switches
-- stale scene-change pressure from no-longer-live contexts
-- typing/tabbing outside live Excalidraw after routing has been released
+## Prepare
 
-## Test fixtures to prepare manually
-1. `A.excalidraw` with at least two named elements, for example `Alpha`, `Beta`
-2. `B.excalidraw` with at least two different named elements, for example `Gamma`, `Delta`
-3. one plain markdown note such as `plain.md`
-4. one Excalidraw note-card file that can switch between front/back modes while keeping the same file path
-5. the Layer Manager sidepanel opened and kept visible by the host
+Use a disposable copy of `apps/lab-vault`, with Excalidraw installed separately. Build and deploy the candidate through the [explicit-target workflow](2026-04-14-safe-deployment-and-reload-workflow.md). Record source commit, lock identity, built/installed hashes, OS, Obsidian version, and Excalidraw version. Do not modify a personal vault or commit runtime workspace/cache state.
 
-## Proof matrix
+Use `testing.md` plus a second drawing and a plain Markdown note. Include an ordinary shape, bound text, two groupable shapes, a named frame, legacy ordinary `name`, old frame LMX label, and unrelated custom data. Keep an unrelated script tab in the shared sidepanel for ownership checks.
 
-| Proof point | Manual steps | Expected result | Automated coverage |
-|---|---|---|---|
-| 1. Workspace-driven Excalidraw A -> Excalidraw B refreshes rows, selection context, and scene subscriptions without overclaiming focus | Open `A.excalidraw`, filter/select a row, then switch the active workspace leaf to `B.excalidraw` and refresh if needed | Filter clears, stale selection does not survive, visible rows now match `B`, and no `A` rows remain. If the switch started while focus was inside Layer Manager, row-tree focus can stay sidepanel-owned on a `B` row; if the switch started from the main drawing or another outside target, Layer Manager must not steal focus back. | `test/runtime.active-view-refresh.integration.test.ts` — `resets row filter, selection, and focus when the active drawing changes`; `auto-refreshes cross-file Excalidraw switches from workspace leaf-change events`; `keeps row-tree focus when a workspace-driven Excalidraw switch starts inside the sidepanel`; `does not steal focus from the host drawing when a workspace-driven Excalidraw switch starts outside the sidepanel`; `rebinds to the active workspace Excalidraw view before manual refresh reads`; `test/runtime.scene-subscription.integration.test.ts` — `rebinds scene subscriptions to the active workspace Excalidraw view before manual refresh` |
-| 2. Sidepanel-driven live rebind reclaims row-tree focus after an unbound persistent-shell window | In a host build where the shell can persist while unbound, leave Layer Manager visible, focus another outside control, then rebind the same sidepanel back to a live Excalidraw view through the host path that emits sidepanel `onViewChange` rather than a workspace leaf-change | The shell rebinds without closing, live rows return, and row-tree focus is reclaimed even though focus was outside immediately before rebind, because the reactivation was sidepanel-driven rather than workspace-driven | `test/runtime.sidepanel-mount.integration.test.ts` — `rebinds the persistent shell through sidepanel onViewChange without closing the tab`; `reclaims row-tree focus for sidepanel-driven onViewChange rebinds even when focus was outside` |
-| 3. Excalidraw A -> markdown keeps the shell truthful and inactive | With Layer Manager visible on `A.excalidraw`, switch the active leaf to `plain.md` | The shell stays visible if the host keeps it visible, shows `Layer Manager inactive`, and shows no stale tree rows | `test/runtime.active-view-refresh.integration.test.ts` — `renders an explicit inactive state when the active note is not Excalidraw-capable` |
-| 4. markdown / non-Excalidraw -> Excalidraw reactivates cleanly | From the inactive markdown state, switch back to `A.excalidraw` or another Excalidraw file | The live tree returns, rows match the active drawing, and the shell is interactive again without stale inactive copy lingering | `test/runtime.active-view-refresh.integration.test.ts` — `reactivates cleanly after rendering an inactive host view state`; `auto-refreshes host applicability from workspace note changes`; `polls workspace active-file changes when workspace events are unavailable` |
-| 5. Same-file front -> back and back -> front switches trigger reset/rebind | On the note-card file, create obvious filter/selection state on the front, switch to the back, then do the same from back -> front | Each mode switch behaves like a real active-view change: filter clears, stale selection/focus does not survive, and visible rows match the current face only | `test/runtime.active-view-refresh.integration.test.ts` — `treats same-file targetView identity switches in both directions as active-view changes even when file path and leaf stay stable`; `polls same-file leaf-context changes back out of unbound state when the file path stays stable` |
-| 6. Old scene pressure does not make the visible shell overclaim live authority | After switching the workspace active leaf from Excalidraw to markdown, provoke scene changes from the previously bound Excalidraw context if possible | The visible shell stays inactive and does not resurrect stale rows or pretend the old drawing is active again | `test/runtime.active-view-refresh.integration.test.ts` — `keeps the shell inactive when stale scene changes arrive after a workspace switch to markdown`; `test/runtime.scene-subscription.integration.test.ts` — `rebinds scene subscriptions to the active workspace Excalidraw view before manual refresh` |
-| 7. The visible shell never overclaims live authority | Repeat the transitions above while watching the sidepanel copy, row tree, and commands | Whenever live authority is unavailable, the shell is explicitly inactive/unbound rather than silently stale or force-closed for presentation reasons | Covered by the matrix above plus manual operator judgment |
-| 8. Typing/tabbing outside live Excalidraw stays outside Layer Manager routing | From a live session, either confirm an outside blur after inline rename or move into a markdown/non-Excalidraw editor once the shell is inactive, then press `Tab` and type a LayerManager shortcut such as `f` | Focus stays in the outside target, Tab follows outside navigation, typed shortcuts do not trigger Layer Manager commands, and routing stays released until real live Excalidraw authority returns | `test/runtime.sidepanel-keyboard-lifecycle.integration.test.ts` — `releases document routing on Tab after a row-action rename blur transition`; `releases typed document shortcuts after a row-action rename blur transition`; `does not recapture document focus after a confirmed outside blur`; `keeps document routing released across runtime refresh after confirmed outside blur`; `test/sidepanel.focus-ownership-coordinator.unit.test.ts` — `drops host document authority and clears routing state when the host becomes inactive` |
+## Required observations
 
-## Manual run sheet
+| Case | Exercise | Expected result and proof |
+|---|---|---|
+| A. Startup/features | Run the script; select, rename, hide/show, lock/unlock, filter, navigate, reorder, group/ungroup, drag/drop, and quick move | One panel; rows reflect the scene; resolved structural scope and rejection outcomes are honest. Check remembered destinations after a normal rerun. |
+| B. Same-leaf mode change | Keep the panel open; switch the same drawing leaf Excalidraw → Markdown → Excalidraw without rerunning | No stale live actions in Markdown; rows return for the replacement drawing. Record actual `onFocus`, `onExcalidrawViewClosed`, workspace events, and readiness timing rather than invoking a nonexistent `onViewChange`. |
+| C. Terminal manager close | Close the Layer Manager tab, then navigate between Markdown and multiple drawings and change a scene | The manager stays closed; no document shortcuts remain. Explicit script execution starts one fresh manager. |
+| D. Associated-view close | Close/replace the associated drawing while a sibling script tab remains | The manager becomes inactive/unbound, not terminally closed; the shared leaf and sibling tab remain. Focusing another drawing can rebind the existing manager. |
+| E. Persisted names | Rename ordinary and frame elements; save; inspect Markdown drawing JSON; reopen a legacy drawing | Ordinary labels use `customData.lmx.label`; frame names use native `name`; no new generic ordinary name; old fields remain readable; foreign/unknown data survives. |
+| F. Repeat/rerun | Repeat run → close → navigate → explicit rerun | One visible manager and no accumulating duplicate actions/listeners in the observed sequence. |
+| G. Focus/migration | Switch drawing A/B, test same-file different-view identity, then move the sidepanel into/out of a pop-out | Rows follow correct context. Workspace-driven changes do not steal outside focus. Keyboard ownership moves to the new document and releases on close. Test typing and Tab outside the panel. |
 
-### A. Workspace-driven cross-file Excalidraw -> Excalidraw
-1. Open `A.excalidraw`
-2. Type a row filter such as `Alpha`
-3. Select one row in Layer Manager
-4. Switch to `B.excalidraw` through the main workspace leaf change
-5. Confirm:
-   - the filter box resets
-   - the selected row highlight from `A` is gone
-   - only `B` rows are shown
-   - if focus was inside Layer Manager before the switch, keyboard focus lands on a `B` row rather than an old `A` row
-   - if focus was in the main drawing or another outside target before the switch, Layer Manager does not steal focus back
+Published automated anchors include `runtime.sidepanel-lifecycle-contract.integration.test.ts`, `runtime.active-view-refresh.integration.test.ts`, `runtime.scene-subscription.integration.test.ts`, mount/focus/keyboard/rename integration suites, and naming-contract tests in the package `test/` directory.
 
-### B. Sidepanel-driven persistent-shell rebind
-1. Use a host workflow where the Layer Manager shell can remain visible while temporarily unbound
-2. Let Layer Manager reach its unbound shell state without closing the sidepanel
-3. Move focus to another target outside Layer Manager
-4. Rebind the same sidepanel back to a live Excalidraw view through the host path that emits `onViewChange` rather than a workspace leaf change
-5. Confirm:
-   - the shell rebinds without closing
-   - the live row tree returns
-   - row-tree focus is reclaimed even though focus was outside immediately before the rebind
+## Expanded regression work still required
 
-If your local host build does not expose this path manually, treat `test/runtime.sidepanel-mount.integration.test.ts` as the primary proof for this subcase.
+Test synchronous close during initial open, pending legacy failure after disposal, fresh script evaluation while creation is pending, missing API despite a loaded view, readiness without a later event, snapshot-version monotonicity, stale native staging over unrelated edits, and live refresh during an ordinary/frame rename draft.
 
-### C. Excalidraw -> markdown
-1. Keep Layer Manager open on `A.excalidraw`
-2. Switch to `plain.md`
-3. Confirm:
-   - the sidepanel remains visible if the host leaves it visible
-   - the sidepanel title/copy reads as inactive
-   - there is no old row tree, no stale selection highlight, and no active filter control
+The unpublished candidate's focused tests reproduce thirteen failures on the reviewed published code. Do not check these off based on the normal-path matrix above. Reproduce each behavior first; then link the accepted regression, implementation commit, and new host observation where applicable.
 
-### D. markdown -> Excalidraw
-1. From the inactive markdown state, switch back to `A.excalidraw`
-2. Confirm:
-   - the row tree returns
-   - rows correspond to the newly active drawing
-   - interactions work again without needing to reopen the sidepanel manually
+## Record the result
 
-### E. Same-file front/back note-card switches
-1. Open the note-card front
-2. Apply a filter and select a row
-3. Switch to the back face without changing the file path
-4. Confirm the same reset semantics as a cross-file switch
-5. Apply a back-face filter and selection
-6. Switch back to the front face
-7. Confirm the front face reappears without stale back-face state
-
-### F. Stale-scene pressure while inactive
-1. Put the sidepanel into the markdown inactive state
-2. If the host still lets the previously bound Excalidraw scene emit changes, trigger one
-3. Confirm the visible shell remains inactive and does not repopulate old rows
-
-### G. Typing / tabbing outside live Excalidraw
-1. Start on `A.excalidraw` with Layer Manager live
-2. Either:
-   - trigger inline rename, confirm it, and then move focus to an outside target, or
-   - switch to `plain.md` so the shell is inactive and focus the markdown editor
-3. Press `Tab`
-4. Type a key that would normally be a Layer Manager shortcut, for example `f`
-5. Confirm:
-   - focus stays in the outside target
-   - Tab advances according to the outside target, not the Layer Manager row tree
-   - the sidepanel does not reorder rows, reopen rename, or silently recapture document routing
-   - returning to live Excalidraw reacquires routing only after the real host transition back
-
-## Verification commands used for this packet
-```bash
-cd packages/obsidian-excalidraw-layer-manager
-npm run typecheck
-npm run lint
-npx vitest run \
-  test/runtime.active-view-refresh.integration.test.ts \
-  test/runtime.scene-subscription.integration.test.ts \
-  test/runtime.sidepanel-mount.integration.test.ts \
-  test/runtime.sidepanel-focus-keyboard.integration.test.ts \
-  test/runtime.sidepanel-keyboard-lifecycle.integration.test.ts \
-  test/sidepanel.focus-ownership-coordinator.unit.test.ts
-node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs docs/project --strict
-```
-
-## Smallest truthful conclusion
-Layer Manager is now verified against the maintainer guidance when it:
-- rebinds to the active Excalidraw leaf when live authority exists
-- applies a source-aware focus policy: workspace-driven switches respect prior sidepanel ownership, while sidepanel-driven live rebinds may reclaim row-tree focus
-- stays visibly inactive/unbound when live authority does not exist
-- treats same-file front/back note-card switches as real active-view changes
-- avoids showing a stale tree as if it were still live
-- and releases document-level typing/tabbing ownership outside live Excalidraw until real live authority returns
+For each case record pass/fail/not run, the exact build, actual steps, observed events, and relevant saved data or trace. Keep initial failures and later corrected results distinguishable. Report only the OS and host versions actually tested. A checklist, unit fake, screenshot, or passing build alone is not a full host acceptance result.

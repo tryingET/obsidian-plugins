@@ -4,10 +4,13 @@ read_when:
   - "You are implementing the approved response to upstream PR #2737 feedback."
   - "You need the ordered source, test, review, build, and lab-vault verification sequence."
 type: "plan"
-plan_status: "active"
+plan_status: "partially implemented; release blockers remain"
 ---
 
 # Implementation plan — Layer Manager X maintainer feedback
+
+> **Plan status — 2026-09-08: partially implemented; not closed.** Normal host lifecycle, naming, layout recovery, and native settings corrections are published. Expanded regressions and external verification remain unresolved; do not mark Step 8 complete or infer upstream readiness. Follow the [current operating plan](operating_plan.md) and [consolidated closeout](2026-09-07-layer-manager-closeout.md). The ordered steps below retain the original acceptance criteria.
+
 
 ## Goal
 

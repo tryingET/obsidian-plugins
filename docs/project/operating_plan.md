@@ -8,6 +8,9 @@ type: "reference"
 
 # Operating Plan
 
+> **Authority note — 2026-09-08.** Task IDs and task states below preserve the earlier direction record; the external AK database was not available for this documentation audit. Do not treat them as newly verified live task state. Current Layer Manager implementation/evidence is maintained in its [package docs](../../packages/obsidian-excalidraw-layer-manager/docs/README.md), not this family-level plan.
+
+
 Active strategic goal: **SG1 — Make repo-root family direction and package handoff explicit**
 
 Active tactical goal: **TG2 — Refresh repo bootstrap/read-path guidance so root direction and package direction are read together**

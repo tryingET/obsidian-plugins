@@ -1,11 +1,14 @@
 ---
-summary: "BDD acceptance scenarios, implementation review, and execution evidence for completing the maintainer-feedback packet."
+summary: "Historical BDD scenario record; current implementation evidence and verdict live in the consolidated Layer Manager closeout."
 read_when:
   - "You are completing or verifying the September 2026 Layer Manager lifecycle and naming corrections."
 type: "review"
 ---
 
 # Maintainer-feedback closeout
+
+> **Historical BDD record; not the current closeout.** The scenarios and initial state below were recorded before corrective work. Subsequent results and the only current readiness verdict are in [2026-09-07-layer-manager-closeout.md](2026-09-07-layer-manager-closeout.md). References below to a “single” record or work still to be recorded describe that earlier session, not a second current authority.
+
 
 ## Status and scope
 

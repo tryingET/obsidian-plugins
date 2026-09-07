@@ -1,188 +1,65 @@
 ---
-summary: "Imported TypeScript package for the Excalidraw Layer Manager script, now housed inside the obsidian-plugins monorepo as the first real host package."
+summary: "Layer Manager: installation, behavior, development commands, and the documentation entry point."
 read_when:
-  - "You are working on the imported Excalidraw Layer Manager package."
-  - "You need the shortest package-level statement of what was imported and why it lives here now."
+  - "You want to run, develop, or review the Layer Manager Excalidraw script."
 type: "reference"
 ---
 
-# obsidian-excalidraw-layer-manager
+# Layer Manager for Obsidian Excalidraw
 
-Imported TypeScript package for the Excalidraw Layer Manager script.
+Layer Manager is a keyboard-first sidepanel for inspecting, naming, selecting, and organizing Excalidraw elements. It projects the drawing's existing order, groups, frames, and element state; it does not introduce a second layer engine.
 
-This is the **first real host package** in the `obsidian-plugins` monorepo.
-It proves that the repo should host not only installable plugins, but also Obsidian-host-native script packages when they are part of the same steward/crystallization/workbench family.
+This package builds **`LayerManager.md`, an Excalidraw script**, not an independently installable Obsidian plugin. TypeScript lives in `src/`, tests in `test/`, and the generated script in `dist/`. The checked-in lab copy is in `apps/lab-vault/Excalidraw/Scripts/` at the repository root.
 
-## Origin
+## Status
 
-Imported from the external workspace:
-- `/home/tryinget/migration-from-wsl/to-sort/layermanagerExcalidrawPlugin`
+The published implementation includes the September 2026 host-lifecycle, naming, same-leaf recovery, and settings-receiver corrections. **It is not an unconditional release-ready build.** A larger local candidate was not published; its focused tests reproduce additional failures on the published source. Dependency remediation and the external documentation gate also remain open. See the [current state](docs/project/current-vs-target.md) and [consolidated closeout](docs/project/2026-09-07-layer-manager-closeout.md) for revision-specific evidence, not an inferred promise that every race is solved.
 
-The imported package keeps the core shape of that workspace:
-- TypeScript source in `src/`
-- build scripts in `build/`
-- tests in `test/`
-- bundle output as `dist/LayerManager.md`
+## Run it in a disposable vault
 
-## Purpose
+Use Node.js 22 or newer for development. Install Obsidian and the Excalidraw community plugin separately. The recorded desktop smoke tests used Obsidian 1.13.7 and Excalidraw 2.27.3; this is an evidence baseline, not a tested compatibility range.
 
-Provide an architecture-first Layer Manager for Obsidian Excalidraw scripts, with:
-- sidepanel-first UX
-- deterministic scene/tree behavior
-- outcome-honest scene mutations
-- strong runtime/test coverage
-
-## Public reference implementation
-
-This package is now published from the public monorepo:
-- repo: `https://github.com/tryingET/obsidian-plugins`
-- package path: `https://github.com/tryingET/obsidian-plugins/tree/main/packages/obsidian-excalidraw-layer-manager`
-
-Intended use:
-- inspiration/reference for building a more advanced Obsidian-host-native extension package
-- stable source link for the generated `LayerManager.md` header comment
-- tag/release anchor when sharing the exact snapshot used for upstream discussion or review
-
-## Current UX snapshot
-
-Recent user-facing behavior now includes:
-- collapsed-group search that still reaches descendant rows, including merged bound-text aliases when the visible row label differs from the underlying text content
-- keyboard structural movement on `Alt+[ / ]`, quick root/group moves on `Alt+0` and `Alt+1..9`, and row-selection-first `Space` semantics (`Space` select/deselect, `Ctrl+Space` toggle, `Shift+Space` add range)
-- simplified main chrome: the row/status count line is gone, row/action hover tooltips are gone, and the header `?` remains as the single global keyboard-shortcuts help affordance
-- Excalidraw-style icon alignment for visibility, lock, rename, delete, help, and toolbar z-order controls
-
-## Mutation contract
-
-- `executeIntent(...)` remains the canonical command path for planner-driven scene writes.
-- `apply(patch)` now returns an explicit `ApplyPatchOutcome` instead of resolving `Promise<void>` on failure.
-- Any patch that combines element edits with reorder now commits through a single `updateScene` write or fails before commit, so reorder-sensitive scene changes do not partially land.
-
-## Keyboard-first tree selection model
-
-- Arrow, Home/End, PageUp/PageDown, and Space shortcuts build and extend explicit row selection first, so sidepanel tree selection stays anchored in row intent instead of being inferred only from host element selection.
-- `Space` selects the focused row, `Ctrl+Space` toggles the focused row into or out of the current selection, and `Shift+Space` adds the visible range from the current anchor to the focused row. Interaction debug keeps stable `selectionOrigin` / `selectionSemantics` fields so post-hoc triage can distinguish replace, toggle, range, and extend gestures.
-- Delete, reorder, group, and ungroup-like shortcuts honor explicit row selection first, then canonical element selection, and only fall back to the focused row when selection is empty.
-- If neither selection nor focus exists, the keyboard command fails closed instead of attempting scene writes.
-
-## Package docs
-
-- `docs/project/import-origin.md`
-- `docs/project/purpose.md`
-- `docs/project/vision.md`
-- `docs/project/strategic_goals.md`
-- `docs/project/tactical_goals.md`
-- `docs/project/operating_plan.md`
-- `docs/project/current-vs-target.md`
-- `docs/project/2026-04-18-layer-manager-markdown-note-workspace-truth-closeout.md`
-- `docs/project/2026-04-18-layer-manager-markdown-note-workspace-truth-root-cause.md`
-- `docs/project/2026-04-18-layer-manager-markdown-sidepanel-rebind-stabilization-closeout.md`
-- `docs/project/2026-04-18-layer-manager-host-context-loop-root-cause-and-manual-verification-path.md`
-- `docs/project/2026-04-17-layer-manager-host-context-packet-closeout.md`
-- `docs/project/2026-04-17-layer-manager-host-context-fresh-context-implementation-note.md`
-- `docs/project/2026-04-16-layer-manager-manual-verification-matrix.md`
-- `docs/project/2026-04-08-projection-kernel-recovery.md`
-- `docs/project/2026-04-09-projection-kernel-recovery-blueprint.md`
-- `docs/project/2026-04-14-safe-deployment-and-reload-workflow.md`
-- `docs/project/script-style-package-boundary.md`
-
-## Host-context and workspace-truth packet
-
-Layer Manager host switching now treats **scene-bound authority** as the source of truth, while workspace note truth is observed from the canonical workspace surface before being compared against surviving `targetView` authority.
-
-The shortest read stack for that packet is:
-- `docs/project/current-vs-target.md`
-- `docs/project/2026-04-18-layer-manager-markdown-note-workspace-truth-closeout.md`
-- `docs/project/2026-04-18-layer-manager-markdown-note-workspace-truth-root-cause.md`
-- `docs/project/2026-04-18-layer-manager-markdown-sidepanel-rebind-stabilization-closeout.md`
-- `docs/project/2026-04-18-layer-manager-host-context-loop-root-cause-and-manual-verification-path.md`
-- `docs/project/2026-04-17-layer-manager-host-context-packet-closeout.md`
-- `docs/project/2026-04-17-layer-manager-host-context-fresh-context-implementation-note.md`
-- `docs/project/2026-04-16-layer-manager-manual-verification-matrix.md`
-
-Use the `2026-04-18` notes when the question is specifically about markdown/sidepanel empty-leaf rebind churn, canonical workspace app selection, separating active workspace truth from `targetView` authority, or the umbrella closeouts for packets `1599` and `1608`.
-
-## AK direction (L3 package surface)
-
-This package now has its own AK direction substrate as an **L3 monorepo member**.
-
-Use the registered alias path when targeting package-level AK direction surfaces:
+From the **repository root**:
 
 ```bash
-ak direction export --repo 'owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager'
-ak direction check --repo 'owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager'
-ak task show 1074
-ak task show 1072
-ak task show 1073
-```
-
-Repo root remains the L2 family direction surface; this package is the L3 product/package surface.
-
-## Commands
-
-```bash
+npm ci
 npm run check
-npm run verify:recovery
-npm run check:full
-npm run check:fast
-npm run typecheck:scripts
-npm run test:coverage
-npm run quality:ts
-npm run build
-npm run sync:vault
-npm run bundle:and:sync
+npm --prefix packages/obsidian-excalidraw-layer-manager run build
+LMX_VAULT_TARGET="$PWD/apps/lab-vault/Excalidraw/Scripts/LayerManager.md" \
+  npm --prefix packages/obsidian-excalidraw-layer-manager run sync:vault
 ```
 
-Recovery-wave verification contract:
-- `npm run check:fast` now hardens the package surface beyond TypeScript source by running `biome`, `tsc --noEmit`, and JS/MJS script type-checking through `tsconfig.scripts.json`
-- `npm run verify:recovery` runs the mandatory kernel gate: `npm run check:fast`, `npm test`, and `npm run arch`
-- if package docs differ from `HEAD` (including working-tree changes), the same gate also runs `node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs packages/obsidian-excalidraw-layer-manager/docs --strict`
-- `npm run test:coverage` now enforces the package coverage floor over the runtime TypeScript surface while excluding build/helpers that are validated through dedicated script checks and now also emits `coverage/lcov.info` for downstream evidence tooling
-- `npm run quality:ts` applies the sibling `../../owned/ts-quality` change-review tool against the current Layer Manager package diff after generating coverage, writing transient runtime config under `.ts-quality/runtime/`; it is currently an explicit review surface, not part of the ship-ready gate
-- `npm run check` is now the authoritative ship-ready gate: it runs `verify:recovery`, `deadcode`, `test:coverage`, and the deployment-workflow proof before release work or sync
-- `npm run check:full` remains as a compatibility alias to `npm run check`
-- `npm run sync:vault` now fails closed by running `npm run check` before copying into the vault target
-- `npm run bundle:and:sync` remains as a compatibility alias to `npm run sync:vault`
+Open `apps/lab-vault` as a vault, enable Excalidraw, configure its script folder as `Excalidraw/Scripts`, open `testing.md` in Excalidraw view, and execute `LayerManager` through Excalidraw's script controls.
 
-Default sync/source defaults now live in the package-local config file:
-- `layer-manager.config.mjs`
+**Always choose the deployment target explicitly.** Without `LMX_VAULT_TARGET`, the package defaults to a maintainer-specific personal vault path, not the repository lab vault. The [deployment guide](docs/project/2026-04-14-safe-deployment-and-reload-workflow.md) covers receipts, backup, and rollback.
 
-That config currently defines:
-- the generated bundle header source link: `https://github.com/tryingET/obsidian-plugins/tree/main/packages/obsidian-excalidraw-layer-manager`
-- the default Obsidian sync target path
-- the default deployment receipt root
+## Work with the panel
 
-Default sync target now points at the primary personal Obsidian Excalidraw Skripte path:
-- `~/Documents/Obsidian/00-09_meta/02_HardwareSoftwareTools/02.01_Obsidian/Excalidraw/Skripte/LayerManager.md`
+The panel supports row and range selection, inline rename, visibility, locking, deletion, grouping, relative ordering, drag/drop, filtering, and quick move with remembered destinations. The header `?` lists the implemented keyboard shortcuts. Filtering changes what is visible; it does not silently narrow structural command targets.
 
-`npm run sync:vault` is now a safe deployment step, not just a blind copy, and it refuses to deploy without first passing the authoritative package gate before verifying that the exported bundle landed at that scripts path with the same hash as `dist/LayerManager.md`:
-- it preserves the previous target bundle under `.tmp/obsidian-excalidraw-layer-manager/deployments/<timestamp>/previous/`
-- it stages the fresh bundle beside the target, verifies the staged hash, and then swaps it into place
-- it verifies the final target hash matches the built bundle
-- it writes a deployment receipt with rollback guidance and the manual reload checklist
-- the recorded rollback command uses a portable Node copy helper instead of assuming `cp`
+Normal user close stops the owning runtime. Explicitly running the script again starts a replacement. Losing the associated drawing keeps the panel available in an inactive or unbound state. Ordinary labels are stored in `customData.lmx.label`; frames use native `name`.
 
-For one-off runs, environment overrides still win over the package config. Override the target or receipt root with:
+Read the [usage guide](docs/guides/usage.md), [host contract](docs/reference/runtime-and-host-contract.md), and [metadata contract](docs/reference/metadata-contract.md) for details and limitations.
+
+## Develop and verify
 
 ```bash
-LMX_VAULT_TARGET="/custom/path/LayerManager.md" npm run sync:vault
-LMX_DEPLOY_ROOT="/custom/deploy-receipts" npm run sync:vault
+# Run from this package directory.
+npm run check:fast       # Biome and both TypeScript checks
+npm test                 # Vitest suite
+npm run arch             # Dependency-boundary checks
+npm run check            # Recovery gate, dead code, coverage, deployment proof
+npm run build            # Generate dist/LayerManager.md; does not activate it
 ```
 
-The authoritative `npm run check` gate now also proves the workflow end-to-end by running `node build/verifyDeploymentWorkflow.mjs` against a temporary vault target before release work or sync, and the checked-in GitHub Actions workflow (`.github/workflows/ci.yml`) inherits that same repo/package gate before merge.
+`npm run check` includes an external strict documentation checker when package docs are dirty. That checker is not bundled in the repository; a clean-checkout CI pass does not prove it ran. The [verification guide](docs/guides/verification.md) explains the exact detection behavior, local prerequisites, and real-host matrix.
 
-`npm run quality:ts` expects a built sibling `ts-quality` checkout at `../../owned/ts-quality` by default. Override that lookup with `LMX_TS_QUALITY_ROOT=/custom/ts-quality npm run quality:ts`. When the package has no changed `src/**` files in the selected diff range, the script skips instead of widening to a misleading full-repo review. By default it reviews the current worktree diff against `HEAD`; if the worktree is clean it falls back to `HEAD^..HEAD`. Override the range with `LMX_TS_QUALITY_DIFF_RANGE="origin/main...HEAD" npm run quality:ts`.
+## Documentation and source ownership
 
-Manual reload rule after sync:
-1. open an Excalidraw drawing in the target vault
-2. rerun `LayerManager` so the script disposes the previous runtime and mounts the fresh bundle
-3. if the rerun fails, restore the backup recorded in the deployment receipt and rerun the script
+Start at the [documentation index](docs/README.md). Current references describe published code; dated investigations retain their historical conclusions and are marked accordingly. The [import record](docs/project/import-origin.md) explains the package's origin. The [package boundary](docs/project/script-style-package-boundary.md) explains why it remains a script.
+
+The package exports its metadata types from `src/model/entities.ts`; there is no new metadata package or public barrel added for this correction. Source code, rather than generated script edits, owns runtime changes.
 
 ## License
 
-MIT
-
-## Non-goals
-
-- canonical runtime authority
-- canonical promotion lineage
-- moving heavy graph/retrieval logic into the Excalidraw host without proof
+MIT. See [LICENSE](LICENSE).
