@@ -24,7 +24,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Specify separate dependency acceptance before the audit test
+      - name: Specify separate dependency acceptance before audit test
         shell: bash
         run: |
           set -euo pipefail
@@ -41,31 +41,31 @@ jobs:
 
           # Development dependency security
 
-          This is separate maintenance, not a Layer Manager feature or a new test framework.
-          The feature packet's tests and real-host verification passed before this work.
+          This is separate maintenance, not a Layer Manager feature or a new framework.
+          The feature packet passed its existing gates and real-host matrix first.
 
-          ## BDD acceptance
+          ## BDD acceptance before remediation
 
-          Given the existing locked dependencies and the current npm advisory database,
-          when the full dependency graph is audited, then all reported severities must be
+          Given existing locked dependencies and the current npm advisory database,
+          when the full dependency graph is audited, then all severities must be
           considered, not only production dependencies or high/critical findings.
-
-          Given vulnerable development dependencies, when applying compatible remediations,
-          then the source and tests must remain unchanged, every existing gate must pass
-          without threshold/configuration changes, and the built LayerManager script must
-          remain byte-equivalent to the host-tested script. No force upgrade is permitted.
+          Given vulnerable development dependencies, when compatible remediations are
+          applied, then source, tests, configuration, and thresholds stay unchanged;
+          every existing gate passes; the bundle stays byte-identical to the host-tested
+          artifact. Do not use force upgrades or bypass peer constraints.
 
           ## TDD and evidence
 
-          The audit is run before dependency changes and its nonzero exit plus JSON counts
-          must be recorded. It must return zero after remediation and a clean npm ci.
-          The separate verification artifact contains both reports and the unchanged full
-          repository gate log. Registry availability and advisory changes can affect later
-          audits; zero findings is a dated observation, not a universal security guarantee.
+          The audit must fail before dependency changes and return zero after a clean
+          npm ci. Preserve both JSON reports and the full gate log. Initial compatible
+          audit-fix left the coupled Vitest/coverage packages pinned; update them together
+          within their existing declared ranges before re-auditing. Verification rejects
+          any dependency change that alters the tested artifact.
+          Zero findings is a dated database observation, not a universal security claim.
           DOC
           git add docs/project/2026-09-07-development-dependency-security.md
-          git commit -m 'docs: define isolated dependency security acceptance before audit remediation'
-      - name: Record the failing dependency regression
+          git commit -m 'docs: define isolated dependency security acceptance before remediation'
+      - name: Record failing dependency regression
         shell: bash
         run: |
           set -euo pipefail
@@ -77,26 +77,20 @@ jobs:
           test "$result" -ne 0
           node -e 'const d=require(process.env.RUNNER_TEMP+"/lmx-evidence/audit-before.json");if(!(d.metadata.vulnerabilities.total>0))process.exit(1);console.log(d.metadata.vulnerabilities)'
           git add package.json
-          git commit -m 'test: expose full-graph dependency audit and reproduce known advisories'
+          git commit -m 'test: expose full-graph dependency audit and reproduce advisories'
       - name: Apply compatible remediation only
         shell: bash
         run: |
           set -euo pipefail
-          npm view 'vite@~7.3.2' version --json > "$RUNNER_TEMP/lmx-evidence/vite-compatible-versions.json"
-          node <<'JS'
-          const fs=require('node:fs');const file='package.json';const pkg=JSON.parse(fs.readFileSync(file));
-          const raw=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/lmx-evidence/vite-compatible-versions.json'));
-          const versions=(Array.isArray(raw)?raw:[raw]).filter(v=>/^7\.3\.\d+$/.test(v)).sort((a,b)=>Number(a.split('.')[2])-Number(b.split('.')[2]));
-          if(!versions.length)throw new Error('No compatible Vite security patch found');
-          pkg.overrides.vite=versions.at(-1);fs.writeFileSync(file,JSON.stringify(pkg,null,2)+'\n');console.log('Vite patch',pkg.overrides.vite);
-          JS
+          npm pkg set 'overrides.vite=7.3.6'
+          npm update vitest @vitest/coverage-v8 --ignore-scripts 2>&1 | tee "$RUNNER_TEMP/lmx-evidence/coupled-update.log"
           npm audit fix --ignore-scripts 2>&1 | tee "$RUNNER_TEMP/lmx-evidence/audit-fix.log"
           npm ci
           npm audit --json > "$RUNNER_TEMP/lmx-evidence/audit-after.json"
           npm run audit
           git add package.json package-lock.json
-          git commit -m 'fix(deps): remediate reported development-tool vulnerabilities with compatible updates'
-      - name: Run every unchanged repository gate and prove artifact stability
+          git commit -m 'fix(deps): remediate development-tool advisories with compatible updates'
+      - name: Run unchanged full gate and prove artifact stability
         shell: bash
         run: |
           set -euo pipefail
@@ -111,7 +105,8 @@ jobs:
           test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$GITHUB_SHA"
           git push origin HEAD:refs/heads/main
           git log -3 --oneline > "$RUNNER_TEMP/lmx-evidence/published-commits.txt"
-      - name: Preserve success or failure evidence
+          cp package.json package-lock.json "$RUNNER_TEMP/lmx-evidence/"
+      - name: Preserve verification evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
