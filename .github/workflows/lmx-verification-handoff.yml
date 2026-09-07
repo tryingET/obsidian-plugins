@@ -21,7 +21,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Specify security acceptance before regression
+      - name: Specify security and type-only compatibility acceptance
         shell: bash
         run: |
           set -euo pipefail
@@ -30,7 +30,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           cat > docs/project/2026-09-07-development-dependency-security.md <<'DOC'
           ---
-          summary: "Separate test-first remediation of development-tool advisories found during Layer Manager verification."
+          summary: "Separate test-first remediation of development-tool advisories and callable mock type compatibility."
           read_when:
             - "You are reviewing September 2026 dependency security maintenance."
           type: "review"
@@ -39,42 +39,46 @@ jobs:
           # Development dependency security
 
           This is separate maintenance, not a Layer Manager feature or a new framework.
-          The feature packet passed its existing gates and native-host matrix first.
+          The feature packet passed existing gates and its native-host matrix first.
 
           ## BDD acceptance
 
           Given locked dependencies and current npm and maintainer advisories, when the
           complete graph is reviewed, then every severity and affected maintained-version
           range is considered. Given an unmaintained vulnerable runner, when installing a
-          supported patched release, then source, tests, configurations, and thresholds
-          remain unchanged, all existing gates pass, and the generated script remains
-          byte-identical to the native-host-tested artifact. No force or peer bypass is
-          allowed. A major runner update must be explicit, not an audit side effect.
+          supported patched release, then production source, executable tests, assertions,
+          gate configurations, and thresholds remain unchanged; all existing gates pass;
+          the generated script stays byte-identical to the native-host-tested artifact.
+          No force or peer bypass is allowed. A major runner update is explicit, not an
+          audit side effect. Given Vitest 4 supports both callable and constructable mocks,
+          when an existing fixture represents a function, then its annotation specifies
+          that callable signature. Compiled test JavaScript must remain byte-identical.
 
-          ## Why a supported Vitest release is required
+          ## Supported release and observed regressions
 
           The full-graph npm snapshot reported ten findings. Compatible audit-fix left
           Vitest unresolved. The maintainer's GHSA-82fw-gwwq-j7x9 states 3.x is unmaintained
-          and the redirect-mock fix is in 4.1.11. A nominally clean older database snapshot
-          therefore would not establish remediation of that known advisory.
+          and its redirect-mock fix is in 4.1.11. A nominally clean older database snapshot
+          would not establish remediation of the known advisory.
           Source: https://github.com/vitest-dev/vitest/security/advisories/GHSA-82fw-gwwq-j7x9
           This requires development-server access; no shipped script exploit is asserted.
           Vitest and coverage-v8 are updated together; the framework remains Vitest.
+          Old-lock installs failed inside npm's edgesOut resolver. A clean lock resolved
+          that and produced zero audit findings, then the existing TypeScript gate caught
+          ambiguous fixture mock annotations. Those failures preceded the type refinements.
 
-          ## TDD and evidence
+          ## Verification contract
 
-          Record the full-graph audit failure before changing dependencies. Select the
-          supported runner explicitly, regenerate the lock within the other existing
-          declared ranges, clean-install, require zero audit findings, run every existing
-          gate, and compare the artifact hash. Earlier in-place and old-lock installation
-          attempts failed inside npm's edgesOut resolver before publishing. Generating a
-          clean lock avoids carrying that resolver state forward. Both audit JSON reports,
-          the full gate log, and the lockfile are preserved in verification artifacts.
-          Zero findings is a dated database observation, not a universal security claim.
+          Record the audit failure before changes and TypeScript failure after upgrading
+          but before refining fixture annotations. Require identical transpiled JavaScript
+          for every edited test, zero full-graph audit findings after npm ci, all unchanged
+          gates, and the host-tested artifact hash. Preserve before/after audit JSON, red
+          typecheck, full gate log, package manifests, and lockfile. Zero findings is a dated
+          database observation, not a universal security guarantee.
           DOC
           git add docs/project/2026-09-07-development-dependency-security.md
-          git commit -m 'docs: define supported dependency security acceptance before remediation'
-      - name: Record failing dependency regression
+          git commit -m 'docs: define security and type-only mock compatibility acceptance'
+      - name: Record audit failure before remediation
         shell: bash
         run: |
           set -euo pipefail
@@ -87,14 +91,13 @@ jobs:
           node -e 'const d=require(process.env.RUNNER_TEMP+"/lmx-evidence/audit-before.json");if(!(d.metadata.vulnerabilities.total>0))process.exit(1);console.log(d.metadata.vulnerabilities)'
           git add package.json
           git commit -m 'test: expose full-graph audit and reproduce development advisories'
-      - name: Resolve supported versions into a clean lock
+      - name: Resolve supported versions and reproduce stricter fixture typing
         shell: bash
         run: |
           set -euo pipefail
           npm pkg set 'overrides.vite=7.3.6'
           node <<'JS'
-          const fs=require('node:fs');
-          const file='packages/obsidian-excalidraw-layer-manager/package.json';
+          const fs=require('node:fs');const file='packages/obsidian-excalidraw-layer-manager/package.json';
           const p=JSON.parse(fs.readFileSync(file));
           p.devDependencies.vitest='4.1.11';p.devDependencies['@vitest/coverage-v8']='4.1.11';
           fs.writeFileSync(file,JSON.stringify(p,null,2)+'\n');
@@ -105,9 +108,52 @@ jobs:
           npm ci
           npm audit --json > "$RUNNER_TEMP/lmx-evidence/audit-after.json"
           npm run audit
-          node -e 'for(const p of ["vitest","@vitest/coverage-v8"]){const v=require(p+"/package.json").version;if(v!=="4.1.11")throw Error(p+" "+v)}'
+          set +e
+          npm --prefix packages/obsidian-excalidraw-layer-manager run typecheck > "$RUNNER_TEMP/lmx-evidence/mock-types-red.log" 2>&1
+          status=$?
+          set -e
+          test "$status" -ne 0
+          grep -q 'Constructable' "$RUNNER_TEMP/lmx-evidence/mock-types-red.log"
           git add package.json package-lock.json packages/obsidian-excalidraw-layer-manager/package.json
-          git commit -m 'fix(deps): install supported patched Vitest and refresh vulnerable development dependencies'
+          git commit -m 'fix(deps): install supported patched Vitest and refresh vulnerable dependencies'
+      - name: Refine callable fixture annotations with executable-equivalence proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'JS'
+          const fs=require('node:fs');const cp=require('node:child_process');const ts=require('typescript');
+          const root='packages/obsidian-excalidraw-layer-manager/test/';
+          const edits={
+            'sidepanelTestHarness.ts': {
+              'setTitle: ReturnType<typeof vi.fn>':'setTitle: ReturnType<typeof vi.fn<(title: string) => void>>',
+              'open: ReturnType<typeof vi.fn>':'open: ReturnType<typeof vi.fn<(reveal?: boolean) => void>>',
+              'close: ReturnType<typeof vi.fn>':'close: ReturnType<typeof vi.fn<() => void>>',
+              'setContent: ReturnType<typeof vi.fn>':'setContent: ReturnType<typeof vi.fn<(content: HTMLElement | string) => void>>',
+            },
+            'sidepanel.mount-manager.unit.test.ts': {'closeSidepanelTab: ReturnType<typeof vi.fn>':'closeSidepanelTab: ReturnType<typeof vi.fn<() => void>>'},
+            'sidepanel.host-selection-bridge.unit.test.ts': {
+              'setView: ReturnType<typeof vi.fn>':'setView: ReturnType<typeof vi.fn<(view?: unknown, reveal?: boolean) => unknown>>',
+              'selectElementsInView: ReturnType<typeof vi.fn>':'selectElementsInView: ReturnType<typeof vi.fn<(ids: readonly string[]) => void>>',
+            },
+            'runtime.sidepanel-selection-sync.integration.test.ts': {'selectInView: ReturnType<typeof vi.fn>':'selectInView: ReturnType<typeof vi.fn<(ids: readonly string[]) => void>>'},
+            'runtime.sidepanel-keyboard-lifecycle.integration.test.ts': {
+              'updateScene: ReturnType<typeof vi.fn>':'updateScene: ReturnType<typeof vi.fn<(scene: { elements: RawExcalidrawElement[] }) => void>>',
+              'createSidepanelTab: ReturnType<typeof vi.fn>':'createSidepanelTab: ReturnType<typeof vi.fn<() => Promise<typeof asyncTab.tab>>>',
+            },
+          };
+          const transpile=s=>ts.transpileModule(s,{compilerOptions:{target:ts.ScriptTarget.ESNext,module:ts.ModuleKind.ESNext,removeComments:true}}).outputText;
+          for(const [file,replacements] of Object.entries(edits)) {
+            const path=root+file;const before=fs.readFileSync(path,'utf8');let after=before;
+            for(const [a,b] of Object.entries(replacements)) {if(!after.includes(a))throw Error('Missing annotation '+path);after=after.replaceAll(a,b)}
+            fs.writeFileSync(path,after);
+            cp.execFileSync('./node_modules/.bin/biome',['format','--write',path]);
+            after=fs.readFileSync(path,'utf8');
+            if(transpile(before)!==transpile(after))throw Error('Executable tests changed '+path);
+            console.log('Identical executable test JavaScript:',path);
+          }
+          JS
+          git add packages/obsidian-excalidraw-layer-manager/test
+          git commit -m 'test: specify callable fixture mock signatures without changing executable assertions'
       - name: Run unchanged gates and prove artifact stability
         shell: bash
         run: |
@@ -117,15 +163,20 @@ jobs:
           echo '651e881e6bfadd12f82513b6ff66cb30138333b4b7f1f86d8d972750bf220d1b  packages/obsidian-excalidraw-layer-manager/dist/LayerManager.md' | sha256sum --check
           cmp packages/obsidian-excalidraw-layer-manager/dist/LayerManager.md apps/lab-vault/Excalidraw/Scripts/LayerManager.md
           test "$(git rev-parse HEAD:packages/obsidian-excalidraw-layer-manager/src)" = 783ddbee2dad37cbe289f1812ef4be3a02c56d20
-          test "$(git rev-parse HEAD:packages/obsidian-excalidraw-layer-manager/test)" = cfd2ac0f1d130d47abb43a4fe77670fda21a804c
       - name: Publish only a green fast-forward
         shell: bash
         run: |
           set -euo pipefail
           test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$GITHUB_SHA"
           git push origin HEAD:refs/heads/main
-          git log -3 --oneline > "$RUNNER_TEMP/lmx-evidence/published-commits.txt"
+          git log -4 --oneline > "$RUNNER_TEMP/lmx-evidence/published-commits.txt"
+      - name: Capture locked verification inputs
+        if: always()
+        run: |
           cp package.json package-lock.json "$RUNNER_TEMP/lmx-evidence/"
+          git diff > "$RUNNER_TEMP/lmx-evidence/uncommitted.patch"
+          git archive --format=tar HEAD | gzip -n > "$RUNNER_TEMP/lmx-evidence/source.tar.gz"
+          tar -czf "$RUNNER_TEMP/lmx-evidence/dependencies.tar.gz" node_modules
       - name: Preserve verification evidence
         if: always()
         uses: actions/upload-artifact@v4
