@@ -12161,21 +12161,21 @@ ${lines.join("\n")}`);
     }
     return record["excalidrawAPI"] ?? null;
   };
-  var recoverHostViewFromReplacedLeaf = (host, releasedView) => {
-    if (!releasedView || typeof releasedView !== "object") return false;
-    const leaf = releasedView.leaf;
-    const replacement = leaf?.view;
-    if (!leaf || !replacement || replacement === releasedView) return false;
-    if (!resolveLiveExcalidrawApiFromTargetView(replacement)) return false;
-    const view = replacement;
-    const workspace = resolveActiveWorkspaceApp(host)?.workspace;
+  var recoverHostViewFromReplacedLeaf = (host, context) => {
     try {
-      if (view.getViewType?.() !== "excalidraw") return false;
-      if (workspace?.activeLeaf !== leaf && workspace?.getMostRecentLeaf?.() !== leaf) return false;
+      const leaf = context.leaf;
+      const replacement = leaf?.view;
+      if (!leaf || !replacement || replacement === context.view) return "unavailable";
+      const view = replacement;
+      const workspace = context.workspace;
+      if (view.getViewType?.() !== "excalidraw") return "unavailable";
+      if (workspace?.activeLeaf !== leaf && workspace?.getMostRecentLeaf?.() !== leaf)
+        return "unavailable";
+      if (!resolveLiveExcalidrawApiFromTargetView(replacement)) return "pending";
       invokeHostSetView(host, replacement, false);
-      return host.targetView === replacement;
+      return host.targetView === replacement ? "recovered" : "unavailable";
     } catch {
-      return false;
+      return "unavailable";
     }
   };
   var ensureHostViewContextState = (host) => {
@@ -15944,6 +15944,7 @@ ${lines.join("\n")}`);
     return targetViewApp;
   };
   var createLayerManagerRuntime = (ea2, providedRenderer) => {
+    const runtimeApp = resolveRuntimeApp(ea2);
     const hostContextCoordinator = createSidepanelHostContextCoordinator(ea2);
     let hostContextSnapshot = hostContextCoordinator.getSnapshot();
     let snapshot = readSnapshot(ea2);
@@ -15951,7 +15952,9 @@ ${lines.join("\n")}`);
     };
     let disposed = false;
     let hostFocusReleased = false;
-    let releasedTargetView = null;
+    let releasedContext = null;
+    let recoveryTimer = null;
+    let recoveryAttempts = 0;
     let hostAuthorityEpoch = 0;
     let sceneSubscriptionGeneration = 0;
     let runtime = null;
@@ -15961,9 +15964,16 @@ ${lines.join("\n")}`);
       onFocus: (view) => {
         if (disposed) return;
         const bindingChanged = hostContextSnapshot.currentTargetView !== view;
-        if (view === null && !hostFocusReleased)
-          releasedTargetView = hostContextSnapshot.currentTargetView;
-        if (view !== null) releasedTargetView = null;
+        clearPendingRecovery();
+        if (view === null && !hostFocusReleased) {
+          const previousView = hostContextSnapshot.currentTargetView;
+          releasedContext = {
+            view: previousView,
+            leaf: previousView?.leaf,
+            workspace: runtimeApp?.workspace
+          };
+        }
+        if (view !== null) releasedContext = null;
         hostFocusReleased = view === null;
         if (bindingChanged || hostFocusReleased) {
           hostAuthorityEpoch += 1;
@@ -16109,8 +16119,37 @@ ${lines.join("\n")}`);
       subscribedSceneChangeApi = null;
       subscribedSceneBindingKey = null;
     };
+    const clearPendingRecovery = () => {
+      if (recoveryTimer !== null) clearTimeout(recoveryTimer);
+      recoveryTimer = null;
+      recoveryAttempts = 0;
+    };
+    const recoverReleasedView = () => {
+      if (disposed || !hostFocusReleased || !releasedContext) return;
+      const result = recoverHostViewFromReplacedLeaf(ea2, releasedContext);
+      if (result === "pending") {
+        if (recoveryTimer === null && recoveryAttempts < 20) {
+          recoveryAttempts += 1;
+          recoveryTimer = setTimeout(() => {
+            recoveryTimer = null;
+            recoverReleasedView();
+          }, WORKSPACE_ACTIVE_FILE_POLL_MS);
+        }
+        return;
+      }
+      clearPendingRecovery();
+      if (result === "recovered") {
+        hostFocusReleased = false;
+        releasedContext = null;
+        traceHostContextLifecycleEvent("rebind", "same-leaf replacement ready", {});
+        reconcileHostContext("manual");
+        scheduleHostContextRefresh();
+      }
+    };
     const clearWorkspaceRefreshSubscriptions = () => {
-      const workspace = resolveRuntimeApp(ea2)?.workspace;
+      clearPendingRecovery();
+      releasedContext = null;
+      const workspace = runtimeApp?.workspace;
       for (const ref of workspaceRefreshRefs) {
         if (typeof ref === "function") {
           try {
@@ -16175,7 +16214,6 @@ ${lines.join("\n")}`);
       });
     };
     const subscribeToWorkspaceRefresh = () => {
-      const runtimeApp = resolveRuntimeApp(ea2);
       const workspace = runtimeApp?.workspace;
       if (!workspace) {
         traceHostContextLifecycleEvent("startup", "workspace refresh infrastructure unavailable", {
@@ -16196,9 +16234,9 @@ ${lines.join("\n")}`);
             try {
               const ref = on.call(workspace, eventName, () => {
                 if (disposed) return;
-                if (eventName === "layout-change" && hostFocusReleased && recoverHostViewFromReplacedLeaf(ea2, releasedTargetView)) {
-                  hostFocusReleased = false;
-                  releasedTargetView = null;
+                if (eventName === "layout-change" && hostFocusReleased) {
+                  if (recoveryTimer === null) recoveryAttempts = 0;
+                  recoverReleasedView();
                 }
                 const previousBindingKey = activeSceneBindingKey;
                 const previousRefreshKey = hostContextSnapshot.sceneBinding.refreshKey;
