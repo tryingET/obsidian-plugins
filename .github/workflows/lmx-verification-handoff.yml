@@ -42,40 +42,41 @@ jobs:
           # Development dependency security
 
           This is separate maintenance, not a Layer Manager feature or a new framework.
-          The feature packet passed existing gates and the real-host matrix first.
+          The feature packet passed its existing gates and native-host matrix first.
 
           ## BDD acceptance before remediation
 
           Given locked dependencies and current npm and maintainer advisories, when the
           complete graph is reviewed, then all severities and affected maintained-version
           ranges must be considered, not only production or high/critical findings.
-          Given an unmaintained vulnerable test runner, when upgrading to the supported
-          patched version, then all source, test assertions, gate configurations, and
-          thresholds remain unchanged, every existing gate passes, and the built script
-          remains byte-identical to the host-tested artifact. Do not use --force or bypass
-          peer constraints. A major runner upgrade must be explicit, not an audit side effect.
+          Given a vulnerable unmaintained runner, when upgrading to the supported patched
+          version, then source, tests, configurations, and thresholds remain unchanged;
+          every existing gate passes; the built script stays byte-identical to the native
+          host-tested artifact. Do not use --force or bypass peer constraints. A major
+          runner upgrade must be explicit, not an audit side effect.
 
           ## Why a supported Vitest release is required
 
           The npm snapshot reported ten findings. Compatible audit-fix alone left Vitest
-          unresolved. The maintainer advisory GHSA-82fw-gwwq-j7x9 explicitly says 3.x is
-          unmaintained and the redirect-mock fix is available in 4.1.11; therefore a nominally
-          clean older npm snapshot would not establish remediation of known advisories.
+          unresolved. The maintainer's GHSA-82fw-gwwq-j7x9 states 3.x is unmaintained and
+          the redirect-mock fix is in 4.1.11. A nominally clean older npm snapshot would
+          therefore not establish remediation of the known maintainer advisory.
           Source: https://github.com/vitest-dev/vitest/security/advisories/GHSA-82fw-gwwq-j7x9
-          The condition requires development-server access; no shipped LayerManager exploit
-          is asserted. The repository uses Node 22 and the existing Vitest framework.
+          The advisory requires development-server access; no shipped script exploit is
+          asserted. This repository uses Node 22 and the existing Vitest framework.
 
           ## TDD and evidence
 
-          Run the full-graph audit before dependency changes and record its failure. Upgrade
-          Vitest and its coupled coverage provider together, apply compatible transitive
-          fixes, perform clean npm ci, require zero audit findings, and run every existing
-          gate. The supported-version check and artifact hash are additional guards.
-          Preserve the before/after audit JSON and full gate log. Zero findings is a dated
+          Record the full-graph audit failure before changes. Upgrade Vitest and its
+          coverage provider together; clean-install and require zero audit findings;
+          run all existing gates and compare the artifact hash. Preserve both audit
+          JSON reports and the full gate log. A prior in-place npm install failed inside
+          npm's edgesOut resolver before publishing; clean dependency resolution avoids
+          treating an installer crash as a test result. Zero findings is a dated
           database observation, not a universal security guarantee.
           DOC
           git add docs/project/2026-09-07-development-dependency-security.md
-          git commit -m 'docs: specify supported development-tool security acceptance before remediation'
+          git commit -m 'docs: define supported development-tool security acceptance before remediation'
       - name: Record failing dependency regression
         shell: bash
         run: |
@@ -89,13 +90,15 @@ jobs:
           node -e 'const d=require(process.env.RUNNER_TEMP+"/lmx-evidence/audit-before.json");if(!(d.metadata.vulnerabilities.total>0))process.exit(1);console.log(d.metadata.vulnerabilities)'
           git add package.json
           git commit -m 'test: expose full-graph dependency audit and reproduce advisories'
-      - name: Install explicitly selected supported runner and compatible fixes
+      - name: Resolve explicitly selected supported runner from a clean tree
         shell: bash
         run: |
           set -euo pipefail
           npm pkg set 'overrides.vite=7.3.6'
-          npm install --workspace=packages/obsidian-excalidraw-layer-manager --save-dev --save-exact vitest@4.1.11 @vitest/coverage-v8@4.1.11 --ignore-scripts 2>&1 | tee "$RUNNER_TEMP/lmx-evidence/supported-update.log"
-          npm audit fix --ignore-scripts 2>&1 | tee "$RUNNER_TEMP/lmx-evidence/audit-fix.log"
+          npm pkg set --workspace=packages/obsidian-excalidraw-layer-manager 'devDependencies.vitest=4.1.11' 'devDependencies.@vitest/coverage-v8=4.1.11'
+          rm -rf node_modules packages/obsidian-excalidraw-layer-manager/node_modules
+          npm install --package-lock-only --ignore-scripts 2>&1 | tee "$RUNNER_TEMP/lmx-evidence/supported-update.log"
+          npm audit fix --package-lock-only --ignore-scripts 2>&1 | tee "$RUNNER_TEMP/lmx-evidence/audit-fix.log"
           npm ci
           npm audit --json > "$RUNNER_TEMP/lmx-evidence/audit-after.json"
           npm run audit
