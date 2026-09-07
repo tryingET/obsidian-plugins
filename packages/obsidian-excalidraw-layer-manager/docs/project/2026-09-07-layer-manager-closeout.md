@@ -136,3 +136,11 @@ A stale old view, unloaded replacement, unrelated background leaf, repeated layo
 signal, or disposed invocation must never reacquire scene authority. No polling or
 self-triggered retry is added. This observed gap authorizes the plan's one bounded
 supplemental `layout-change` subscription.
+
+A second host observation concerns warm reruns: the host's `tabHosts` registry
+still contained the previous invocation's EA after the manager adopted a looked-up
+tab. Upstream `createTab({hostEA})` reuses the same script tab while updating that
+registry. Looking up and adopting a foreign-owned tab bypasses this registration.
+BDD refinement: when rerunning into a tab created by another EA, use the existing
+public creation/reuse API exactly once so view-close notifications target the new
+invocation. Do not close/detach the shared leaf or invent a private registry write.
