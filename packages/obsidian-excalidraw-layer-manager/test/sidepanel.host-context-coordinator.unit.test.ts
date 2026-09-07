@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from "vitest"
 import { SidepanelHostContextCoordinator } from "../src/ui/sidepanel/selection/hostContextCoordinator.js"
 import type { SidepanelHostContextCoordinatorHost } from "../src/ui/sidepanel/selection/hostContextCoordinator.js"
 
+import { recoverHostViewFromReplacedLeaf } from "../src/ui/sidepanel/selection/hostViewContext.js"
+
 interface ViewFixture {
   readonly key: string
   readonly filePath: string
@@ -880,4 +882,29 @@ describe("sidepanel host-context coordinator", () => {
     expect(snapshot.sceneApi).toBe(api)
     expect(host.getExcalidrawAPI).toHaveBeenCalledTimes(1)
   })
+})
+
+describe("observed same-leaf replacement recovery", () => {
+  it.each(["background", "markdown", "no-api", "throws", "refuses"])(
+    "keeps released authority when the replacement is %s",
+    (condition) => {
+      const replacement = {
+        _loaded: true,
+        getViewType: () => (condition === "markdown" ? "markdown" : "excalidraw"),
+        excalidrawAPI: condition === "no-api" ? null : {},
+      }
+      const leaf = { view: replacement }
+      const workspace = { activeLeaf: condition === "background" ? {} : leaf }
+      const host = {
+        app: { workspace: { ...workspace, on: vi.fn() } },
+        targetView: null,
+        setView: vi.fn(() => {
+          if (condition === "throws") throw new Error("host closing")
+        }),
+      }
+      expect(recoverHostViewFromReplacedLeaf(host, { leaf })).toBe(false)
+      expect(host.targetView).toBeNull()
+      if (!["throws", "refuses"].includes(condition)) expect(host.setView).not.toHaveBeenCalled()
+    },
+  )
 })

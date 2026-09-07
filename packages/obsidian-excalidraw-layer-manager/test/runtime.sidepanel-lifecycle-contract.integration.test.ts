@@ -23,6 +23,8 @@ interface RuntimeFixture {
     | ((elements: readonly RawExcalidrawElement[], appState: unknown, files: unknown) => void)
     | null
   readonly switchWorkspace: (kind: "excalidraw" | "markdown") => void
+  readonly replaceLeafView: (loaded?: boolean) => Record<string, unknown>
+  readonly emitWorkspace: (event: string) => void
   readonly liveView: Record<string, unknown>
   readonly subscribe: ReturnType<typeof vi.fn>
   readonly unsubscribe: ReturnType<typeof vi.fn>
@@ -54,7 +56,15 @@ const makeRuntimeFixture = (document: FakeDocument): RuntimeFixture => {
     | ((elements: readonly RawExcalidrawElement[], appState: unknown, files: unknown) => void)
     | null = null
 
+  let currentLeafView: unknown
+  const leaf = {
+    id: "leaf-A",
+    get view() {
+      return currentLeafView
+    },
+  }
   const workspace = {
+    getMostRecentLeaf: () => leaf,
     on: (eventName: string, callback: () => void) => {
       let callbacks = workspaceListeners.get(eventName)
       if (!callbacks) {
@@ -79,15 +89,7 @@ const makeRuntimeFixture = (document: FakeDocument): RuntimeFixture => {
       path: workspaceKind === "excalidraw" ? "A.excalidraw.md" : "plain.md",
     }),
     get activeLeaf() {
-      return {
-        id: "leaf-A",
-        view: {
-          file: {
-            path: workspaceKind === "excalidraw" ? "A.excalidraw.md" : "plain.md",
-          },
-          getViewType: () => (workspaceKind === "excalidraw" ? "excalidraw" : "markdown"),
-        },
-      }
+      return leaf
     },
   }
 
@@ -128,15 +130,16 @@ const makeRuntimeFixture = (document: FakeDocument): RuntimeFixture => {
   const liveView = {
     excalidrawAPI: api,
     id: "view-A",
+    getViewType: () => "excalidraw",
     _loaded: true,
     file: {
       path: "A.excalidraw.md",
     },
-    leaf: {
-      id: "leaf-A",
-    },
+    leaf,
     app,
   }
+
+  currentLeafView = liveView
 
   const tab: ExcalidrawSidepanelTabLike = {
     contentEl: contentEl as unknown as HTMLElement,
@@ -187,6 +190,19 @@ const makeRuntimeFixture = (document: FakeDocument): RuntimeFixture => {
     getStaleSceneCallback: () => sceneCallback,
     switchWorkspace: (kind) => {
       workspaceKind = kind
+      currentLeafView =
+        kind === "excalidraw"
+          ? liveView
+          : { getViewType: () => "markdown", file: { path: "plain.md" } }
+    },
+    replaceLeafView: (loaded = true) => {
+      workspaceKind = "excalidraw"
+      const replacement = { ...liveView, _loaded: loaded }
+      currentLeafView = replacement
+      return replacement
+    },
+    emitWorkspace: (event) => {
+      for (const callback of workspaceListeners.get(event) ?? []) callback()
     },
     liveView,
   }
@@ -329,6 +345,40 @@ describe("runtime sidepanel lifecycle contract", () => {
       fixture.tab.onFocus?.(fixture.liveView)
       await flushAsync(10)
       expect(hasText(fixture.contentEl, "Alpha")).toBe(true)
+    } finally {
+      runtime.dispose()
+    }
+  })
+
+  it("recovers a distinct loaded same-leaf view on layout-change without a host focus hook", async () => {
+    const fixture = makeRuntimeFixture(fakeDocument)
+    const runtime = createLayerManagerRuntime(fixture.ea)
+    try {
+      await flushAsync(10)
+      fixture.tab.onExcalidrawViewClosed?.()
+      fixture.emitWorkspace("layout-change")
+      await flushAsync(10)
+      expect(fixture.ea.targetView).toBeNull()
+      const replacement = fixture.replaceLeafView(false)
+      fixture.emitWorkspace("layout-change")
+      await flushAsync(10)
+      expect(fixture.ea.targetView).toBeNull()
+      replacement["_loaded"] = true
+      fixture.emitWorkspace("layout-change")
+      await flushAsync(10)
+      expect(fixture.ea.targetView).toBe(replacement)
+      expect(hasText(fixture.contentEl, "Alpha")).toBe(true)
+      expect(fixture.subscribe).toHaveBeenCalledTimes(2)
+      fixture.emitWorkspace("layout-change")
+      await flushAsync(10)
+      expect(fixture.subscribe).toHaveBeenCalledTimes(2)
+      expect(fixture.createSidepanelTab).toHaveBeenCalledTimes(1)
+      fixture.tab.onClose?.()
+      fixture.replaceLeafView()
+      for (const callback of fixture.staleWorkspaceCallbacks) callback()
+      await flushAsync(10)
+      expect(fixture.createSidepanelTab).toHaveBeenCalledTimes(1)
+      expect(fixture.contentEl.children).toHaveLength(0)
     } finally {
       runtime.dispose()
     }
