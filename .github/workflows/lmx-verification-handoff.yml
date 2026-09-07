@@ -1,13 +1,10 @@
 name: lmx-verification-handoff
-
 on:
   push:
     branches: [main]
     paths: [.github/workflows/lmx-verification-handoff.yml]
-
 permissions:
   contents: read
-
 jobs:
   verify-and-publish:
     if: github.repository == 'tryingET/obsidian-plugins' && github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -24,7 +21,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Specify separate dependency acceptance before test
+      - name: Specify security acceptance before regression
         shell: bash
         run: |
           set -euo pipefail
@@ -33,9 +30,9 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           cat > docs/project/2026-09-07-development-dependency-security.md <<'DOC'
           ---
-          summary: "Separate test-first maintenance for development-tool advisories found during Layer Manager verification."
+          summary: "Separate test-first remediation of development-tool advisories found during Layer Manager verification."
           read_when:
-            - "You are reviewing September 2026 dependency security remediation."
+            - "You are reviewing September 2026 dependency security maintenance."
           type: "review"
           ---
 
@@ -44,39 +41,39 @@ jobs:
           This is separate maintenance, not a Layer Manager feature or a new framework.
           The feature packet passed its existing gates and native-host matrix first.
 
-          ## BDD acceptance before remediation
+          ## BDD acceptance
 
           Given locked dependencies and current npm and maintainer advisories, when the
-          complete graph is reviewed, then all severities and affected maintained-version
-          ranges must be considered, not only production or high/critical findings.
-          Given a vulnerable unmaintained runner, when upgrading to the supported patched
-          version, then source, tests, configurations, and thresholds remain unchanged;
-          every existing gate passes; the built script stays byte-identical to the native
-          host-tested artifact. Do not use --force or bypass peer constraints. A major
-          runner upgrade must be explicit, not an audit side effect.
+          complete graph is reviewed, then every severity and affected maintained-version
+          range is considered. Given an unmaintained vulnerable runner, when installing a
+          supported patched release, then source, tests, configurations, and thresholds
+          remain unchanged, all existing gates pass, and the generated script remains
+          byte-identical to the native-host-tested artifact. No force or peer bypass is
+          allowed. A major runner update must be explicit, not an audit side effect.
 
           ## Why a supported Vitest release is required
 
-          The npm snapshot reported ten findings. Compatible audit-fix alone left Vitest
-          unresolved. The maintainer's GHSA-82fw-gwwq-j7x9 states 3.x is unmaintained and
-          the redirect-mock fix is in 4.1.11. A nominally clean older npm snapshot would
-          therefore not establish remediation of the known maintainer advisory.
+          The full-graph npm snapshot reported ten findings. Compatible audit-fix left
+          Vitest unresolved. The maintainer's GHSA-82fw-gwwq-j7x9 states 3.x is unmaintained
+          and the redirect-mock fix is in 4.1.11. A nominally clean older database snapshot
+          therefore would not establish remediation of that known advisory.
           Source: https://github.com/vitest-dev/vitest/security/advisories/GHSA-82fw-gwwq-j7x9
-          The advisory requires development-server access; no shipped script exploit is
-          asserted. This repository uses Node 22 and the existing Vitest framework.
+          This requires development-server access; no shipped script exploit is asserted.
+          Vitest and coverage-v8 are updated together; the framework remains Vitest.
 
           ## TDD and evidence
 
-          Record the full-graph audit failure before changes. Upgrade Vitest and its
-          coverage provider together; clean-install and require zero audit findings;
-          run all existing gates and compare the artifact hash. Preserve both audit
-          JSON reports and the full gate log. A prior in-place npm install failed inside
-          npm's edgesOut resolver before publishing; clean dependency resolution avoids
-          treating an installer crash as a test result. Zero findings is a dated
-          database observation, not a universal security guarantee.
+          Record the full-graph audit failure before changing dependencies. Select the
+          supported runner explicitly, regenerate the lock within the other existing
+          declared ranges, clean-install, require zero audit findings, run every existing
+          gate, and compare the artifact hash. Earlier in-place and old-lock installation
+          attempts failed inside npm's edgesOut resolver before publishing. Generating a
+          clean lock avoids carrying that resolver state forward. Both audit JSON reports,
+          the full gate log, and the lockfile are preserved in verification artifacts.
+          Zero findings is a dated database observation, not a universal security claim.
           DOC
           git add docs/project/2026-09-07-development-dependency-security.md
-          git commit -m 'docs: define supported development-tool security acceptance before remediation'
+          git commit -m 'docs: define supported dependency security acceptance before remediation'
       - name: Record failing dependency regression
         shell: bash
         run: |
@@ -89,23 +86,29 @@ jobs:
           test "$result" -ne 0
           node -e 'const d=require(process.env.RUNNER_TEMP+"/lmx-evidence/audit-before.json");if(!(d.metadata.vulnerabilities.total>0))process.exit(1);console.log(d.metadata.vulnerabilities)'
           git add package.json
-          git commit -m 'test: expose full-graph dependency audit and reproduce advisories'
-      - name: Resolve explicitly selected supported runner from a clean tree
+          git commit -m 'test: expose full-graph audit and reproduce development advisories'
+      - name: Resolve supported versions into a clean lock
         shell: bash
         run: |
           set -euo pipefail
           npm pkg set 'overrides.vite=7.3.6'
-          npm pkg set --workspace=packages/obsidian-excalidraw-layer-manager 'devDependencies.vitest=4.1.11' 'devDependencies.@vitest/coverage-v8=4.1.11'
+          node <<'JS'
+          const fs=require('node:fs');
+          const file='packages/obsidian-excalidraw-layer-manager/package.json';
+          const p=JSON.parse(fs.readFileSync(file));
+          p.devDependencies.vitest='4.1.11';p.devDependencies['@vitest/coverage-v8']='4.1.11';
+          fs.writeFileSync(file,JSON.stringify(p,null,2)+'\n');
+          JS
           rm -rf node_modules packages/obsidian-excalidraw-layer-manager/node_modules
+          rm package-lock.json
           npm install --package-lock-only --ignore-scripts 2>&1 | tee "$RUNNER_TEMP/lmx-evidence/supported-update.log"
-          npm audit fix --package-lock-only --ignore-scripts 2>&1 | tee "$RUNNER_TEMP/lmx-evidence/audit-fix.log"
           npm ci
           npm audit --json > "$RUNNER_TEMP/lmx-evidence/audit-after.json"
           npm run audit
           node -e 'for(const p of ["vitest","@vitest/coverage-v8"]){const v=require(p+"/package.json").version;if(v!=="4.1.11")throw Error(p+" "+v)}'
           git add package.json package-lock.json packages/obsidian-excalidraw-layer-manager/package.json
-          git commit -m 'fix(deps): use supported Vitest security release and patched development dependencies'
-      - name: Run unchanged full gate and prove artifact stability
+          git commit -m 'fix(deps): install supported patched Vitest and refresh vulnerable development dependencies'
+      - name: Run unchanged gates and prove artifact stability
         shell: bash
         run: |
           set -euo pipefail
@@ -113,6 +116,8 @@ jobs:
           npm --prefix packages/obsidian-excalidraw-layer-manager run build
           echo '651e881e6bfadd12f82513b6ff66cb30138333b4b7f1f86d8d972750bf220d1b  packages/obsidian-excalidraw-layer-manager/dist/LayerManager.md' | sha256sum --check
           cmp packages/obsidian-excalidraw-layer-manager/dist/LayerManager.md apps/lab-vault/Excalidraw/Scripts/LayerManager.md
+          test "$(git rev-parse HEAD:packages/obsidian-excalidraw-layer-manager/src)" = 783ddbee2dad37cbe289f1812ef4be3a02c56d20
+          test "$(git rev-parse HEAD:packages/obsidian-excalidraw-layer-manager/test)" = cfd2ac0f1d130d47abb43a4fe77670fda21a804c
       - name: Publish only a green fast-forward
         shell: bash
         run: |
