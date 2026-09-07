@@ -854,6 +854,31 @@ export const resolveLiveExcalidrawApiFromTargetView = (targetView: unknown): unk
   return record["excalidrawAPI"] ?? null
 }
 
+// Obsidian may replace a drawing with Markdown and back without notifying the tab.
+// Only a distinct live replacement in the same active/recent leaf can recover it.
+export const recoverHostViewFromReplacedLeaf = (
+  host: SidepanelHostViewContextHost,
+  releasedView: unknown,
+): boolean => {
+  if (!releasedView || typeof releasedView !== "object") return false
+  const leaf = (releasedView as { leaf?: { view?: unknown } }).leaf
+  const replacement = leaf?.view
+  if (!leaf || !replacement || replacement === releasedView) return false
+  if (!resolveLiveExcalidrawApiFromTargetView(replacement)) return false
+  const view = replacement as { getViewType?: () => string }
+  const workspace = resolveActiveWorkspaceApp(host)?.workspace as
+    | { activeLeaf?: unknown; getMostRecentLeaf?: () => unknown }
+    | undefined
+  try {
+    if (view.getViewType?.() !== "excalidraw") return false
+    if (workspace?.activeLeaf !== leaf && workspace?.getMostRecentLeaf?.() !== leaf) return false
+    invokeHostSetView(host, replacement, false)
+    return host.targetView === replacement
+  } catch {
+    return false
+  }
+}
+
 export const ensureHostViewContextState = (
   host: SidepanelHostViewContextHost,
 ): SidepanelHostViewContextEnsureResult => {

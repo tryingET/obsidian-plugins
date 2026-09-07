@@ -27,7 +27,10 @@ import {
   isLifecycleDebugEnabled,
   traceHostContextLifecycleEvent,
 } from "./ui/sidepanel/selection/hostContextFlightRecorder.js"
-import { describeHostViewContext } from "./ui/sidepanel/selection/hostViewContext.js"
+import {
+  describeHostViewContext,
+  recoverHostViewFromReplacedLeaf,
+} from "./ui/sidepanel/selection/hostViewContext.js"
 
 export type { ApplyPatchOutcome } from "./adapter/excalidrawAdapter.js"
 export type { CommandPlanner, ExecuteIntentOutcome } from "./runtime/intentExecution.js"
@@ -138,6 +141,7 @@ export const createLayerManagerRuntime = (
   let renderLatestSnapshot: () => void = () => {}
   let disposed = false
   let hostFocusReleased = false
+  let releasedTargetView: unknown = null
   let hostAuthorityEpoch = 0
   let sceneSubscriptionGeneration = 0
   let runtime: LayerManagerRuntime | null = null
@@ -149,6 +153,9 @@ export const createLayerManagerRuntime = (
       onFocus: (view) => {
         if (disposed) return
         const bindingChanged = hostContextSnapshot.currentTargetView !== view
+        if (view === null && !hostFocusReleased)
+          releasedTargetView = hostContextSnapshot.currentTargetView
+        if (view !== null) releasedTargetView = null
         hostFocusReleased = view === null
         if (bindingChanged || hostFocusReleased) {
           hostAuthorityEpoch += 1
@@ -489,10 +496,18 @@ export const createLayerManagerRuntime = (
       const on = workspace.on
 
       if (on) {
-        for (const eventName of ["file-open", "active-leaf-change"]) {
+        for (const eventName of ["file-open", "active-leaf-change", "layout-change"]) {
           try {
             const ref = on.call(workspace, eventName, () => {
               if (disposed) return
+              if (
+                eventName === "layout-change" &&
+                hostFocusReleased &&
+                recoverHostViewFromReplacedLeaf(ea, releasedTargetView)
+              ) {
+                hostFocusReleased = false
+                releasedTargetView = null
+              }
               const previousBindingKey = activeSceneBindingKey
               const previousRefreshKey = hostContextSnapshot.sceneBinding.refreshKey
               const previousState = hostContextSnapshot.state
