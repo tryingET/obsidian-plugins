@@ -81,6 +81,8 @@ jobs:
           print('Test-first proof: 9 failed, 3 passed against unchanged production')
           PY
           git commit -m 'test(layer-manager): reproduce maintainer-feedback ownership and naming gaps'
+          # The compact rename diff replaces these wrappers with their existing core owners.
+          git rm packages/obsidian-excalidraw-layer-manager/src/adapter/excalidrawAdapter.ts packages/obsidian-excalidraw-layer-manager/src/ui/excalidrawSidepanelRenderer.ts
           git apply --index "$RUNNER_TEMP/lmx-evidence/implementation.patch"
           git commit -m 'fix(layer-manager): restore instance ownership and single-owner naming with regression coverage'
           test "$(git rev-parse HEAD:packages/obsidian-excalidraw-layer-manager/src)" = 496703ab710c44f8c772688ddb8a6beaa2aa8a4c
