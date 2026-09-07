@@ -24,75 +24,98 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Reconstruct checksum-pinned correction
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          mkdir -p "$RUNNER_TEMP/lmx-evidence"
-          python3 - <<'PY'
-          import base64, gzip, hashlib, json, os, pathlib, urllib.request
-          request = urllib.request.Request('https://api.github.com/repos/tryingET/obsidian-plugins/git/blobs/7faa9a9348a4b01a0d058689027de3e1828e51ce', headers={'Authorization': f'Bearer {os.environ["GH_TOKEN"]}', 'Accept': 'application/vnd.github+json'})
-          with urllib.request.urlopen(request, timeout=30) as response:
-              encoded = base64.b64decode(json.load(response)['content'])
-          patch = gzip.decompress(base64.b64decode(encoded, validate=True))
-          assert hashlib.sha256(patch).hexdigest() == 'dce8992fd5de1ba0e88fcadda81278fce2b704cdbdd8167fba89100654ceadc9'
-          (pathlib.Path(os.environ['RUNNER_TEMP']) / 'lmx-evidence/settings.patch').write_bytes(patch)
-          PY
-      - name: Prove native host receiver before applying implementation
+      - name: Specify separate dependency acceptance before the audit test
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/lmx-evidence" docs/project
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          patch="$RUNNER_TEMP/lmx-evidence/settings.patch"
-          git apply --index --include='packages/obsidian-excalidraw-layer-manager/docs/*' "$patch"
-          git commit -m 'docs(layer-manager): specify native settings receiver ownership'
-          git apply --index --include='packages/obsidian-excalidraw-layer-manager/test/*' "$patch"
+          cat > docs/project/2026-09-07-development-dependency-security.md <<'DOC'
+          ---
+          summary: "Separate test-first maintenance for development-tool advisories found during Layer Manager verification."
+          read_when:
+            - "You are reviewing September 2026 dependency security remediation."
+          type: "review"
+          ---
+
+          # Development dependency security
+
+          This is separate maintenance, not a Layer Manager feature or a new test framework.
+          The feature packet's tests and real-host verification passed before this work.
+
+          ## BDD acceptance
+
+          Given the existing locked dependencies and the current npm advisory database,
+          when the full dependency graph is audited, then all reported severities must be
+          considered, not only production dependencies or high/critical findings.
+
+          Given vulnerable development dependencies, when applying compatible remediations,
+          then the source and tests must remain unchanged, every existing gate must pass
+          without threshold/configuration changes, and the built LayerManager script must
+          remain byte-equivalent to the host-tested script. No force upgrade is permitted.
+
+          ## TDD and evidence
+
+          The audit is run before dependency changes and its nonzero exit plus JSON counts
+          must be recorded. It must return zero after remediation and a clean npm ci.
+          The separate verification artifact contains both reports and the unchanged full
+          repository gate log. Registry availability and advisory changes can affect later
+          audits; zero findings is a dated observation, not a universal security guarantee.
+          DOC
+          git add docs/project/2026-09-07-development-dependency-security.md
+          git commit -m 'docs: define isolated dependency security acceptance before audit remediation'
+      - name: Record the failing dependency regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm pkg set 'scripts.audit=npm audit --audit-level=low'
           set +e
-          npm --prefix packages/obsidian-excalidraw-layer-manager test -- test/runtime.sidepanel-quickmove-persistence.integration.test.ts --reporter=json --outputFile="$RUNNER_TEMP/lmx-evidence/settings-red.json" > "$RUNNER_TEMP/lmx-evidence/settings-red.log" 2>&1
-          status=$?
+          npm audit --json > "$RUNNER_TEMP/lmx-evidence/audit-before.json"
+          result=$?
           set -e
-          test "$status" -ne 0
-          python3 - <<'PY'
-          import json, os, pathlib
-          result = json.loads((pathlib.Path(os.environ['RUNNER_TEMP']) / 'lmx-evidence/settings-red.json').read_text())
-          assert result['numFailedTests'] == 1 and result['numPassedTests'] == 9, result
-          print('Test-first proof: 1 failed, 9 passed before correction')
-          PY
-          git commit -m 'test(layer-manager): require originating EA for native settings persistence'
-          git apply --index --include='packages/obsidian-excalidraw-layer-manager/src/*' "$patch"
-          git commit -m 'fix(layer-manager): bind native settings methods at renderer boundary'
-          test "$(git rev-parse HEAD:packages/obsidian-excalidraw-layer-manager/src)" = 783ddbee2dad37cbe289f1812ef4be3a02c56d20
-          test "$(git rev-parse HEAD:packages/obsidian-excalidraw-layer-manager/test)" = cfd2ac0f1d130d47abb43a4fe77670fda21a804c
-      - name: Run unchanged repository gate
+          test "$result" -ne 0
+          node -e 'const d=require(process.env.RUNNER_TEMP+"/lmx-evidence/audit-before.json");if(!(d.metadata.vulnerabilities.total>0))process.exit(1);console.log(d.metadata.vulnerabilities)'
+          git add package.json
+          git commit -m 'test: expose full-graph dependency audit and reproduce known advisories'
+      - name: Apply compatible remediation only
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm view 'vite@~7.3.2' version --json > "$RUNNER_TEMP/lmx-evidence/vite-compatible-versions.json"
+          node <<'JS'
+          const fs=require('node:fs');const file='package.json';const pkg=JSON.parse(fs.readFileSync(file));
+          const raw=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/lmx-evidence/vite-compatible-versions.json'));
+          const versions=(Array.isArray(raw)?raw:[raw]).filter(v=>/^7\.3\.\d+$/.test(v)).sort((a,b)=>Number(a.split('.')[2])-Number(b.split('.')[2]));
+          if(!versions.length)throw new Error('No compatible Vite security patch found');
+          pkg.overrides.vite=versions.at(-1);fs.writeFileSync(file,JSON.stringify(pkg,null,2)+'\n');console.log('Vite patch',pkg.overrides.vite);
+          JS
+          npm audit fix --ignore-scripts 2>&1 | tee "$RUNNER_TEMP/lmx-evidence/audit-fix.log"
+          npm ci
+          npm audit --json > "$RUNNER_TEMP/lmx-evidence/audit-after.json"
+          npm run audit
+          git add package.json package-lock.json
+          git commit -m 'fix(deps): remediate reported development-tool vulnerabilities with compatible updates'
+      - name: Run every unchanged repository gate and prove artifact stability
         shell: bash
         run: |
           set -euo pipefail
           npm run check 2>&1 | tee "$RUNNER_TEMP/lmx-evidence/check.log"
-      - name: Build and sync lab vault with byte and hash proof
-        shell: bash
-        run: |
-          set -euo pipefail
           npm --prefix packages/obsidian-excalidraw-layer-manager run build
-          export LMX_VAULT_TARGET="$GITHUB_WORKSPACE/apps/lab-vault/Excalidraw/Scripts/LayerManager.md"
-          (cd packages/obsidian-excalidraw-layer-manager && node build/sync-to-vault.mjs)
-          cmp packages/obsidian-excalidraw-layer-manager/dist/LayerManager.md "$LMX_VAULT_TARGET"
-          sha256sum packages/obsidian-excalidraw-layer-manager/dist/LayerManager.md "$LMX_VAULT_TARGET" | tee "$RUNNER_TEMP/lmx-evidence/bundle-sha256.txt"
-          cp packages/obsidian-excalidraw-layer-manager/dist/LayerManager.md "$RUNNER_TEMP/lmx-evidence/LayerManager.md"
-          git add apps/lab-vault/Excalidraw/Scripts/LayerManager.md
-          git commit -m 'build(layer-manager): sync verified native-settings bundle'
+          echo '651e881e6bfadd12f82513b6ff66cb30138333b4b7f1f86d8d972750bf220d1b  packages/obsidian-excalidraw-layer-manager/dist/LayerManager.md' | sha256sum --check
+          cmp packages/obsidian-excalidraw-layer-manager/dist/LayerManager.md apps/lab-vault/Excalidraw/Scripts/LayerManager.md
       - name: Publish only a green fast-forward
         shell: bash
         run: |
           set -euo pipefail
           test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$GITHUB_SHA"
           git push origin HEAD:refs/heads/main
-          git log -4 --oneline > "$RUNNER_TEMP/lmx-evidence/published-commits.txt"
-      - name: Preserve verification evidence
+          git log -3 --oneline > "$RUNNER_TEMP/lmx-evidence/published-commits.txt"
+      - name: Preserve success or failure evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: lmx-settings-verification
+          name: lmx-dependency-verification
           retention-days: 7
           path: ${{ runner.temp }}/lmx-evidence/
           if-no-files-found: error
