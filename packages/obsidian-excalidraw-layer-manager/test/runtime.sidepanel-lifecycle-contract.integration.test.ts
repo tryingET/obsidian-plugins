@@ -28,6 +28,7 @@ interface RuntimeFixture {
   readonly liveView: Record<string, unknown>
   readonly subscribe: ReturnType<typeof vi.fn>
   readonly unsubscribe: ReturnType<typeof vi.fn>
+  readonly workspaceListenerCount: () => number
 }
 
 const makeRuntimeFixture = (document: FakeDocument): RuntimeFixture => {
@@ -184,6 +185,8 @@ const makeRuntimeFixture = (document: FakeDocument): RuntimeFixture => {
     tab,
     subscribe,
     unsubscribe,
+    workspaceListenerCount: () =>
+      [...workspaceListeners.values()].reduce((sum, set) => sum + set.size, 0),
     contentEl,
     createSidepanelTab,
     staleWorkspaceCallbacks,
@@ -383,6 +386,80 @@ describe("runtime sidepanel lifecycle contract", () => {
       runtime.dispose()
     }
   })
+
+  it("retains leaf and workspace through destructive unload and delayed API readiness", async () => {
+    vi.useFakeTimers()
+    const fixture = makeRuntimeFixture(fakeDocument)
+    Reflect.deleteProperty(fixture.ea, "app")
+    const runtime = createLayerManagerRuntime(fixture.ea)
+    try {
+      await flushAsync(10)
+      fixture.tab.onExcalidrawViewClosed?.()
+      const replacement = fixture.replaceLeafView()
+      const api = replacement["excalidrawAPI"]
+      replacement["excalidrawAPI"] = null
+      Reflect.deleteProperty(fixture.liveView, "leaf")
+      Reflect.deleteProperty(fixture.liveView, "app")
+      fixture.emitWorkspace("layout-change")
+      await flushAsync(10)
+      expect(fixture.ea.targetView).toBeNull()
+      replacement["excalidrawAPI"] = api
+      await vi.advanceTimersByTimeAsync(350)
+      expect(fixture.ea.targetView).toBe(replacement)
+      expect(hasText(fixture.contentEl, "Alpha")).toBe(true)
+      expect(fixture.subscribe).toHaveBeenCalledTimes(2)
+      fixture.tab.onExcalidrawViewClosed?.()
+      runtime.dispose()
+      expect(fixture.workspaceListenerCount()).toBe(0)
+      expect(vi.getTimerCount()).toBe(0)
+    } finally {
+      runtime.dispose()
+      vi.useRealTimers()
+    }
+  })
+
+  it("releases the original workspace after host authority is cleared", async () => {
+    const fixture = makeRuntimeFixture(fakeDocument)
+    Reflect.deleteProperty(fixture.ea, "app")
+    const runtime = createLayerManagerRuntime(fixture.ea)
+    await flushAsync(10)
+    expect(fixture.workspaceListenerCount()).toBe(3)
+    fixture.tab.onExcalidrawViewClosed?.()
+    runtime.dispose()
+    expect(fixture.workspaceListenerCount()).toBe(0)
+  })
+
+  it.each(["exhaustion", "close", "focus"])(
+    "bounds pending readiness and cancels on %s",
+    async (finish) => {
+      vi.useFakeTimers()
+      const fixture = makeRuntimeFixture(fakeDocument)
+      const runtime = createLayerManagerRuntime(fixture.ea)
+      try {
+        await flushAsync(10)
+        fixture.tab.onExcalidrawViewClosed?.()
+        const replacement = fixture.replaceLeafView(false)
+        fixture.emitWorkspace("layout-change")
+        fixture.emitWorkspace("layout-change")
+        expect(vi.getTimerCount()).toBe(1)
+        if (finish === "close") fixture.tab.onClose?.()
+        else if (finish === "focus") fixture.tab.onFocus?.(fixture.liveView)
+        await vi.advanceTimersByTimeAsync(10_000)
+        expect(vi.getTimerCount()).toBe(0)
+        replacement["_loaded"] = true
+        await vi.advanceTimersByTimeAsync(10_000)
+        expect(fixture.ea.targetView).not.toBe(replacement)
+        if (finish === "exhaustion") {
+          fixture.emitWorkspace("layout-change")
+          await flushAsync(10)
+          expect(fixture.ea.targetView).toBe(replacement)
+        }
+      } finally {
+        runtime.dispose()
+        vi.useRealTimers()
+      }
+    },
+  )
 
   it("registers a warm rerun through host creation/reuse rather than adopting a foreign EA tab", async () => {
     const fixture = makeRuntimeFixture(fakeDocument)

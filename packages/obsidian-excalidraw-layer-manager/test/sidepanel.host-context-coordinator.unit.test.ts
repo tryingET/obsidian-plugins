@@ -902,7 +902,9 @@ describe("observed same-leaf replacement recovery", () => {
           if (condition === "throws") throw new Error("host closing")
         }),
       }
-      expect(recoverHostViewFromReplacedLeaf(host, { leaf })).toBe(false)
+      expect(
+        recoverHostViewFromReplacedLeaf(host, { view: {}, leaf, workspace: host.app.workspace }),
+      ).toBe(condition === "no-api" ? "pending" : "unavailable")
       expect(host.targetView).toBeNull()
       if (!["throws", "refuses"].includes(condition)) expect(host.setView).not.toHaveBeenCalled()
     },
