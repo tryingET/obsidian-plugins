@@ -1,7 +1,7 @@
 {
   "check": "local documentation structure and relative-link audit (not external docs:strict)",
   "markdown_files": 49,
-  "links_checked": 197,
+  "links_checked": 199,
   "errors": [],
   "status": "pass"
 }

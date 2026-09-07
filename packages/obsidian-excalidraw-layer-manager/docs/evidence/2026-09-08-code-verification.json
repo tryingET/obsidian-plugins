@@ -1,7 +1,60 @@
 {
-  "root_check": "pass",
-  "context": "clean local documentation commit; original gate unchanged",
-  "docs_strict": "failed: MODULE_NOT_FOUND",
-  "ak_direction": "unavailable: command not found",
-  "built_bundle_sha256": "651e881e6bfadd12f82513b6ff66cb30138333b4b7f1f86d8d972750bf220d1b"
+  "date": "2026-09-08",
+  "scope": "documentation reconciliation and retirement of session-created CI handoffs; no production changes",
+  "reviewed_baseline": "dc6defb5553f2946bcf75d15a04e7bf0efad4029",
+  "documentation_commit": "5be2586cc40484f91ce328da17e23e8a96f27717",
+  "publication": {
+    "workflow_run_id": 34169402125,
+    "job_id": 101886678877,
+    "result": "success",
+    "artifact_id": 10035219202,
+    "artifact_sha256": "df76ca0c6596bc17fa3a84ef4216f7a3ef10b49a22958997da2298f2021c3fd3",
+    "reviewed_files": 50,
+    "manifest_sha256": "ef794e8c07e96fa2c79d8adfffccc9f84e9f17d16a1c25a2be7c4f488ffef7e9",
+    "check_log_sha256": "0953059d82d6185d99827052dee9235bb2aeedafdfea68c835b47d700bdb1417"
+  },
+  "unchanged_repository_gate": {
+    "command": "npm run check",
+    "result": "pass locally and in publication CI",
+    "tests": 601,
+    "test_files": 58,
+    "coverage_percent": {
+      "statements": 88.98,
+      "lines": 88.98,
+      "branches": 85.96,
+      "functions": 93.7
+    },
+    "architecture": {
+      "modules": 68,
+      "dependencies": 151,
+      "violations": 0
+    },
+    "thresholds_modified": false
+  },
+  "unchanged_inputs": {
+    "source_tree": "783ddbee2dad37cbe289f1812ef4be3a02c56d20",
+    "test_tree": "cfd2ac0f1d130d47abb43a4fe77670fda21a804c",
+    "dependency_lock_sha256": "6a10f2ceb5695eb7bf244ba315610883db8f26706935e47fda7927835c2f1e64",
+    "lab_bundle_sha256": "651e881e6bfadd12f82513b6ff66cb30138333b4b7f1f86d8d972750bf220d1b",
+    "generated_bundle_equals_lab": true
+  },
+  "workflow_cleanup": {
+    "ordinary_ci_path": ".github/workflows/ci.yml",
+    "restored_blob": "c2a6e53cdfd61296609f5a4612ad8b8bc7301fe3",
+    "permissions": "contents: read",
+    "removed": [
+      ".github/workflows/lmx-host-fixture.yml",
+      ".github/workflows/lmx-verification-handoff.yml"
+    ],
+    "ordinary_ci_result_location": "The ci check attached to the final cleanup commit, rather than the temporary publication run."
+  },
+  "external_checks": {
+    "docs_strict": {
+      "result": "failed: MODULE_NOT_FOUND",
+      "local_and_publication_ci": true,
+      "not_equivalent_to_local_link_audit": true
+    },
+    "ak_direction": "unavailable: command not found; no AK state updated"
+  },
+  "remaining_implementation_gaps": "See 2026-09-08-implementation-audit.json and the consolidated closeout. Documentation publication does not resolve the 13 candidate replay failures or publish dependency upgrades."
 }

@@ -27,20 +27,3 @@ jobs:
 
       - name: Run repo check gate
         run: npm run check
-
-      # Temporary verification handoff; no credentials or .git directory are archived.
-      - name: Export verification workspace
-        if: always()
-        run: |
-          git archive --format=tar --output=/tmp/lmx-source.tar HEAD
-          tar -czf /tmp/lmx-dependencies.tar.gz node_modules
-
-      - name: Upload verification workspace
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: lmx-verification-workspace
-          retention-days: 1
-          path: |
-            /tmp/lmx-source.tar
-            /tmp/lmx-dependencies.tar.gz
