@@ -139,18 +139,23 @@ describe("sidepanel quick-move + persistence integration", () => {
       },
     }
 
-    const setScriptSettings = vi.fn(async (nextSettings: ScriptSettings) => {
+    const setScriptSettings = vi.fn(async function (this: unknown, nextSettings: ScriptSettings) {
+      expect(this).toBe(host)
       settings = cloneSettings(nextSettings)
     })
 
     const sidepanelTab = makeSidepanelTab(fakeDocument, null)
     const { actions, commandSpies } = makeUiActions()
 
-    const renderer = createExcalidrawSidepanelRenderer({
+    const host = {
       sidepanelTab: sidepanelTab.tab,
-      getScriptSettings: () => settings,
+      getScriptSettings(this: unknown) {
+        expect(this).toBe(host)
+        return settings
+      },
       setScriptSettings,
-    })
+    }
+    const renderer = createExcalidrawSidepanelRenderer(host)
 
     if (!renderer) {
       throw new Error("Expected sidepanel renderer to be created in fake DOM test.")
