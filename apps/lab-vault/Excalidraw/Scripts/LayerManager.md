@@ -8635,7 +8635,9 @@ ${lines.join("\n")}`);
       if (!tab && this.#host.checkForActiveSidepanelTabForScript) {
         const lookedUp = this.#host.checkForActiveSidepanelTabForScript(this.#host.activeScript);
         if (isTabRenderable(lookedUp)) {
-          tab = lookedUp;
+          if (!this.#host.createSidepanelTab || !isLikelyPersistedTab(this.#host, lookedUp)) {
+            tab = lookedUp;
+          }
         } else if (lookedUp) {
           failureReason = "tabUnrenderable";
         }
@@ -12158,6 +12160,23 @@ ${lines.join("\n")}`);
       return null;
     }
     return record["excalidrawAPI"] ?? null;
+  };
+  var recoverHostViewFromReplacedLeaf = (host, releasedView) => {
+    if (!releasedView || typeof releasedView !== "object") return false;
+    const leaf = releasedView.leaf;
+    const replacement = leaf?.view;
+    if (!leaf || !replacement || replacement === releasedView) return false;
+    if (!resolveLiveExcalidrawApiFromTargetView(replacement)) return false;
+    const view = replacement;
+    const workspace = resolveActiveWorkspaceApp(host)?.workspace;
+    try {
+      if (view.getViewType?.() !== "excalidraw") return false;
+      if (workspace?.activeLeaf !== leaf && workspace?.getMostRecentLeaf?.() !== leaf) return false;
+      invokeHostSetView(host, replacement, false);
+      return host.targetView === replacement;
+    } catch {
+      return false;
+    }
   };
   var ensureHostViewContextState = (host) => {
     if (resolveHostViewContextDescription(host).hostEligible) {
@@ -15932,6 +15951,7 @@ ${lines.join("\n")}`);
     };
     let disposed = false;
     let hostFocusReleased = false;
+    let releasedTargetView = null;
     let hostAuthorityEpoch = 0;
     let sceneSubscriptionGeneration = 0;
     let runtime = null;
@@ -15941,6 +15961,9 @@ ${lines.join("\n")}`);
       onFocus: (view) => {
         if (disposed) return;
         const bindingChanged = hostContextSnapshot.currentTargetView !== view;
+        if (view === null && !hostFocusReleased)
+          releasedTargetView = hostContextSnapshot.currentTargetView;
+        if (view !== null) releasedTargetView = null;
         hostFocusReleased = view === null;
         if (bindingChanged || hostFocusReleased) {
           hostAuthorityEpoch += 1;
@@ -16169,10 +16192,14 @@ ${lines.join("\n")}`);
       if (workspaceRefreshRefs.length === 0) {
         const on = workspace.on;
         if (on) {
-          for (const eventName of ["file-open", "active-leaf-change"]) {
+          for (const eventName of ["file-open", "active-leaf-change", "layout-change"]) {
             try {
               const ref = on.call(workspace, eventName, () => {
                 if (disposed) return;
+                if (eventName === "layout-change" && hostFocusReleased && recoverHostViewFromReplacedLeaf(ea2, releasedTargetView)) {
+                  hostFocusReleased = false;
+                  releasedTargetView = null;
+                }
                 const previousBindingKey = activeSceneBindingKey;
                 const previousRefreshKey = hostContextSnapshot.sceneBinding.refreshKey;
                 const previousState = hostContextSnapshot.state;
