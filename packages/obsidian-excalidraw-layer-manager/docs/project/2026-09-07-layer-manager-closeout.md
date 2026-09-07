@@ -116,3 +116,23 @@ M1-M8 remain required. S1-S6 belong in this packet where applicable; preserving 
 `not ready; blocking issue remains`
 
 No upstream PR changes or maintainer reply are authorized by this packet.
+
+## Observed same-leaf recovery gap (before corrective test)
+
+On Obsidian 1.13.7 / Excalidraw 2.27.3, bundle SHA-256
+`059b4cba71946f090a0685d7c968c3130d9dd38d9c3a5875c452738c8e60a74c`,
+toggling `testing.md` to Markdown emitted `onExcalidrawViewClosed` and correctly
+released rows. Toggling the same leaf back produced a new usable Excalidraw view
+but no `onFocus(view)` callback. Workspace `layout-change` fired after the
+replacement became available; the original associated leaf remained the most
+recent leaf even while Obsidian exposed a transient empty active leaf.
+The manager remained unbound with zero rows. No script rerun occurred.
+
+BDD refinement, recorded before the additional regression:
+Given host focus has released the associated drawing, when a layout signal shows
+that the same active/recent leaf now owns a distinct loaded Excalidraw view with a
+live API, then bind that replacement once through existing host-context ownership.
+A stale old view, unloaded replacement, unrelated background leaf, repeated layout
+signal, or disposed invocation must never reacquire scene authority. No polling or
+self-triggered retry is added. This observed gap authorizes the plan's one bounded
+supplemental `layout-change` subscription.
