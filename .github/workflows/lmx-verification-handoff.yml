@@ -23,68 +23,53 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Install locked dependencies
-        run: npm ci
-      - name: Reconstruct checksum-pinned host corrections
+      - run: npm ci
+      - name: Reconstruct checksum-pinned correction
         env:
           GH_TOKEN: ${{ github.token }}
-        shell: bash
         run: |
-          set -euo pipefail
           mkdir -p "$RUNNER_TEMP/lmx-evidence"
           python3 - <<'PY'
           import base64, gzip, hashlib, json, os, pathlib, urllib.request
-          patches = [
-              ('sameleaf', '99e36f1cb4417c9e3cee62bab9614b25d893706d', 'd710bc57797361eddb003e5ebff4d0b78115d0fdf981cf5afc09968674e2e2dc'),
-              ('warm', '947505c569ab5f59913387d01c24d74d741b004c', '4f1353bd37d0cfc9b78f78f1542aee1e854229be364c634e6985501aac75edfc'),
-          ]
-          for name, identifier, expected in patches:
-              request = urllib.request.Request(f'https://api.github.com/repos/tryingET/obsidian-plugins/git/blobs/{identifier}', headers={'Authorization': f'Bearer {os.environ["GH_TOKEN"]}', 'Accept': 'application/vnd.github+json'})
-              with urllib.request.urlopen(request, timeout=30) as response:
-                  encoded = base64.b64decode(json.load(response)['content'])
-              # Correct a transport-only transcription; the original patch digest remains authoritative.
-              if name == 'warm':
-                  encoded = encoded.replace(b'lRopWSW+AA', b'lRopWS+AA')
-              patch = gzip.decompress(base64.b64decode(encoded, validate=True))
-              assert hashlib.sha256(patch).hexdigest() == expected
-              (pathlib.Path(os.environ['RUNNER_TEMP']) / f'lmx-evidence/{name}.patch').write_bytes(patch)
+          request = urllib.request.Request('https://api.github.com/repos/tryingET/obsidian-plugins/git/blobs/86cd51fcd33d61e21820bdd84583443fd72f4b45', headers={'Authorization': f'Bearer {os.environ["GH_TOKEN"]}', 'Accept': 'application/vnd.github+json'})
+          with urllib.request.urlopen(request, timeout=30) as response:
+              encoded = base64.b64decode(json.load(response)['content'])
+          patch = gzip.decompress(base64.b64decode(encoded, validate=True))
+          assert hashlib.sha256(patch).hexdigest() == '8d844483fa37df730bfec693d1bfb6f5a7e8b53432caa7958570837402dfb19e'
+          (pathlib.Path(os.environ['RUNNER_TEMP']) / 'lmx-evidence/unload.patch').write_bytes(patch)
           PY
-      - name: Prove each observed behavior test-first and commit its owning fix
+      - name: Prove observed behavior before applying implementation
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          passed=12
-          for correction in sameleaf warm; do
-            patch="$RUNNER_TEMP/lmx-evidence/$correction.patch"
-            git apply --index --include='packages/obsidian-excalidraw-layer-manager/docs/*' "$patch"
-            git commit -m "docs(layer-manager): record observed $correction behavior before regression"
-            git apply --index --include='packages/obsidian-excalidraw-layer-manager/test/*' "$patch"
-            set +e
-            npm --prefix packages/obsidian-excalidraw-layer-manager test -- test/runtime.sidepanel-lifecycle-contract.integration.test.ts --reporter=json --outputFile="$RUNNER_TEMP/lmx-evidence/$correction-red.json" > "$RUNNER_TEMP/lmx-evidence/$correction-red.log" 2>&1
-            status=$?
-            set -e
-            test "$status" -ne 0
-            CORRECTION="$correction" EXPECTED_PASSED="$passed" python3 - <<'PY'
+          patch="$RUNNER_TEMP/lmx-evidence/unload.patch"
+          git apply --index --include='packages/obsidian-excalidraw-layer-manager/docs/*' "$patch"
+          git commit -m 'docs(layer-manager): record destructive unload and delayed API observations'
+          git apply --index --include='packages/obsidian-excalidraw-layer-manager/test/*' "$patch"
+          set +e
+          npm --prefix packages/obsidian-excalidraw-layer-manager test -- test/runtime.sidepanel-lifecycle-contract.integration.test.ts --reporter=json --outputFile="$RUNNER_TEMP/lmx-evidence/unload-red.json" > "$RUNNER_TEMP/lmx-evidence/unload-red.log" 2>&1
+          status=$?
+          set -e
+          test "$status" -ne 0
+          python3 - <<'PY'
           import json, os, pathlib
-          result = json.loads((pathlib.Path(os.environ['RUNNER_TEMP']) / f'lmx-evidence/{os.environ["CORRECTION"]}-red.json').read_text())
-          assert result['numFailedTests'] == 1 and result['numPassedTests'] == int(os.environ['EXPECTED_PASSED']), result
-          print(os.environ['CORRECTION'], 'test-first proof:', result['numFailedTests'], 'failed;', result['numPassedTests'], 'passed')
+          result = json.loads((pathlib.Path(os.environ['RUNNER_TEMP']) / 'lmx-evidence/unload-red.json').read_text())
+          assert result['numFailedTests'] == 5 and result['numPassedTests'] == 14, result
+          print('Test-first proof: 5 failed, 14 passed before correction')
           PY
-            git commit -m "test(layer-manager): reproduce observed $correction host ownership gap"
-            git apply --index --include='packages/obsidian-excalidraw-layer-manager/src/*' "$patch"
-            git commit -m "fix(layer-manager): resolve observed $correction ownership through existing host APIs"
-            passed=$((passed+1))
-          done
-          test "$(git rev-parse HEAD:packages/obsidian-excalidraw-layer-manager/src)" = f07280890920b3b723d44134aa101d8ddb13d7e3
-          test "$(git rev-parse HEAD:packages/obsidian-excalidraw-layer-manager/test)" = 9c732491824503ed2f26b9c8302889a7ad65d12c
+          git commit -m 'test(layer-manager): reproduce unload reference loss and bounded readiness races'
+          git apply --index --include='packages/obsidian-excalidraw-layer-manager/src/*' "$patch"
+          git commit -m 'fix(layer-manager): retain original workspace and bound delayed replacement readiness'
+          test "$(git rev-parse HEAD:packages/obsidian-excalidraw-layer-manager/src)" = da14cc2e0227bb47b1dd1ff8f3c9aebb3f9b9185
+          test "$(git rev-parse HEAD:packages/obsidian-excalidraw-layer-manager/test)" = e6bd6a5b46745f0a4287afe32347abdcae5047c5
       - name: Run unchanged repository gate
         shell: bash
         run: |
           set -euo pipefail
           npm run check 2>&1 | tee "$RUNNER_TEMP/lmx-evidence/check.log"
-      - name: Build and sync the checked-in lab vault with deployment proof
+      - name: Build and sync lab vault with byte and hash proof
         shell: bash
         run: |
           set -euo pipefail
@@ -95,28 +80,17 @@ jobs:
           sha256sum packages/obsidian-excalidraw-layer-manager/dist/LayerManager.md "$LMX_VAULT_TARGET" | tee "$RUNNER_TEMP/lmx-evidence/bundle-sha256.txt"
           cp packages/obsidian-excalidraw-layer-manager/dist/LayerManager.md "$RUNNER_TEMP/lmx-evidence/LayerManager.md"
           git add apps/lab-vault/Excalidraw/Scripts/LayerManager.md
-          if ! git diff --cached --quiet; then
-            git commit -m 'build(layer-manager): sync host-verified recovery bundle to the lab vault'
-          fi
-      - name: Record existing dependency audit without changing the packet scope
-        shell: bash
-        run: |
-          set +e
-          npm audit --json > "$RUNNER_TEMP/lmx-evidence/dependency-audit.json"
-          echo "audit_exit_status=$?" > "$RUNNER_TEMP/lmx-evidence/dependency-audit-status.txt"
-          exit 0
+          git commit -m 'build(layer-manager): sync verified asynchronous recovery bundle'
       - name: Publish only a green fast-forward
-        shell: bash
         run: |
-          set -euo pipefail
           test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$GITHUB_SHA"
           git push origin HEAD:refs/heads/main
-          git log -7 --oneline | tee "$RUNNER_TEMP/lmx-evidence/published-commits.txt"
+          git log -4 --oneline > "$RUNNER_TEMP/lmx-evidence/published-commits.txt"
       - name: Preserve verification evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: lmx-host-corrections-verification
+          name: lmx-unload-verification
           retention-days: 7
           path: ${{ runner.temp }}/lmx-evidence/
           if-no-files-found: error
