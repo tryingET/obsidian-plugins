@@ -13320,14 +13320,14 @@ ${lines.join("\n")}`);
       this.lifecycle = lifecycle;
       this.#host = host;
       this.#settingsWriteQueue = new SidepanelSettingsWriteQueue({
-        ...host.getScriptSettings ? { getScriptSettings: host.getScriptSettings } : {},
-        ...host.setScriptSettings ? { setScriptSettings: host.setScriptSettings } : {},
+        ...host.getScriptSettings ? { getScriptSettings: host.getScriptSettings.bind(host) } : {},
+        ...host.setScriptSettings ? { setScriptSettings: host.setScriptSettings.bind(host) } : {},
         notify: (message) => {
           this.notify(message);
         }
       });
       this.#quickMovePersistenceService = new SidepanelQuickMovePersistenceService({
-        ...host.getScriptSettings ? { getScriptSettings: host.getScriptSettings } : {},
+        ...host.getScriptSettings ? { getScriptSettings: host.getScriptSettings.bind(host) } : {},
         settingsWriteQueue: this.#settingsWriteQueue
       });
       this.#rememberedDestinationReconcileActor = createRememberedDestinationReconcileActor({
