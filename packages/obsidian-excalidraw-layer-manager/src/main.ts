@@ -28,6 +28,7 @@ import {
   traceHostContextLifecycleEvent,
 } from "./ui/sidepanel/selection/hostContextFlightRecorder.js"
 import {
+  type SidepanelReleasedViewContext,
   describeHostViewContext,
   recoverHostViewFromReplacedLeaf,
 } from "./ui/sidepanel/selection/hostViewContext.js"
@@ -135,13 +136,16 @@ export const createLayerManagerRuntime = (
   ea: EaLike,
   providedRenderer?: LayerManagerRenderer,
 ): LayerManagerRuntime => {
+  const runtimeApp = resolveRuntimeApp(ea)
   const hostContextCoordinator = createSidepanelHostContextCoordinator(ea)
   let hostContextSnapshot = hostContextCoordinator.getSnapshot()
   let snapshot = readSnapshot(ea)
   let renderLatestSnapshot: () => void = () => {}
   let disposed = false
   let hostFocusReleased = false
-  let releasedTargetView: unknown = null
+  let releasedContext: SidepanelReleasedViewContext | null = null
+  let recoveryTimer: ReturnType<typeof setTimeout> | null = null
+  let recoveryAttempts = 0
   let hostAuthorityEpoch = 0
   let sceneSubscriptionGeneration = 0
   let runtime: LayerManagerRuntime | null = null
@@ -153,9 +157,16 @@ export const createLayerManagerRuntime = (
       onFocus: (view) => {
         if (disposed) return
         const bindingChanged = hostContextSnapshot.currentTargetView !== view
-        if (view === null && !hostFocusReleased)
-          releasedTargetView = hostContextSnapshot.currentTargetView
-        if (view !== null) releasedTargetView = null
+        clearPendingRecovery()
+        if (view === null && !hostFocusReleased) {
+          const previousView = hostContextSnapshot.currentTargetView as { leaf?: unknown } | null
+          releasedContext = {
+            view: previousView,
+            leaf: previousView?.leaf,
+            workspace: runtimeApp?.workspace,
+          }
+        }
+        if (view !== null) releasedContext = null
         hostFocusReleased = view === null
         if (bindingChanged || hostFocusReleased) {
           hostAuthorityEpoch += 1
@@ -376,8 +387,39 @@ export const createLayerManagerRuntime = (
     subscribedSceneBindingKey = null
   }
 
+  const clearPendingRecovery = (): void => {
+    if (recoveryTimer !== null) clearTimeout(recoveryTimer)
+    recoveryTimer = null
+    recoveryAttempts = 0
+  }
+
+  const recoverReleasedView = (): void => {
+    if (disposed || !hostFocusReleased || !releasedContext) return
+    const result = recoverHostViewFromReplacedLeaf(ea, releasedContext)
+    if (result === "pending") {
+      if (recoveryTimer === null && recoveryAttempts < 20) {
+        recoveryAttempts += 1
+        recoveryTimer = setTimeout(() => {
+          recoveryTimer = null
+          recoverReleasedView()
+        }, WORKSPACE_ACTIVE_FILE_POLL_MS)
+      }
+      return
+    }
+    clearPendingRecovery()
+    if (result === "recovered") {
+      hostFocusReleased = false
+      releasedContext = null
+      traceHostContextLifecycleEvent("rebind", "same-leaf replacement ready", {})
+      reconcileHostContext("manual")
+      scheduleHostContextRefresh()
+    }
+  }
+
   const clearWorkspaceRefreshSubscriptions = (): void => {
-    const workspace = resolveRuntimeApp(ea)?.workspace
+    clearPendingRecovery()
+    releasedContext = null
+    const workspace = runtimeApp?.workspace
 
     for (const ref of workspaceRefreshRefs) {
       if (typeof ref === "function") {
@@ -477,7 +519,6 @@ export const createLayerManagerRuntime = (
   }
 
   const subscribeToWorkspaceRefresh = (): void => {
-    const runtimeApp = resolveRuntimeApp(ea)
     const workspace = runtimeApp?.workspace
     if (!workspace) {
       traceHostContextLifecycleEvent("startup", "workspace refresh infrastructure unavailable", {
@@ -500,13 +541,9 @@ export const createLayerManagerRuntime = (
           try {
             const ref = on.call(workspace, eventName, () => {
               if (disposed) return
-              if (
-                eventName === "layout-change" &&
-                hostFocusReleased &&
-                recoverHostViewFromReplacedLeaf(ea, releasedTargetView)
-              ) {
-                hostFocusReleased = false
-                releasedTargetView = null
+              if (eventName === "layout-change" && hostFocusReleased) {
+                if (recoveryTimer === null) recoveryAttempts = 0
+                recoverReleasedView()
               }
               const previousBindingKey = activeSceneBindingKey
               const previousRefreshKey = hostContextSnapshot.sceneBinding.refreshKey

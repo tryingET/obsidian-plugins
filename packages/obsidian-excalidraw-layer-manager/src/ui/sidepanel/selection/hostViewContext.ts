@@ -854,28 +854,33 @@ export const resolveLiveExcalidrawApiFromTargetView = (targetView: unknown): unk
   return record["excalidrawAPI"] ?? null
 }
 
-// Obsidian may replace a drawing with Markdown and back without notifying the tab.
-// Only a distinct live replacement in the same active/recent leaf can recover it.
+// Retain these before unload: the host clears properties on the old view later.
+export interface SidepanelReleasedViewContext {
+  readonly view: unknown
+  readonly leaf: unknown
+  readonly workspace: WorkspaceLike | undefined
+}
+
 export const recoverHostViewFromReplacedLeaf = (
   host: SidepanelHostViewContextHost,
-  releasedView: unknown,
-): boolean => {
-  if (!releasedView || typeof releasedView !== "object") return false
-  const leaf = (releasedView as { leaf?: { view?: unknown } }).leaf
-  const replacement = leaf?.view
-  if (!leaf || !replacement || replacement === releasedView) return false
-  if (!resolveLiveExcalidrawApiFromTargetView(replacement)) return false
-  const view = replacement as { getViewType?: () => string }
-  const workspace = resolveActiveWorkspaceApp(host)?.workspace as
-    | { activeLeaf?: unknown; getMostRecentLeaf?: () => unknown }
-    | undefined
+  context: SidepanelReleasedViewContext,
+): "unavailable" | "pending" | "recovered" => {
   try {
-    if (view.getViewType?.() !== "excalidraw") return false
-    if (workspace?.activeLeaf !== leaf && workspace?.getMostRecentLeaf?.() !== leaf) return false
+    const leaf = context.leaf as { view?: unknown } | null
+    const replacement = leaf?.view
+    if (!leaf || !replacement || replacement === context.view) return "unavailable"
+    const view = replacement as { getViewType?: () => string }
+    const workspace = context.workspace as
+      | { activeLeaf?: unknown; getMostRecentLeaf?: () => unknown }
+      | undefined
+    if (view.getViewType?.() !== "excalidraw") return "unavailable"
+    if (workspace?.activeLeaf !== leaf && workspace?.getMostRecentLeaf?.() !== leaf)
+      return "unavailable"
+    if (!resolveLiveExcalidrawApiFromTargetView(replacement)) return "pending"
     invokeHostSetView(host, replacement, false)
-    return host.targetView === replacement
+    return host.targetView === replacement ? "recovered" : "unavailable"
   } catch {
-    return false
+    return "unavailable"
   }
 }
 
