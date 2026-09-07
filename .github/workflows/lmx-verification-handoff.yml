@@ -31,39 +31,39 @@ jobs:
           mkdir -p "$RUNNER_TEMP/lmx-evidence"
           python3 - <<'PY'
           import base64, gzip, hashlib, json, os, pathlib, urllib.request
-          request = urllib.request.Request('https://api.github.com/repos/tryingET/obsidian-plugins/git/blobs/86cd51fcd33d61e21820bdd84583443fd72f4b45', headers={'Authorization': f'Bearer {os.environ["GH_TOKEN"]}', 'Accept': 'application/vnd.github+json'})
+          request = urllib.request.Request('https://api.github.com/repos/tryingET/obsidian-plugins/git/blobs/7faa9a9348a4b01a0d058689027de3e1828e51ce', headers={'Authorization': f'Bearer {os.environ["GH_TOKEN"]}', 'Accept': 'application/vnd.github+json'})
           with urllib.request.urlopen(request, timeout=30) as response:
               encoded = base64.b64decode(json.load(response)['content'])
           patch = gzip.decompress(base64.b64decode(encoded, validate=True))
-          assert hashlib.sha256(patch).hexdigest() == '8d844483fa37df730bfec693d1bfb6f5a7e8b53432caa7958570837402dfb19e'
-          (pathlib.Path(os.environ['RUNNER_TEMP']) / 'lmx-evidence/unload.patch').write_bytes(patch)
+          assert hashlib.sha256(patch).hexdigest() == 'dce8992fd5de1ba0e88fcadda81278fce2b704cdbdd8167fba89100654ceadc9'
+          (pathlib.Path(os.environ['RUNNER_TEMP']) / 'lmx-evidence/settings.patch').write_bytes(patch)
           PY
-      - name: Prove observed behavior before applying implementation
+      - name: Prove native host receiver before applying implementation
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          patch="$RUNNER_TEMP/lmx-evidence/unload.patch"
+          patch="$RUNNER_TEMP/lmx-evidence/settings.patch"
           git apply --index --include='packages/obsidian-excalidraw-layer-manager/docs/*' "$patch"
-          git commit -m 'docs(layer-manager): record destructive unload and delayed API observations'
+          git commit -m 'docs(layer-manager): specify native settings receiver ownership'
           git apply --index --include='packages/obsidian-excalidraw-layer-manager/test/*' "$patch"
           set +e
-          npm --prefix packages/obsidian-excalidraw-layer-manager test -- test/runtime.sidepanel-lifecycle-contract.integration.test.ts --reporter=json --outputFile="$RUNNER_TEMP/lmx-evidence/unload-red.json" > "$RUNNER_TEMP/lmx-evidence/unload-red.log" 2>&1
+          npm --prefix packages/obsidian-excalidraw-layer-manager test -- test/runtime.sidepanel-quickmove-persistence.integration.test.ts --reporter=json --outputFile="$RUNNER_TEMP/lmx-evidence/settings-red.json" > "$RUNNER_TEMP/lmx-evidence/settings-red.log" 2>&1
           status=$?
           set -e
           test "$status" -ne 0
           python3 - <<'PY'
           import json, os, pathlib
-          result = json.loads((pathlib.Path(os.environ['RUNNER_TEMP']) / 'lmx-evidence/unload-red.json').read_text())
-          assert result['numFailedTests'] == 5 and result['numPassedTests'] == 14, result
-          print('Test-first proof: 5 failed, 14 passed before correction')
+          result = json.loads((pathlib.Path(os.environ['RUNNER_TEMP']) / 'lmx-evidence/settings-red.json').read_text())
+          assert result['numFailedTests'] == 1 and result['numPassedTests'] == 9, result
+          print('Test-first proof: 1 failed, 9 passed before correction')
           PY
-          git commit -m 'test(layer-manager): reproduce unload reference loss and bounded readiness races'
+          git commit -m 'test(layer-manager): require originating EA for native settings persistence'
           git apply --index --include='packages/obsidian-excalidraw-layer-manager/src/*' "$patch"
-          git commit -m 'fix(layer-manager): retain original workspace and bound delayed replacement readiness'
-          test "$(git rev-parse HEAD:packages/obsidian-excalidraw-layer-manager/src)" = da14cc2e0227bb47b1dd1ff8f3c9aebb3f9b9185
-          test "$(git rev-parse HEAD:packages/obsidian-excalidraw-layer-manager/test)" = e6bd6a5b46745f0a4287afe32347abdcae5047c5
+          git commit -m 'fix(layer-manager): bind native settings methods at renderer boundary'
+          test "$(git rev-parse HEAD:packages/obsidian-excalidraw-layer-manager/src)" = 783ddbee2dad37cbe289f1812ef4be3a02c56d20
+          test "$(git rev-parse HEAD:packages/obsidian-excalidraw-layer-manager/test)" = cfd2ac0f1d130d47abb43a4fe77670fda21a804c
       - name: Run unchanged repository gate
         shell: bash
         run: |
@@ -80,9 +80,11 @@ jobs:
           sha256sum packages/obsidian-excalidraw-layer-manager/dist/LayerManager.md "$LMX_VAULT_TARGET" | tee "$RUNNER_TEMP/lmx-evidence/bundle-sha256.txt"
           cp packages/obsidian-excalidraw-layer-manager/dist/LayerManager.md "$RUNNER_TEMP/lmx-evidence/LayerManager.md"
           git add apps/lab-vault/Excalidraw/Scripts/LayerManager.md
-          git commit -m 'build(layer-manager): sync verified asynchronous recovery bundle'
+          git commit -m 'build(layer-manager): sync verified native-settings bundle'
       - name: Publish only a green fast-forward
+        shell: bash
         run: |
+          set -euo pipefail
           test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$GITHUB_SHA"
           git push origin HEAD:refs/heads/main
           git log -4 --oneline > "$RUNNER_TEMP/lmx-evidence/published-commits.txt"
@@ -90,7 +92,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: lmx-unload-verification
+          name: lmx-settings-verification
           retention-days: 7
           path: ${{ runner.temp }}/lmx-evidence/
           if-no-files-found: error
