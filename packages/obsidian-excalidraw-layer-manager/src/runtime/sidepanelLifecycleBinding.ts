@@ -1,320 +1,159 @@
-import type { EaLike, ExcalidrawSidepanelTabLike } from "../adapter/excalidraw-types.js"
+import type { ExcalidrawSidepanelTabLike } from "../adapter/excalidraw-types.js"
 
-type VoidHandler = () => void
-type FocusHandler = (view: unknown | null) => void
-type WindowMigrationHandler = (win: Window) => void
-
-interface BoundTabHandlers {
-  previousOnOpen: ExcalidrawSidepanelTabLike["onOpen"]
-  previousOnFocus: ExcalidrawSidepanelTabLike["onFocus"]
-  previousOnClose: ExcalidrawSidepanelTabLike["onClose"]
-  previousOnExcalidrawViewClosed: ExcalidrawSidepanelTabLike["onExcalidrawViewClosed"]
-  previousOnWindowMigrated: ExcalidrawSidepanelTabLike["onWindowMigrated"]
-  onOpen: VoidHandler
-  onFocus: FocusHandler
-  onClose: VoidHandler
-  onExcalidrawViewClosed: VoidHandler
-  onWindowMigrated: WindowMigrationHandler
+interface LifecycleHost {
+  sidepanelTab?: ExcalidrawSidepanelTabLike | null
+  targetView?: unknown | null
+  setView?: (view?: unknown, reveal?: boolean) => unknown
 }
 
-interface RuntimeSidepanelLifecycleBindingInput {
-  readonly ea: EaLike
+export interface SidepanelLifecycleCallbacks {
   readonly requestRefresh: () => void
   readonly requestDispose: () => void
-  readonly scheduleMicrotask?: (callback: () => void) => void
+  readonly onFocus?: (view: unknown | null) => void
+  readonly onWindowMigrated?: (win: Window) => void
 }
 
-export interface RuntimeSidepanelLifecycleBinding {
+interface RuntimeSidepanelLifecycleBindingInput extends SidepanelLifecycleCallbacks {
+  readonly ea: LifecycleHost
+}
+
+interface RuntimeSidepanelLifecycleBinding {
   readonly sync: () => void
+  readonly release: () => void
   readonly dispose: () => void
 }
 
-const isPromiseLike = <T>(value: unknown): value is PromiseLike<T> => {
-  return !!value && typeof value === "object" && "then" in value
+const owners = new WeakMap<ExcalidrawSidepanelTabLike, RuntimeSidepanelLifecycleBinding>()
+
+export const hasSidepanelLifecycleOwner = (tab: ExcalidrawSidepanelTabLike): boolean => {
+  return owners.has(tab)
 }
 
-const scheduleDefaultMicrotask = (callback: () => void): void => {
-  void Promise.resolve().then(callback)
-}
-
-const invokeOptional = <TArgs extends readonly unknown[]>(
-  handler: ((...args: TArgs) => unknown) | undefined,
-  ...args: TArgs
-): void => {
-  handler?.(...args)
-}
-
-const bindTargetView = (ea: EaLike, targetView: unknown | null): void => {
+const bindTargetView = (ea: LifecycleHost, view: unknown | null): void => {
   try {
-    ea.setView?.call(ea, targetView, false)
+    ea.setView?.call(ea, view, false)
   } catch {
-    // The direct property fallback below keeps partial hosts usable.
+    // Partial hosts may expose only a writable targetView.
   }
-
-  if (ea.targetView === targetView) {
-    return
-  }
-
-  try {
-    ea.targetView = targetView
-  } catch {
-    // Best-effort compatibility for hosts that expose a read-only targetView.
+  if (ea.targetView !== view) {
+    try {
+      ea.targetView = view
+    } catch {
+      // The runtime still releases scene authority on a null focus notification.
+    }
   }
 }
 
 export const createRuntimeSidepanelLifecycleBinding = (
   input: RuntimeSidepanelLifecycleBindingInput,
 ): RuntimeSidepanelLifecycleBinding => {
-  const { ea, requestRefresh, requestDispose } = input
-  const scheduleMicrotask = input.scheduleMicrotask ?? scheduleDefaultMicrotask
-
   let disposed = false
   let boundTab: ExcalidrawSidepanelTabLike | null = null
-  let boundHandlers: BoundTabHandlers | null = null
-  let syncScheduled = false
+  let restore: (() => void)[] = []
 
-  const hadOwnCreateSidepanelTab = Object.prototype.hasOwnProperty.call(ea, "createSidepanelTab")
-  const originalCreateSidepanelTab = ea.createSidepanelTab
-
-  const releaseBoundTab = (): void => {
-    const tab = boundTab
-    const handlers = boundHandlers
-    if (!tab || !handlers) {
-      boundTab = null
-      boundHandlers = null
-      return
-    }
-
-    if (tab.onOpen === handlers.onOpen) {
-      tab.onOpen = handlers.previousOnOpen
-    }
-    if (tab.onFocus === handlers.onFocus) {
-      tab.onFocus = handlers.previousOnFocus
-    }
-    if (tab.onClose === handlers.onClose) {
-      tab.onClose = handlers.previousOnClose
-    }
-    if (tab.onExcalidrawViewClosed === handlers.onExcalidrawViewClosed) {
-      tab.onExcalidrawViewClosed = handlers.previousOnExcalidrawViewClosed
-    }
-    if (tab.onWindowMigrated === handlers.onWindowMigrated) {
-      tab.onWindowMigrated = handlers.previousOnWindowMigrated
-    }
-
+  const release = (): void => {
+    if (boundTab && owners.get(boundTab) === binding) owners.delete(boundTab)
     boundTab = null
-    boundHandlers = null
-  }
-
-  const bindTab = (tab: ExcalidrawSidepanelTabLike): void => {
-    releaseBoundTab()
-
-    const handlers: BoundTabHandlers = {
-      previousOnOpen: tab.onOpen,
-      previousOnFocus: tab.onFocus,
-      previousOnClose: tab.onClose,
-      previousOnExcalidrawViewClosed: tab.onExcalidrawViewClosed,
-      previousOnWindowMigrated: tab.onWindowMigrated,
-      onOpen: () => {},
-      onFocus: () => {},
-      onClose: () => {},
-      onExcalidrawViewClosed: () => {},
-      onWindowMigrated: () => {},
-    }
-
-    const ownsRuntimeBinding = (): boolean => {
-      return !disposed && boundTab === tab && boundHandlers === handlers
-    }
-
-    handlers.onOpen = () => {
-      try {
-        invokeOptional(handlers.previousOnOpen)
-      } finally {
-        if (ownsRuntimeBinding()) {
-          requestRefresh()
-        }
-      }
-    }
-
-    handlers.onFocus = (view) => {
-      try {
-        invokeOptional(handlers.previousOnFocus, view)
-      } finally {
-        if (ownsRuntimeBinding()) {
-          bindTargetView(ea, view)
-          requestRefresh()
-        }
-      }
-    }
-
-    handlers.onClose = () => {
-      try {
-        invokeOptional(handlers.previousOnClose)
-      } finally {
-        if (ownsRuntimeBinding()) {
-          requestDispose()
-        }
-      }
-    }
-
-    handlers.onExcalidrawViewClosed = () => {
-      if (!ownsRuntimeBinding()) {
-        return
-      }
-
-      bindTargetView(ea, null)
-      requestRefresh()
-    }
-
-    handlers.onWindowMigrated = (win) => {
-      try {
-        invokeOptional(handlers.previousOnWindowMigrated, win)
-      } finally {
-        if (ownsRuntimeBinding()) {
-          requestRefresh()
-        }
-      }
-    }
-
-    tab.onOpen = handlers.onOpen
-    tab.onFocus = handlers.onFocus
-    tab.onClose = handlers.onClose
-    tab.onExcalidrawViewClosed = handlers.onExcalidrawViewClosed
-    tab.onWindowMigrated = handlers.onWindowMigrated
-
-    boundTab = tab
-    boundHandlers = handlers
-  }
-
-  const refreshSameTabBindings = (tab: ExcalidrawSidepanelTabLike): void => {
-    const handlers = boundHandlers
-    if (!handlers) {
-      bindTab(tab)
-      return
-    }
-
-    if (tab.onOpen !== handlers.onOpen) {
-      handlers.previousOnOpen = tab.onOpen
-      tab.onOpen = handlers.onOpen
-    }
-    if (tab.onFocus !== handlers.onFocus) {
-      handlers.previousOnFocus = tab.onFocus
-      tab.onFocus = handlers.onFocus
-    }
-    if (tab.onClose !== handlers.onClose) {
-      handlers.previousOnClose = tab.onClose
-      tab.onClose = handlers.onClose
-    }
-    if (tab.onExcalidrawViewClosed !== handlers.onExcalidrawViewClosed) {
-      handlers.previousOnExcalidrawViewClosed = tab.onExcalidrawViewClosed
-      tab.onExcalidrawViewClosed = handlers.onExcalidrawViewClosed
-    }
-    if (tab.onWindowMigrated !== handlers.onWindowMigrated) {
-      handlers.previousOnWindowMigrated = tab.onWindowMigrated
-      tab.onWindowMigrated = handlers.onWindowMigrated
-    }
+    for (const restoreHook of restore) restoreHook()
+    restore = []
   }
 
   const sync = (): void => {
-    if (disposed) {
-      return
+    if (disposed) return
+    const tab = input.ea.sidepanelTab ?? null
+    if (tab === boundTab) return
+    release()
+    if (!tab) return
+    owners.get(tab)?.release()
+    boundTab = tab
+    owners.set(tab, binding)
+    let closed = false
+    const owns = (): boolean =>
+      !disposed && !closed && boundTab === tab && owners.get(tab) === binding
+
+    const install = <
+      K extends "onOpen" | "onFocus" | "onClose" | "onExcalidrawViewClosed" | "onWindowMigrated",
+    >(
+      key: K,
+      handler: ExcalidrawSidepanelTabLike[K],
+    ): void => {
+      const descriptor = Object.getOwnPropertyDescriptor(tab, key)
+      tab[key] = handler
+      restore.push(() => {
+        if (tab[key] !== handler) return
+        if (descriptor) Object.defineProperty(tab, key, descriptor)
+        else Reflect.deleteProperty(tab, key)
+      })
     }
 
-    const tab = ea.sidepanelTab ?? null
-    if (!tab) {
-      releaseBoundTab()
-      return
-    }
-
-    if (boundTab === tab) {
-      refreshSameTabBindings(tab)
-      return
-    }
-
-    bindTab(tab)
-  }
-
-  const scheduleSync = (): void => {
-    if (disposed || syncScheduled) {
-      return
-    }
-
-    syncScheduled = true
-    scheduleMicrotask(() => {
-      syncScheduled = false
-      sync()
+    const previousOpen = tab.onOpen
+    install("onOpen", () => {
+      if (!owns()) return
+      try {
+        return previousOpen?.call(tab)
+      } finally {
+        if (owns()) input.requestRefresh()
+      }
+    })
+    const previousFocus = tab.onFocus
+    install("onFocus", (view) => {
+      if (!owns()) return
+      try {
+        return previousFocus?.call(tab, view)
+      } finally {
+        if (owns()) {
+          bindTargetView(input.ea, view)
+          input.onFocus?.(view)
+          input.requestRefresh()
+        }
+      }
+    })
+    const previousClose = tab.onClose
+    install("onClose", () => {
+      if (!owns()) return
+      closed = true
+      try {
+        return previousClose?.call(tab)
+      } finally {
+        input.requestDispose()
+      }
+    })
+    const previousViewClosed = tab.onExcalidrawViewClosed
+    install("onExcalidrawViewClosed", () => {
+      if (!owns()) return
+      try {
+        return previousViewClosed?.call(tab)
+      } finally {
+        if (owns()) {
+          bindTargetView(input.ea, null)
+          input.onFocus?.(null)
+          input.requestRefresh()
+        }
+      }
+    })
+    const previousMigration = tab.onWindowMigrated
+    install("onWindowMigrated", (win) => {
+      if (!owns()) return
+      try {
+        return previousMigration?.call(tab, win)
+      } finally {
+        if (owns()) {
+          input.onWindowMigrated?.(win)
+          input.requestRefresh()
+        }
+      }
     })
   }
 
-  const closeResolvedTabAfterDispose = (tab: ExcalidrawSidepanelTabLike | null): void => {
-    if (!tab) {
-      return
-    }
-
-    try {
-      tab.close?.()
-    } catch {
-      // Best-effort orphan prevention for a host-created tab.
-    }
-
-    if (ea.sidepanelTab === tab) {
-      ea.sidepanelTab = null
-    }
-  }
-
-  let wrappedCreateSidepanelTab: EaLike["createSidepanelTab"] = undefined
-
-  if (originalCreateSidepanelTab) {
-    wrappedCreateSidepanelTab = function (
-      this: EaLike,
-      title: string,
-      persist?: boolean,
-      reveal?: boolean,
-    ) {
-      const result = originalCreateSidepanelTab.call(this, title, persist, reveal)
-
-      if (isPromiseLike<ExcalidrawSidepanelTabLike | null>(result)) {
-        void Promise.resolve(result).then(
-          (tab) => {
-            if (disposed) {
-              closeResolvedTabAfterDispose(tab)
-              return
-            }
-            scheduleSync()
-          },
-          () => {
-            // The host owns creation failure reporting.
-          },
-        )
-      } else if (result) {
-        scheduleSync()
-      }
-
-      return result
-    }
-
-    ea.createSidepanelTab = wrappedCreateSidepanelTab
-  }
-
-  sync()
-
-  return {
+  const binding: RuntimeSidepanelLifecycleBinding = {
     sync,
+    release,
     dispose: () => {
-      if (disposed) {
-        return
-      }
-
+      if (disposed) return
       disposed = true
-      syncScheduled = false
-      releaseBoundTab()
-
-      if (wrappedCreateSidepanelTab && ea.createSidepanelTab === wrappedCreateSidepanelTab) {
-        if (hadOwnCreateSidepanelTab && originalCreateSidepanelTab) {
-          ea.createSidepanelTab = originalCreateSidepanelTab
-        } else {
-          Reflect.deleteProperty(ea, "createSidepanelTab")
-        }
-      }
+      release()
     },
   }
+  sync()
+  return binding
 }

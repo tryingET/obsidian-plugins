@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { readLmxElementLabel } from "../src/model/lmxMetadata.js"
 
 import type {
   EaLike,
@@ -1652,9 +1653,9 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     expect(runtime.copyForEditing).not.toHaveBeenCalled()
     expect(runtime.addToView).not.toHaveBeenCalled()
     expect(runtime.updateScene).toHaveBeenCalledTimes(1)
-    expect(runtime.elements.find((element) => element.id === "A")?.name).toBe(
-      "Renamed with fallback",
-    )
+    expect(
+      readLmxElementLabel(runtime.elements.find((element) => element.id === "A")?.customData ?? {}),
+    ).toBe("Renamed with fallback")
   })
 
   it("preserves inline rename draft when the rename outcome is not applied", async () => {
@@ -1735,7 +1736,11 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     dispatchKeydown(input, "Enter")
     await flushAsync()
 
-    expect(runtime.elements.some((element) => element.name === "Renamed focus")).toBe(true)
+    expect(
+      runtime.elements.some(
+        (element) => readLmxElementLabel(element.customData ?? {}) === "Renamed focus",
+      ),
+    ).toBe(true)
 
     contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
     const rowsBeforeArrow = flattenElements(contentRoot).filter(
@@ -1803,7 +1808,11 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     contentRoot.dispatchEvent(focusOutEvent)
     await flushAsync()
 
-    expect(runtime.elements.some((element) => element.name === "Renamed document route")).toBe(true)
+    expect(
+      runtime.elements.some(
+        (element) => readLmxElementLabel(element.customData ?? {}) === "Renamed document route",
+      ),
+    ).toBe(true)
 
     contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)
     const rowsBeforeArrow = flattenElements(contentRoot).filter(
@@ -1888,7 +1897,10 @@ describe("sidepanel keyboard + lifecycle parity", () => {
     await flushAsync()
 
     expect(
-      runtime.elements.some((element) => element.name === "Renamed from row action route"),
+      runtime.elements.some(
+        (element) =>
+          readLmxElementLabel(element.customData ?? {}) === "Renamed from row action route",
+      ),
     ).toBe(true)
 
     contentRoot = getContentRoot(runtime.sidepanelTab.contentEl)

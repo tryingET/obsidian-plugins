@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from "vitest"
 
 import { SidepanelMountManager } from "../src/ui/sidepanel/mount/sidepanelMountManager.js"
 
-import { FakeDocument, makeSidepanelTabForMountMode } from "./sidepanelTestHarness.js"
+import type { SidepanelMountTabLike } from "../src/ui/sidepanel/mount/sidepanelMountManager.js"
+import { FakeDocument, flushAsync, makeSidepanelTabForMountMode } from "./sidepanelTestHarness.js"
 
 describe("sidepanel mount manager", () => {
   it("tracks attach retries after a failed prepareMount attempt", () => {
@@ -176,5 +177,69 @@ describe("sidepanel mount manager", () => {
     expect(attachOutcome).toEqual({ ok: true })
     expect(sidepanelTab.contentEl.contains(preservedSibling)).toBe(true)
     expect(sidepanelTab.contentEl.contains(contentRoot)).toBe(true)
+  })
+
+  it("does not close a successor adopting a shared pending creation result", async () => {
+    let resolveTab: (tab: SidepanelMountTabLike) => void = () => {
+      throw new Error("not initialized")
+    }
+    const pending = new Promise<SidepanelMountTabLike>((resolve) => {
+      resolveTab = resolve
+    })
+    const tab = makeSidepanelTabForMountMode(new FakeDocument(), null, "contentEl")
+    const host = {
+      sidepanelTab: null as SidepanelMountTabLike | null,
+      createSidepanelTab: vi.fn(() => pending),
+    }
+    const makeManager = () =>
+      new SidepanelMountManager({
+        host,
+        title: "Layer Manager",
+        notify: vi.fn(),
+        debugLifecycle: vi.fn(),
+        onTabSwitched: vi.fn(),
+        onAsyncTabResolved: vi.fn(),
+        onPersistedTabDetected: vi.fn(),
+      })
+    const prepare = { resolveExistingContentRoot: () => null, onSetContentFailure: vi.fn() }
+    const old = makeManager()
+    old.prepareMount(prepare)
+    old.dispose()
+    const current = makeManager()
+    current.prepareMount(prepare)
+    resolveTab(tab.tab)
+    await flushAsync(10)
+    try {
+      expect(tab.close).not.toHaveBeenCalled()
+      expect(host.sidepanelTab).toBe(tab.tab)
+      expect(current.prepareMount(prepare).status).toBe("ready")
+    } finally {
+      current.dispose()
+    }
+  })
+
+  it("contains a synchronous create failure without automatic retry loops", () => {
+    const createSidepanelTab = vi.fn(() => {
+      throw new Error("host unavailable")
+    })
+    const notify = vi.fn()
+    const manager = new SidepanelMountManager({
+      host: { createSidepanelTab },
+      title: "Layer Manager",
+      notify,
+      debugLifecycle: vi.fn(),
+      onTabSwitched: vi.fn(),
+      onAsyncTabResolved: vi.fn(),
+      onPersistedTabDetected: vi.fn(),
+    })
+    const prepare = { resolveExistingContentRoot: () => null, onSetContentFailure: vi.fn() }
+    try {
+      expect(() => manager.prepareMount(prepare)).not.toThrow()
+      manager.prepareMount(prepare)
+      expect(createSidepanelTab).toHaveBeenCalledTimes(1)
+      expect(notify).toHaveBeenCalledTimes(1)
+    } finally {
+      manager.dispose()
+    }
   })
 })

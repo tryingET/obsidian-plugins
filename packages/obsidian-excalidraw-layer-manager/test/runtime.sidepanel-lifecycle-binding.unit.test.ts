@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from "vitest"
 
 import type { EaLike, ExcalidrawSidepanelTabLike } from "../src/adapter/excalidraw-types.js"
 import { createRuntimeSidepanelLifecycleBinding } from "../src/runtime/sidepanelLifecycleBinding.js"
+import { SidepanelMountManager } from "../src/ui/sidepanel/mount/sidepanelMountManager.js"
+import { FakeDocument } from "./sidepanelTestHarness.js"
 
 const flushAsync = async (turns = 4): Promise<void> => {
   for (let turn = 0; turn < turns; turn += 1) {
@@ -53,7 +55,7 @@ describe("runtime sidepanel lifecycle binding", () => {
 
     tab.onExcalidrawViewClosed?.()
 
-    expect(previousOnExcalidrawViewClosed).not.toHaveBeenCalled()
+    expect(previousOnExcalidrawViewClosed).toHaveBeenCalledTimes(1)
     expect(ea.setView).toHaveBeenLastCalledWith(null, false)
     expect(ea.targetView).toBeNull()
     expect(requestRefresh).toHaveBeenCalledTimes(2)
@@ -104,7 +106,7 @@ describe("runtime sidepanel lifecycle binding", () => {
     expect(requestDispose).toHaveBeenCalledTimes(1)
   })
 
-  it("reasserts the binding when another package seam rewrites the same tab handlers", () => {
+  it("preserves hooks installed by a later owner", () => {
     const tab = makeTab()
     const ea: EaLike = {
       sidepanelTab: tab,
@@ -121,8 +123,10 @@ describe("runtime sidepanel lifecycle binding", () => {
     binding.sync()
     tab.onExcalidrawViewClosed?.()
 
-    expect(replacementViewClosed).not.toHaveBeenCalled()
-    expect(ea.targetView).toBeNull()
+    expect(replacementViewClosed).toHaveBeenCalledTimes(1)
+    expect(tab.onExcalidrawViewClosed).toBe(replacementViewClosed)
+    binding.dispose()
+    expect(tab.onExcalidrawViewClosed).toBe(replacementViewClosed)
   })
 
   it("closes a tab whose asynchronous creation resolves after disposal", async () => {
@@ -136,19 +140,25 @@ describe("runtime sidepanel lifecycle binding", () => {
       sidepanelTab: null,
     }
 
-    const binding = createRuntimeSidepanelLifecycleBinding({
-      ea,
-      requestRefresh: vi.fn(),
-      requestDispose: vi.fn(),
+    const manager = new SidepanelMountManager({
+      host: ea,
+      title: "Layer Manager",
+      notify: vi.fn(),
+      debugLifecycle: vi.fn(),
+      onTabSwitched: vi.fn(),
+      onAsyncTabResolved: vi.fn(),
+      onPersistedTabDetected: vi.fn(),
     })
+    manager.prepareMount({ resolveExistingContentRoot: () => null, onSetContentFailure: vi.fn() })
+    manager.dispose()
 
-    const pending = ea.createSidepanelTab?.("Layer Manager", false, true)
-    binding.dispose()
-
-    const tab = makeTab()
+    const tab = {
+      ...makeTab(),
+      contentEl: new FakeDocument().createElement("div") as unknown as HTMLElement,
+    }
     ea.sidepanelTab = tab
     resolveTab(tab)
-    await pending
+    await created
     await flushAsync()
 
     expect(tab.close).toHaveBeenCalledTimes(1)

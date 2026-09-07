@@ -130,13 +130,35 @@ export interface LayerManagerRuntime {
 
 export const createLayerManagerRuntime = (
   ea: EaLike,
-  renderer: LayerManagerRenderer = createExcalidrawSidepanelRenderer(ea) ?? new ConsoleRenderer(),
+  providedRenderer?: LayerManagerRenderer,
 ): LayerManagerRuntime => {
   const hostContextCoordinator = createSidepanelHostContextCoordinator(ea)
   let hostContextSnapshot = hostContextCoordinator.getSnapshot()
   let snapshot = readSnapshot(ea)
   let renderLatestSnapshot: () => void = () => {}
   let disposed = false
+  let hostFocusReleased = false
+  let hostAuthorityEpoch = 0
+  let sceneSubscriptionGeneration = 0
+  let runtime: LayerManagerRuntime | null = null
+  const renderer: LayerManagerRenderer =
+    providedRenderer ??
+    createExcalidrawSidepanelRenderer(ea, {
+      requestRefresh: () => refresh(),
+      requestDispose: () => dispose(),
+      onFocus: (view) => {
+        if (disposed) return
+        const bindingChanged = hostContextSnapshot.currentTargetView !== view
+        hostFocusReleased = view === null
+        if (bindingChanged || hostFocusReleased) {
+          hostAuthorityEpoch += 1
+          selectedIdsHintFromOnChange = null
+          clearSceneChangeSubscription()
+        }
+        reconcileHostContext("manual")
+      },
+    }) ??
+    new ConsoleRenderer()
   let sceneChangeUnsubscribe: (() => void) | null = null
   let subscribedSceneChangeApi: unknown = null
   let activeSceneBindingKey = hostContextSnapshot.sceneBinding.sceneKey
@@ -155,12 +177,14 @@ export const createLayerManagerRuntime = (
       | {
           readonly type: "APPLY_REQUEST"
           readonly patch: ScenePatch
+          readonly canExecute: () => boolean
           readonly resolve: (outcome: ApplyPatchOutcome) => void
           readonly reject: (error: unknown) => void
         }
       | {
           readonly type: "EXECUTE_INTENT_REQUEST"
           readonly planner: CommandPlanner
+          readonly canExecute: () => boolean
           readonly resolve: (outcome: ExecuteIntentOutcome) => void
           readonly reject: (error: unknown) => void
         }
@@ -271,13 +295,15 @@ export const createLayerManagerRuntime = (
     signal: SidepanelHostPrimarySignal,
   ): ReturnType<typeof hostContextCoordinator.reconcile> => {
     const previousBindingKey = activeSceneBindingKey
-    const result =
-      signal === "leaf-change"
+    const result = hostFocusReleased
+      ? hostContextCoordinator.reconcile("initial")
+      : signal === "leaf-change"
         ? hostContextCoordinator.handleWorkspaceLeafChange()
         : signal === "poll"
           ? hostContextCoordinator.handlePollingFallback()
           : hostContextCoordinator.reconcile(signal)
 
+    if (previousBindingKey !== result.snapshot.sceneBinding.sceneKey) hostAuthorityEpoch += 1
     hostContextSnapshot = result.snapshot
     activeSceneBindingKey = result.snapshot.sceneBinding.sceneKey
 
@@ -330,6 +356,8 @@ export const createLayerManagerRuntime = (
   }
 
   const clearSceneChangeSubscription = (): void => {
+    // Invalidate before cleanup: unsubscribe may itself flush a saved callback.
+    sceneSubscriptionGeneration += 1
     try {
       sceneChangeUnsubscribe?.()
     } catch {
@@ -464,6 +492,7 @@ export const createLayerManagerRuntime = (
         for (const eventName of ["file-open", "active-leaf-change"]) {
           try {
             const ref = on.call(workspace, eventName, () => {
+              if (disposed) return
               const previousBindingKey = activeSceneBindingKey
               const previousRefreshKey = hostContextSnapshot.sceneBinding.refreshKey
               const previousState = hostContextSnapshot.state
@@ -586,8 +615,16 @@ export const createLayerManagerRuntime = (
       return
     }
 
+    const subscriptionGeneration = sceneSubscriptionGeneration
     try {
-      const unsubscribeCandidate = onChange((_elements, appState) => {
+      const unsubscribeCandidate = onChange.call(api, (_elements, appState) => {
+        if (
+          disposed ||
+          subscriptionGeneration !== sceneSubscriptionGeneration ||
+          api !== subscribedSceneChangeApi ||
+          currentSceneBindingKey !== subscribedSceneBindingKey
+        )
+          return
         selectedIdsHintFromOnChange = readSelectedIdsFromAppState(appState)
         sendLifecycleEvent({ type: "SCENE_CHANGE_NOTICED" })
       })
@@ -603,7 +640,9 @@ export const createLayerManagerRuntime = (
     }
 
     reconcileHostContext("manual")
-    const nextSnapshot = readSnapshot(ea)
+    const nextSnapshot = hostFocusReleased
+      ? { ...snapshot, version: snapshot.version + 1, elements: [], selectedIds: new Set<string>() }
+      : readSnapshot(ea)
     reconcileHostContext("manual")
     renderSnapshot(nextSnapshot)
     subscribeToSceneChanges()
@@ -619,15 +658,28 @@ export const createLayerManagerRuntime = (
     sendLifecycleEvent({ type: "REFRESH_REQUEST" })
   }
 
+  const captureMutationAuthority = (): (() => boolean) => {
+    const epoch = hostAuthorityEpoch
+    const targetView = ea.targetView
+    return () =>
+      !disposed &&
+      !hostFocusReleased &&
+      epoch === hostAuthorityEpoch &&
+      targetView === ea.targetView
+  }
+
   const apply = async (patch: ScenePatch): Promise<ApplyPatchOutcome> => {
     if (disposed) {
       throw new Error("Layer Manager runtime disposed.")
     }
 
+    if (hostFocusReleased)
+      return { status: "capabilityMissing", reason: "No active Excalidraw view." }
     return new Promise<ApplyPatchOutcome>((resolve, reject) => {
       sendLifecycleEvent({
         type: "APPLY_REQUEST",
         patch,
+        canExecute: captureMutationAuthority(),
         resolve,
         reject,
       })
@@ -639,12 +691,15 @@ export const createLayerManagerRuntime = (
       throw new Error("Layer Manager runtime disposed.")
     }
 
+    if (hostFocusReleased)
+      return { status: "capabilityMissing", reason: "No active Excalidraw view.", attempts: 1 }
     // Canonical write path owner:
     // read snapshot -> build indexes -> plan command -> adapter preflight/apply -> refresh.
     return new Promise<ExecuteIntentOutcome>((resolve, reject) => {
       sendLifecycleEvent({
         type: "EXECUTE_INTENT_REQUEST",
         planner,
+        canExecute: captureMutationAuthority(),
         resolve,
         reject,
       })
@@ -663,14 +718,20 @@ export const createLayerManagerRuntime = (
       return
     }
 
-    sendLifecycleEvent({ type: "DISPOSE" })
+    disposed = true
+    lifecycleActor?.send({ type: "DISPOSE" })
     lifecycleActor?.stop()
     lifecycleActor = null
-    disposed = true
     clearSceneChangeSubscription()
     clearWorkspaceRefreshSubscriptions()
-    renderer.dispose?.()
-    controller.dispose()
+    if (runtimeGlobal.excalidrawLayerManagerRuntime === runtime) {
+      Reflect.deleteProperty(runtimeGlobal, "excalidrawLayerManagerRuntime")
+    }
+    try {
+      renderer.dispose?.()
+    } finally {
+      controller.dispose()
+    }
   }
 
   controller.setCommandFacade(commands)
@@ -679,10 +740,7 @@ export const createLayerManagerRuntime = (
     controller.toggleExpanded(nodeId)
   }
 
-  subscribeToWorkspaceRefresh()
-  refresh()
-
-  return {
+  runtime = {
     refresh,
     apply,
     executeIntent,
@@ -695,6 +753,9 @@ export const createLayerManagerRuntime = (
     dispose,
     commands,
   }
+  subscribeToWorkspaceRefresh()
+  refresh()
+  return runtime
 }
 
 type RuntimeGlobal = typeof globalThis & {

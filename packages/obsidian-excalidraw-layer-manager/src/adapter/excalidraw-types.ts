@@ -43,11 +43,6 @@ export interface ExcalidrawSidepanelTabLike {
   onClose?: (() => void) | undefined
   onExcalidrawViewClosed?: (() => void) | undefined
   onWindowMigrated?: ((win: Window) => void) | undefined
-
-  /** @deprecated Compatibility with older package-local fakes; not part of the verified host API. */
-  setCloseCallback?: (callback: () => void) => void
-  /** @deprecated Compatibility with older package-local fakes; use onFocus(view). */
-  onViewChange?: ((targetView?: unknown | null) => void) | undefined
 }
 
 export interface SidepanelLeafLike {

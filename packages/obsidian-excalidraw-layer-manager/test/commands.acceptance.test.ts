@@ -494,7 +494,7 @@ describe("commands acceptance matrix", () => {
     }
   })
 
-  it("C14 — element rename trims, mirrors label metadata, and preserves unrelated customData", () => {
+  it("C14 — element rename trims, writes canonical label metadata, and preserves unrelated customData", () => {
     const context = makeCommandContext([
       makeElement({
         id: "A",
@@ -535,7 +535,6 @@ describe("commands acceptance matrix", () => {
               persisted: "keep",
             },
           },
-          name: "New name",
         },
       },
     ])

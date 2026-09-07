@@ -10,6 +10,7 @@ import type { CommandPlanner, ExecuteIntentOutcome } from "./intentExecution.js"
 interface ApplyRequestEvent {
   readonly type: "APPLY_REQUEST"
   readonly patch: ScenePatch
+  readonly canExecute: () => boolean
   readonly resolve: (outcome: ApplyPatchOutcome) => void
   readonly reject: (error: unknown) => void
 }
@@ -17,6 +18,7 @@ interface ApplyRequestEvent {
 interface ExecuteIntentRequestEvent {
   readonly type: "EXECUTE_INTENT_REQUEST"
   readonly planner: CommandPlanner
+  readonly canExecute: () => boolean
   readonly resolve: (outcome: ExecuteIntentOutcome) => void
   readonly reject: (error: unknown) => void
 }
@@ -74,6 +76,7 @@ const createDisposedError = (): Error => new Error("Layer Manager runtime dispos
 const executeIntentRequest = async (
   ea: EaLike,
   planner: CommandPlanner,
+  canExecute: () => boolean,
 ): Promise<ExecuteIntentOutcome> => {
   let attempts = 0
 
@@ -81,6 +84,13 @@ const executeIntentRequest = async (
     attempts += 1
     const attempt = attempts as 1 | 2
 
+    if (!canExecute()) {
+      return {
+        status: "capabilityMissing",
+        reason: "Scene ownership changed before execution.",
+        attempts: attempt,
+      }
+    }
     const planningSnapshot = readSnapshot(ea)
     const planningContext = {
       snapshot: planningSnapshot,
@@ -142,7 +152,9 @@ const runtimeLifecycleMachine = setup({
         }
       }): Promise<RuntimeMutationResult> => {
         if (input.request.type === "APPLY_REQUEST") {
-          const outcome = await applyPatch(input.ea, input.request.patch)
+          const outcome: ApplyPatchOutcome = input.request.canExecute()
+            ? await applyPatch(input.ea, input.request.patch)
+            : { status: "capabilityMissing", reason: "Scene ownership changed before execution." }
           return {
             kind: "apply",
             request: input.request,
@@ -150,7 +162,11 @@ const runtimeLifecycleMachine = setup({
           }
         }
 
-        const outcome = await executeIntentRequest(input.ea, input.request.planner)
+        const outcome = await executeIntentRequest(
+          input.ea,
+          input.request.planner,
+          input.request.canExecute,
+        )
         return {
           kind: "executeIntent",
           request: input.request,

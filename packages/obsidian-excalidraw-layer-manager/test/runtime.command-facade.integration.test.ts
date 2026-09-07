@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
+import { readLmxElementLabel } from "../src/model/lmxMetadata.js"
 
 import type { EaLike, RawExcalidrawElement } from "../src/adapter/excalidraw-types.js"
 import { createLayerManagerRuntime } from "../src/main.js"
@@ -188,7 +189,9 @@ describe("runtime command facade + controller action seam", () => {
       status: "applied",
       attempts: 1,
     })
-    expect(runtime.elements.find((element) => element.id === "A")?.name).toBe("New Label")
+    expect(
+      readLmxElementLabel(runtime.elements.find((element) => element.id === "A")?.customData ?? {}),
+    ).toBe("New Label")
     expect(runtime.elements.find((element) => element.id === "A")?.customData).toEqual({
       foreign: true,
       lmx: {

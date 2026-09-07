@@ -1,17 +1,27 @@
 import { assign, createActor, setup } from "xstate"
+import {
+  type SidepanelLifecycleCallbacks,
+  createRuntimeSidepanelLifecycleBinding,
+  hasSidepanelLifecycleOwner,
+} from "../../../runtime/sidepanelLifecycleBinding.js"
 
 export interface SidepanelMountTabLike {
   contentEl?: HTMLElement
   setContent?: (content: HTMLElement | string) => void
   setTitle?: (title: string) => void
-  setCloseCallback?: (callback: () => void) => void
   open?: () => void
   close?: () => void
   getHostEA?: () => unknown
+  onOpen?: (() => Promise<void> | void) | undefined
+  onFocus?: ((view: unknown | null) => void) | undefined
+  onClose?: (() => void) | undefined
   onExcalidrawViewClosed?: (() => void) | undefined
+  onWindowMigrated?: ((win: Window) => void) | undefined
 }
 
 export interface SidepanelMountHostLike {
+  targetView?: unknown | null
+  setView?: (view?: unknown, reveal?: boolean) => unknown
   sidepanelTab?: SidepanelMountTabLike | null
   createSidepanelTab?: (
     title: string,
@@ -27,6 +37,7 @@ type SidepanelMountState = "idle" | "resolvingTab" | "mounting" | "mounted" | "f
 
 type SidepanelMountFailureReason =
   | "tabUnavailable"
+  | "tabCreationFailed"
   | "tabUnrenderable"
   | "ownerDocumentUnavailable"
   | "attachTargetMissing"
@@ -92,7 +103,7 @@ const isLikelyPersistedTab = (
   }
 
   try {
-    const hostEA = getHostEA()
+    const hostEA = getHostEA.call(tab)
     return !!hostEA && hostEA !== host
   } catch {
     return false
@@ -175,7 +186,7 @@ const createSidepanelMountStrategy = (input: {
       },
       attach: (contentRoot) => {
         try {
-          setContent(contentRoot)
+          setContent.call(input.tab, contentRoot)
           return {
             ok: true,
           }
@@ -201,7 +212,7 @@ interface SidepanelMountManagerInput {
   readonly onTabSwitched: () => void
   readonly onAsyncTabResolved: () => void
   readonly onPersistedTabDetected: () => void
-  readonly onHostViewClosed?: () => void
+  readonly lifecycle?: SidepanelLifecycleCallbacks
 }
 
 type MountPreparationOutcome =
@@ -282,6 +293,8 @@ type SidepanelMountMachineEvent =
 
 const toMountFailureMessage = (reason: SidepanelMountFailureReason): string | null => {
   switch (reason) {
+    case "tabCreationFailed":
+      return "Failed to create Layer Manager sidepanel tab."
     case "tabUnavailable":
       return "Layer Manager sidepanel unavailable in this host. Falling back to console renderer."
     case "tabUnrenderable":
@@ -594,29 +607,28 @@ export const createSidepanelMountActor = (input: SidepanelMountMachineInput) => 
 export class SidepanelMountManager {
   readonly #host: SidepanelMountHostLike
   readonly #title: string
-  readonly #notify: (message: string) => void
   readonly #actor: ReturnType<typeof createSidepanelMountActor>
-  readonly #onHostViewClosed: () => void
-  readonly #noopHostViewClosedHandler = (): void => {}
-  readonly #boundHostViewClosedHandler = (): void => {
-    if (this.#disposed) {
-      return
-    }
-
-    this.releaseLifecycleBinding()
-    this.#onHostViewClosed()
-  }
-
-  #lifecycleBoundTab: SidepanelMountTabLike | null = null
+  readonly #lifecycle: ReturnType<typeof createRuntimeSidepanelLifecycleBinding>
   #disposed = false
+  #creationFailed = false
 
   constructor(input: SidepanelMountManagerInput) {
     this.#host = input.host
     this.#title = input.title
-    this.#notify = input.notify
-    this.#onHostViewClosed = input.onHostViewClosed ?? (() => {})
     this.#actor = createSidepanelMountActor(input)
     this.#actor.start()
+    this.#lifecycle = createRuntimeSidepanelLifecycleBinding({
+      ea: this.#host,
+      requestRefresh: input.lifecycle?.requestRefresh ?? input.onAsyncTabResolved,
+      requestDispose: () => {
+        this.dispose()
+        input.lifecycle?.requestDispose()
+      },
+      ...(input.lifecycle?.onFocus ? { onFocus: input.lifecycle.onFocus } : {}),
+      ...(input.lifecycle?.onWindowMigrated
+        ? { onWindowMigrated: input.lifecycle.onWindowMigrated }
+        : {}),
+    })
   }
 
   get #snapshot() {
@@ -644,24 +656,7 @@ export class SidepanelMountManager {
   }
 
   releaseLifecycleBinding(): void {
-    const lifecycleBoundTab = this.#lifecycleBoundTab
-    if (!lifecycleBoundTab) {
-      return
-    }
-
-    if (lifecycleBoundTab.setCloseCallback) {
-      try {
-        lifecycleBoundTab.setCloseCallback(this.#noopHostViewClosedHandler)
-      } catch {
-        // best-effort cleanup only; property fallback below still applies
-      }
-    }
-
-    if (lifecycleBoundTab.onExcalidrawViewClosed === this.#boundHostViewClosedHandler) {
-      lifecycleBoundTab.onExcalidrawViewClosed = undefined
-    }
-
-    this.#lifecycleBoundTab = null
+    this.#lifecycle.release()
   }
 
   resetAfterClose(): void {
@@ -680,7 +675,7 @@ export class SidepanelMountManager {
       return
     }
 
-    this.releaseLifecycleBinding()
+    this.#lifecycle.dispose()
     this.#disposed = true
     this.#actor.stop()
   }
@@ -781,30 +776,30 @@ export class SidepanelMountManager {
   }
 
   private bindLifecycleToTab(tab: SidepanelMountTabLike): void {
-    if (this.#disposed || this.#lifecycleBoundTab === tab) {
-      return
+    if (this.#disposed) return
+    this.#host.sidepanelTab = tab
+    this.#lifecycle.sync()
+  }
+
+  private closeOrphanTab(tab: SidepanelMountTabLike | null): void {
+    // A successor may have adopted the same host result before this continuation.
+    if (!tab || hasSidepanelLifecycleOwner(tab)) return
+    try {
+      tab.close?.()
+    } catch {
+      // The host can already have removed the orphan.
+    } finally {
+      if (this.#host.sidepanelTab === tab) this.#host.sidepanelTab = null
     }
-
-    this.releaseLifecycleBinding()
-
-    if (tab.setCloseCallback) {
-      try {
-        tab.setCloseCallback(this.#boundHostViewClosedHandler)
-      } catch {
-        tab.onExcalidrawViewClosed = this.#boundHostViewClosedHandler
-      }
-    } else {
-      tab.onExcalidrawViewClosed = this.#boundHostViewClosedHandler
-    }
-
-    this.#lifecycleBoundTab = tab
   }
 
   private ensureSidepanelTab(): {
     readonly tab: SidepanelMountTabLike | null
     readonly failureReason: SidepanelMountFailureReason | null
   } {
-    let failureReason: SidepanelMountFailureReason | null = null
+    let failureReason: SidepanelMountFailureReason | null = this.#creationFailed
+      ? "tabCreationFailed"
+      : null
     let tab = isTabRenderable(this.#host.sidepanelTab) ? this.#host.sidepanelTab : null
 
     if (!tab && this.#host.sidepanelTab && !isTabRenderable(this.#host.sidepanelTab)) {
@@ -821,8 +816,19 @@ export class SidepanelMountManager {
       }
     }
 
-    if (!tab && this.#host.createSidepanelTab && !this.#snapshot.context.pendingTabCreation) {
-      const created = this.#host.createSidepanelTab(this.#title, false, true)
+    if (
+      !tab &&
+      !this.#creationFailed &&
+      this.#host.createSidepanelTab &&
+      !this.#snapshot.context.pendingTabCreation
+    ) {
+      let created: ReturnType<NonNullable<SidepanelMountHostLike["createSidepanelTab"]>>
+      try {
+        created = this.#host.createSidepanelTab(this.#title, false, true)
+      } catch {
+        this.#creationFailed = true
+        failureReason = "tabCreationFailed"
+      }
 
       if (isPromiseLike<SidepanelMountTabLike | null>(created)) {
         const pendingTabCreation = Promise.resolve(created)
@@ -837,13 +843,17 @@ export class SidepanelMountManager {
               this.#disposed ||
               this.#snapshot.context.pendingTabCreation !== pendingTabCreation
             ) {
+              // Let other continuations adopt a shared host result before orphan cleanup.
+              queueMicrotask(() => this.closeOrphanTab(resolved))
               return
             }
 
             if (!isTabRenderable(resolved)) {
+              this.#actor.send({ type: "ATTACH_FAILED", reason: "tabUnrenderable" })
               return
             }
 
+            this.bindLifecycleToTab(resolved)
             this.#actor.send({
               type: "REGISTER_ASYNC_RESOLVED_TAB",
               tab: resolved,
@@ -855,7 +865,8 @@ export class SidepanelMountManager {
               return
             }
 
-            this.#notify("Failed to create Layer Manager sidepanel tab.")
+            // Do not refresh from a rejection. A later explicit render may retry.
+            this.#actor.send({ type: "ATTACH_FAILED", reason: "tabCreationFailed" })
           })
           .finally(() => {
             if (this.#disposed) {

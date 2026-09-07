@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { readLmxElementLabel } from "../src/model/lmxMetadata.js"
 
 import type { EaLike, RawExcalidrawElement } from "../src/adapter/excalidraw-types.js"
 import { createLayerManagerRuntime } from "../src/main.js"
@@ -234,7 +235,9 @@ describe("sidepanel rename + drag-drop integration", () => {
     dispatchKeydown(input, "Enter")
     await flushAsync()
 
-    expect(runtime.elements.find((element) => element.id === "A")?.name).toBe("Renamed from button")
+    expect(
+      readLmxElementLabel(runtime.elements.find((element) => element.id === "A")?.customData ?? {}),
+    ).toBe("Renamed from button")
     expect(runtime.elements.find((element) => element.id === "A")?.customData).toEqual({
       foreign: true,
       lmx: {
@@ -279,9 +282,9 @@ describe("sidepanel rename + drag-drop integration", () => {
     expect(runtime.copyForEditing).not.toHaveBeenCalled()
     expect(runtime.addToView).not.toHaveBeenCalled()
     expect(runtime.updateScene).toHaveBeenCalledTimes(1)
-    expect(runtime.elements.find((element) => element.id === "A")?.name).toBe(
-      "Renamed from fallback",
-    )
+    expect(
+      readLmxElementLabel(runtime.elements.find((element) => element.id === "A")?.customData ?? {}),
+    ).toBe("Renamed from fallback")
   })
 
   it("starts inline rename from row double-click and commits via Enter", async () => {
@@ -313,9 +316,9 @@ describe("sidepanel rename + drag-drop integration", () => {
     dispatchKeydown(input, "Enter")
     await flushAsync()
 
-    expect(runtime.elements.find((element) => element.id === "A")?.name).toBe(
-      "Renamed from double click",
-    )
+    expect(
+      readLmxElementLabel(runtime.elements.find((element) => element.id === "A")?.customData ?? {}),
+    ).toBe("Renamed from double click")
   })
 
   it("saves group rename and reflects new group row label", async () => {

@@ -1488,14 +1488,13 @@ describe("runtime active-view refresh", () => {
     traceClear?.()
 
     const tabWithViewChange = runtime.sidepanelTab.tab as {
-      onViewChange?: (targetView?: unknown | null) => void
+      onFocus?: (targetView?: unknown | null) => void
     }
-    tabWithViewChange.onViewChange?.(runtime.ea.targetView)
+    tabWithViewChange.onFocus?.(runtime.ea.targetView)
     await flushAsync()
 
     const rendererEvent = traceRead?.().find(
-      (event) =>
-        event.category === "renderer" && event.message === "sidepanel onViewChange received",
+      (event) => event.category === "renderer" && event.message === "sidepanel onFocus received",
     )
 
     expect(rendererEvent?.payload).toEqual(

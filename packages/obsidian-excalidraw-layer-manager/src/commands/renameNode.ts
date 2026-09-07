@@ -39,10 +39,10 @@ const planElementRename = (
     elementPatches: [
       {
         id: element.id,
-        set: {
-          customData: withLmxElementLabel(element.customData, normalizedName),
-          name: normalizedName,
-        },
+        set:
+          element.type === "frame"
+            ? { name: normalizedName }
+            : { customData: withLmxElementLabel(element.customData, normalizedName) },
       },
     ],
   })

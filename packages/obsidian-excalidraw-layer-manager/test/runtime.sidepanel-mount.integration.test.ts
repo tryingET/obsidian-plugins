@@ -50,19 +50,17 @@ const expectMountedStatusState = (sidepanelTab: SidepanelTabHarness, fragments: 
   expect(textFragments).toEqual(expect.arrayContaining(fragments))
 }
 
-const makeSetCloseCallbackSidepanelTab = (document: FakeDocument) => {
+const makeCloseAwareSidepanelTab = (document: FakeDocument) => {
   const contentEl = document.createElement("div")
   const setTitle = vi.fn()
   const open = vi.fn()
   const close = vi.fn()
-  let closeCallback: (() => void) | null = null
+  const previousClose = vi.fn()
 
   const tab = {
     contentEl: contentEl as unknown as HTMLElement,
     setTitle,
-    setCloseCallback: vi.fn((callback: () => void) => {
-      closeCallback = callback
-    }),
+    onClose: previousClose,
     open,
     close,
     getHostEA: () => null,
@@ -74,16 +72,17 @@ const makeSetCloseCallbackSidepanelTab = (document: FakeDocument) => {
     setTitle,
     open,
     close,
+    previousClose,
     triggerClose: () => {
-      closeCallback?.()
+      tab.onClose()
     },
   }
 }
 
-const makeViewChangeAwareSidepanelTab = (document: FakeDocument) => {
+const makeFocusAwareSidepanelTab = (document: FakeDocument) => {
   const harness = makeSidepanelTab(document, null)
   const tab = harness.tab as typeof harness.tab & {
-    onViewChange?: (targetView?: unknown | null) => void
+    onFocus?: (targetView?: unknown | null) => void
   }
 
   return {
@@ -305,7 +304,7 @@ describe("sidepanel mount-focused integration", () => {
     }
   })
 
-  it("detaches the whole sidepanel leaf when the host Excalidraw view closes and remounts on next render", () => {
+  it("keeps the shared leaf and existing tab on associated-view loss and recovers through focus", () => {
     const firstTab = makeSidepanelTab(fakeDocument, null)
     const secondTab = makeSidepanelTab(fakeDocument, null)
     const detachLeaf = vi.fn()
@@ -349,23 +348,26 @@ describe("sidepanel mount-focused integration", () => {
     }
     firstSidepanelTab.onExcalidrawViewClosed?.()
 
-    expect(detachLeaf).toHaveBeenCalledTimes(1)
-    expect(host.sidepanelTab).toBeNull()
-    expect(firstTab.contentEl.children).toHaveLength(0)
-
+    expect(detachLeaf).not.toHaveBeenCalled()
+    expect(host.sidepanelTab).toBe(firstTab.tab)
+    expect(findRowTreeRoot(getContentRoot(firstTab.contentEl))).toBeUndefined()
+    ;(
+      firstSidepanelTab as typeof firstSidepanelTab & { onFocus?: (view: unknown) => void }
+    ).onFocus?.(eligibleBinding.targetView)
     renderer.render({
       tree: [makeElementNode("B")],
       selectedIds: new Set(),
       sceneVersion: 2,
     })
 
-    expect(createSidepanelTab).toHaveBeenCalledTimes(1)
-    expect(host.sidepanelTab).toBe(secondTab.tab)
-    expect(secondTab.contentEl.children.length).toBeGreaterThan(0)
+    expect(createSidepanelTab).not.toHaveBeenCalled()
+    expect(host.sidepanelTab).toBe(firstTab.tab)
+    expect(findRowTreeRoot(getContentRoot(firstTab.contentEl))).toBeDefined()
+    renderer.dispose?.()
   })
 
-  it("uses setCloseCallback host lifecycle wiring and remounts after callback-triggered close", () => {
-    const firstTab = makeSetCloseCallbackSidepanelTab(fakeDocument)
+  it("uses onClose as terminal ownership and does not remount after later renders", () => {
+    const firstTab = makeCloseAwareSidepanelTab(fakeDocument)
     const secondTab = makeSidepanelTab(fakeDocument, null)
     const detachLeaf = vi.fn()
     const createSidepanelTab = vi.fn(() => secondTab.tab)
@@ -401,13 +403,13 @@ describe("sidepanel mount-focused integration", () => {
       sceneVersion: 1,
     })
 
-    expect(firstTab.tab.setCloseCallback).toHaveBeenCalledTimes(1)
+    expect(firstTab.tab.onClose).not.toBe(firstTab.previousClose)
     expect(firstTab.contentEl.children.length).toBeGreaterThan(0)
 
     firstTab.triggerClose()
 
-    expect(detachLeaf).toHaveBeenCalledTimes(1)
-    expect(host.sidepanelTab).toBeNull()
+    expect(detachLeaf).not.toHaveBeenCalled()
+    expect(firstTab.previousClose).toHaveBeenCalledTimes(1)
     expect(firstTab.contentEl.children).toHaveLength(0)
 
     renderer.render({
@@ -416,14 +418,15 @@ describe("sidepanel mount-focused integration", () => {
       sceneVersion: 2,
     })
 
-    expect(createSidepanelTab).toHaveBeenCalledTimes(1)
-    expect(host.sidepanelTab).toBe(secondTab.tab)
-    expect(secondTab.contentEl.children.length).toBeGreaterThan(0)
+    expect(createSidepanelTab).not.toHaveBeenCalled()
+    expect(host.sidepanelTab).toBe(firstTab.tab)
+    expect(firstTab.contentEl.children).toHaveLength(0)
+    expect(secondTab.contentEl.children).toHaveLength(0)
   })
 
   it("clears host close lifecycle wiring from superseded tabs", () => {
-    const firstTab = makeSetCloseCallbackSidepanelTab(fakeDocument)
-    const secondTab = makeSetCloseCallbackSidepanelTab(fakeDocument)
+    const firstTab = makeCloseAwareSidepanelTab(fakeDocument)
+    const secondTab = makeCloseAwareSidepanelTab(fakeDocument)
     const detachLeaf = vi.fn()
     const eligibleBinding = makeHostViewBinding("eligible.excalidraw", {
       "excalidraw-plugin": "parsed",
@@ -455,7 +458,7 @@ describe("sidepanel mount-focused integration", () => {
       sceneVersion: 1,
     })
 
-    expect(firstTab.tab.setCloseCallback).toHaveBeenCalledTimes(1)
+    expect(firstTab.tab.onClose).not.toBe(firstTab.previousClose)
 
     host.sidepanelTab = secondTab.tab
     renderer.render({
@@ -464,7 +467,7 @@ describe("sidepanel mount-focused integration", () => {
       sceneVersion: 2,
     })
 
-    expect(secondTab.tab.setCloseCallback).toHaveBeenCalledTimes(1)
+    expect(secondTab.tab.onClose).not.toBe(secondTab.previousClose)
     expect(secondTab.contentEl.children.length).toBeGreaterThan(0)
 
     firstTab.triggerClose()
@@ -588,8 +591,8 @@ describe("sidepanel mount-focused integration", () => {
     ])
   })
 
-  it("rebinds the persistent shell through sidepanel onViewChange without closing the tab", async () => {
-    const sidepanelTab = makeViewChangeAwareSidepanelTab(fakeDocument)
+  it("rebinds the persistent shell through sidepanel onFocus without closing the tab", async () => {
+    const sidepanelTab = makeFocusAwareSidepanelTab(fakeDocument)
     const eligibleBinding = makeHostViewBinding("eligible.excalidraw", {
       "excalidraw-plugin": "parsed",
     })
@@ -618,7 +621,7 @@ describe("sidepanel mount-focused integration", () => {
       sceneVersion: 1,
     })
 
-    expect(typeof sidepanelTab.tab.onViewChange).toBe("function")
+    expect(typeof sidepanelTab.tab.onFocus).toBe("function")
     expect(findRowTreeRoot(getContentRoot(sidepanelTab.contentEl))).toBeDefined()
 
     host.targetView = null
@@ -634,7 +637,7 @@ describe("sidepanel mount-focused integration", () => {
       "Focus an Excalidraw view to resume live Layer Manager interaction.",
     ])
 
-    sidepanelTab.tab.onViewChange?.(eligibleBinding.targetView)
+    sidepanelTab.tab.onFocus?.(eligibleBinding.targetView)
     await flushAsync()
 
     expect(host.targetView).toBe(eligibleBinding.targetView)
@@ -647,8 +650,8 @@ describe("sidepanel mount-focused integration", () => {
     expect(textFragments).not.toEqual(expect.arrayContaining(["Layer Manager unbound"]))
   })
 
-  it("reclaims row-tree focus for sidepanel-driven onViewChange rebinds even when focus was outside", async () => {
-    const sidepanelTab = makeViewChangeAwareSidepanelTab(fakeDocument)
+  it("reclaims row-tree focus for sidepanel-driven onFocus rebinds even when focus was outside", async () => {
+    const sidepanelTab = makeFocusAwareSidepanelTab(fakeDocument)
     const eligibleBinding = makeHostViewBinding("eligible.excalidraw", {
       "excalidraw-plugin": "parsed",
     })
@@ -688,7 +691,7 @@ describe("sidepanel mount-focused integration", () => {
     const outsideTarget = fakeDocument.createElement("button")
     fakeDocument.activeElement = outsideTarget
 
-    sidepanelTab.tab.onViewChange?.(eligibleBinding.targetView)
+    sidepanelTab.tab.onFocus?.(eligibleBinding.targetView)
     await flushAsync()
 
     const contentRoot = getContentRoot(sidepanelTab.contentEl)
@@ -978,6 +981,7 @@ describe("sidepanel mount-focused integration", () => {
 
         expect(host.sidepanelTab).toBeNull()
         expect(logSpy).toHaveBeenCalledWith("[LMX] Failed to create Layer Manager sidepanel tab.")
+        expect(createSidepanelTab).toHaveBeenCalledTimes(1)
 
         renderer.render({
           tree: [makeElementNode("A")],
