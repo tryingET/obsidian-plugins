@@ -1,0 +1,139 @@
+{
+  "task": 5565,
+  "recordedDate": "2026-09-08",
+  "disposition": "Triage complete; wrapper repair deferred to AK #5566. Optional quality remains failed.",
+  "sourceCommit": "b6bf57ff82e52051f96961f7bffecf37abddaff4",
+  "baselineCommit": "e38c8cdf77e30ea8cb5fb34ce05c0900cdbab882",
+  "node": "26.8.1",
+  "npm": "12.0.2",
+  "optionalQuality": {
+    "command": "LMX_TS_QUALITY_DIFF_RANGE='e38c8cdf77e30ea8cb5fb34ce05c0900cdbab882 b6bf57f' npm --prefix packages/obsidian-excalidraw-layer-manager run quality:ts",
+    "processExit": 0,
+    "outcome": "fail",
+    "mergeConfidence": 75,
+    "blocker": "changed-crap-budget",
+    "budget": 30,
+    "testsPassed": 654,
+    "testFilesPassed": 62,
+    "sampledMutantsKilled": 5
+  },
+  "counterfactual": {
+    "runId": "2026-09-08T06-06-57-087Z",
+    "artifactOutcome": "fail",
+    "killedMutants": 5,
+    "originalHunks": [
+      {
+        "filePath": "packages/obsidian-excalidraw-layer-manager/src/main.ts",
+        "hunkId": "hunk-11",
+        "span": {
+          "endLine": 12,
+          "startLine": 5
+        }
+      },
+      {
+        "filePath": "packages/obsidian-excalidraw-layer-manager/src/main.ts",
+        "hunkId": "hunk-12",
+        "span": {
+          "endLine": 25,
+          "startLine": 18
+        }
+      },
+      {
+        "filePath": "packages/obsidian-excalidraw-layer-manager/src/main.ts",
+        "hunkId": "hunk-13",
+        "span": {
+          "endLine": 36,
+          "startLine": 28
+        }
+      }
+    ],
+    "totalFunctions": 55,
+    "beforeChanged": 55,
+    "afterChanged": 0,
+    "beforeFactory": {
+      "kind": "complexity",
+      "filePath": "src/main.ts",
+      "symbol": "arrow:<anonymous@135>",
+      "span": {
+        "startLine": 135,
+        "endLine": 811
+      },
+      "complexity": 92,
+      "coveragePct": 49.8,
+      "crap": 1162.75,
+      "changed": true
+    },
+    "afterFactory": {
+      "kind": "complexity",
+      "filePath": "src/main.ts",
+      "symbol": "arrow:<anonymous@135>",
+      "span": {
+        "startLine": 135,
+        "endLine": 811
+      },
+      "complexity": 92,
+      "coveragePct": 49.8,
+      "crap": 1162.75,
+      "changed": false
+    },
+    "baselineFactoryTextEqual": true,
+    "independentCrap": 1162.75,
+    "limitation": "Current main.ts and recorded coverage, hunk-path correction in memory only; not an overall corrected quality run."
+  },
+  "tool": {
+    "repo": "softwareco/owned/ts-quality",
+    "head": "a14a00b7bedc214500bd44f44a50d5f638a491b4",
+    "posture": "Unrelated documentation/instruction dirt; inspected source files unchanged. Built modules were not rebuilt by this task.",
+    "sourceGitBlobs": {
+      "packages/crap4ts/src/index.ts": "7eba5d4925a015d8a1b8b711ccb5e6587315ca06",
+      "packages/evidence-model/src/index.ts": "c7e378a00b1e42bd7f9853c826ac93b475e71e29",
+      "packages/ts-quality/src/cli.ts": "68872c2b115f726268977e0b190f299ddd121cb2"
+    },
+    "builtGitBlobHashes": {
+      "dist/packages/crap4ts/src/index.js": "92fa3f7c82ff6e2c1bc1bb043594ca3edee59899",
+      "dist/packages/evidence-model/src/index.js": "be39820f085237144bb4f3304c0d66588a024fa0",
+      "dist/packages/ts-quality/src/cli.js": "7bea2c0450b4690eceb4a6021e4cd9a785aa1d7d"
+    }
+  },
+  "followupTask": 5566,
+  "validation": {
+    "intermediateFailure": {
+      "command": "npm run ci",
+      "exitCode": 1,
+      "cause": "After the first successful CI/build, newly added inline validation records in this evidence JSON failed Biome formatting.",
+      "repair": "Applied the installed Biome formatter only to this evidence file before rerunning validation."
+    },
+    "status": "passed required checks and build; optional semantic verdict remains fail",
+    "checks": [
+      {
+        "command": "npm run ci",
+        "exitCode": 0,
+        "testsPassed": 654,
+        "testFilesPassed": 62,
+        "existingLintWarnings": 20
+      },
+      {
+        "command": "npm --prefix packages/obsidian-excalidraw-layer-manager run build",
+        "exitCode": 0
+      },
+      {
+        "command": "node /home/tryinget/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs packages/obsidian-excalidraw-layer-manager/docs --strict",
+        "exitCode": 0
+      }
+    ],
+    "bundleSha256": "cfef5795e992782c4b56e61ae49dca239d804c815d4b50d1b42c66540398e561",
+    "bundleMatchesMigration": true,
+    "packageLockSha256": "7748fa4aa7cda72c4c7a8891d78f0d1c8e44a5b7a44485147d32a3083cf35f81",
+    "coveragePercent": { "statements": 90.09, "branches": 81.92, "functions": 95, "lines": 89.98 },
+    "deploymentProof": "Required gate verified disposable-target copy/receipt behavior; no personal-vault sync or lab artifact refresh."
+  },
+  "boundaries": {
+    "productionSourceChanged": false,
+    "wrapperChanged": false,
+    "thresholdsChanged": false,
+    "toolOwnerMutated": false,
+    "personalVaultDeployed": false,
+    "realHostSmoke": false,
+    "remoteCI": false
+  }
+}
