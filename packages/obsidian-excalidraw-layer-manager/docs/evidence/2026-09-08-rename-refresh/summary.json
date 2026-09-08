@@ -1,0 +1,54 @@
+{
+  "task": 5575,
+  "predecessor_task": 5574,
+  "baseline_commit": "99c555c",
+  "source_tree": "a04a40ce0f2229e672a30e5935f151638e657fe2",
+  "test_tree": "74c5a76c094fc2a4c196552e1657b8c989ed85c0",
+  "bundle_sha256": "9032818dda258072ff77a20f380cdade62866996e9bee90e1ee410ae988f42b1",
+  "installed_bundle_matches": true,
+  "host": {
+    "obsidian": "1.13.7",
+    "excalidraw": "2.27.3",
+    "vault": "owned disposable ak5573-host-yTjeVY/vault",
+    "personal_vault_touched": false,
+    "focused_final_replay": true
+  },
+  "verification": {
+    "strict_package_docs": "passed",
+    "root_ci": {
+      "command": "npm run ci",
+      "passed": true,
+      "tests": 753,
+      "files": 67,
+      "existing_lint_warnings": 20,
+      "evidence_script_style_infos": 15,
+      "landing_log": "ci-landing.txt",
+      "landing_log_sha256": "aa9e5694393f2248424159f021bc83da1793b251bdf4ee5840433e352cfecd73",
+      "landing_raw_log_sha256": "d877eaab738b8ba625349d986558d8ca6d0b3271305f5bc7d79c68e30d8cebfc",
+      "log_projection": "Trailing whitespace normalized for git; verbose regression-red object dump excerpted with original hash retained.",
+      "source_log": "$TMPDIR/ak5575-operations/ci-source-green.log",
+      "source_log_sha256": "d046fafaa925f46b074a971bd705b1df4dd5a35adc862f4db8a33aeec0aa9bff"
+    },
+    "build": {
+      "command": "npm --prefix packages/obsidian-excalidraw-layer-manager run build",
+      "passed": true
+    },
+    "focused": {
+      "passed": 80,
+      "new_tests": 15,
+      "initial_red_failed": 6,
+      "initial_red_passed": 3,
+      "duplicate_begin_red_failed": 1
+    },
+    "native_red": "host-red.json",
+    "native_green": "host-green-final.json",
+    "native_acceptance": "host-acceptance-final.json",
+    "native_context": "host-context-final.json",
+    "predecessor_native_replay": [
+      "host-staging-final.json",
+      "host-staging-preservation-final.json"
+    ],
+    "independent_review": "dispatch-1788860618291 final inspection: no remaining evidenced scoped blocker"
+  },
+  "qualification": "Real native UI/DOM and focused native blur; synthetic keyboard and stale-event injection. Background-window and selector failures retained, not product defects. #5574 evidence formatting repaired without semantics/policy changes. Not all-platform, physical-user or universal async host safety certification. No personal rollout or upstream update."
+}

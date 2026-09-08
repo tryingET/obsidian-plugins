@@ -1,0 +1,38 @@
+{
+  "id": 1,
+  "result": {
+    "result": {
+      "type": "object",
+      "value": {
+        "active": "<div tabindex=\"0\" role=\"tree\" aria-label=\"Layer rows\" aria-multiselectable=\"true\" style=\"display: flex; flex-direction: column; gap: 2px;\"><div id=\"lmx-row-1-frame_3AsOp4tVQD\" role=\"treeitem\" aria-label=\"[frame] AK5575 frame uncommitted draft · 1 items\" aria-selected=\"false\" aria-level=\"1\" tabindex=\"-1\" style=\"display: flex; position: relative; align-items: center; gap: 3px; min-height: 20px; padding: 1px 2px 1px 0px; border-radius: 4px; font-size: 11px; border: 1px solid transparent; cursor: pointer;\"><span style=\"display: inline-block; min-width: 16px;\"></span><span style=\"display: inline-flex; align-items: center; flex-shrink: 0; padding: 0px 4px; border-radius: 999px; font-size: 9px; line-height: 14px; letter-spacing: 0.01em; border: 1px solid var(--background-modifier-border, rgba(120,120,120,0.12)); background: transparent; color: var(--text-muted, inherit);\">[frame]</span><span style=\"flex: 1 1 0%; min-width: 0px; font-size: 11px; color: var(--text-normal, inherit); font-weight: 500; padding-right: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 1; text-decoration: none;\">AK5575 frame uncommitted draft</span><div style=\"display: inline-flex; ali",
+        "buttons": [
+          {
+            "label": null,
+            "disabled": true,
+            "html": "<button type=\"button\" disabled=\"\" style=\"font-size: 11px; line-height: 1.2; min-height: 20px; padding: 2px 7px; border-radius: 5px; border: 1px solid var(--background-modifier-border, rgba(120,120,120,0.18)); background: var(--background-secondary-al"
+          },
+          {
+            "label": "Send to back",
+            "disabled": true,
+            "html": "<button type=\"button\" aria-label=\"Send to back\" disabled=\"\" style=\"min-width: 24px; min-height: 20px; display: inline-flex; align-items: center; justify-content: center; line-height: 1.2; padding: 2px 6px; border: 1px solid var(--background-modifier-"
+          },
+          {
+            "label": "Send backward",
+            "disabled": true,
+            "html": "<button type=\"button\" aria-label=\"Send backward\" disabled=\"\" style=\"min-width: 24px; min-height: 20px; display: inline-flex; align-items: center; justify-content: center; line-height: 1.2; padding: 2px 6px; border: 1px solid var(--background-modifier"
+          },
+          {
+            "label": "Bring forward",
+            "disabled": true,
+            "html": "<button type=\"button\" aria-label=\"Bring forward\" disabled=\"\" style=\"min-width: 24px; min-height: 20px; display: inline-flex; align-items: center; justify-content: center; line-height: 1.2; padding: 2px 6px; border: 1px solid var(--background-modifier"
+          },
+          {
+            "label": "Bring to front",
+            "disabled": true,
+            "html": "<button type=\"button\" aria-label=\"Bring to front\" disabled=\"\" style=\"min-width: 24px; min-height: 20px; display: inline-flex; align-items: center; justify-content: center; line-height: 1.2; padding: 2px 6px; border: 1px solid var(--background-modifie"
+          }
+        ]
+      }
+    }
+  }
+}

@@ -44,6 +44,7 @@ import {
 } from "./sidepanel/quickmove/quickMovePersistenceService.js"
 import { createRememberedDestinationReconcileActor } from "./sidepanel/quickmove/rememberedDestinationReconcileMachine.js"
 import { SidepanelInlineRenameController } from "./sidepanel/rename/inlineRenameController.js"
+import { InlineRenameDomSession } from "./sidepanel/rename/inlineRenameDomSession.js"
 import { createExcalidrawLikeIconNode } from "./sidepanel/render/excalidrawIconNode.js"
 import {
   renderSidepanelQuickMove,
@@ -631,6 +632,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   readonly #mountManager: SidepanelMountManager
   readonly #keyboardController: SidepanelKeyboardShortcutController
   readonly #inlineRenameController: SidepanelInlineRenameController
+  readonly #inlineRenameDomSession = new InlineRenameDomSession()
   readonly #dragDropController: SidepanelDragDropController
   readonly #settingsWriteQueue: SidepanelSettingsWriteQueue
   readonly #quickMovePersistenceService: SidepanelQuickMovePersistenceService
@@ -1041,6 +1043,18 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   render(model: RenderViewModel): void {
     if (this.#disposed) return
     this.#latestModel = model
+    const renameRender = this.#inlineRenameDomSession.beforeRender(
+      this.#host,
+      this.#inlineRenameController.nodeId,
+      model.tree,
+      this.#contentRoot,
+    )
+    if (renameRender.discard) this.#inlineRenameController.clear()
+    else if (renameRender.focusedDraft !== null) {
+      this.#inlineRenameController.updateInlineRenameDraft(renameRender.focusedDraft)
+      this.cancelDeferredFocusRestore()
+      this.#focusOwnership.setShouldAutofocusContentRoot(false)
+    }
 
     const sceneBinding = resolveSceneBindingFromHost(this.#host)
     const hostViewContext = describeHostViewContext(this.#host)
@@ -1064,6 +1078,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.renderLivePanelChrome(liveRenderRoot, model.actions, liveRenderState)
     this.renderLiveRows(liveRenderRoot, model.actions, liveRenderState)
     this.finalizeLiveRender(liveRenderRoot.contentRoot)
+    this.#inlineRenameDomSession.restoreFocus()
   }
 
   private beginLiveRender(): SidepanelLiveRenderRoot | null {
@@ -1083,7 +1098,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     )
 
     this.#quickMovePersistenceService.loadFromSettingsOnce()
-    if (shouldRestoreRowTreeFocus) {
+    if (shouldRestoreRowTreeFocus && !this.#inlineRenameDomSession.restoringFocus) {
       this.requestRowTreeAutofocus()
     }
 
@@ -2223,6 +2238,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   }
 
   private clearInteractiveBindings(): void {
+    this.#inlineRenameDomSession.clear()
     this.#contentRoot?.removeEventListener("keydown", this.#contentKeydownHandler)
     this.#contentRoot?.removeEventListener("focusout", this.#contentFocusOutHandler)
     this.#contentRoot?.removeEventListener("focusin", this.#contentFocusInHandler)
@@ -2564,6 +2580,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   }
 
   private resetForViewContextBoundary(): void {
+    this.#inlineRenameDomSession.clear()
     this.#hostSelectionBridge.invalidatePendingSelectionMirror()
     this.cancelDeferredFocusRestore()
     this.#keyboardContext = null
@@ -2814,6 +2831,10 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   }
 
   private beginInlineRename(nodeId: string, initialValue: string): void {
+    const current = this.#inlineRenameController.state
+    if (current?.nodeId !== nodeId || current.draft !== initialValue) {
+      this.#inlineRenameDomSession.begin(this.#host)
+    }
     this.cancelDeferredFocusRestore()
     this.#inlineRenameController.beginInlineRename(nodeId, initialValue)
   }
@@ -3380,6 +3401,11 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
             : null
 
         const currentInlineRenameState = this.#inlineRenameController.state
+        const renameGeneration = this.#inlineRenameDomSession.generation
+        const canHandleRename = () =>
+          !this.#disposed &&
+          this.#inlineRenameDomSession.owns(renameGeneration, this.#host) &&
+          !!this.#contentRoot?.contains(row)
         const inlineRenameState: SidepanelInlineRenameRenderState | null =
           currentInlineRenameState?.nodeId === node.id ? currentInlineRenameState : null
         const selected = selectedNodeIds.has(node.id)
@@ -3410,10 +3436,10 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
             actions?.toggleExpanded(targetNodeId)
           },
           onInlineRenameDraftChange: (nextDraft) => {
-            this.updateInlineRenameDraft(nextDraft)
+            if (canHandleRename()) this.updateInlineRenameDraft(nextDraft)
           },
           onInlineRenameCommit: (targetNodeId) => {
-            if (!actions) {
+            if (!actions || !canHandleRename()) {
               return
             }
 
@@ -3424,10 +3450,10 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
             )
           },
           onInlineRenameCancel: () => {
-            this.cancelInlineRename()
+            if (canHandleRename()) this.cancelInlineRename()
           },
           isInlineRenameActiveForNode: (targetNodeId) =>
-            this.#inlineRenameController.nodeId === targetNodeId,
+            canHandleRename() && this.#inlineRenameController.nodeId === targetNodeId,
           onRenameNodeFromAction: (targetNodeId, initialValue) => {
             this.beginInlineRenameFromInteraction(targetNodeId, initialValue)
           },
@@ -3539,6 +3565,9 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
         }
 
         container.appendChild(row)
+        if (renameInputForAutofocus) {
+          this.#inlineRenameDomSession.setInput(renameInputForAutofocus)
+        }
 
         if (inlineRenameState?.shouldAutofocusInput && renameInputForAutofocus) {
           try {

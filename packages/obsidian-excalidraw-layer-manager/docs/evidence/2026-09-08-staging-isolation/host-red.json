@@ -85,13 +85,8 @@
           }
         ],
         "pass": false,
-        "stagedBefore": [
-          "3vUe4Y0O"
-        ],
-        "stagedAfter": [
-          "3vUe4Y0O",
-          "OlXxRsfO"
-        ],
+        "stagedBefore": ["3vUe4Y0O"],
+        "stagedAfter": ["3vUe4Y0O", "OlXxRsfO"],
         "fixture": {
           "a": "3vUe4Y0O",
           "b": "OlXxRsfO"

@@ -1,0 +1,27 @@
+npm notice run npx
+npm notice run 'vitest' run test/runtime.sidepanel-rename-refresh.integration.test.ts -t duplicate-begin
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/runtime.sidepanel-rename-refresh.integration.test.ts (15 tests | 1 failed | 14 skipped) 22ms
+     × keeps an unchanged duplicate-begin editor authorized 20ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/runtime.sidepanel-rename-refresh.integration.test.ts > inline rename ownership across refresh > keeps an unchanged duplicate-begin editor authorized
+AssertionError: expected "vi.fn()" to be called 1 times, but got 0 times
+ ❯ test/runtime.sidepanel-rename-refresh.integration.test.ts:235:27
+    233|     dispatchKeydown(current, "Enter")
+    234|     await flushAsync(20)
+    235|     expect(f.updateScene).toHaveBeenCalledTimes(1)
+       |                           ^
+    236|     expect(f.label()).toBe("After duplicate begin")
+    237|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 14 skipped (15)
+   Start at  11:49:46
+   Duration  788ms (transform 613ms, setup 0ms, import 677ms, tests 22ms, environment 0ms)

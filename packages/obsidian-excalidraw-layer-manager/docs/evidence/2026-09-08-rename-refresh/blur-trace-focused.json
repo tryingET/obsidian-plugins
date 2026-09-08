@@ -1,0 +1,326 @@
+{
+  "id": 1,
+  "result": {
+    "result": {
+      "type": "object",
+      "value": {
+        "before": {
+          "active": true,
+          "connected": true,
+          "value": "AK5575 traced blur"
+        },
+        "logs": [
+          {
+            "at": "window",
+            "type": "blur",
+            "target": "INPUT",
+            "related": "BUTTON",
+            "active": "BODY",
+            "oldConnected": true
+          },
+          {
+            "at": "document",
+            "type": "blur",
+            "target": "INPUT",
+            "related": "BUTTON",
+            "active": "BODY",
+            "oldConnected": true
+          },
+          {
+            "at": "input",
+            "type": "blur",
+            "target": "INPUT",
+            "related": "BUTTON",
+            "active": "BODY",
+            "oldConnected": true
+          },
+          {
+            "at": "window",
+            "type": "focusout",
+            "target": "INPUT",
+            "related": "BUTTON",
+            "active": "BODY",
+            "oldConnected": true
+          },
+          {
+            "at": "document",
+            "type": "focusout",
+            "target": "INPUT",
+            "related": "BUTTON",
+            "active": "BODY",
+            "oldConnected": true
+          },
+          {
+            "at": "input",
+            "type": "focusout",
+            "target": "INPUT",
+            "related": "BUTTON",
+            "active": "BODY",
+            "oldConnected": true
+          },
+          {
+            "at": "window",
+            "type": "focus",
+            "target": "BUTTON",
+            "related": "INPUT",
+            "active": "BUTTON",
+            "oldConnected": true
+          },
+          {
+            "at": "document",
+            "type": "focus",
+            "target": "BUTTON",
+            "related": "INPUT",
+            "active": "BUTTON",
+            "oldConnected": true
+          },
+          {
+            "at": "window",
+            "type": "focusin",
+            "target": "BUTTON",
+            "related": "INPUT",
+            "active": "BUTTON",
+            "oldConnected": true
+          },
+          {
+            "at": "document",
+            "type": "focusin",
+            "target": "BUTTON",
+            "related": "INPUT",
+            "active": "BUTTON",
+            "oldConnected": true
+          },
+          {
+            "at": "window",
+            "type": "blur",
+            "target": "BUTTON",
+            "active": "BODY",
+            "oldConnected": true
+          },
+          {
+            "at": "document",
+            "type": "blur",
+            "target": "BUTTON",
+            "active": "BODY",
+            "oldConnected": true
+          },
+          {
+            "at": "window",
+            "type": "focusout",
+            "target": "BUTTON",
+            "active": "BODY",
+            "oldConnected": true
+          },
+          {
+            "at": "document",
+            "type": "focusout",
+            "target": "BUTTON",
+            "active": "BODY",
+            "oldConnected": true
+          },
+          {
+            "at": "window",
+            "type": "focus",
+            "target": "DIV",
+            "active": "DIV",
+            "oldConnected": false
+          },
+          {
+            "at": "document",
+            "type": "focus",
+            "target": "DIV",
+            "active": "DIV",
+            "oldConnected": false
+          },
+          {
+            "at": "window",
+            "type": "focusin",
+            "target": "DIV",
+            "active": "DIV",
+            "oldConnected": false
+          },
+          {
+            "at": "document",
+            "type": "focusin",
+            "target": "DIV",
+            "active": "DIV",
+            "oldConnected": false
+          },
+          {
+            "at": "window",
+            "type": "blur",
+            "target": "DIV",
+            "active": "BODY",
+            "oldConnected": false
+          },
+          {
+            "at": "document",
+            "type": "blur",
+            "target": "DIV",
+            "active": "BODY",
+            "oldConnected": false
+          },
+          {
+            "at": "window",
+            "type": "focusout",
+            "target": "DIV",
+            "active": "BODY",
+            "oldConnected": false
+          },
+          {
+            "at": "document",
+            "type": "focusout",
+            "target": "DIV",
+            "active": "BODY",
+            "oldConnected": false
+          },
+          {
+            "at": "window",
+            "type": "focus",
+            "target": "DIV",
+            "active": "DIV",
+            "oldConnected": false
+          },
+          {
+            "at": "document",
+            "type": "focus",
+            "target": "DIV",
+            "active": "DIV",
+            "oldConnected": false
+          },
+          {
+            "at": "window",
+            "type": "focusin",
+            "target": "DIV",
+            "active": "DIV",
+            "oldConnected": false
+          },
+          {
+            "at": "document",
+            "type": "focusin",
+            "target": "DIV",
+            "active": "DIV",
+            "oldConnected": false
+          },
+          {
+            "at": "window",
+            "type": "blur",
+            "target": "DIV",
+            "active": "BODY",
+            "oldConnected": false
+          },
+          {
+            "at": "document",
+            "type": "blur",
+            "target": "DIV",
+            "active": "BODY",
+            "oldConnected": false
+          },
+          {
+            "at": "window",
+            "type": "focusout",
+            "target": "DIV",
+            "active": "BODY",
+            "oldConnected": false
+          },
+          {
+            "at": "document",
+            "type": "focusout",
+            "target": "DIV",
+            "active": "BODY",
+            "oldConnected": false
+          },
+          {
+            "at": "window",
+            "type": "focus",
+            "target": "DIV",
+            "active": "DIV",
+            "oldConnected": false
+          },
+          {
+            "at": "document",
+            "type": "focus",
+            "target": "DIV",
+            "active": "DIV",
+            "oldConnected": false
+          },
+          {
+            "at": "window",
+            "type": "focusin",
+            "target": "DIV",
+            "active": "DIV",
+            "oldConnected": false
+          },
+          {
+            "at": "document",
+            "type": "focusin",
+            "target": "DIV",
+            "active": "DIV",
+            "oldConnected": false
+          },
+          {
+            "at": "window",
+            "type": "blur",
+            "target": "DIV",
+            "active": "BODY",
+            "oldConnected": false
+          },
+          {
+            "at": "document",
+            "type": "blur",
+            "target": "DIV",
+            "active": "BODY",
+            "oldConnected": false
+          },
+          {
+            "at": "window",
+            "type": "focusout",
+            "target": "DIV",
+            "active": "BODY",
+            "oldConnected": false
+          },
+          {
+            "at": "document",
+            "type": "focusout",
+            "target": "DIV",
+            "active": "BODY",
+            "oldConnected": false
+          },
+          {
+            "at": "window",
+            "type": "focus",
+            "target": "DIV",
+            "active": "DIV",
+            "oldConnected": false
+          },
+          {
+            "at": "document",
+            "type": "focus",
+            "target": "DIV",
+            "active": "DIV",
+            "oldConnected": false
+          },
+          {
+            "at": "window",
+            "type": "focusin",
+            "target": "DIV",
+            "active": "DIV",
+            "oldConnected": false
+          },
+          {
+            "at": "document",
+            "type": "focusin",
+            "target": "DIV",
+            "active": "DIV",
+            "oldConnected": false
+          }
+        ],
+        "after": {
+          "active": "DIV",
+          "oldConnected": false,
+          "label": "AK5575 traced blur"
+        }
+      }
+    }
+  }
+}

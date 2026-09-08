@@ -15,7 +15,7 @@
             "name": "canvas edit visible before second command",
             "pass": true,
             "detail": {
-              "id": "Y2ORmZ8X",
+              "id": "e3jvDDi0",
               "type": "rectangle",
               "x": 1333,
               "y": 1000,
@@ -30,10 +30,10 @@
               "roughness": 1,
               "opacity": 100,
               "roundness": null,
-              "seed": 67781,
+              "seed": 64989,
               "version": 4,
-              "versionNonce": 150087939,
-              "updated": 1788860033341,
+              "versionNonce": 74761228,
+              "updated": 1788861212229,
               "isDeleted": false,
               "groupIds": [],
               "boundElements": [],
@@ -41,7 +41,7 @@
               "locked": false,
               "frameId": null,
               "hasTextLink": false,
-              "index": "a9",
+              "index": "aH",
               "customData": {
                 "lmx": {
                   "label": "AK5574 first"
@@ -89,8 +89,8 @@
         "stagedBefore": ["3vUe4Y0O", "OlXxRsfO"],
         "stagedAfter": ["3vUe4Y0O", "OlXxRsfO"],
         "fixture": {
-          "a": "Y2ORmZ8X",
-          "b": "Kcg0AvcM"
+          "a": "e3jvDDi0",
+          "b": "c5ssW5Rs"
         },
         "mode": "real native script command facade, native API canvas edit, save; no injected EA staging implementation"
       }

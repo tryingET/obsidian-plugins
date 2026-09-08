@@ -1,0 +1,10 @@
+npm notice run npx
+npm notice run 'vitest' run test/runtime.sidepanel-rename-refresh.integration.test.ts test/runtime.sidepanel-rename-dnd.integration.test.ts test/runtime.sidepanel-lifecycle-contract.integration.test.ts test/sidepanel.row-renderer.unit.test.ts test/sidepanel.inline-rename-controller.unit.test.ts
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+
+ Test Files  5 passed (5)
+      Tests  80 passed (80)
+   Start at  11:50:48
+   Duration  649ms (transform 910ms, setup 0ms, import 1.25s, tests 365ms, environment 0ms)

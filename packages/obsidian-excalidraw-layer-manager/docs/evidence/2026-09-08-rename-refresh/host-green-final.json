@@ -1,0 +1,116 @@
+{
+  "id": 1,
+  "result": {
+    "result": {
+      "type": "object",
+      "value": {
+        "title": "testing - vault - Obsidian 1.13.7",
+        "pluginVersion": "2.27.3",
+        "cases": [
+          {
+            "kind": "ordinary",
+            "id": "5tpVewtr",
+            "before": {
+              "focused": true,
+              "value": "AK5575 ordinary uncommitted draft",
+              "start": 3,
+              "end": 11,
+              "direction": "backward",
+              "label": "AK5575 rectangle original"
+            },
+            "after": {
+              "exists": true,
+              "focused": true,
+              "value": "AK5575 ordinary uncommitted draft",
+              "start": 3,
+              "end": 11,
+              "direction": "backward",
+              "label": "AK5575 rectangle original",
+              "oldConnected": false
+            },
+            "labelAfterDetachedBlurAndEscape": "AK5575 rectangle original",
+            "steps": [
+              {
+                "name": "draft survives same-view refresh",
+                "pass": true
+              },
+              {
+                "name": "focus survives refresh",
+                "pass": true
+              },
+              {
+                "name": "selection/caret survives refresh",
+                "pass": true
+              },
+              {
+                "name": "refresh does not commit",
+                "pass": true
+              },
+              {
+                "name": "detached old blur cannot commit",
+                "pass": true
+              },
+              {
+                "name": "Escape cancels without scene change",
+                "pass": true
+              }
+            ],
+            "pass": true
+          },
+          {
+            "kind": "frame",
+            "id": "p1e9QGpP",
+            "before": {
+              "focused": true,
+              "value": "AK5575 frame uncommitted draft",
+              "start": 3,
+              "end": 11,
+              "direction": "backward",
+              "label": "AK5575 frame original"
+            },
+            "after": {
+              "exists": true,
+              "focused": true,
+              "value": "AK5575 frame uncommitted draft",
+              "start": 3,
+              "end": 11,
+              "direction": "backward",
+              "label": "AK5575 frame original",
+              "oldConnected": false
+            },
+            "labelAfterDetachedBlurAndEscape": "AK5575 frame original",
+            "steps": [
+              {
+                "name": "draft survives same-view refresh",
+                "pass": true
+              },
+              {
+                "name": "focus survives refresh",
+                "pass": true
+              },
+              {
+                "name": "selection/caret survives refresh",
+                "pass": true
+              },
+              {
+                "name": "refresh does not commit",
+                "pass": true
+              },
+              {
+                "name": "detached old blur cannot commit",
+                "pass": true
+              },
+              {
+                "name": "Escape cancels without scene change",
+                "pass": true
+              }
+            ],
+            "pass": true
+          }
+        ],
+        "pass": true,
+        "mode": "real native LayerManager DOM button/input/focus/selection; native scene update triggers refresh; synthetic detached blur fault injection and Escape"
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "id": 1,
+  "result": {
+    "result": {
+      "type": "object",
+      "value": {
+        "before": {
+          "active": true,
+          "connected": true,
+          "value": "AK5575 traced blur"
+        },
+        "logs": [],
+        "after": {
+          "active": "BUTTON",
+          "oldConnected": true,
+          "label": "AK5575 frame original"
+        }
+      }
+    }
+  }
+}

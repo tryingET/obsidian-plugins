@@ -374,11 +374,9 @@ const appendLabelOrRenameInput = (
 
     row.appendChild(renameInput)
 
-    if (inlineRenameState.shouldAutofocusInput) {
-      return renameInput
-    }
-
-    return null
+    // The renderer also needs the current input for focus/caret preservation
+    // after the initial autofocus request has already been consumed.
+    return renameInput
   }
 
   const label = input.ownerDocument.createElement("span")

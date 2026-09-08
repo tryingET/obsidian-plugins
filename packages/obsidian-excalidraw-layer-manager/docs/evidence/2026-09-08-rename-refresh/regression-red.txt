@@ -1,0 +1,67 @@
+Bounded regression-red excerpt; verbose fake-DOM assertion dump omitted.
+Original: $TMPDIR/ak5575-fork/rename-red.log
+Original SHA-256: c69dd34c8b7a726ee0a22702235b4dc28f55ada4aca6551f0dbaf716865375bb
+npm notice run npx
+npm notice run 'vitest' run test/runtime.sidepanel-rename-refresh.integration.test.ts
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/runtime.sidepanel-rename-refresh.integration.test.ts (9 tests | 6 failed) 79ms
+     × preserves focused rectangle draft/caret and ignores detached input events 31ms
+     × preserves focused frame draft/caret and ignores detached input events 12ms
+     × ignores detached rectangle blur independently of focus restoration 8ms
+     × ignores detached frame blur independently of focus restoration 6ms
+     × clears stale rename authority on view boundary 6ms
+     × clears stale rename authority on api boundary 5ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/runtime.sidepanel-rename-refresh.integration.test.ts > inline rename ownership across refresh > preserves focused rectangle draft/caret and ignores detached input events
+AssertionError: expected FakeDomElement{ …(20) } to be FakeDomElement{ …(20) } // Object.is equality
+
+- Expected
++ Received
+
+@@ -3,140 +3,11 @@
+    "clientWidth": 0,
+    "disabled": false,
+    "draggable": false,
+    "id": "",
+    "ownerDocument": FakeDocument {
+-     "activeElement": FakeDomElement {
+
+[... verbose assertion dump omitted ...]
+          Object {
+            "customData": Object {
+              "foreign": "keep",
+              "lmx": Object {
+                "label": "Draft across refresh",
+              },
+            },
+            "groupIds": Array [],
+            "id": "A",
+            "name": "Original",
+            "type": "rectangle",
+          },
+        ],
+      },
+    ]
+
+
+Number of calls: 1
+
+ ❯ test/runtime.sidepanel-rename-refresh.integration.test.ts:162:31
+    160|     dispatchKeydown(oldInput, "Enter")
+    161|     await flushAsync()
+    162|     expect(f.updateScene).not.toHaveBeenCalled()
+       |                               ^
+    163|     if (boundary !== "disposed") expect(f.input()?.value).not.toBe("Dr…
+    164|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 3 passed (9)
+   Start at  11:40:45
+   Duration  1.40s (transform 1.16s, setup 0ms, import 1.22s, tests 79ms, environment 0ms)
