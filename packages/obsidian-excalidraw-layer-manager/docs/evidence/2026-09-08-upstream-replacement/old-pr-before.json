@@ -1,0 +1,47 @@
+{
+  "baseRefName": "master",
+  "comments": [
+    {
+      "id": "IC_kwDOFWU94c8AAAABAaQhZw",
+      "author": { "login": "zsviczian" },
+      "authorAssociation": "OWNER",
+      "body": "This looks amazing. Will look at it in a few days. I've been in over my head with stuff these last few days.",
+      "createdAt": "2026-04-26T16:40:28Z",
+      "includesCreatedEdit": false,
+      "isMinimized": false,
+      "minimizedReason": "",
+      "reactionGroups": [{ "content": "HOORAY", "users": { "totalCount": 1 } }],
+      "url": "https://github.com/zsviczian/obsidian-excalidraw-plugin/pull/2737#issuecomment-4322500967",
+      "viewerDidAuthor": false
+    },
+    {
+      "id": "IC_kwDOFWU94c8AAAABBqfO3Q",
+      "author": { "login": "zsviczian" },
+      "authorAssociation": "OWNER",
+      "body": "Finally got around to testing this.  I love the features!\r\n\r\nThis is so much more than just a layer manager, it is an element manager. the ability to name elements, and to select them in the manager not in the scene holds lots of potential. I am now thinking this should be combined with other features/scripts such as presenter notes for slides. That however would require first a definition of the shared customData type.\r\n\r\nAs a UX it would be great to display thumbnails of selected elements such as a thumbnail for a group of elements.\r\n\r\nUnfortunately, however, I haven't yet gotten deep with testing, but already ran into some issues. I created layers, then switched to markdown view mode (to observe the data in the Excalidraw json). When I switched back to Excalidraw view mode the layers were not loaded - layer manager was uninitialized. I had to stop and start layer manager for the layers to load again. Later I noticed that switching leaves to another tab and back to the drawing reloads layer manager.\r\n\r\nI like how data is handled under custom data, however, I don't understand the new \"name\" property. Why is this needed on top of the customData.lmx?\r\n\r\n```json\r\n\"customData\": {\r\n  \"lmx\": {\r\n\t  \"label\": \"My element\",\r\n\t  \"groupLabels\": {\r\n\t\t  \"Group\": \"Group\"\r\n\t  }\r\n  }\r\n},\r\n\"name\": \"My element\",\r\n```\r\n\r\nEven after I close layer manager, it automatically restarts when I navigate to an Excalidraw drawing. It's as if there was an event handler that wasn't clean up when closing layer manager. I see a risk of memory leak. I am now unsure how many instances of layer managers are running in memory, and if the instance lifecycle is handled robust enough.",
+      "createdAt": "2026-05-08T13:05:41Z",
+      "includesCreatedEdit": false,
+      "isMinimized": false,
+      "minimizedReason": "",
+      "reactionGroups": [],
+      "url": "https://github.com/zsviczian/obsidian-excalidraw-plugin/pull/2737#issuecomment-4406628061",
+      "viewerDidAuthor": false
+    }
+  ],
+  "files": [
+    {
+      "path": "ea-scripts/LayerManager.md",
+      "additions": 16359,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    { "path": "ea-scripts/LayerManager.svg", "additions": 6, "deletions": 0, "changeType": "ADDED" }
+  ],
+  "headRefName": "add-layer-manager-script",
+  "headRefOid": "e377fe442855d80b5c4c1250492fef17b9308c78",
+  "number": 2737,
+  "reviews": [],
+  "state": "OPEN",
+  "title": "Add LayerManager script and icon",
+  "url": "https://github.com/zsviczian/obsidian-excalidraw-plugin/pull/2737"
+}

@@ -1,0 +1,73 @@
+{
+  "id": 1,
+  "result": {
+    "result": {
+      "type": "object",
+      "value": {
+        "title": "testing - vault - Obsidian 1.13.7",
+        "pluginVersion": "2.27.3",
+        "pass": true,
+        "steps": [
+          {
+            "name": "native rename applied",
+            "pass": true,
+            "detail": {
+              "status": "applied",
+              "attempts": 1
+            }
+          },
+          {
+            "name": "native element version advances",
+            "pass": true,
+            "detail": {
+              "before": 4,
+              "after": 5
+            }
+          },
+          {
+            "name": "external element dictionary identity and sentinel preserved",
+            "pass": true
+          },
+          {
+            "name": "external image dictionary identity and sentinel preserved",
+            "pass": true
+          },
+          {
+            "name": "staged foreign element not committed",
+            "pass": true
+          },
+          {
+            "name": "staged foreign image not committed",
+            "pass": true
+          },
+          {
+            "name": "unrelated element unchanged",
+            "pass": true
+          },
+          {
+            "name": "native undo reverts latest rename",
+            "pass": true,
+            "detail": {
+              "lmx": {
+                "label": "AK5574 capture"
+              }
+            }
+          },
+          {
+            "name": "native redo reapplies rename",
+            "pass": true
+          },
+          {
+            "name": "saved unrelated canvas edit survives reload",
+            "pass": true
+          },
+          {
+            "name": "saved renamed target survives reload",
+            "pass": true
+          }
+        ],
+        "mode": "native command facade and staging dictionaries; synthetic DOM keyboard events handled by native undo/redo; native save and same-leaf reload"
+      }
+    }
+  }
+}

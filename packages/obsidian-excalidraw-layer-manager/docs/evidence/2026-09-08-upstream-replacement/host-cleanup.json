@@ -1,0 +1,13 @@
+{
+  "id": 1,
+  "result": {
+    "result": {
+      "type": "object",
+      "value": {
+        "runtimePresent": false,
+        "roots": 0,
+        "vault": "/home/tryinget/.local/state/pi-quests/tmp/ak5573-host-yTjeVY/vault"
+      }
+    }
+  }
+}

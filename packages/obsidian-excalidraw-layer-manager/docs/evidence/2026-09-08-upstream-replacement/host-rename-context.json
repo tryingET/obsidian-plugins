@@ -1,0 +1,43 @@
+{
+  "id": 1,
+  "result": {
+    "result": {
+      "type": "object",
+      "value": {
+        "title": "testing - vault - Obsidian 1.13.7",
+        "pluginVersion": "2.27.3",
+        "steps": [
+          {
+            "name": "native markdown transition unbinds without commit",
+            "pass": true,
+            "detail": {
+              "writes": 0
+            }
+          },
+          {
+            "name": "old editor inert while inactive",
+            "pass": true
+          },
+          {
+            "name": "same-file replacement is different view",
+            "pass": true
+          },
+          {
+            "name": "replacement cancels draft and retains stored label",
+            "pass": true,
+            "detail": {
+              "label": "AK5575 ordinary verified",
+              "before": "AK5575 ordinary verified"
+            }
+          },
+          {
+            "name": "same IDs in replacement do not revive old editor",
+            "pass": true
+          }
+        ],
+        "pass": true,
+        "mode": "native same-leaf Excalidraw/Markdown/Excalidraw transition with active draft and synthetic stale editor events; native writes counted by delegating observer"
+      }
+    }
+  }
+}

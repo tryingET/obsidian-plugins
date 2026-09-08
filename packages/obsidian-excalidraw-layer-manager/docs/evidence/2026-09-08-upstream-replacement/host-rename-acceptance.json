@@ -1,0 +1,102 @@
+{
+  "id": 1,
+  "result": {
+    "result": {
+      "type": "object",
+      "value": {
+        "title": "testing - vault - Obsidian 1.13.7",
+        "pluginVersion": "2.27.3",
+        "steps": [
+          {
+            "name": "ordinary refresh 0 keeps focused draft/caret",
+            "pass": true
+          },
+          {
+            "name": "ordinary refresh 1 keeps focused draft/caret",
+            "pass": true
+          },
+          {
+            "name": "ordinary refresh 2 keeps focused draft/caret",
+            "pass": true
+          },
+          {
+            "name": "ordinary stale input/Enter/Escape/blur have no effect",
+            "pass": true,
+            "detail": {
+              "writesBefore": 0,
+              "writesAfter": 0
+            }
+          },
+          {
+            "name": "ordinary legitimate Enter commits exactly once",
+            "pass": true,
+            "detail": {
+              "writesBefore": 0,
+              "writesAfter": 1,
+              "label": "AK5575 ordinary verified"
+            }
+          },
+          {
+            "name": "ordinary Escape cancels and late blur stays inert",
+            "pass": true
+          },
+          {
+            "name": "ordinary Escape returns keyboard focus to manager",
+            "pass": true
+          },
+          {
+            "name": "frame refresh 0 keeps focused draft/caret",
+            "pass": true
+          },
+          {
+            "name": "frame refresh 1 keeps focused draft/caret",
+            "pass": true
+          },
+          {
+            "name": "frame refresh 2 keeps focused draft/caret",
+            "pass": true
+          },
+          {
+            "name": "frame stale input/Enter/Escape/blur have no effect",
+            "pass": true,
+            "detail": {
+              "writesBefore": 1,
+              "writesAfter": 1
+            }
+          },
+          {
+            "name": "frame legitimate blur commits exactly once",
+            "pass": true,
+            "detail": {
+              "writesBefore": 1,
+              "writesAfter": 2,
+              "label": "AK5575 frame verified"
+            }
+          },
+          {
+            "name": "frame Escape cancels and late blur stays inert",
+            "pass": true
+          },
+          {
+            "name": "frame Escape returns keyboard focus to manager",
+            "pass": true
+          },
+          {
+            "name": "ordinary committed name survives saved reopen",
+            "pass": true
+          },
+          {
+            "name": "frame committed name survives saved reopen",
+            "pass": true
+          },
+          {
+            "name": "disposed input cannot commit or revive",
+            "pass": true
+          }
+        ],
+        "pass": true,
+        "mode": "real native LayerManager DOM; synthetic UI click/input/keyboard/blur with actual focus and native writes counted by delegating observer; native save/reopen/disposal"
+      }
+    }
+  }
+}

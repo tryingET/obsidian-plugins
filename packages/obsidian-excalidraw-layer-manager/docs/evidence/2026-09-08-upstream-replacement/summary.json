@@ -1,0 +1,57 @@
+{
+  "task": 5580,
+  "source_commit": "ebc1099",
+  "upstream_base_commit": "7abf0dfea2c00a711e0561bc560a7e8c3f61781d",
+  "published_commit": "2d14cb90c5e69f3490f59c4b450e3a762f85d786",
+  "new_pr": {
+    "url": "https://github.com/zsviczian/obsidian-excalidraw-plugin/pull/2925",
+    "state": "OPEN",
+    "head": "tryingET:add-layer-manager-refreshed-2026-09-08",
+    "base": "master"
+  },
+  "old_pr": {
+    "url": "https://github.com/zsviczian/obsidian-excalidraw-plugin/pull/2737",
+    "state": "CLOSED",
+    "formal_reviews_before": 0,
+    "inline_reviews_before": 0,
+    "maintainer_discussion_comments_before": 2
+  },
+  "comment": "https://github.com/zsviczian/obsidian-excalidraw-plugin/pull/2737#issuecomment-5583765234",
+  "maintainer_mentioned_once": "zsviczian",
+  "files": [
+    {
+      "path": "ea-scripts/LayerManager.md",
+      "sha256": "8039c3abbaf22cd25e7720f8d2970bd626df8584fffe089d59bb177fa60b8889",
+      "uploaded_bytes_verified": true
+    },
+    {
+      "path": "ea-scripts/LayerManager.svg",
+      "sha256": "00d122332f7c4115597c6390420915c90a47d1c4595a804a4b0a7041e475511e",
+      "unchanged_from_old_pr": true
+    }
+  ],
+  "build_sha256_before_eof_normalization": "9032818dda258072ff77a20f380cdade62866996e9bee90e1ee410ae988f42b1",
+  "packaging_transform": "Terminal blank line normalized; exact string equality otherwise verified; outgoing normalized bytes reinstalled and natively replayed.",
+  "source_ci": {
+    "passed": true,
+    "tests": 753,
+    "files": 67,
+    "evidence": "../2026-09-08-rename-refresh/summary.json"
+  },
+  "native_host": {
+    "obsidian": "1.13.7",
+    "excalidraw": "2.27.3",
+    "personal_vault_touched": false,
+    "isolated_process_stopped": true
+  },
+  "native_pass_receipts": [
+    "host-rename-refresh.json",
+    "host-rename-acceptance.json",
+    "host-rename-context.json",
+    "host-staging.json",
+    "host-staging-preservation.json"
+  ],
+  "publication_review": "dispatch-1788863372159: no evidenced bounded publication blocker",
+  "remote_checks_at_observation": [],
+  "qualification": "No full upstream plugin build, remote CI pass, all-platform, physical-mobile or exhaustive host-safety claim. Only the two script assets were pushed; local source-repo records were not published by this task."
+}

@@ -1,0 +1,16 @@
+{
+  "files": [
+    {
+      "path": "ea-scripts/LayerManager.md",
+      "additions": 16864,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    { "path": "ea-scripts/LayerManager.svg", "additions": 6, "deletions": 0, "changeType": "ADDED" }
+  ],
+  "headRefOid": "2d14cb90c5e69f3490f59c4b450e3a762f85d786",
+  "number": 2925,
+  "state": "OPEN",
+  "statusCheckRollup": [],
+  "url": "https://github.com/zsviczian/obsidian-excalidraw-plugin/pull/2925"
+}
