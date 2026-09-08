@@ -1,0 +1,103 @@
+{
+  "task": 5572,
+  "recordedDate": "2026-09-08",
+  "baseCommit": "b07b041b4882f259f178b8de4f38c6d72a334970",
+  "sourceGitBlob": "4b7dc5127ea8051dc99e89a7bc0a7b90192ae28f",
+  "testGitBlob": "b4dcf4ad1dcd02c0ef0228ab01b1604726b13f56",
+  "node": "26.8.1",
+  "npm": "12.0.2",
+  "resolution": {
+    "genericSite": "sha256:6a10138752046a585667cd8b80c8f8644a0a6666657b236445f4769740c40ebe",
+    "genericDisposition": "Killed by behavioral assertions; necessary settled flag retained.",
+    "promptSite": "sha256:eb6d639b74124715538e710bed7a29c1b7827d045e49b92cac442d7fe2a36222",
+    "promptDisposition": "Equivalent site removed with redundant flag; not claimed killed.",
+    "equivalenceInvariant": "Only respond sets a non-null result and previously set settled=true first. Failure propagation precedes result guard. Thus !settled || !result is equivalent to !result."
+  },
+  "tests": {
+    "originalFocusedPassed": 6,
+    "newCharacterizationCases": 9,
+    "focusedPassedBeforeAndAfterCleanup": 15,
+    "fullPassed": 672,
+    "fullFilesPassed": 63,
+    "originalTestsPreserved": true
+  },
+  "intermediate": {
+    "runId": "2026-09-08T06-43-31-014Z",
+    "diffRange": "e38c8cdf77e30ea8cb5fb34ce05c0900cdbab882 b6bf57ff82e52051f96961f7bffecf37abddaff4",
+    "sourcePosture": "Unchanged production with new tests only",
+    "processExit": 0,
+    "outcome": "fail",
+    "mergeConfidence": 88,
+    "mutations": [
+      {
+        "siteId": "sha256:6a10138752046a585667cd8b80c8f8644a0a6666657b236445f4769740c40ebe",
+        "span": {
+          "endLine": 250,
+          "startLine": 250
+        },
+        "status": "killed",
+        "details": "RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager/.ts-quality/tmp-mutants/mutant-yytrUK\n\n ❯ test/sidepanel.prompt-interaction-service.unit.test.ts (15 tests | 2 failed) 18ms\n     × rejects an interaction after disp"
+      },
+      {
+        "siteId": "sha256:eb6d639b74124715538e710bed7a29c1b7827d045e49b92cac442d7fe2a36222",
+        "span": {
+          "endLine": 289,
+          "startLine": 289
+        },
+        "status": "survived",
+        "details": "RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager/.ts-quality/tmp-mutants/mutant-yytrUK\n\n\n Test Files  63 passed (63)\n      Tests  672 passed (672)\n   Start at  08:43:37\n   Duration  2.31s (transform 29.80s, setup "
+      }
+    ]
+  },
+  "finalQuality": {
+    "runId": "2026-09-08T06-44-29-817Z",
+    "command": "LMX_TS_QUALITY_DIFF_RANGE='e38c8cdf77e30ea8cb5fb34ce05c0900cdbab882' npm --prefix packages/obsidian-excalidraw-layer-manager run quality:ts",
+    "rangeRationale": "Single baseline ref includes current worktree source, avoiding stale historical hunk coordinates after cleanup.",
+    "processExit": 0,
+    "outcome": "pass",
+    "mergeConfidence": 100,
+    "changedPackageSourceFiles": 29,
+    "mutations": [
+      {
+        "siteId": "sha256:6a10138752046a585667cd8b80c8f8644a0a6666657b236445f4769740c40ebe",
+        "filePath": "src/ui/sidepanel/prompt/promptInteractionService.ts",
+        "span": {
+          "endLine": 250,
+          "startLine": 250
+        },
+        "status": "killed"
+      }
+    ],
+    "findings": [],
+    "blockedBy": [],
+    "limitation": "One selected site, not exhaustive mutation coverage or Obsidian host proof."
+  },
+  "review": {
+    "blockingFindings": 0,
+    "disposition": "Approved bounded behavior-preserving prompt-only flag removal and tests.",
+    "alignment": "Reviewer confirmed runtime diff matches current-source baseline diff and run service digest matches worktree."
+  },
+  "validation": {
+    "rootCi": "passed",
+    "build": "passed",
+    "bundleSha256": "7137caeff53bee29493bd7083aafc4742d67e2831d512904399a580289ab1c93",
+    "packageLockSha256": "7748fa4aa7cda72c4c7a8891d78f0d1c8e44a5b7a44485147d32a3083cf35f81",
+    "coveragePercent": {
+      "statements": 90.19,
+      "branches": 82,
+      "functions": 95.08,
+      "lines": 90.08
+    },
+    "existingLintWarnings": 20,
+    "strictPackageDocs": "passed: node /home/tryinget/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs packages/obsidian-excalidraw-layer-manager/docs --strict"
+  },
+  "boundaries": {
+    "thresholdsChanged": false,
+    "waiversAdded": false,
+    "toolOwnerMutated": false,
+    "personalVaultDeployed": false,
+    "labArtifactRefreshed": false,
+    "realHostSmoke": false,
+    "remoteCI": false
+  }
+}

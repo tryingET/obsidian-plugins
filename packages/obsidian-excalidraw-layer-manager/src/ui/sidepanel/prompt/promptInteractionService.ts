@@ -286,7 +286,6 @@ export class SidepanelPromptInteractionService {
     initialValue: string,
     unsupportedPromptMessage: string,
   ): PromptWithInteractionResult {
-    let settled = false
     let result: PromptWithInteractionResult | null = null
     let failure: unknown
 
@@ -297,11 +296,9 @@ export class SidepanelPromptInteractionService {
       initialValue,
       unsupportedPromptMessage,
       respond: (nextResult) => {
-        settled = true
         result = nextResult
       },
       fail: (error) => {
-        settled = true
         failure = error
       },
     })
@@ -310,7 +307,8 @@ export class SidepanelPromptInteractionService {
       throw failure
     }
 
-    if (!settled || !result) {
+    // Only respond can supply a result, so its presence also proves settlement.
+    if (!result) {
       throw new Error("Prompt interaction actor did not produce a prompt result.")
     }
 

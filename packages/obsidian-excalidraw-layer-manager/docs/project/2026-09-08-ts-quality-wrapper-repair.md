@@ -7,6 +7,8 @@ type: "reference"
 
 # Package-relative quality review — AK #5566
 
+Subsequent resolution: [AK #5572](2026-09-08-prompt-mutant-resolution.md) killed the genuine survivor with behavioral assertions and removed the equivalent redundant-state site. Its source-aligned review passes. The record below preserves the wrapper repair's earlier failed mutation verdict.
+
 ## Implemented repair
 
 The [AK #5565 triage](2026-09-08-ts-quality-triage.md) isolated mismatched diff coordinates. [`run-ts-quality.mjs`](../../build/run-ts-quality.mjs) now asks Git for `--relative=packages/obsidian-excalidraw-layer-manager` when generating the patch. Hunk filenames now match the existing package-relative `changeSet.files` consumed from the package analysis root.
