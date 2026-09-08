@@ -20,13 +20,11 @@ type RecoveryGateModule = {
     readonly packageRootOverride?: string
     readonly repoRootOverride?: string
   }) => RecoveryVerificationStep[]
-  readonly detectPackageDocsTouched: (options?: {
-    readonly repoRootOverride?: string
-  }) => boolean
+  readonly detectPackageDocsTouched: (options?: { readonly repoRootOverride?: string }) => boolean
 }
 
 const loadRecoveryGateModule = async (): Promise<RecoveryGateModule> => {
-  // @ts-ignore -- build/*.mjs utilities are runtime-tested without a typed TS surface.
+  // @ts-expect-error -- build/*.mjs utilities are runtime-tested without a typed TS surface.
   return import("../build/recoveryVerificationGate.mjs")
 }
 

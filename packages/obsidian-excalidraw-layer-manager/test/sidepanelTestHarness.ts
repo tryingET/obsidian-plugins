@@ -442,16 +442,16 @@ export interface SidepanelTabHarness {
   readonly tab: {
     contentEl?: HTMLElement
     setContent?: (content: HTMLElement | string) => void
-    setTitle: ReturnType<typeof vi.fn>
-    open: ReturnType<typeof vi.fn>
-    close: ReturnType<typeof vi.fn>
+    setTitle: ReturnType<typeof vi.fn<(title: string) => void>>
+    open: ReturnType<typeof vi.fn<(reveal?: boolean) => void>>
+    close: ReturnType<typeof vi.fn<() => void>>
     getHostEA: () => unknown
   }
   readonly contentEl: FakeDomElement
-  readonly setTitle: ReturnType<typeof vi.fn>
-  readonly setContent: ReturnType<typeof vi.fn>
-  readonly open: ReturnType<typeof vi.fn>
-  readonly close: ReturnType<typeof vi.fn>
+  readonly setTitle: ReturnType<typeof vi.fn<(title: string) => void>>
+  readonly setContent: ReturnType<typeof vi.fn<(content: HTMLElement | string) => void>>
+  readonly open: ReturnType<typeof vi.fn<(reveal?: boolean) => void>>
+  readonly close: ReturnType<typeof vi.fn<() => void>>
 }
 
 export type SidepanelMountMode = "contentEl" | "setContentOnly"

@@ -1,6 +1,6 @@
 import type { ElementDTO } from "../model/entities.js"
-import { err, ok } from "../model/result.js"
 import type { Result } from "../model/result.js"
+import { err, ok } from "../model/result.js"
 import type { CommandContext } from "./context.js"
 
 const isBoundTextWithExistingContainer = (

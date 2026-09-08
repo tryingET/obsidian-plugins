@@ -1,10 +1,10 @@
 import type { StructuralLayerNode } from "../../../model/tree.js"
-import { type SharedFrameResolution, resolveSharedFrame } from "../quickmove/presetHelpers.js"
+import { resolveSharedFrame, type SharedFrameResolution } from "../quickmove/presetHelpers.js"
 import { resolveSelectedNodes } from "./nodeContext.js"
 import { haveSameIds } from "./selectionIds.js"
 import {
-  type StructuralMoveSelection,
   resolveStructuralMoveSelection,
+  type StructuralMoveSelection,
 } from "./structuralMoveSelection.js"
 
 export type SidepanelSelectionNodeRef =

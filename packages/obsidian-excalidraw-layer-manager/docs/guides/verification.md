@@ -7,7 +7,7 @@ type: "reference"
 
 # Verify a Layer Manager change
 
-Use Node.js 22 or newer and run `npm ci` from the repository root. A result is evidence for the exact source, tests, dependency lock, and artifact used—not for a later patch or every supported host.
+Use Node.js `^22.13.0 || ^24.0.0 || >=26.0.0` and run `npm ci` from the repository root. A result is evidence for the exact source, tests, dependency lock, and artifact used—not for a later patch or every supported host.
 
 ## Commands and what they prove
 
@@ -84,7 +84,7 @@ Use the registered repository identity for the actual workspace. Do not mark tas
 
 From the repository root, `npm audit --json` inspects the full installed graph, including development dependencies. It is not currently part of `npm run check`; the published root manifest does not provide `npm run audit`. Report the advisory database date, severities, and exit status.
 
-An isolated update reached zero findings, but its compatibility verification failed and it was not published. Do not report the checked-in lock as remediated. Do not expose development UI servers on untrusted networks as a workaround; resolve the dependency update through its own tests and gate.
+The earlier isolated update failed compatibility verification and was not published. The subsequent [AK #5564 upgrade](../project/2026-09-08-dependency-upgrade.md) records the newer lock, compatibility refactors, characterization tests, and audit results separately; it does not retroactively change the historical evidence. Do not expose development UI servers on untrusted networks as a workaround; resolve the dependency update through its own tests and gate.
 
 ## Evidence to retain
 

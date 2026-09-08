@@ -3,18 +3,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { ScriptSettings } from "../src/adapter/excalidraw-types.js"
 import type { LayerNode } from "../src/model/tree.js"
 import { createExcalidrawSidepanelRenderer } from "../src/ui/excalidrawSidepanelRenderer.js"
-
+import type { SidepanelMountMode, SidepanelTabHarness } from "./sidepanelTestHarness.js"
 import {
   FakeDocument,
-  SIDEPANEL_MOUNT_MODE_CASES,
   findRowTreeRoot,
   flattenElements,
   flushAsync,
   getContentRoot,
   makeSidepanelTab,
   makeSidepanelTabForMountMode,
+  SIDEPANEL_MOUNT_MODE_CASES,
 } from "./sidepanelTestHarness.js"
-import type { SidepanelMountMode, SidepanelTabHarness } from "./sidepanelTestHarness.js"
 
 const makeElementNode = (elementId: string, label = elementId): LayerNode => ({
   id: `el:${elementId}`,
@@ -130,7 +129,7 @@ describe("sidepanel mount-focused integration", () => {
   let fakeDocument: FakeDocument
 
   beforeEach(() => {
-    hadDocumentProperty = Object.prototype.hasOwnProperty.call(globalRecord, "document")
+    hadDocumentProperty = Object.hasOwn(globalRecord, "document")
     previousDocumentValue = globalRecord["document"]
 
     fakeDocument = new FakeDocument()
@@ -200,7 +199,7 @@ describe("sidepanel mount-focused integration", () => {
       sidepanelTab: typeof sidepanelTab.tab
       targetView: unknown | null
       app: typeof app
-      setView: ReturnType<typeof vi.fn>
+      setView: ReturnType<typeof vi.fn<(view?: unknown, reveal?: boolean) => unknown>>
       createSidepanelTab: () => typeof sidepanelTab.tab
       getScriptSettings: () => ScriptSettings
     } = {
@@ -233,7 +232,7 @@ describe("sidepanel mount-focused integration", () => {
 
   it("lifecycle debug channel tags hostIneligible and keeps a truthful inactive shell on render-time transition", async () => {
     const debugFlagKey = "LMX_DEBUG_SIDEPANEL_LIFECYCLE"
-    const hadDebugFlag = Object.prototype.hasOwnProperty.call(globalRecord, debugFlagKey)
+    const hadDebugFlag = Object.hasOwn(globalRecord, debugFlagKey)
     const previousDebugFlag = globalRecord[debugFlagKey]
     globalRecord[debugFlagKey] = true
 
@@ -316,7 +315,7 @@ describe("sidepanel mount-focused integration", () => {
     const host: {
       sidepanelTab: typeof firstTab.tab | typeof secondTab.tab | null
       createSidepanelTab: () => typeof secondTab.tab
-      getSidepanelLeaf: () => { detach: ReturnType<typeof vi.fn> }
+      getSidepanelLeaf: () => { detach: ReturnType<typeof vi.fn<() => void>> }
       getScriptSettings: () => ScriptSettings
       targetView: typeof eligibleBinding.targetView
       app: typeof eligibleBinding.app
@@ -378,7 +377,7 @@ describe("sidepanel mount-focused integration", () => {
     const host: {
       sidepanelTab: typeof firstTab.tab | typeof secondTab.tab | null
       createSidepanelTab: () => typeof secondTab.tab
-      getSidepanelLeaf: () => { detach: ReturnType<typeof vi.fn> }
+      getSidepanelLeaf: () => { detach: ReturnType<typeof vi.fn<() => void>> }
       getScriptSettings: () => ScriptSettings
       targetView: typeof eligibleBinding.targetView
       app: typeof eligibleBinding.app
@@ -434,7 +433,7 @@ describe("sidepanel mount-focused integration", () => {
 
     const host: {
       sidepanelTab: typeof firstTab.tab | typeof secondTab.tab | null
-      getSidepanelLeaf: () => { detach: ReturnType<typeof vi.fn> }
+      getSidepanelLeaf: () => { detach: ReturnType<typeof vi.fn<() => void>> }
       getScriptSettings: () => ScriptSettings
       targetView: typeof eligibleBinding.targetView
       app: typeof eligibleBinding.app
@@ -487,7 +486,7 @@ describe("sidepanel mount-focused integration", () => {
     const host: {
       sidepanelTab: typeof sidepanelTab.tab | null
       createSidepanelTab: () => typeof sidepanelTab.tab
-      getSidepanelLeaf: () => { detach: ReturnType<typeof vi.fn> }
+      getSidepanelLeaf: () => { detach: ReturnType<typeof vi.fn<() => void>> }
       getScriptSettings: () => ScriptSettings
       targetView: typeof eligibleBinding.targetView | null
       app: typeof eligibleBinding.app
@@ -542,11 +541,11 @@ describe("sidepanel mount-focused integration", () => {
     const host: {
       sidepanelTab: typeof sidepanelTab.tab | null
       createSidepanelTab: () => typeof sidepanelTab.tab
-      getSidepanelLeaf: () => { detach: ReturnType<typeof vi.fn> }
+      getSidepanelLeaf: () => { detach: ReturnType<typeof vi.fn<() => void>> }
       getScriptSettings: () => ScriptSettings
       targetView: typeof eligibleBinding.targetView | null
       app: typeof eligibleBinding.app
-      setView: ReturnType<typeof vi.fn>
+      setView: ReturnType<typeof vi.fn<(view?: unknown, reveal?: boolean) => unknown>>
     } = {
       sidepanelTab: sidepanelTab.tab,
       createSidepanelTab: () => sidepanelTab.tab,
@@ -717,7 +716,7 @@ describe("sidepanel mount-focused integration", () => {
       getScriptSettings: () => ScriptSettings
       targetView: typeof eligibleBinding.targetView | null
       app: typeof eligibleBinding.app
-      setView: ReturnType<typeof vi.fn>
+      setView: ReturnType<typeof vi.fn<(view?: unknown, reveal?: boolean) => unknown>>
     } = {
       sidepanelTab: firstTab.tab,
       createSidepanelTab,
@@ -1003,7 +1002,7 @@ describe("sidepanel mount-focused integration", () => {
 
   it("lifecycle debug channel tags mount failure reasons deterministically", async () => {
     const debugFlagKey = "LMX_DEBUG_SIDEPANEL_LIFECYCLE"
-    const hadDebugFlag = Object.prototype.hasOwnProperty.call(globalRecord, debugFlagKey)
+    const hadDebugFlag = Object.hasOwn(globalRecord, debugFlagKey)
     const previousDebugFlag = globalRecord[debugFlagKey]
     globalRecord[debugFlagKey] = true
 
@@ -1055,7 +1054,7 @@ describe("sidepanel mount-focused integration", () => {
 
   it("lifecycle debug channel tags tabUnrenderable deterministically", async () => {
     const debugFlagKey = "LMX_DEBUG_SIDEPANEL_LIFECYCLE"
-    const hadDebugFlag = Object.prototype.hasOwnProperty.call(globalRecord, debugFlagKey)
+    const hadDebugFlag = Object.hasOwn(globalRecord, debugFlagKey)
     const previousDebugFlag = globalRecord[debugFlagKey]
     globalRecord[debugFlagKey] = true
 
@@ -1104,7 +1103,7 @@ describe("sidepanel mount-focused integration", () => {
 
   it("lifecycle debug channel tags tabUnavailable deterministically", async () => {
     const debugFlagKey = "LMX_DEBUG_SIDEPANEL_LIFECYCLE"
-    const hadDebugFlag = Object.prototype.hasOwnProperty.call(globalRecord, debugFlagKey)
+    const hadDebugFlag = Object.hasOwn(globalRecord, debugFlagKey)
     const previousDebugFlag = globalRecord[debugFlagKey]
     globalRecord[debugFlagKey] = true
 
@@ -1147,11 +1146,11 @@ describe("sidepanel mount-focused integration", () => {
 
   it("lifecycle debug channel tags ownerDocumentUnavailable deterministically", async () => {
     const debugFlagKey = "LMX_DEBUG_SIDEPANEL_LIFECYCLE"
-    const hadDebugFlag = Object.prototype.hasOwnProperty.call(globalRecord, debugFlagKey)
+    const hadDebugFlag = Object.hasOwn(globalRecord, debugFlagKey)
     const previousDebugFlag = globalRecord[debugFlagKey]
     globalRecord[debugFlagKey] = true
 
-    const hadDocumentPropertyInTest = Object.prototype.hasOwnProperty.call(globalRecord, "document")
+    const hadDocumentPropertyInTest = Object.hasOwn(globalRecord, "document")
     const previousDocumentInTest = globalRecord["document"]
 
     const sidepanelTab = makeSidepanelTab(fakeDocument, null, false, true)

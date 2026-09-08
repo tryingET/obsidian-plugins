@@ -13,6 +13,6 @@
     "doctor": "node --version && npm --version && ak --doctor && ./scripts/rocs.sh --doctor"
   },
   "overrides": {
-    "vite": "7.3.2"
+    "vite": "8.2.2"
   }
 }

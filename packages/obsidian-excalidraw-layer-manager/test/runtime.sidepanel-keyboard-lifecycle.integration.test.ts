@@ -1,25 +1,23 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { readLmxElementLabel } from "../src/model/lmxMetadata.js"
-
 import type {
   EaLike,
   RawExcalidrawElement,
   ScriptSettings,
 } from "../src/adapter/excalidraw-types.js"
 import { createLayerManagerRuntime } from "../src/main.js"
+import { readLmxElementLabel } from "../src/model/lmxMetadata.js"
 import type { LayerNode } from "../src/model/tree.js"
 import type { ExecuteIntentOutcome } from "../src/runtime/intentExecution.js"
 import { createExcalidrawSidepanelRenderer } from "../src/ui/excalidrawSidepanelRenderer.js"
 import type { LayerManagerUiActions, RenderViewModel } from "../src/ui/renderer.js"
-
+import type { SidepanelMountMode, SidepanelTabHarness } from "./sidepanelTestHarness.js"
 import {
-  FakeDocument,
-  type FakeDomElement,
-  FakeDomEvent,
-  SIDEPANEL_MOUNT_MODE_CASES,
   dispatchDocumentKeydown,
   dispatchDocumentKeyup,
   dispatchKeydown,
+  FakeDocument,
+  type FakeDomElement,
+  FakeDomEvent,
   findButtonByExactText,
   findButtonByTitle,
   findButtonWithPrefix,
@@ -34,8 +32,8 @@ import {
   getContentRoot,
   makeSidepanelTab,
   makeSidepanelTabForMountMode,
+  SIDEPANEL_MOUNT_MODE_CASES,
 } from "./sidepanelTestHarness.js"
-import type { SidepanelMountMode, SidepanelTabHarness } from "./sidepanelTestHarness.js"
 
 const cloneElement = (element: RawExcalidrawElement): RawExcalidrawElement => ({
   ...element,
@@ -165,7 +163,9 @@ interface RuntimeWithSidepanel {
   readonly sidepanelTab: SidepanelTabHarness
   readonly copyForEditing: ReturnType<typeof vi.fn>
   readonly addToView: ReturnType<typeof vi.fn>
-  readonly updateScene: ReturnType<typeof vi.fn>
+  readonly updateScene: ReturnType<
+    typeof vi.fn<(scene: { elements?: RawExcalidrawElement[]; appState?: unknown }) => void>
+  >
   readonly selectInView: ReturnType<typeof vi.fn>
   readonly setView: ReturnType<typeof vi.fn>
   readonly setSelectedIds: (ids: readonly string[]) => void
@@ -416,7 +416,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
   let fakeDocument: FakeDocument
 
   beforeEach(() => {
-    hadDocumentProperty = Object.prototype.hasOwnProperty.call(globalRecord, "document")
+    hadDocumentProperty = Object.hasOwn(globalRecord, "document")
     previousDocumentValue = globalRecord["document"]
 
     fakeDocument = new FakeDocument()
@@ -1417,7 +1417,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
 
   it("keeps Space shortcut on stable replace-selection debug semantics", async () => {
     const debugFlagKey = "LMX_DEBUG_SIDEPANEL_INTERACTION"
-    const hadDebugFlag = Object.prototype.hasOwnProperty.call(globalRecord, debugFlagKey)
+    const hadDebugFlag = Object.hasOwn(globalRecord, debugFlagKey)
     const previousDebugFlag = globalRecord[debugFlagKey]
     globalRecord[debugFlagKey] = true
 
@@ -1495,7 +1495,7 @@ describe("sidepanel keyboard + lifecycle parity", () => {
 
   it("keeps Ctrl+Space shortcut on stable toggle-selection debug semantics", async () => {
     const debugFlagKey = "LMX_DEBUG_SIDEPANEL_INTERACTION"
-    const hadDebugFlag = Object.prototype.hasOwnProperty.call(globalRecord, debugFlagKey)
+    const hadDebugFlag = Object.hasOwn(globalRecord, debugFlagKey)
     const previousDebugFlag = globalRecord[debugFlagKey]
     globalRecord[debugFlagKey] = true
 
@@ -2798,7 +2798,11 @@ describe("sidepanel keyboard + lifecycle parity", () => {
 
     const host: {
       sidepanelTab: typeof asyncTab.tab | null
-      createSidepanelTab: ReturnType<typeof vi.fn>
+      createSidepanelTab: ReturnType<
+        typeof vi.fn<
+          (title: string, persist?: boolean, reveal?: boolean) => Promise<typeof asyncTab.tab>
+        >
+      >
       getScriptSettings: () => ScriptSettings
     } = {
       sidepanelTab: null,

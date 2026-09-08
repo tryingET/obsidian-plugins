@@ -15,7 +15,7 @@ const buildRoot = dirname(scriptPath)
 export const packageRoot = resolve(buildRoot, "..")
 export const repoRoot = resolve(packageRoot, "..", "..")
 export const LAYER_MANAGER_BUNDLE_FILENAME = "LayerManager.md"
-export { DEFAULT_OBSIDIAN_SKRIPTE_TARGET_PATH, DEFAULT_DEPLOY_RECEIPTS_RELATIVE_PATH }
+export { DEFAULT_DEPLOY_RECEIPTS_RELATIVE_PATH, DEFAULT_OBSIDIAN_SKRIPTE_TARGET_PATH }
 export const DEFAULT_DEPLOY_RECEIPTS_PATH = resolve(
   packageRoot,
   DEFAULT_DEPLOY_RECEIPTS_RELATIVE_PATH,

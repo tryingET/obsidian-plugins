@@ -31,7 +31,7 @@ export interface NodeDropTarget {
   readonly rowReorderEligible: boolean
 }
 
-export type DragDropTargetZone = "before" | "inside" | "after"
+type DragDropTargetZone = "before" | "inside" | "after"
 
 export interface DragDropIntentOptions {
   readonly zone?: DragDropTargetZone | null

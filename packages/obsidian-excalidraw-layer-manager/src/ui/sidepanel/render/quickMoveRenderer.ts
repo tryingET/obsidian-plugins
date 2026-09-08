@@ -1,6 +1,5 @@
 import type { LayerNode } from "../../../model/tree.js"
 import {
-  type SidepanelQuickMoveDestinationProjection,
   isDestinationFrameCompatible,
   isPresetFrameCompatible,
   isRootFrameCompatible,
@@ -8,6 +7,7 @@ import {
   projectQuickMoveDestinations,
   rankGroupReparentPresetsByCompatibility,
   rankQuickMoveDestinationsByCompatibility,
+  type SidepanelQuickMoveDestinationProjection,
 } from "../quickmove/destinationProjection.js"
 import {
   type GroupReparentPreset,
@@ -16,8 +16,8 @@ import {
 } from "../quickmove/presetHelpers.js"
 import type { LastQuickMoveDestination } from "../quickmove/quickMovePersistenceService.js"
 import {
-  type StructuralMoveSelection,
   resolveStructuralSelectionIssue,
+  type StructuralMoveSelection,
 } from "../selection/structuralMoveSelection.js"
 
 interface SidepanelQuickMoveSelection {

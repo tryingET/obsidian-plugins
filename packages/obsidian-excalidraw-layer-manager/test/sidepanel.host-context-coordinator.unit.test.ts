@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
-
-import { SidepanelHostContextCoordinator } from "../src/ui/sidepanel/selection/hostContextCoordinator.js"
 import type { SidepanelHostContextCoordinatorHost } from "../src/ui/sidepanel/selection/hostContextCoordinator.js"
+import { SidepanelHostContextCoordinator } from "../src/ui/sidepanel/selection/hostContextCoordinator.js"
 
 import { recoverHostViewFromReplacedLeaf } from "../src/ui/sidepanel/selection/hostViewContext.js"
 
@@ -797,7 +796,7 @@ describe("sidepanel host-context coordinator", () => {
 
   it("logs failed same-file markdown-to-excalidraw rebind attempts under lifecycle debug", () => {
     const debugFlagKey = "LMX_DEBUG_SIDEPANEL_LIFECYCLE"
-    const hadDebugFlag = Object.prototype.hasOwnProperty.call(globalRecord, debugFlagKey)
+    const hadDebugFlag = Object.hasOwn(globalRecord, debugFlagKey)
     const previousDebugFlag = globalRecord[debugFlagKey]
     globalRecord[debugFlagKey] = true
 

@@ -83,7 +83,7 @@ To verify the distinction, the documentation audit overlaid only three candidate
 | Cross-evaluation pending creation | A late result from a fresh script evaluation can overwrite a replacement. The shipped owner map is module-local. |
 | Readiness and snapshot identity | Replay covers file-open-only recovery, missing API, recovery without a further event, close during initialization, unchanged binding keys, and monotonic snapshot versions. Those variants are not all covered by the published layout recovery. |
 | Rename during refresh | Rectangle and frame replay scenarios lose focused drafts or commit through detached blur. Candidate focus/caret preservation is not shipped. |
-| Dependencies | Original locked development-tool advisories remain. An isolated update reached zero findings, but the last compatibility experiment failed at callable-fixture refinement and did not publish. |
+| Dependencies | Historical publication retained the original advisories after its failed callable-fixture experiment. The later [AK #5564 dependency upgrade](2026-09-08-dependency-upgrade.md) records separate lock, compatibility, and validation evidence; it does not alter the historical results above. |
 | External verification | The hard-coded strict docs checker is absent in this environment; AK direction reconciliation is not available here. Clean-checkout ordinary CI does not establish either result. |
 
 Thirteen failures are failing scenarios, not a claim of thirteen independent root causes. The remaining implementation work belongs in the existing owners and the [operating plan](operating_plan.md), not in a second RFC chain.

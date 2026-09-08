@@ -60,7 +60,7 @@ const readSettings = (ea: EaLike): LayerManagerSettings => {
 }
 
 const hasExplicitTargetViewProperty = (ea: EaLike): boolean => {
-  return Object.prototype.hasOwnProperty.call(ea, "targetView")
+  return Object.hasOwn(ea, "targetView")
 }
 
 const getCurrentTargetView = (ea: EaLike): unknown => {

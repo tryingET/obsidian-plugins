@@ -1,23 +1,20 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import {
-  HOST_CONTEXT_FLIGHT_RECORDER_MAX_EVENTS,
-  SIDEPANEL_LIFECYCLE_DEBUG_FLAG,
   clearHostContextFlightRecorder,
   formatHostContextFlightRecorderDump,
+  HOST_CONTEXT_FLIGHT_RECORDER_MAX_EVENTS,
   installHostContextFlightRecorderGlobals,
   readHostContextFlightRecorderEvents,
   recordHostContextFlightRecorderEvent,
+  SIDEPANEL_LIFECYCLE_DEBUG_FLAG,
   traceHostContextLifecycleEvent,
 } from "../src/ui/sidepanel/selection/hostContextFlightRecorder.js"
 
 describe("sidepanel host-context flight recorder", () => {
   const globalRecord = globalThis as Record<string, unknown>
   const navigatorDescriptor = Object.getOwnPropertyDescriptor(globalThis, "navigator")
-  const hadLifecycleDebugFlag = Object.prototype.hasOwnProperty.call(
-    globalRecord,
-    SIDEPANEL_LIFECYCLE_DEBUG_FLAG,
-  )
+  const hadLifecycleDebugFlag = Object.hasOwn(globalRecord, SIDEPANEL_LIFECYCLE_DEBUG_FLAG)
   const previousLifecycleDebugFlag = globalRecord[SIDEPANEL_LIFECYCLE_DEBUG_FLAG]
 
   afterEach(() => {

@@ -5,15 +5,15 @@ import type { LayerNode } from "../src/model/tree.js"
 import type { ExecuteIntentOutcome } from "../src/runtime/intentExecution.js"
 import { createExcalidrawSidepanelRenderer } from "../src/ui/excalidrawSidepanelRenderer.js"
 import type { LayerManagerUiActions } from "../src/ui/renderer.js"
-
+import type { DispatchKeydownOptions, SidepanelTabHarness } from "./sidepanelTestHarness.js"
 import {
-  FakeDocument,
-  type FakeDomElement,
-  FakeDomEvent,
   dispatchClick,
   dispatchDocumentKeydown,
   dispatchDocumentKeyup,
   dispatchKeydown,
+  FakeDocument,
+  type FakeDomElement,
+  FakeDomEvent,
   findButtonByExactText,
   findButtonByTitle,
   findFirstInput,
@@ -26,7 +26,6 @@ import {
   getSelectedRows,
   makeSidepanelTab,
 } from "./sidepanelTestHarness.js"
-import type { DispatchKeydownOptions, SidepanelTabHarness } from "./sidepanelTestHarness.js"
 
 const makeElementNode = (elementId: string, label = elementId): LayerNode => ({
   id: `el:${elementId}`,
@@ -109,7 +108,7 @@ describe("sidepanel focus + keyboard integration", () => {
   let fakeDocument: FakeDocument
 
   beforeEach(() => {
-    hadDocumentProperty = Object.prototype.hasOwnProperty.call(globalRecord, "document")
+    hadDocumentProperty = Object.hasOwn(globalRecord, "document")
     previousDocumentValue = globalRecord["document"]
 
     fakeDocument = new FakeDocument()
@@ -500,7 +499,7 @@ describe("sidepanel focus + keyboard integration", () => {
 
   it("interaction debug tags mouse and keyboard row-selection provenance while converging on the same rows", async () => {
     const debugFlagKey = "LMX_DEBUG_SIDEPANEL_INTERACTION"
-    const hadDebugFlag = Object.prototype.hasOwnProperty.call(globalRecord, debugFlagKey)
+    const hadDebugFlag = Object.hasOwn(globalRecord, debugFlagKey)
     const previousDebugFlag = globalRecord[debugFlagKey]
     globalRecord[debugFlagKey] = true
 

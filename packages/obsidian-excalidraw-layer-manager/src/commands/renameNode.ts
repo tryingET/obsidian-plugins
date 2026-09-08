@@ -1,7 +1,7 @@
 import { withLmxElementLabel, withLmxGroupLabel } from "../model/lmxMetadata.js"
 import type { ScenePatch } from "../model/patch.js"
-import { err, ok } from "../model/result.js"
 import type { Result } from "../model/result.js"
+import { err, ok } from "../model/result.js"
 import type { CommandContext } from "./context.js"
 
 export type RenameNodeInput =

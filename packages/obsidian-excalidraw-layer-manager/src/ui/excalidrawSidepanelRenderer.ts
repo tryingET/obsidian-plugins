@@ -51,41 +51,41 @@ import {
 } from "./sidepanel/render/quickMoveRenderer.js"
 import { bindSidepanelRowInteractions } from "./sidepanel/render/rowInteractionBinder.js"
 import {
-  type SidepanelFilterMatchKind,
-  type SidepanelRowVisualState,
   buildSidepanelVisibleRowTreeResult,
   resolveSidepanelRowVisualState,
+  type SidepanelFilterMatchKind,
+  type SidepanelRowVisualState,
 } from "./sidepanel/render/rowModel.js"
 import {
+  renderSidepanelRow,
   type SidepanelInlineRenameRenderState,
   type SidepanelRowDropHintKind,
-  renderSidepanelRow,
 } from "./sidepanel/render/rowRenderer.js"
 import { renderSidepanelRowTree } from "./sidepanel/render/rowTreeRenderer.js"
 import { renderSidepanelToolbar } from "./sidepanel/render/toolbarRenderer.js"
 import { traceHostContextLifecycleEvent } from "./sidepanel/selection/hostContextFlightRecorder.js"
 import { SidepanelHostSelectionBridge } from "./sidepanel/selection/hostSelectionBridge.js"
 import {
-  type SidepanelHostViewContextDescription,
   describeHostViewContext,
   ensureHostViewContextState,
+  type SidepanelHostViewContextDescription,
 } from "./sidepanel/selection/hostViewContext.js"
 import { collectVisibleNodeContext } from "./sidepanel/selection/nodeContext.js"
 import { resolveRowClickSelection } from "./sidepanel/selection/rowClickSelection.js"
 import {
-  type SidepanelSceneBinding,
   canMirrorSelectionToSceneBinding,
   resolveSceneBindingFromHost,
+  type SidepanelSceneBinding,
 } from "./sidepanel/selection/sceneBinding.js"
 import { haveSameIds, haveSameIdsInSameOrder } from "./sidepanel/selection/selectionIds.js"
 import { reconcileSelectedElementIds } from "./sidepanel/selection/selectionReconciler.js"
 import {
-  type ResolvedSelection,
-  type SidepanelSelectionOverrideState,
-  type SidepanelSelectionResolution,
   makeSidepanelSelectionNodeRef,
+  type ResolvedSelection,
   resolveCurrentSidepanelSelectionNodes,
   resolveSidepanelSelection,
+  type SidepanelSelectionOverrideState,
+  type SidepanelSelectionResolution,
 } from "./sidepanel/selection/selectionResolution.js"
 import {
   resolveFocusedNodeStructuralMove,

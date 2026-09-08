@@ -1,11 +1,11 @@
 import type { StructuralLayerNode } from "../../../model/tree.js"
 import {
-  type GroupReparentPreset,
-  type SharedFrameResolution,
   collectAllGroupReparentPresets,
   collectTopLevelGroupReparentPresets,
+  type GroupReparentPreset,
   makePresetKey,
   resolveNodeFrameId,
+  type SharedFrameResolution,
 } from "./presetHelpers.js"
 import type { LastQuickMoveDestination } from "./quickMovePersistenceService.js"
 

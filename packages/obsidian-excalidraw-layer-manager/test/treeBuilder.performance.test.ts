@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest"
 
 import { buildLayerTree } from "../src/domain/treeBuilder.js"
 import type { ElementDTO } from "../src/model/entities.js"
-import { type SceneIndexes, buildSceneIndexes } from "../src/model/indexes.js"
+import { buildSceneIndexes, type SceneIndexes } from "../src/model/indexes.js"
 import { loadReplayTracesFromEnv } from "./fixtures/treeReplayTraceLoader.js"
 import { TREE_REPLAY_TRACES, type TreeReplayTrace } from "./fixtures/treeReplayTraces.js"
 import { makeElement, makeSnapshot } from "./testFixtures.js"

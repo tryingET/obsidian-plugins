@@ -72,7 +72,7 @@ const invokeHostSetView = (
 }
 
 const hasExplicitTargetViewProperty = (host: SidepanelHostViewContextHost): boolean => {
-  return Object.prototype.hasOwnProperty.call(host, "targetView")
+  return Object.hasOwn(host, "targetView")
 }
 
 export const getCurrentHostTargetView = (host: SidepanelHostViewContextHost): unknown => {

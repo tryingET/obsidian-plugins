@@ -1,8 +1,8 @@
 import { assign, createActor, setup } from "xstate"
 import {
-  type SidepanelLifecycleCallbacks,
   createRuntimeSidepanelLifecycleBinding,
   hasSidepanelLifecycleOwner,
+  type SidepanelLifecycleCallbacks,
 } from "../../../runtime/sidepanelLifecycleBinding.js"
 
 export interface SidepanelMountTabLike {

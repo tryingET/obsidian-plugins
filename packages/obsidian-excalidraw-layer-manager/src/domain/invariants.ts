@@ -1,6 +1,6 @@
-import { err, ok } from "../model/result.js"
 import type { Result } from "../model/result.js"
-import { type StructuralLayerNode, resolveFrameRowElementId } from "../model/tree.js"
+import { err, ok } from "../model/result.js"
+import { resolveFrameRowElementId, type StructuralLayerNode } from "../model/tree.js"
 
 export interface ReparentValidationInput {
   readonly sourceFrameId: string | null

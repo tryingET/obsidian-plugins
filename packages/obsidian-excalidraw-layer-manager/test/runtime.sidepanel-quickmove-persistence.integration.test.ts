@@ -5,11 +5,11 @@ import type { LayerNode } from "../src/model/tree.js"
 import type { ExecuteIntentOutcome } from "../src/runtime/intentExecution.js"
 import { createExcalidrawSidepanelRenderer } from "../src/ui/excalidrawSidepanelRenderer.js"
 import type { LayerManagerUiActions, RenderViewModel } from "../src/ui/renderer.js"
-
+import type { SidepanelTabHarness } from "./sidepanelTestHarness.js"
 import {
+  dispatchKeydown,
   FakeDocument,
   FakeDomEvent,
-  dispatchKeydown,
   findButtonByExactText,
   findButtonByTitle,
   findButtonWithPrefix,
@@ -20,7 +20,6 @@ import {
   getContentRoot,
   makeSidepanelTab,
 } from "./sidepanelTestHarness.js"
-import type { SidepanelTabHarness } from "./sidepanelTestHarness.js"
 
 const makeAppliedOutcome = (): ExecuteIntentOutcome => ({
   status: "applied",
@@ -108,7 +107,7 @@ describe("sidepanel quick-move + persistence integration", () => {
   let fakeDocument: FakeDocument
 
   beforeEach(() => {
-    hadDocumentProperty = Object.prototype.hasOwnProperty.call(globalRecord, "document")
+    hadDocumentProperty = Object.hasOwn(globalRecord, "document")
     previousDocumentValue = globalRecord["document"]
 
     fakeDocument = new FakeDocument()

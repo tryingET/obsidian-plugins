@@ -9,6 +9,14 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "json-summary", "lcov"],
       reportsDirectory: "coverage",
+      // Vitest 4 no longer includes unexecuted files by default. Preserve the
+      // source/helper/config scope; Vitest itself always excludes its config file.
+      include: [
+        "src/**/*.ts",
+        "test/**/*.ts",
+        "layer-manager.config.mjs",
+        ".dependency-cruiser.cjs",
+      ],
       exclude: [
         "build/**",
         "scripts/**",

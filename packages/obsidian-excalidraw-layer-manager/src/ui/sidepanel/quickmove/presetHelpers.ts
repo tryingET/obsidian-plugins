@@ -1,4 +1,4 @@
-import { type StructuralLayerNode, resolveFrameRowElementId } from "../../../model/tree.js"
+import { resolveFrameRowElementId, type StructuralLayerNode } from "../../../model/tree.js"
 
 export interface SharedFrameResolution {
   readonly ok: boolean

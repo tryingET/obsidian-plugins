@@ -1,11 +1,11 @@
 import type { StructuralLayerNode, VisibleRowNode } from "../../../model/tree.js"
 import type { ElementVisualState } from "../../renderer.js"
 import {
+  buildSidepanelRowSearchText,
   type SidepanelFilterMatchKind,
   type SidepanelLockState,
   type SidepanelRowVisualState,
   type SidepanelVisibilityState,
-  buildSidepanelRowSearchText,
 } from "./rowPresentation.js"
 
 export type { SidepanelFilterMatchKind, SidepanelRowVisualState } from "./rowPresentation.js"

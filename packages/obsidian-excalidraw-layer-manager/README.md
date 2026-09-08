@@ -13,11 +13,11 @@ This package builds **`LayerManager.md`, an Excalidraw script**, not an independ
 
 ## Status
 
-The published implementation includes the September 2026 host-lifecycle, naming, same-leaf recovery, and settings-receiver corrections. **It is not an unconditional release-ready build.** A larger local candidate was not published; its focused tests reproduce additional failures on the published source. Dependency remediation and the external documentation gate also remain open. See the [current state](docs/project/current-vs-target.md) and [consolidated closeout](docs/project/2026-09-07-layer-manager-closeout.md) for revision-specific evidence, not an inferred promise that every race is solved.
+The published implementation includes the September 2026 host-lifecycle, naming, same-leaf recovery, and settings-receiver corrections. **It is not an unconditional release-ready build.** A larger local candidate was not published; its focused tests reproduce additional failures on the published source. The [dependency upgrade](docs/project/2026-09-08-dependency-upgrade.md) records separate toolchain verification; it does not resolve those host bugs. See the [current state](docs/project/current-vs-target.md) and [consolidated closeout](docs/project/2026-09-07-layer-manager-closeout.md) for revision-specific evidence, not an inferred promise that every race is solved.
 
 ## Run it in a disposable vault
 
-Use Node.js 22 or newer for development. Install Obsidian and the Excalidraw community plugin separately. The recorded desktop smoke tests used Obsidian 1.13.7 and Excalidraw 2.27.3; this is an evidence baseline, not a tested compatibility range.
+Use Node.js `^22.13.0 || ^24.0.0 || >=26.0.0` for development; Node 23 and 25 are not supported. Install Obsidian and the Excalidraw community plugin separately. The recorded desktop smoke tests used Obsidian 1.13.7 and Excalidraw 2.27.3; this is an evidence baseline, not a tested compatibility range.
 
 From the **repository root**:
 

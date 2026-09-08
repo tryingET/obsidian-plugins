@@ -1,6 +1,6 @@
 import { assign, createActor, fromPromise, setup } from "xstate"
 
-export interface ScriptSettingsEntryLike {
+interface ScriptSettingsEntryLike {
   value: unknown
   description?: string
 }

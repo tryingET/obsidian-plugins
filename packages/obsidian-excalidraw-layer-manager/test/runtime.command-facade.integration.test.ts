@@ -1,8 +1,7 @@
 import { describe, expect, it, vi } from "vitest"
-import { readLmxElementLabel } from "../src/model/lmxMetadata.js"
-
 import type { EaLike, RawExcalidrawElement } from "../src/adapter/excalidraw-types.js"
 import { createLayerManagerRuntime } from "../src/main.js"
+import { readLmxElementLabel } from "../src/model/lmxMetadata.js"
 import type { LayerManagerUiActions, RenderViewModel } from "../src/ui/renderer.js"
 
 interface InstrumentedEa {

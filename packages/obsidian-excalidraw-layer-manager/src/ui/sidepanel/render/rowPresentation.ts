@@ -47,7 +47,7 @@ const normalizeSearchFragment = (value: string | undefined): string => {
   }
 
   return value
-    .replace(/[\[\]·]/g, " ")
+    .replace(/[[\]·]/g, " ")
     .trim()
     .toLowerCase()
 }

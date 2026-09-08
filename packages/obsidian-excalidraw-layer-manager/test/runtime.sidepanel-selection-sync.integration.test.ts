@@ -2,13 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { EaLike, RawExcalidrawElement } from "../src/adapter/excalidraw-types.js"
 import { createLayerManagerRuntime } from "../src/main.js"
-
+import type { SidepanelTabHarness } from "./sidepanelTestHarness.js"
 import {
+  dispatchClick,
+  dispatchKeydown,
   FakeDocument,
   FakeDomElement,
   FakeDomEvent,
-  dispatchClick,
-  dispatchKeydown,
   findInteractiveRowByLabel,
   flattenElements,
   flushAsync,
@@ -17,7 +17,6 @@ import {
   getSelectedRows,
   makeSidepanelTab,
 } from "./sidepanelTestHarness.js"
-import type { SidepanelTabHarness } from "./sidepanelTestHarness.js"
 
 const cloneElement = (element: RawExcalidrawElement): RawExcalidrawElement => ({
   ...element,
@@ -30,7 +29,7 @@ interface RuntimeWithSidepanel {
   readonly elements: RawExcalidrawElement[]
   readonly sidepanelTab: SidepanelTabHarness
   readonly updateScene: ReturnType<typeof vi.fn>
-  readonly selectInView: ReturnType<typeof vi.fn>
+  readonly selectInView: ReturnType<typeof vi.fn<(ids: readonly string[]) => void>>
   readonly setView: ReturnType<typeof vi.fn>
   readonly getViewSelectedElements: ReturnType<typeof vi.fn>
   readonly clearViewBinding: () => void
@@ -218,7 +217,7 @@ describe("sidepanel selection-sync integration", () => {
   let fakeDocument: FakeDocument
 
   beforeEach(() => {
-    hadDocumentProperty = Object.prototype.hasOwnProperty.call(globalRecord, "document")
+    hadDocumentProperty = Object.hasOwn(globalRecord, "document")
     previousDocumentValue = globalRecord["document"]
 
     fakeDocument = new FakeDocument()
@@ -372,7 +371,7 @@ describe("sidepanel selection-sync integration", () => {
 
   it("interaction debug captures stale targetView churn before mouse fail-stop and keyboard recovery writes", async () => {
     const debugFlagKey = "LMX_DEBUG_SIDEPANEL_INTERACTION"
-    const hadDebugFlag = Object.prototype.hasOwnProperty.call(globalRecord, debugFlagKey)
+    const hadDebugFlag = Object.hasOwn(globalRecord, debugFlagKey)
     const previousDebugFlag = globalRecord[debugFlagKey]
     globalRecord[debugFlagKey] = true
 

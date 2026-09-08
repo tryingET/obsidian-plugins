@@ -249,7 +249,7 @@ export class SidepanelPromptInteractionService {
   withInteractionWindow<T>(actions: LayerManagerUiActions, operation: () => T): T {
     let settled = false
     let result: T | undefined
-    let failure: unknown = undefined
+    let failure: unknown
 
     this.#actor.send({
       type: "RUN_INTERACTION_WINDOW",
@@ -288,7 +288,7 @@ export class SidepanelPromptInteractionService {
   ): PromptWithInteractionResult {
     let settled = false
     let result: PromptWithInteractionResult | null = null
-    let failure: unknown = undefined
+    let failure: unknown
 
     this.#actor.send({
       type: "PROMPT_WITH_INTERACTION",

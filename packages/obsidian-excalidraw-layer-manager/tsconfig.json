@@ -16,7 +16,6 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "types": ["node"],
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
       "@/test/*": ["./test/*"]

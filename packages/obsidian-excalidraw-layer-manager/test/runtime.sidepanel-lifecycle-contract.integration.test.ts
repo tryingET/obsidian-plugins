@@ -222,7 +222,7 @@ describe("runtime sidepanel lifecycle contract", () => {
   let fakeDocument: FakeDocument
 
   beforeEach(() => {
-    hadDocumentProperty = Object.prototype.hasOwnProperty.call(globalRecord, "document")
+    hadDocumentProperty = Object.hasOwn(globalRecord, "document")
     previousDocumentValue = globalRecord["document"]
     fakeDocument = new FakeDocument()
     globalRecord["document"] = fakeDocument as unknown as Document

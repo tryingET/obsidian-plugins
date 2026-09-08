@@ -1,9 +1,9 @@
-import { type SidepanelHostViewContextHost, ensureHostViewContextState } from "./hostViewContext.js"
+import { ensureHostViewContextState, type SidepanelHostViewContextHost } from "./hostViewContext.js"
 import {
-  type SidepanelSceneBinding,
   canMirrorSelectionToSceneBinding,
   haveSameSceneBindingRefreshKey,
   resolveSceneBindingFromHost,
+  type SidepanelSceneBinding,
 } from "./sceneBinding.js"
 import { collectUniqueSelectionIds, haveSameIds } from "./selectionIds.js"
 

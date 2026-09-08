@@ -3,9 +3,9 @@ import {
   validateReparentInvariants,
 } from "../domain/invariants.js"
 import { buildLayerTree } from "../domain/treeBuilder.js"
-import { type ScenePatch, emptyPatch } from "../model/patch.js"
-import { err, ok } from "../model/result.js"
+import { emptyPatch, type ScenePatch } from "../model/patch.js"
 import type { Result } from "../model/result.js"
+import { err, ok } from "../model/result.js"
 import type { CommandContext } from "./context.js"
 import { resolveExistingIds } from "./helpers.js"
 

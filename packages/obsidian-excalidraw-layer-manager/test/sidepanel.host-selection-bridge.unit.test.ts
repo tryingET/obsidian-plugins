@@ -61,8 +61,8 @@ describe("sidepanel host selection bridge", () => {
 
     const host: {
       targetView: unknown | null
-      setView: ReturnType<typeof vi.fn>
-      selectElementsInView: ReturnType<typeof vi.fn>
+      setView: ReturnType<typeof vi.fn<(view?: unknown, reveal?: boolean) => unknown>>
+      selectElementsInView: ReturnType<typeof vi.fn<(ids: readonly string[]) => void>>
       getViewSelectedElements: () => readonly { id: string }[]
       getExcalidrawAPI: () => { updateScene: typeof updateScene }
     } = {

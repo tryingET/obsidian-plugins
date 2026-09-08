@@ -2,9 +2,9 @@ import type { LayerNode } from "../../../model/tree.js"
 import type { LayerManagerUiActions } from "../../renderer.js"
 import type { SidepanelFilterMatchKind, SidepanelRowVisualState } from "./rowModel.js"
 import {
+  buildSidepanelRowDescriptors,
   type SidepanelRowBadgeDescriptor,
   type SidepanelRowBadgeEmphasis,
-  buildSidepanelRowDescriptors,
 } from "./rowPresentation.js"
 
 export interface SidepanelInlineRenameRenderState {

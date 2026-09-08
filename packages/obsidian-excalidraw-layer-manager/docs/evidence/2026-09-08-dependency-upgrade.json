@@ -1,0 +1,87 @@
+{
+  "task": 5564,
+  "recordedDate": "2026-09-08",
+  "baselineCommit": "e38c8cdf77e30ea8cb5fb34ce05c0900cdbab882",
+  "packageLockSha256": "7748fa4aa7cda72c4c7a8891d78f0d1c8e44a5b7a44485147d32a3083cf35f81",
+  "bundleSha256": "cfef5795e992782c4b56e61ae49dca239d804c815d4b50d1b42c66540398e561",
+  "baselineAndUnchangedPersonalVaultBundleSha256": "651e881e6bfadd12f82513b6ff66cb30138333b4b7f1f86d8d972750bf220d1b",
+  "releaseSelection": {
+    "minReleaseAgeDays": 7,
+    "biome": "2.5.11",
+    "nodeTypes": "22.20.1",
+    "vitestAndCoverage": "4.1.11",
+    "viteOverride": "8.2.2",
+    "dependencyCruiser": "18.2.0",
+    "esbuild": "0.28.2",
+    "fastCheck": "4.9.0",
+    "knip": "6.34.0",
+    "typescript": "7.0.2",
+    "xstate": "5.32.6"
+  },
+  "requiredChecks": [
+    {
+      "node": "22.13.0",
+      "npm": "10.9.2",
+      "command": "npm ci && npm run check",
+      "result": "passed"
+    },
+    { "node": "24.0.0", "command": "npm run check", "result": "passed" },
+    { "node": "26.8.1", "npm": "12.0.2", "command": "npm run ci", "result": "passed" },
+    {
+      "command": "external docs-list --docs packages/obsidian-excalidraw-layer-manager/docs --strict",
+      "result": "passed"
+    },
+    { "command": "ak direction check", "result": "passed", "issues": 0 },
+    { "command": "npm audit --json", "result": "passed", "knownVulnerabilities": 0 }
+  ],
+  "tests": {
+    "baselineTests": 601,
+    "baselineTestFiles": 58,
+    "testsPassed": 654,
+    "testFilesPassed": 62,
+    "newCharacterizationTests": 53,
+    "fixtureTypeSlice": { "testSourceFilesCompared": 62, "emittedJavaScriptDifferences": 0 },
+    "originalTestsPreserved": true
+  },
+  "coverage": {
+    "thresholdsUnchanged": { "statements": 86, "branches": 80, "functions": 90, "lines": 86 },
+    "measuredPercent": { "statements": 90.09, "branches": 81.92, "functions": 95, "lines": 89.98 },
+    "coveredBranches": 3553,
+    "totalBranches": 4337,
+    "baselineFileCount": 66,
+    "currentFileCount": 65,
+    "onlyRemovedFile": "vitest.config.ts",
+    "inventoryReason": "Vitest 4 forcibly excludes its configuration; all previously measured production modules and helpers remain included.",
+    "newCoveredBranches": 120,
+    "newCoveredReplayHelperBranches": 94,
+    "limitation": "Provider counters changed; the overall percentage includes helpers and is not a production-only coverage claim."
+  },
+  "architecture": {
+    "modules": 68,
+    "dependencies": 151,
+    "edgeSetMatchesBaseline": true,
+    "forbiddenRulesUnchanged": 5
+  },
+  "review": {
+    "blockingFindings": 0,
+    "followupsApplied": [
+      "Refresh checked-in lab bundle",
+      "Pin a literal replay-element default expectation"
+    ]
+  },
+  "optionalQuality": {
+    "command": "npm run quality:ts",
+    "exitCode": 0,
+    "reportedOutcome": "fail",
+    "reason": "Existing runtime constructor CRAP 1162.75 exceeds budget 30; src/main.ts changed only by import ordering.",
+    "sampledMutantsKilled": 5,
+    "sampledMutationSites": 5,
+    "followupTask": 5565
+  },
+  "deployment": {
+    "repositoryLab": "gated sync passed; byte-identical to dist",
+    "personalVault": "not deployed by this task; baseline hash independently checked",
+    "realHostSmoke": "not performed",
+    "remoteCI": "configured, not observed"
+  }
+}

@@ -5,8 +5,8 @@ import { buildSceneIndexes } from "./model/indexes.js"
 import type { ScenePatch } from "./model/patch.js"
 import type { SceneSnapshot } from "./model/snapshot.js"
 import {
-  type LayerManagerCommandFacade,
   createLayerManagerCommandFacade,
+  type LayerManagerCommandFacade,
 } from "./runtime/commandFacade.js"
 import type { CommandPlanner, ExecuteIntentOutcome } from "./runtime/intentExecution.js"
 import { createRuntimeLifecycleActor } from "./runtime/runtimeLifecycleMachine.js"
@@ -18,8 +18,8 @@ import {
   installKeyEventFlightRecorderGlobals,
 } from "./ui/sidepanel/keyboard/layerManagerKeyboardEventFlightRecorder.js"
 import {
-  type SidepanelHostPrimarySignal,
   createSidepanelHostContextCoordinator,
+  type SidepanelHostPrimarySignal,
 } from "./ui/sidepanel/selection/hostContextCoordinator.js"
 import {
   clearHostContextFlightRecorder,
@@ -28,9 +28,9 @@ import {
   traceHostContextLifecycleEvent,
 } from "./ui/sidepanel/selection/hostContextFlightRecorder.js"
 import {
-  type SidepanelReleasedViewContext,
   describeHostViewContext,
   recoverHostViewFromReplacedLeaf,
+  type SidepanelReleasedViewContext,
 } from "./ui/sidepanel/selection/hostViewContext.js"
 
 export type { ApplyPatchOutcome } from "./adapter/excalidrawAdapter.js"

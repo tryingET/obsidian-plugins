@@ -1,8 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
-
-import { SidepanelMountManager } from "../src/ui/sidepanel/mount/sidepanelMountManager.js"
-
 import type { SidepanelMountTabLike } from "../src/ui/sidepanel/mount/sidepanelMountManager.js"
+import { SidepanelMountManager } from "../src/ui/sidepanel/mount/sidepanelMountManager.js"
 import { FakeDocument, flushAsync, makeSidepanelTabForMountMode } from "./sidepanelTestHarness.js"
 
 describe("sidepanel mount manager", () => {
@@ -62,7 +60,7 @@ describe("sidepanel mount manager", () => {
 
     const host: {
       sidepanelTab: typeof initialTab.tab | null
-      closeSidepanelTab: ReturnType<typeof vi.fn>
+      closeSidepanelTab: ReturnType<typeof vi.fn<() => void>>
     } = {
       sidepanelTab: initialTab.tab,
       closeSidepanelTab: vi.fn(),
@@ -110,7 +108,7 @@ describe("sidepanel mount manager", () => {
 
     const host: {
       sidepanelTab: typeof sidepanelTab.tab | null
-      closeSidepanelTab: ReturnType<typeof vi.fn>
+      closeSidepanelTab: ReturnType<typeof vi.fn<() => void>>
     } = {
       sidepanelTab: null,
       closeSidepanelTab: vi.fn(),

@@ -1,8 +1,5 @@
 import { traceHostContextLifecycleEvent } from "./hostContextFlightRecorder.js"
 import {
-  type SidepanelHostContextShellState,
-  type SidepanelHostViewContextHost,
-  type SidepanelHostViewObservation,
   bindHostViewToActiveWorkspaceView,
   getCurrentHostTargetView,
   isUsableTargetView,
@@ -10,12 +7,15 @@ import {
   resolveHostViewContextShellStateFromObservation,
   resolveLiveExcalidrawApiFromTargetView,
   resolveTargetViewIdentity,
+  type SidepanelHostContextShellState,
+  type SidepanelHostViewContextHost,
+  type SidepanelHostViewObservation,
   shouldRebindHostViewToActiveWorkspaceView,
 } from "./hostViewContext.js"
 import {
+  resolveSceneBindingFromObservation,
   type SidepanelSceneBinding,
   type SidepanelSceneRef,
-  resolveSceneBindingFromObservation,
 } from "./sceneBinding.js"
 
 export type SidepanelHostPrimarySignal =

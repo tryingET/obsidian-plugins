@@ -14,7 +14,7 @@ The repository is an npm-workspace monorepo. The implemented product package is 
 | Surface | Implementation |
 |---|---|
 | Product artifact | Generated Excalidraw `LayerManager.md` script; not a standalone plugin manifest/bootstrap |
-| Language/runtime | TypeScript and checked JavaScript/MJS; development engine declares Node.js `>=22.0.0` |
+| Language/runtime | TypeScript and checked JavaScript/MJS; development engine declares Node.js `^22.13.0 || ^24.0.0 || >=26.0.0` |
 | Runtime scheduling | XState |
 | Build | esbuild |
 | Tests | Vitest, V8 coverage, fast-check, package-local fake-host fixtures |
@@ -22,7 +22,7 @@ The repository is an npm-workspace monorepo. The implemented product package is 
 | Host | Obsidian with the Excalidraw community plugin, installed separately |
 | Deployment | Package-owned sync helper, verified hashes, backup, receipt, manual rerun |
 
-[`package.json`](../package.json), the [package manifest](../packages/obsidian-excalidraw-layer-manager/package.json), and [`package-lock.json`](../package-lock.json) own version declarations and resolved installations. Use `npm ci`; do not infer that an isolated upgrade has changed the published lock. The [closeout](../packages/obsidian-excalidraw-layer-manager/docs/project/2026-09-07-layer-manager-closeout.md) records pending dependency maintenance.
+[`package.json`](../package.json), the [package manifest](../packages/obsidian-excalidraw-layer-manager/package.json), and [`package-lock.json`](../package-lock.json) own version declarations and resolved installations. Use `npm ci`; do not infer that an isolated upgrade has changed the published lock. The [dependency-upgrade record](../packages/obsidian-excalidraw-layer-manager/docs/project/2026-09-08-dependency-upgrade.md) separates current toolchain validation from historical publication evidence and outstanding host bugs.
 
 ## Repository commands
 

@@ -10,7 +10,7 @@ import {
   shouldRebindHostViewToActiveWorkspaceView,
 } from "./hostViewContext.js"
 
-export type SidepanelSceneRefSource = "legacy-host" | "target-view" | "active-leaf"
+type SidepanelSceneRefSource = "legacy-host" | "target-view" | "active-leaf"
 
 export interface SidepanelSceneRef {
   readonly source: SidepanelSceneRefSource

@@ -1,14 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { readLmxElementLabel } from "../src/model/lmxMetadata.js"
-
 import type { EaLike, RawExcalidrawElement } from "../src/adapter/excalidraw-types.js"
 import { createLayerManagerRuntime } from "../src/main.js"
-
+import { readLmxElementLabel } from "../src/model/lmxMetadata.js"
+import type { SidepanelTabHarness } from "./sidepanelTestHarness.js"
 import {
+  dispatchKeydown,
   FakeDocument,
   type FakeDomElement,
   FakeDomEvent,
-  dispatchKeydown,
   findButtonByExactText,
   findButtonByTitle,
   findFirstInput,
@@ -19,7 +18,6 @@ import {
   getContentRoot,
   makeSidepanelTab,
 } from "./sidepanelTestHarness.js"
-import type { SidepanelTabHarness } from "./sidepanelTestHarness.js"
 
 const cloneElement = (element: RawExcalidrawElement): RawExcalidrawElement => ({
   ...element,
@@ -180,7 +178,7 @@ describe("sidepanel rename + drag-drop integration", () => {
   let fakeDocument: FakeDocument
 
   beforeEach(() => {
-    hadDocumentProperty = Object.prototype.hasOwnProperty.call(globalRecord, "document")
+    hadDocumentProperty = Object.hasOwn(globalRecord, "document")
     previousDocumentValue = globalRecord["document"]
 
     fakeDocument = new FakeDocument()

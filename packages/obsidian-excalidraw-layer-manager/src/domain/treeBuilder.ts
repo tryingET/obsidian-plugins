@@ -3,8 +3,8 @@ import type { SceneIndexes } from "../model/indexes.js"
 import { readLmxElementLabel, readLmxGroupLabel } from "../model/lmxMetadata.js"
 import {
   type LayerNode,
-  type TreeBuildContext,
   resolveRepresentativeElementId,
+  type TreeBuildContext,
 } from "../model/tree.js"
 
 const makeNodeId = (prefix: string, id: string): string => `${prefix}:${id}`
