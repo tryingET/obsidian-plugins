@@ -4,6 +4,7 @@ import type { LayerManagerSettings } from "../model/settings.js"
 import { DEFAULT_SETTINGS } from "../model/settings.js"
 import type { SceneSnapshot } from "../model/snapshot.js"
 import type { EaLike, RawExcalidrawElement } from "./excalidraw-types.js"
+import { withIsolatedNativeStaging } from "./nativeStagingIsolation.js"
 
 const normalizeElementType = (rawType: string | undefined): ElementType => {
   switch (rawType) {
@@ -345,7 +346,8 @@ const applyElementPatchesViaLegacyEditing = async (
   patch: ScenePatch,
   canExecute: () => boolean,
 ): Promise<boolean> => {
-  if (!ea.copyViewElementsToEAforEditing || !ea.getElement || !ea.addElementsToView) {
+  const { copyViewElementsToEAforEditing, getElement, addElementsToView } = ea
+  if (!copyViewElementsToEAforEditing || !getElement || !addElementsToView) {
     return false
   }
 
@@ -366,35 +368,27 @@ const applyElementPatchesViaLegacyEditing = async (
 
   if (!canExecute()) return false
   try {
-    ea.copyViewElementsToEAforEditing(targets)
-  } catch {
-    return false
-  }
+    const commit = withIsolatedNativeStaging(ea, (ownsStaging) => {
+      copyViewElementsToEAforEditing.call(ea, targets)
+      if (!canExecute() || !ownsStaging()) return false
+      const editableById = new Map<string, RawExcalidrawElement>()
+      for (const elementPatch of patch.elementPatches) {
+        const editable = getElement.call(ea, elementPatch.id)
+        if (!editable) return false
+        editableById.set(elementPatch.id, editable)
+      }
 
-  if (!canExecute()) return false
-  const editableById = new Map<string, RawExcalidrawElement>()
-  for (const elementPatch of patch.elementPatches) {
-    const editable = ea.getElement(elementPatch.id)
-    if (!editable) {
-      return false
-    }
+      for (const elementPatch of patch.elementPatches) {
+        const editable = editableById.get(elementPatch.id)
+        if (!editable || !canExecute() || !ownsStaging()) return false
+        patchElementProperties(editable, elementPatch)
+      }
 
-    editableById.set(elementPatch.id, editable)
-  }
-
-  for (const elementPatch of patch.elementPatches) {
-    const editable = editableById.get(elementPatch.id)
-    if (!editable) {
-      return false
-    }
-
-    if (!canExecute()) return false
-    patchElementProperties(editable, elementPatch)
-  }
-
-  if (!canExecute()) return false
-  try {
-    await ea.addElementsToView(false, false)
+      if (!canExecute() || !ownsStaging()) return false
+      return addElementsToView.call(ea, false, false)
+    })
+    if (commit === false) return false
+    await commit
   } catch {
     return false
   }

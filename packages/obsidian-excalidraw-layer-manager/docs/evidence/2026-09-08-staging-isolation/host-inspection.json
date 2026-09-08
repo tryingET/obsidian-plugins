@@ -1,0 +1,37 @@
+{
+  "id": 1,
+  "result": {
+    "result": {
+      "type": "object",
+      "value": {
+        "title": "testing - vault - Obsidian 1.13.7",
+        "version": "2.27.3",
+        "views": [
+          {
+            "id": "4a383a49d605b84b",
+            "file": "testing.md",
+            "ready": true
+          }
+        ],
+        "runtime": false,
+        "methods": [
+          "getElements",
+          "getElement",
+          "addElementsToFrame",
+          "clear",
+          "reset",
+          "copyViewElementsToEAforEditing",
+          "addElementsToView",
+          "getElementsInArea",
+          "getElementsIntersectionArea",
+          "getElementsInTheSameGroupWithElement",
+          "getElementsInFrame",
+          "resetImageAspectRatio"
+        ],
+        "copy": "copyViewElementsToEAforEditing(e,t=!1){if(t&&e.some(e=>\"image\"===e.type)){if(!this.targetView||!this.targetView?._loaded)return void errorMessage(\"targetView not set\",\"copyViewElementsToEAforEditing()\");const t=this.targetView.getScene().files;e.forEach(e=>{if(this.elementsDict[e.id]=cloneElement(e),\"image\"===e.type){const i=this.targetView.excalidrawData.getFile(e.fileId),a=i&&i.file&&i.linkParts&&i.linkParts.ref,n=this.targetView.excalidrawData.getEquation(e.fileId),r=t?.[e.fileId];this.imagesDict[e.fileId]={mimeType:r.mimeType,id:e.fileId,dataURL:r.dataURL,created:r.created,hasSVGwithBitmap:!!i&&i.isSVGwithBitmap,...i?{isHyperLink:i.isHyperLink||Boolean(a),hyperlink:a?`${i.file.path}#${i.linkParts.ref}`:i.hyperlink,file:a?null:i.file,latex:null}:{},...n?{file:null,isHyperLink:!1,hyperlink:null,latex:n.latex}:{}}}})}else e.forEach(e=>{this.elementsDict[e.id]=cloneElement(e)})}",
+        "add": "async addElementsToView(e=!1,t=!0,i=!1,a=!1,n=CaptureUpdateAction.IMMEDIATELY){if(!this.targetView||!this.targetView?._loaded)return errorMessage(\"targetView not set\",\"addElementsToView()\"),!1;const r=this.getElements();return r.some(e=>\"embeddable\"===e.type)&&patchMobileView(this.targetView),await this.targetView.addElements({newElements:r,repositionToCursor:e,save:t,images:this.imagesDict,newElementsOnTop:i,shouldRestoreElements:a,captureUpdate:n})}",
+        "clear": "clear(){this.elementsDict={},this.imagesDict={}}"
+      }
+    }
+  }
+}

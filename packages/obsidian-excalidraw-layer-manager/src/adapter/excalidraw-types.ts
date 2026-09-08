@@ -75,6 +75,8 @@ export interface ObsidianLike {
 }
 
 export interface EaLike {
+  elementsDict?: Record<string, RawExcalidrawElement>
+  imagesDict?: Record<string, unknown>
   app?: ObsidianAppLike
   getViewElements?: () => RawExcalidrawElement[]
   getViewSelectedElements?: () => RawExcalidrawElement[]

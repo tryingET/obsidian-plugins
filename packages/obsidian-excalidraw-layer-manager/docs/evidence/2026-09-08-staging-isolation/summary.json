@@ -1,0 +1,17 @@
+{
+  "task": 5574,
+  "baseline_commit": "297ac79",
+  "bundle_sha256": "5b221d00c9c652cc380a08ee2f7c5f16cf7e704507863692df2e8a9732121a55",
+  "installed_bundle_matches": true,
+  "host": {"obsidian": "1.13.7", "excalidraw": "2.27.3", "vault": "owned disposable ak5573-host-yTjeVY/vault", "personal_vault_touched": false},
+  "verification": {
+    "root_ci": {"command": "npm run ci", "passed": true, "tests": 738, "files": 66, "existing_lint_warnings": 20, "log": "$TMPDIR/ak5574-operations/ci.log", "log_sha256": "638e43499998b4b17cbafdba607b52d5bfe71f64b85f855825fc930932af9d83"},
+    "build": {"command": "npm --prefix packages/obsidian-excalidraw-layer-manager run build", "passed": true},
+    "focused": {"passed": 74, "new_tests": 15, "red_before_fix": 2},
+    "native_red": "host-red.json",
+    "native_green": "host-green.json",
+    "native_staging_version_undo_persistence": "host-preservation-final.json",
+    "independent_review": "dispatch-1788859946917: no evidence-backed blockers within persistent-staging scope; proposed pending insertion cases added"
+  },
+  "qualification": "Real host with command facade/native API edits, and synthetic keyboard events for native undo/redo. No universal async host transaction safety, personal rollout, upstream update or remote CI claim. Tab construction-EA dictionary observations in simple replay are not invocation identity evidence; preservation probe captures actual invocation."
+}

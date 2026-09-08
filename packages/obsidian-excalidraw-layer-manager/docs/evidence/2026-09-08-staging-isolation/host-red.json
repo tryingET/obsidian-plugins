@@ -1,0 +1,103 @@
+{
+  "id": 1,
+  "result": {
+    "result": {
+      "type": "object",
+      "value": {
+        "title": "testing - vault - Obsidian 1.13.7",
+        "pluginVersion": "2.27.3",
+        "steps": [
+          {
+            "name": "first LayerManager rename applies",
+            "pass": true
+          },
+          {
+            "name": "canvas edit visible before second command",
+            "pass": true,
+            "detail": {
+              "id": "3vUe4Y0O",
+              "type": "rectangle",
+              "x": 1333,
+              "y": 1000,
+              "width": 100,
+              "height": 80,
+              "angle": 0,
+              "strokeColor": "#ff0000",
+              "backgroundColor": "transparent",
+              "fillStyle": "hachure",
+              "strokeWidth": 1,
+              "strokeStyle": "solid",
+              "roughness": 1,
+              "opacity": 100,
+              "roundness": null,
+              "seed": 57320,
+              "version": 4,
+              "versionNonce": 911257001,
+              "updated": 1788859825129,
+              "isDeleted": false,
+              "groupIds": [],
+              "boundElements": [],
+              "link": null,
+              "locked": false,
+              "frameId": null,
+              "hasTextLink": false,
+              "index": "a7",
+              "customData": {
+                "lmx": {
+                  "label": "AK5574 first"
+                },
+                "foreign5574": "canvas edit"
+              }
+            }
+          },
+          {
+            "name": "second LayerManager rename applies",
+            "pass": true
+          },
+          {
+            "name": "unrelated canvas geometry preserved",
+            "pass": false,
+            "detail": {
+              "before": 1333,
+              "after": 1000
+            }
+          },
+          {
+            "name": "unrelated canvas color preserved",
+            "pass": false,
+            "detail": {
+              "before": "#ff0000",
+              "after": "#000000"
+            }
+          },
+          {
+            "name": "unrelated canvas metadata preserved",
+            "pass": false,
+            "detail": {
+              "lmx": {
+                "label": "AK5574 first"
+              }
+            }
+          },
+          {
+            "name": "second label persisted",
+            "pass": true
+          }
+        ],
+        "pass": false,
+        "stagedBefore": [
+          "3vUe4Y0O"
+        ],
+        "stagedAfter": [
+          "3vUe4Y0O",
+          "OlXxRsfO"
+        ],
+        "fixture": {
+          "a": "3vUe4Y0O",
+          "b": "OlXxRsfO"
+        },
+        "mode": "real native script command facade, native API canvas edit, save; no injected EA staging implementation"
+      }
+    }
+  }
+}
