@@ -1,0 +1,677 @@
+{
+  "kind": "exploratory-as-is-baseline",
+  "capturedAt": "2026-09-08T11:01:51.232Z",
+  "source": {
+    "repo": "/home/tryinget/ai-society/softwareco/owned/obsidian-plugins",
+    "head": "66bbe11f8d7e9a2e589dcbb350d9bac5507a22db",
+    "sourceCommit": "ebc1099",
+    "sourceDiff": "git diff ebc1099 HEAD -- packages/obsidian-excalidraw-layer-manager/src: empty",
+    "sourceHashesArtifact": "source-hashes.json",
+    "pr": {
+      "baseRefName": "master",
+      "files": [
+        {
+          "path": "ea-scripts/LayerManager.md",
+          "additions": 16864,
+          "deletions": 0,
+          "changeType": "ADDED"
+        },
+        {
+          "path": "ea-scripts/LayerManager.svg",
+          "additions": 6,
+          "deletions": 0,
+          "changeType": "ADDED"
+        }
+      ],
+      "headRefName": "add-layer-manager-refreshed-2026-09-08",
+      "headRefOid": "2d14cb90c5e69f3490f59c4b450e3a762f85d786",
+      "number": 2925,
+      "state": "OPEN",
+      "url": "https://github.com/zsviczian/obsidian-excalidraw-plugin/pull/2925"
+    },
+    "prPayloadSha256": "8039c3abbaf22cd25e7720f8d2970bd626df8584fffe089d59bb177fa60b8889",
+    "prMatch": "Exact live PR head and fetched payload match publication receipt; source same as ebc1099; no fresh deploy/build of published artifact performed."
+  },
+  "environment": {
+    "node": "v26.8.1",
+    "versions": {
+      "node": "26.8.1",
+      "acorn": "8.18.0",
+      "ada": "4.0.0",
+      "amaro": "1.1.11",
+      "ares": "1.34.8",
+      "brotli": "1.2.0",
+      "cldr": "48.0",
+      "icu": "78.3",
+      "libffi": "3.8.0",
+      "lief": "0.17.0",
+      "llhttp": "9.4.3",
+      "merve": "1.2.2",
+      "modules": "147",
+      "napi": "10",
+      "nbytes": "0.1.4",
+      "ncrypto": "0.0.1",
+      "nghttp2": "1.70.0",
+      "nghttp3": "",
+      "ngtcp2": "",
+      "openssl": "3.6.4",
+      "simdjson": "4.6.9",
+      "simdutf": "7.7.0",
+      "sqlite": "3.53.4",
+      "tz": "2026a",
+      "undici": "8.10.0",
+      "unicode": "17.0",
+      "uv": "1.52.1",
+      "uvwasi": "0.0.23",
+      "v8": "14.6.202.34-node.28",
+      "zlib": "1.3.2",
+      "zstd": "1.5.7"
+    },
+    "platform": "linux",
+    "arch": "x64",
+    "kernel": "7.1.11-arch1-1",
+    "cpu": "AMD Ryzen Threadripper PRO 7975WX 32-Cores",
+    "logicalCpus": 64,
+    "esbuild": "0.28.2",
+    "vitest": "4.1.11",
+    "heapOldSpaceMiB": 768,
+    "initialLoadAverage": "6.39 6.24 6.20",
+    "artifact": "environment.txt",
+    "afterArtifact": "environment-after.txt"
+  },
+  "counts": {
+    "passes": 6,
+    "baselinePasses": 3,
+    "nochangePasses": 3,
+    "shapeSizeCells": 24,
+    "operationCells": 260,
+    "scenarioProcesses": 144,
+    "operationRows": 1560,
+    "measuredSamples": 7800,
+    "warmupsPerOperation": 2,
+    "measuredRepeatsPerOperation": 5,
+    "scenarioElapsedMs": 605172
+  },
+  "failures": {
+    "children": [],
+    "operations": []
+  },
+  "commands": {
+    "bundle": "node_modules/.bin/esbuild \"$D/entry.ts\" --bundle --platform=node --format=esm --outfile=\"$D/subject.mjs\"",
+    "first": "node \"$D/run-matrix.mjs\" baseline-1",
+    "additional": "node \"$D/run-matrix.mjs\" baseline-2,baseline-3,nochange-1,nochange-2,nochange-3",
+    "existing": "cd packages/obsidian-excalidraw-layer-manager && node_modules/.bin/vitest run --config \"$D/vitest.config.mjs\" --configLoader native --no-cache --no-file-parallelism --maxWorkers 1 --silent=false --reporter verbose --disableConsoleIntercept test/treeBuilder.performance.test.ts test/commands.performance.test.ts test/runtime.render-update.performance.test.ts test/performance.complexity-sentinel.test.ts",
+    "summary": "node \"$D/summarize.mjs\"",
+    "D": "/home/tryinget/.local/state/pi-quests/tmp/lmx-scout-baseline.wek7YW/"
+  },
+  "hashes": [
+    {
+      "path": "entry.ts",
+      "sha256": "e66f8cb6d93d5b30a5796fc7501329df0ab3ead0177ec2d74d0b98b8ef8b34fa"
+    },
+    {
+      "path": "matrix.mjs",
+      "sha256": "00490970f978ef66a7ac1ec71158f1a2949f2ee5e37810ace80d330936d22eec"
+    },
+    {
+      "path": "run-matrix.mjs",
+      "sha256": "40ef11bd13d8b3bf5889977bcdebfe5e5fbd9c19393b35f2a17316e69f848046"
+    },
+    {
+      "path": "subject.mjs",
+      "sha256": "c71f62c8803467d103514e9cb679a02956796a8cfc4cd10afd334c3218dc2a10"
+    },
+    {
+      "path": "vitest.config.mjs",
+      "sha256": "bf7344f4c76624f7238dd911a0fc40ed63164b996f25c0af33bd3a00f2204ce2"
+    },
+    {
+      "path": "fixture-identities.json",
+      "sha256": "28a0c1bae6138ea7288e2670ed00487d434ee0e2c48cefb5f5b55a3c0455e829"
+    },
+    {
+      "path": "source-hashes.json",
+      "sha256": "7668bb8a93e8e213ab53fb2c1b78a604431cdf0b5a3624d41b7e60f5af8e5a70"
+    },
+    {
+      "path": "summarize.mjs",
+      "sha256": "b968bfae274dc0163d19008f386a8c6179c4562da721148493b1b0e3a72a7e17"
+    }
+  ],
+  "fixturesArtifact": "fixture-identities.json",
+  "allOperationCellStatisticsArtifact": "cell-summary.jsonl",
+  "noise": {
+    "nochangeOverBaselineMedianAcrossOperationCells": {
+      "min": 0.4043499015648874,
+      "median": 0.9989182750169532,
+      "max": 2.1960383818492737
+    },
+    "cellsAbove120pct": 16,
+    "cellsBelow80pct": 11,
+    "warning": "Counts mix workloads; not an acceptance metric. Per-pass medians retained in cell-summary.jsonl."
+  },
+  "limitations": [
+    "Exploratory Node synthetic measurement, not frozen campaign evaluator. No production optimizations, no candidate wins, no real-vault deploy or Obsidian DOM/layout/paint/native EA staging.",
+    "All rectangles, contiguous groups, uniform z-order, empty metadata, no frames/bound text/images/freedraw/deletion. nested8 is breadth-containing depth8, not extreme nesting. Fixed shape/operation order; GC state and checks influence following iterations.",
+    "Two warmups/five samples per operation/process: per-process p95 equals max; pooled 30-sample p95 descriptive only, not responsiveness/tail confidence. Async bench await adds microtask overhead to sync functions.",
+    "Memory samples are cumulative process RSS/heap after operations and correctness checks; not isolated allocations, peak, leaks or heap-safety proof. Processes capped at 768MiB old-space; no multi-GiB run.",
+    "Tree leaf uniqueness/coverage checked; group oracle uses subject indexes and expected node/group counts from initial subject tree. Missing hierarchy/incorrect parent paths or duplicate group membership can escape.",
+    "Filter checks counters, not exact visibleTree/matchKindByNodeId. Reorder checks changed full permutation only, not exact desired order/structural semantics; planners do not apply mutations.",
+    "Group rename planner checks target IDs not set payload; visibility only target IDs+opacity, not originalOpacity restoration. Runtime rename checks target leaf label and all OTHER element contents, not target preservation.",
+    "Runtime refresh unchanged scene: freshness/invalidation not exercised. Runtime uses actual fake updateScene array replacement, no provided DOM renderer; no copyViewElementsToEAforEditing/addElementsToView native path.",
+    "plan-visibility-500 and reorder target min(500,floor(n/10)):100 at1k,500 larger. Rename first outer group:2/many2,10/small10,n/giant,.9n/skew90,min(n,1280)/nested8.",
+    "Runner exits zero even if a child fails; independently audited runs.jsonl all144 status0, no signals, all1560 rows statusok. Reusing same pass names overwrites artifacts; do not reuse immutable run labels.",
+    "Baseline vs nochange labels are unchanged frozen bundle across chronological fresh processes, not branch-reset/alternating pairs; noise/drift estimates not campaign acceptance thresholds."
+  ],
+  "retention": {
+    "fullSummary": "summary.json inside raw-artifacts.tar.gz",
+    "cellStatistics": "cell-summary.jsonl inside raw-artifacts.tar.gz",
+    "artifactRole": "Exploratory Node measurements; not pi-autoresearch campaign receipts or native Obsidian ground truth"
+  },
+  "keyOperationStatistics": [
+    {
+      "n": 100000,
+      "shape": "giant",
+      "operation": "runtime-refresh-no-DOM",
+      "requestedTargetCount": null,
+      "nodes": 100001,
+      "groups": 1,
+      "memberships": 200000,
+      "processMedianMs": {
+        "min": 120.06710699999985,
+        "median": 121.05227049999985,
+        "max": 132.19007599999986
+      },
+      "baselineMedianMs": {
+        "min": 120.45684600000004,
+        "median": 120.85190299999977,
+        "max": 121.25263799999993
+      },
+      "nochangeMedianMs": {
+        "min": 120.06710699999985,
+        "median": 123.89584299999933,
+        "max": 132.19007599999986
+      },
+      "nochangeOverBaselineMedian": 1.0251873567932113,
+      "samples": 30,
+      "pooledSampleMedianMs": 125.84385899999961,
+      "pooledDescriptiveP95Ms": 154.16188200000033
+    },
+    {
+      "n": 100000,
+      "shape": "giant",
+      "operation": "runtime-rename-one-updateScene-no-DOM",
+      "requestedTargetCount": 1,
+      "nodes": 100001,
+      "groups": 1,
+      "memberships": 200000,
+      "processMedianMs": {
+        "min": 167.6232999999993,
+        "median": 179.42873099999952,
+        "max": 190.36711399999967
+      },
+      "baselineMedianMs": {
+        "min": 174.5732850000004,
+        "median": 187.0471010000001,
+        "max": 190.36711399999967
+      },
+      "nochangeMedianMs": {
+        "min": 167.6232999999993,
+        "median": 176.91788599999927,
+        "max": 181.93957599999976
+      },
+      "nochangeOverBaselineMedian": 0.9458467148336032,
+      "samples": 30,
+      "pooledSampleMedianMs": 179.42873099999952,
+      "pooledDescriptiveP95Ms": 199.3496610000002
+    },
+    {
+      "n": 100000,
+      "shape": "giant",
+      "operation": "tree-collapsed",
+      "requestedTargetCount": null,
+      "nodes": 100001,
+      "groups": 1,
+      "memberships": 200000,
+      "processMedianMs": {
+        "min": 94.91772900000001,
+        "median": 99.540842,
+        "max": 108.06693599999994
+      },
+      "baselineMedianMs": {
+        "min": 94.91772900000001,
+        "median": 97.839158,
+        "max": 107.694344
+      },
+      "nochangeMedianMs": {
+        "min": 99.46619899999996,
+        "median": 99.61548500000004,
+        "max": 108.06693599999994
+      },
+      "nochangeOverBaselineMedian": 1.0181555834730307,
+      "samples": 30,
+      "pooledSampleMedianMs": 99.540842,
+      "pooledDescriptiveP95Ms": 140.74998600000004
+    },
+    {
+      "n": 100000,
+      "shape": "many2",
+      "operation": "runtime-refresh-no-DOM",
+      "requestedTargetCount": null,
+      "nodes": 150000,
+      "groups": 50000,
+      "memberships": 200000,
+      "processMedianMs": {
+        "min": 277.6225880000002,
+        "median": 292.9269060000006,
+        "max": 304.88958600000115
+      },
+      "baselineMedianMs": {
+        "min": 282.9220239999995,
+        "median": 290.11031100000037,
+        "max": 304.88958600000115
+      },
+      "nochangeMedianMs": {
+        "min": 277.6225880000002,
+        "median": 295.74350100000083,
+        "max": 297.7743390000014
+      },
+      "nochangeOverBaselineMedian": 1.0194174070565885,
+      "samples": 30,
+      "pooledSampleMedianMs": 289.52785550000044,
+      "pooledDescriptiveP95Ms": 327.18436100000145
+    },
+    {
+      "n": 100000,
+      "shape": "many2",
+      "operation": "runtime-rename-one-updateScene-no-DOM",
+      "requestedTargetCount": 1,
+      "nodes": 150000,
+      "groups": 50000,
+      "memberships": 200000,
+      "processMedianMs": {
+        "min": 343.6178869999985,
+        "median": 369.35483899999963,
+        "max": 382.7592019999993
+      },
+      "baselineMedianMs": {
+        "min": 360.7031339999994,
+        "median": 378.00654399999985,
+        "max": 378.49296200000026
+      },
+      "nochangeMedianMs": {
+        "min": 343.6178869999985,
+        "median": 354.9672640000008,
+        "max": 382.7592019999993
+      },
+      "nochangeOverBaselineMedian": 0.9390505789762226,
+      "samples": 30,
+      "pooledSampleMedianMs": 362.6595364999994,
+      "pooledDescriptiveP95Ms": 391.8775590000005
+    },
+    {
+      "n": 100000,
+      "shape": "many2",
+      "operation": "tree-collapsed",
+      "requestedTargetCount": null,
+      "nodes": 150000,
+      "groups": 50000,
+      "memberships": 200000,
+      "processMedianMs": {
+        "min": 210.1782179999998,
+        "median": 221.169036,
+        "max": 230.72628799999984
+      },
+      "baselineMedianMs": {
+        "min": 218.07294199999978,
+        "median": 224.26513000000023,
+        "max": 230.72628799999984
+      },
+      "nochangeMedianMs": {
+        "min": 210.1782179999998,
+        "median": 211.96593799999982,
+        "max": 227.3825200000001
+      },
+      "nochangeOverBaselineMedian": 0.9451578049605822,
+      "samples": 30,
+      "pooledSampleMedianMs": 219.49713100000008,
+      "pooledDescriptiveP95Ms": 279.8805520000001
+    },
+    {
+      "n": 100000,
+      "shape": "nested8",
+      "operation": "runtime-refresh-no-DOM",
+      "requestedTargetCount": null,
+      "nodes": 119924,
+      "groups": 19924,
+      "memberships": 900000,
+      "processMedianMs": {
+        "min": 310.60551699999996,
+        "median": 317.5439425000004,
+        "max": 325.1015950000001
+      },
+      "baselineMedianMs": {
+        "min": 310.60551699999996,
+        "median": 314.641975999999,
+        "max": 323.39028999999937
+      },
+      "nochangeMedianMs": {
+        "min": 315.7439460000005,
+        "median": 319.3439390000003,
+        "max": 325.1015950000001
+      },
+      "nochangeOverBaselineMedian": 1.0149438516112084,
+      "samples": 30,
+      "pooledSampleMedianMs": 317.5439425000004,
+      "pooledDescriptiveP95Ms": 373.0155670000004
+    },
+    {
+      "n": 100000,
+      "shape": "nested8",
+      "operation": "runtime-rename-one-updateScene-no-DOM",
+      "requestedTargetCount": 1,
+      "nodes": 119924,
+      "groups": 19924,
+      "memberships": 900000,
+      "processMedianMs": {
+        "min": 384.73773600000095,
+        "median": 399.1772245000002,
+        "max": 422.10159100000055
+      },
+      "baselineMedianMs": {
+        "min": 384.73773600000095,
+        "median": 393.12957899999856,
+        "max": 393.9522710000001
+      },
+      "nochangeMedianMs": {
+        "min": 404.4021780000003,
+        "median": 408.6004900000007,
+        "max": 422.10159100000055
+      },
+      "nochangeOverBaselineMedian": 1.0393532103062695,
+      "samples": 30,
+      "pooledSampleMedianMs": 405.1701595000004,
+      "pooledDescriptiveP95Ms": 452.6729720000003
+    },
+    {
+      "n": 100000,
+      "shape": "nested8",
+      "operation": "tree-collapsed",
+      "requestedTargetCount": null,
+      "nodes": 119924,
+      "groups": 19924,
+      "memberships": 900000,
+      "processMedianMs": {
+        "min": 253.92191500000035,
+        "median": 267.97294850000026,
+        "max": 279.24667899999986
+      },
+      "baselineMedianMs": {
+        "min": 260.1779269999997,
+        "median": 267.15552400000024,
+        "max": 268.7903730000003
+      },
+      "nochangeMedianMs": {
+        "min": 253.92191500000035,
+        "median": 272.56257300000016,
+        "max": 279.24667899999986
+      },
+      "nochangeOverBaselineMedian": 1.0202393307053605,
+      "samples": 30,
+      "pooledSampleMedianMs": 267.01882950000027,
+      "pooledDescriptiveP95Ms": 321.4953150000001
+    },
+    {
+      "n": 100000,
+      "shape": "skew90",
+      "operation": "runtime-refresh-no-DOM",
+      "requestedTargetCount": null,
+      "nodes": 105001,
+      "groups": 5001,
+      "memberships": 200000,
+      "processMedianMs": {
+        "min": 132.7672219999995,
+        "median": 146.95919700000013,
+        "max": 160.24990100000014
+      },
+      "baselineMedianMs": {
+        "min": 132.7672219999995,
+        "median": 138.54530200000045,
+        "max": 160.24990100000014
+      },
+      "nochangeMedianMs": {
+        "min": 144.22283599999992,
+        "median": 149.69555800000035,
+        "max": 152.15592000000015
+      },
+      "nochangeOverBaselineMedian": 1.0804809390072272,
+      "samples": 30,
+      "pooledSampleMedianMs": 149.06793800000014,
+      "pooledDescriptiveP95Ms": 167.14904500000011
+    },
+    {
+      "n": 100000,
+      "shape": "skew90",
+      "operation": "runtime-rename-one-updateScene-no-DOM",
+      "requestedTargetCount": 1,
+      "nodes": 105001,
+      "groups": 5001,
+      "memberships": 200000,
+      "processMedianMs": {
+        "min": 185.34188399999948,
+        "median": 195.01659049999944,
+        "max": 202.3016430000007
+      },
+      "baselineMedianMs": {
+        "min": 189.52079299999968,
+        "median": 196.57076300000062,
+        "max": 202.3016430000007
+      },
+      "nochangeMedianMs": {
+        "min": 185.34188399999948,
+        "median": 193.7859129999997,
+        "max": 196.24726799999917
+      },
+      "nochangeOverBaselineMedian": 0.9858328372058011,
+      "samples": 30,
+      "pooledSampleMedianMs": 195.9904394999994,
+      "pooledDescriptiveP95Ms": 216.34266500000012
+    },
+    {
+      "n": 100000,
+      "shape": "skew90",
+      "operation": "tree-collapsed",
+      "requestedTargetCount": null,
+      "nodes": 105001,
+      "groups": 5001,
+      "memberships": 200000,
+      "processMedianMs": {
+        "min": 95.72077600000011,
+        "median": 101.19321200000002,
+        "max": 107.47916200000009
+      },
+      "baselineMedianMs": {
+        "min": 95.72077600000011,
+        "median": 100.24289199999998,
+        "max": 107.47916200000009
+      },
+      "nochangeMedianMs": {
+        "min": 99.30508499999996,
+        "median": 102.14353200000005,
+        "max": 103.56786000000011
+      },
+      "nochangeOverBaselineMedian": 1.0189603468343678,
+      "samples": 30,
+      "pooledSampleMedianMs": 102.52449249999995,
+      "pooledDescriptiveP95Ms": 141.80919700000004
+    },
+    {
+      "n": 100000,
+      "shape": "small10",
+      "operation": "runtime-refresh-no-DOM",
+      "requestedTargetCount": null,
+      "nodes": 110000,
+      "groups": 10000,
+      "memberships": 200000,
+      "processMedianMs": {
+        "min": 168.41001899999992,
+        "median": 171.91536049999968,
+        "max": 181.7162840000001
+      },
+      "baselineMedianMs": {
+        "min": 168.41001899999992,
+        "median": 170.78385200000048,
+        "max": 173.8659120000002
+      },
+      "nochangeMedianMs": {
+        "min": 171.6300369999999,
+        "median": 172.20068399999946,
+        "max": 181.7162840000001
+      },
+      "nochangeOverBaselineMedian": 1.0082960536573387,
+      "samples": 30,
+      "pooledSampleMedianMs": 172.65204799999992,
+      "pooledDescriptiveP95Ms": 197.19002199999977
+    },
+    {
+      "n": 100000,
+      "shape": "small10",
+      "operation": "runtime-rename-one-updateScene-no-DOM",
+      "requestedTargetCount": 1,
+      "nodes": 110000,
+      "groups": 10000,
+      "memberships": 200000,
+      "processMedianMs": {
+        "min": 212.55572500000017,
+        "median": 217.79213550000077,
+        "max": 231.8085229999997
+      },
+      "baselineMedianMs": {
+        "min": 212.55572500000017,
+        "median": 217.42021600000044,
+        "max": 218.1640550000011
+      },
+      "nochangeMedianMs": {
+        "min": 216.53981700000077,
+        "median": 220.28668900000048,
+        "max": 231.8085229999997
+      },
+      "nochangeOverBaselineMedian": 1.0131840224093975,
+      "samples": 30,
+      "pooledSampleMedianMs": 220.40321350000022,
+      "pooledDescriptiveP95Ms": 236.7749760000006
+    },
+    {
+      "n": 100000,
+      "shape": "small10",
+      "operation": "tree-collapsed",
+      "requestedTargetCount": null,
+      "nodes": 110000,
+      "groups": 10000,
+      "memberships": 200000,
+      "processMedianMs": {
+        "min": 128.687858,
+        "median": 135.94208100000003,
+        "max": 139.23125200000004
+      },
+      "baselineMedianMs": {
+        "min": 128.687858,
+        "median": 134.13345400000003,
+        "max": 139.23125200000004
+      },
+      "nochangeMedianMs": {
+        "min": 134.19642900000008,
+        "median": 137.68773299999998,
+        "max": 138.69397900000013
+      },
+      "nochangeOverBaselineMedian": 1.0264980800390031,
+      "samples": 30,
+      "pooledSampleMedianMs": 134.39760450000006,
+      "pooledDescriptiveP95Ms": 175.10906099999988
+    },
+    {
+      "n": 100000,
+      "shape": "ungrouped",
+      "operation": "runtime-refresh-no-DOM",
+      "requestedTargetCount": null,
+      "nodes": 100000,
+      "groups": 0,
+      "memberships": 100000,
+      "processMedianMs": {
+        "min": 122.12788100000034,
+        "median": 132.67320800000016,
+        "max": 139.51493200000004
+      },
+      "baselineMedianMs": {
+        "min": 128.44287600000007,
+        "median": 136.70624599999974,
+        "max": 139.51493200000004
+      },
+      "nochangeMedianMs": {
+        "min": 122.12788100000034,
+        "median": 129.3940050000001,
+        "max": 135.9524110000002
+      },
+      "nochangeOverBaselineMedian": 0.9465112881528497,
+      "samples": 30,
+      "pooledSampleMedianMs": 131.50703999999996,
+      "pooledDescriptiveP95Ms": 150.3410759999997
+    },
+    {
+      "n": 100000,
+      "shape": "ungrouped",
+      "operation": "runtime-rename-one-updateScene-no-DOM",
+      "requestedTargetCount": 1,
+      "nodes": 100000,
+      "groups": 0,
+      "memberships": 100000,
+      "processMedianMs": {
+        "min": 158.3718570000001,
+        "median": 175.5249745000001,
+        "max": 192.7547569999997
+      },
+      "baselineMedianMs": {
+        "min": 174.74660700000004,
+        "median": 176.30334200000016,
+        "max": 181.5884500000002
+      },
+      "nochangeMedianMs": {
+        "min": 158.3718570000001,
+        "median": 174.22008599999936,
+        "max": 192.7547569999997
+      },
+      "nochangeOverBaselineMedian": 0.9881836840052596,
+      "samples": 30,
+      "pooledSampleMedianMs": 175.86263550000012,
+      "pooledDescriptiveP95Ms": 194.36017100000026
+    },
+    {
+      "n": 100000,
+      "shape": "ungrouped",
+      "operation": "tree-collapsed",
+      "requestedTargetCount": null,
+      "nodes": 100000,
+      "groups": 0,
+      "memberships": 100000,
+      "processMedianMs": {
+        "min": 94.55058099999997,
+        "median": 98.11837950000006,
+        "max": 106.79776000000015
+      },
+      "baselineMedianMs": {
+        "min": 94.55058099999997,
+        "median": 97.48657300000013,
+        "max": 98.75018599999999
+      },
+      "nochangeMedianMs": {
+        "min": 97.32099600000004,
+        "median": 99.73308299999997,
+        "max": 106.79776000000015
+      },
+      "nochangeOverBaselineMedian": 1.0230443017009103,
+      "samples": 30,
+      "pooledSampleMedianMs": 99.24163449999998,
+      "pooledDescriptiveP95Ms": 127.09175100000016
+    }
+  ]
+}
