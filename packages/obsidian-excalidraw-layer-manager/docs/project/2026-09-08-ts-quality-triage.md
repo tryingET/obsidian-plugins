@@ -7,6 +7,8 @@ type: "reference"
 
 # Optional ts-quality finding — AK #5565
 
+Subsequent work: [AK #5566 repaired the wrapper](2026-09-08-ts-quality-wrapper-repair.md) and verified the changed-CRAP blocker is absent. Its replay still fails on two surviving mutants, tracked in AK #5572. The record below preserves the pre-repair triage evidence.
+
 ## Disposition
 
 **Triage completed, not remediation.** The migration did not change the reported runtime factory body. A wrapper path-coordinate mismatch incorrectly selects it as changed code. The optional quality verdict still fails; neither a zero process exit nor a successful build overrides it. No runtime refactor, wrapper fix, policy waiver, threshold change, or deployment is part of this task.

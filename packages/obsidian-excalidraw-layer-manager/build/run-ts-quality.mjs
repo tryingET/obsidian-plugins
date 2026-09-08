@@ -98,7 +98,14 @@ const main = async () => {
     return
   }
 
-  const diffArgs = ["diff", ...diffRange.args, "--", `${packageRootFromRepo}/src`]
+  // ts-quality runs at packageRoot: hunks must share changeSet.files' coordinates.
+  const diffArgs = [
+    "diff",
+    `--relative=${packageRootFromRepo}`,
+    ...diffRange.args,
+    "--",
+    `${packageRootFromRepo}/src`,
+  ]
   const changedFileOutput = runText("git", [
     "diff",
     "--name-only",

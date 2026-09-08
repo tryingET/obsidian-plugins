@@ -1,0 +1,142 @@
+{
+  "task": 5566,
+  "recordedDate": "2026-09-08",
+  "baseCommit": "f11dc7d",
+  "reviewedMigrationRange": [
+    "e38c8cdf77e30ea8cb5fb34ce05c0900cdbab882",
+    "b6bf57ff82e52051f96961f7bffecf37abddaff4"
+  ],
+  "wrapperGitBlob": "7164fdf964d5bb674dd4c5d44a68d2e04db12c95",
+  "regressionTestGitBlob": "28aa0ee697b12dfb5cd1c69b02f9389eeb24f603",
+  "node": "26.8.1",
+  "npm": "12.0.2",
+  "regression": {
+    "beforeRepair": {
+      "failed": 5,
+      "passed": 4,
+      "assertion": "Expected package-relative diff headers; received repository-prefixed headers."
+    },
+    "afterRepair": {
+      "passed": 9,
+      "failed": 0
+    },
+    "scope": "Actual wrapper and Git monorepo fixtures; CLI subprocess spy checks transport, not quality policy."
+  },
+  "optionalQuality": {
+    "runId": "2026-09-08T06-29-23-825Z",
+    "command": "LMX_TS_QUALITY_DIFF_RANGE='e38c8cdf77e30ea8cb5fb34ce05c0900cdbab882 b6bf57ff82e52051f96961f7bffecf37abddaff4' npm --prefix packages/obsidian-excalidraw-layer-manager run quality:ts",
+    "processExit": 0,
+    "outcome": "fail",
+    "mergeConfidence": 56,
+    "changedFileCount": 29,
+    "mainFunctionCount": 55,
+    "changedMainFunctionCount": 0,
+    "factory": {
+      "changed": false,
+      "complexity": 92,
+      "coveragePct": 49.8,
+      "crap": 1162.75,
+      "filePath": "src/main.ts",
+      "kind": "complexity",
+      "span": {
+        "endLine": 811,
+        "startLine": 135
+      },
+      "symbol": "arrow:<anonymous@135>"
+    },
+    "highestChangedCrap": 9.83,
+    "crapFindingAbsent": true,
+    "findings": [
+      {
+        "code": "mutation-score-budget",
+        "level": "error",
+        "message": "Mutation score 0.00 is below budget 0.50",
+        "scope": [
+          "src/ui/sidepanel/prompt/promptInteractionService.ts",
+          "src/ui/sidepanel/prompt/promptInteractionService.ts"
+        ]
+      },
+      {
+        "code": "surviving-mutant",
+        "level": "error",
+        "message": "Surviving mutant in src/ui/sidepanel/prompt/promptInteractionService.ts",
+        "scope": ["src/ui/sidepanel/prompt/promptInteractionService.ts"]
+      },
+      {
+        "code": "surviving-mutant",
+        "level": "error",
+        "message": "Surviving mutant in src/ui/sidepanel/prompt/promptInteractionService.ts",
+        "scope": ["src/ui/sidepanel/prompt/promptInteractionService.ts"]
+      }
+    ],
+    "mutations": [
+      {
+        "siteId": "sha256:6a10138752046a585667cd8b80c8f8644a0a6666657b236445f4769740c40ebe",
+        "filePath": "src/ui/sidepanel/prompt/promptInteractionService.ts",
+        "span": {
+          "endLine": 250,
+          "startLine": 250
+        },
+        "original": "false",
+        "replacement": "true",
+        "status": "survived"
+      },
+      {
+        "siteId": "sha256:eb6d639b74124715538e710bed7a29c1b7827d045e49b92cac442d7fe2a36222",
+        "filePath": "src/ui/sidepanel/prompt/promptInteractionService.ts",
+        "span": {
+          "endLine": 289,
+          "startLine": 289
+        },
+        "original": "false",
+        "replacement": "true",
+        "status": "survived"
+      }
+    ],
+    "blockedBy": [
+      "Merge confidence 56 below minimum 60",
+      "Mutation score 0.00 is below budget 0.50",
+      "Surviving mutant in src/ui/sidepanel/prompt/promptInteractionService.ts",
+      "Surviving mutant in src/ui/sidepanel/prompt/promptInteractionService.ts"
+    ]
+  },
+  "analyzerSelectionProbe": {
+    "importOnlyChangedFunctions": 0,
+    "syntheticBodyHunkLine": 140,
+    "bodyHunkFactorySelected": true,
+    "limitation": "Read-only current-source/recorded-coverage probe, not a second full mutation run."
+  },
+  "tool": {
+    "head": "a14a00b7bedc214500bd44f44a50d5f638a491b4",
+    "builtModulesMatchTriage": true,
+    "rebuiltByThisTask": false
+  },
+  "review": {
+    "blockingFindings": 0,
+    "appliedSuggestion": "Isolate fixture Git global/system configuration."
+  },
+  "validation": {
+    "initialRootCi": "passed",
+    "testsPassed": 663,
+    "testFilesPassed": 63,
+    "existingLintWarnings": 20,
+    "coveragePercent": {
+      "statements": 90.09,
+      "branches": 81.92,
+      "functions": 95,
+      "lines": 89.98
+    },
+    "packageBuild": "passed",
+    "bundleSha256": "cfef5795e992782c4b56e61ae49dca239d804c815d4b50d1b42c66540398e561",
+    "strictPackageDocs": "passed: node /home/tryinget/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs packages/obsidian-excalidraw-layer-manager/docs --strict"
+  },
+  "followupTask": 5572,
+  "boundaries": {
+    "runtimeSourceChanged": false,
+    "thresholdsChanged": false,
+    "personalVaultDeployed": false,
+    "realHostSmoke": false,
+    "remoteCI": false,
+    "toolOwnerMutated": false
+  }
+}

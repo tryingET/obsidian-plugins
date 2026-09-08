@@ -70,7 +70,7 @@ A source revision, compiled artifact, and installed copy are three distinct obje
 
 `npm run quality:ts` generates coverage and uses a separately built sibling `ts-quality` checkout. See [`run-ts-quality.mjs`](../../build/run-ts-quality.mjs) for resolution; `LMX_TS_QUALITY_ROOT` and `LMX_TS_QUALITY_DIFF_RANGE` override the tool location and reviewed diff. It is not part of the required package gate.
 
-**Inspect the exact run's semantic verdict, not just its process exit:** the current external CLI can return exit 0 with `Outcome: fail`. A no-source-change skip is not a passing review either. [AK #5565 triage](../project/2026-09-08-ts-quality-triage.md) reproduces a wrapper path mismatch that incorrectly selects the unchanged runtime factory after import reordering. The wrapper repair is tracked as AK #5566; the optional finding is not yet remediated.
+**Inspect the exact run's semantic verdict, not just its process exit:** the current external CLI can return exit 0 with `Outcome: fail`. A no-source-change skip is not a passing review either. [AK #5565 triage](../project/2026-09-08-ts-quality-triage.md) identified a wrapper path mismatch that incorrectly selected the unchanged runtime factory after import reordering. [AK #5566](../project/2026-09-08-ts-quality-wrapper-repair.md) repaired those paths and removed the changed-CRAP blocker in the exact migration replay. The optional verdict still fails on two surviving prompt-interaction mutants, tracked in AK #5572; this is not an overall quality pass.
 
 AK and ROCS are external operator facilities. To reconcile package direction in the maintainer's registered workspace, use:
 
