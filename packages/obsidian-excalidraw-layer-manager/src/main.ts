@@ -75,6 +75,7 @@ const toSceneChangeUnsubscribe = (value: unknown): (() => void) | null => {
 }
 
 const WORKSPACE_ACTIVE_FILE_POLL_MS = 350
+const READINESS_BACKOFF_MS = 2000
 
 const toAppCandidate = (candidate: unknown): ObsidianAppLike | null => {
   return candidate && typeof candidate === "object" ? (candidate as ObsidianAppLike) : null
@@ -129,6 +130,7 @@ export interface LayerManagerRuntime {
   withInteraction: <T>(operation: () => Promise<T> | T) => Promise<T>
   isInteractionActive: () => boolean
   dispose: () => void
+  isDisposed: () => boolean
   commands: LayerManagerCommandFacade
 }
 
@@ -142,6 +144,10 @@ export const createLayerManagerRuntime = (
   let snapshot = readSnapshot(ea)
   let renderLatestSnapshot: () => void = () => {}
   let disposed = false
+  let initialized = false
+  let lifecycleFailure: { readonly error: unknown } | null = null
+  let readinessTimer: ReturnType<typeof setTimeout> | null = null
+  let readinessAttempts = 0
   let hostFocusReleased = false
   let releasedContext: SidepanelReleasedViewContext | null = null
   let recoveryTimer: ReturnType<typeof setTimeout> | null = null
@@ -157,6 +163,7 @@ export const createLayerManagerRuntime = (
       onFocus: (view) => {
         if (disposed) return
         const bindingChanged = hostContextSnapshot.currentTargetView !== view
+        clearPendingReadiness()
         clearPendingRecovery()
         if (view === null && !hostFocusReleased) {
           const previousView = hostContextSnapshot.currentTargetView as { leaf?: unknown } | null
@@ -164,6 +171,7 @@ export const createLayerManagerRuntime = (
             view: previousView,
             leaf: previousView?.leaf,
             workspace: runtimeApp?.workspace,
+            filePath: hostContextSnapshot.targetViewFilePath,
           }
         }
         if (view !== null) releasedContext = null
@@ -174,6 +182,7 @@ export const createLayerManagerRuntime = (
           clearSceneChangeSubscription()
         }
         reconcileHostContext("manual")
+        if (hostFocusReleased) recoverReleasedView()
       },
     }) ??
     new ConsoleRenderer()
@@ -295,7 +304,20 @@ export const createLayerManagerRuntime = (
   }
 
   const controller = new LayerManagerController(
-    renderer,
+    {
+      // Store subscription renders synchronously. Do not mount host UI until
+      // every callback dependency and the runtime disposal handle exists.
+      render: (model) => {
+        if (!initialized || disposed) return
+        try {
+          renderer.render(model)
+        } catch (error) {
+          lifecycleFailure = { error }
+          throw error
+        }
+      },
+      notify: (message) => renderer.notify?.(message),
+    },
     undefined,
     {
       waitForIdle: waitForInteractionIdle,
@@ -321,7 +343,16 @@ export const createLayerManagerRuntime = (
           ? hostContextCoordinator.handlePollingFallback()
           : hostContextCoordinator.reconcile(signal)
 
-    if (previousBindingKey !== result.snapshot.sceneBinding.sceneKey) hostAuthorityEpoch += 1
+    if (
+      previousBindingKey !== result.snapshot.sceneBinding.sceneKey ||
+      hostContextSnapshot.currentTargetView !== result.snapshot.currentTargetView ||
+      (hostContextSnapshot.hasExplicitTargetViewProperty &&
+        hostContextSnapshot.sceneApi !== result.snapshot.sceneApi)
+    ) {
+      hostAuthorityEpoch += 1
+      clearPendingReadiness()
+      clearSceneChangeSubscription()
+    }
     hostContextSnapshot = result.snapshot
     activeSceneBindingKey = result.snapshot.sceneBinding.sceneKey
 
@@ -387,6 +418,12 @@ export const createLayerManagerRuntime = (
     subscribedSceneBindingKey = null
   }
 
+  const clearPendingReadiness = (): void => {
+    if (readinessTimer !== null) clearTimeout(readinessTimer)
+    readinessTimer = null
+    readinessAttempts = 0
+  }
+
   const clearPendingRecovery = (): void => {
     if (recoveryTimer !== null) clearTimeout(recoveryTimer)
     recoveryTimer = null
@@ -395,14 +432,38 @@ export const createLayerManagerRuntime = (
 
   const recoverReleasedView = (): void => {
     if (disposed || !hostFocusReleased || !releasedContext) return
+    let relevant = false
+    try {
+      const leaf = releasedContext.leaf as { view?: { file?: { path?: string } } } | null
+      const workspace = releasedContext.workspace as
+        | { activeLeaf?: unknown; getMostRecentLeaf?: () => unknown }
+        | undefined
+      const replacementPath = leaf?.view?.file?.path
+      relevant =
+        !!leaf &&
+        (workspace?.activeLeaf === leaf || workspace?.getMostRecentLeaf?.() === leaf) &&
+        (!releasedContext.filePath ||
+          !replacementPath ||
+          replacementPath === releasedContext.filePath)
+    } catch {
+      // A detached/destroyed host leaf is not authority to keep polling it.
+    }
+    if (!relevant) {
+      clearPendingRecovery()
+      releasedContext = null
+      return
+    }
     const result = recoverHostViewFromReplacedLeaf(ea, releasedContext)
-    if (result === "pending") {
-      if (recoveryTimer === null && recoveryAttempts < 20) {
-        recoveryAttempts += 1
+    // Keep one cancellable timer for this same drawing. After the bounded fast
+    // phase, readiness no longer depends on an accidental later workspace event.
+    if (result !== "recovered") {
+      if (recoveryTimer === null) {
+        const delay = recoveryAttempts < 20 ? WORKSPACE_ACTIVE_FILE_POLL_MS : READINESS_BACKOFF_MS
+        recoveryAttempts = Math.min(recoveryAttempts + 1, 20)
         recoveryTimer = setTimeout(() => {
           recoveryTimer = null
           recoverReleasedView()
-        }, WORKSPACE_ACTIVE_FILE_POLL_MS)
+        }, delay)
       }
       return
     }
@@ -417,6 +478,7 @@ export const createLayerManagerRuntime = (
   }
 
   const clearWorkspaceRefreshSubscriptions = (): void => {
+    clearPendingReadiness()
     clearPendingRecovery()
     releasedContext = null
     const workspace = runtimeApp?.workspace
@@ -470,6 +532,7 @@ export const createLayerManagerRuntime = (
     readonly result: ReturnType<typeof hostContextCoordinator.reconcile>
   }): boolean => {
     return (
+      input.result.changed ||
       input.result.rebound ||
       input.previousRefreshKey !== input.result.snapshot.sceneBinding.refreshKey
     )
@@ -541,7 +604,7 @@ export const createLayerManagerRuntime = (
           try {
             const ref = on.call(workspace, eventName, () => {
               if (disposed) return
-              if (eventName === "layout-change" && hostFocusReleased) {
+              if (hostFocusReleased) {
                 if (recoveryTimer === null) recoveryAttempts = 0
                 recoverReleasedView()
               }
@@ -632,7 +695,36 @@ export const createLayerManagerRuntime = (
     })
   }
 
+  const scheduleApiReadinessCheck = (): void => {
+    if (disposed || readinessTimer !== null) return
+    const expectedView = ea.targetView
+    if (!expectedView || typeof expectedView !== "object" || hostFocusReleased) return
+    const view = expectedView as { getViewType?: () => string; excalidrawAPI?: unknown }
+    if (view.getViewType && view.getViewType() !== "excalidraw") return
+    if (!ea.getExcalidrawAPI && !("excalidrawAPI" in view)) return
+    const delay = readinessAttempts < 20 ? WORKSPACE_ACTIVE_FILE_POLL_MS : READINESS_BACKOFF_MS
+    readinessAttempts = Math.min(readinessAttempts + 1, 20)
+    readinessTimer = setTimeout(() => {
+      readinessTimer = null
+      if (disposed || hostFocusReleased) return
+      if (ea.targetView !== expectedView) {
+        clearPendingReadiness()
+        reconcileHostContext("manual")
+        scheduleHostContextRefresh()
+        return
+      }
+      reconcileHostContext("manual")
+      if (hostContextSnapshot.sceneApi) {
+        readinessAttempts = 0
+        scheduleHostContextRefresh()
+      } else {
+        scheduleApiReadinessCheck()
+      }
+    }, delay)
+  }
+
   const subscribeToSceneChanges = (): void => {
+    if (disposed) return
     const api = hostContextSnapshot.sceneApi
 
     const currentSceneBindingKey = activeSceneBindingKey
@@ -644,8 +736,12 @@ export const createLayerManagerRuntime = (
 
     if (!api) {
       clearSceneChangeSubscription()
+      scheduleApiReadinessCheck()
       return
     }
+    if (readinessTimer !== null) clearTimeout(readinessTimer)
+    readinessTimer = null
+    readinessAttempts = 0
 
     if (api === subscribedSceneChangeApi && !sceneBindingChanged) {
       return
@@ -696,7 +792,10 @@ export const createLayerManagerRuntime = (
       ? { ...snapshot, version: snapshot.version + 1, elements: [], selectedIds: new Set<string>() }
       : readSnapshot(ea)
     reconcileHostContext("manual")
-    renderSnapshot(nextSnapshot)
+    renderSnapshot({
+      ...nextSnapshot,
+      version: Math.max(nextSnapshot.version, snapshot.version + 1),
+    })
     subscribeToSceneChanges()
   }
 
@@ -704,20 +803,30 @@ export const createLayerManagerRuntime = (
     ea,
     renderLatestSnapshot,
   })
-  lifecycleActor.start()
-
   const refresh = (): void => {
     sendLifecycleEvent({ type: "REFRESH_REQUEST" })
+    if (lifecycleFailure) throw lifecycleFailure.error
   }
 
   const captureMutationAuthority = (): (() => boolean) => {
     const epoch = hostAuthorityEpoch
     const targetView = ea.targetView
+    const view = targetView as
+      | {
+          excalidrawAPI?: unknown
+          leaf?: { view?: unknown }
+        }
+      | null
+      | undefined
+    const api = view?.excalidrawAPI
+    const leafView = view?.leaf?.view
     return () =>
       !disposed &&
       !hostFocusReleased &&
       epoch === hostAuthorityEpoch &&
-      targetView === ea.targetView
+      targetView === ea.targetView &&
+      api === view?.excalidrawAPI &&
+      leafView === view?.leaf?.view
   }
 
   const apply = async (patch: ScenePatch): Promise<ApplyPatchOutcome> => {
@@ -771,6 +880,12 @@ export const createLayerManagerRuntime = (
     }
 
     disposed = true
+    const failedSnapshot = lifecycleActor?.getSnapshot()
+    if (failedSnapshot?.status === "error") {
+      const error = lifecycleFailure?.error ?? new Error("Layer Manager runtime failed.")
+      failedSnapshot.context.activeMutation?.reject(error)
+      for (const request of failedSnapshot.context.mutationQueue) request.reject(error)
+    }
     lifecycleActor?.send({ type: "DISPOSE" })
     lifecycleActor?.stop()
     lifecycleActor = null
@@ -803,10 +918,32 @@ export const createLayerManagerRuntime = (
     withInteraction,
     isInteractionActive,
     dispose,
+    isDisposed: () => disposed,
     commands,
   }
-  subscribeToWorkspaceRefresh()
-  refresh()
+  lifecycleActor.subscribe({
+    error: (error) => {
+      lifecycleFailure = { error }
+      try {
+        dispose()
+      } catch {
+        // Preserve the original actor failure after best-effort teardown.
+      }
+    },
+  })
+  initialized = true
+  try {
+    lifecycleActor.start()
+    subscribeToWorkspaceRefresh()
+    refresh()
+  } catch (error) {
+    try {
+      dispose()
+    } catch {
+      // Startup must report the triggering failure, not a cleanup exception.
+    }
+    throw error
+  }
   return runtime
 }
 
@@ -855,7 +992,9 @@ if (scriptEa) {
   }
 
   runtimeGlobal.excalidrawLayerManagerRuntime?.dispose?.()
-  runtimeGlobal.excalidrawLayerManagerRuntime = createLayerManagerRuntime(scriptEa)
+  const candidate = createLayerManagerRuntime(scriptEa)
+  // A synchronous host open/focus callback can terminally close startup.
+  if (!candidate.isDisposed()) runtimeGlobal.excalidrawLayerManagerRuntime = candidate
 } else {
   installHostContextFlightRecorderGlobals()
   installKeyEventFlightRecorderGlobals()

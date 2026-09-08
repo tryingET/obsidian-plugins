@@ -343,6 +343,7 @@ const patchElementProperties = (
 const applyElementPatchesViaLegacyEditing = async (
   ea: EaLike,
   patch: ScenePatch,
+  canExecute: () => boolean,
 ): Promise<boolean> => {
   if (!ea.copyViewElementsToEAforEditing || !ea.getElement || !ea.addElementsToView) {
     return false
@@ -363,12 +364,14 @@ const applyElementPatchesViaLegacyEditing = async (
     targets.push(target)
   }
 
+  if (!canExecute()) return false
   try {
     ea.copyViewElementsToEAforEditing(targets)
   } catch {
     return false
   }
 
+  if (!canExecute()) return false
   const editableById = new Map<string, RawExcalidrawElement>()
   for (const elementPatch of patch.elementPatches) {
     const editable = ea.getElement(elementPatch.id)
@@ -385,9 +388,11 @@ const applyElementPatchesViaLegacyEditing = async (
       return false
     }
 
+    if (!canExecute()) return false
     patchElementProperties(editable, elementPatch)
   }
 
+  if (!canExecute()) return false
   try {
     await ea.addElementsToView(false, false)
   } catch {
@@ -452,7 +457,11 @@ const buildNextElementsForUpdateScene = (
   return orderedElements
 }
 
-const applyPatchViaUpdateScene = (ea: EaLike, patch: ScenePatch): boolean => {
+const applyPatchViaUpdateScene = (
+  ea: EaLike,
+  patch: ScenePatch,
+  canExecute: () => boolean,
+): boolean => {
   ensureTargetView(ea)
 
   const api = ea.getExcalidrawAPI?.()
@@ -466,6 +475,7 @@ const applyPatchViaUpdateScene = (ea: EaLike, patch: ScenePatch): boolean => {
     return false
   }
 
+  if (!canExecute()) return false
   try {
     api.updateScene({ elements: [...nextElements] })
     return true
@@ -474,8 +484,12 @@ const applyPatchViaUpdateScene = (ea: EaLike, patch: ScenePatch): boolean => {
   }
 }
 
-const applyElementPatchesViaUpdateScene = (ea: EaLike, patch: ScenePatch): boolean => {
-  return applyPatchViaUpdateScene(ea, patch)
+const applyElementPatchesViaUpdateScene = (
+  ea: EaLike,
+  patch: ScenePatch,
+  canExecute: () => boolean,
+): boolean => {
+  return applyPatchViaUpdateScene(ea, patch, canExecute)
 }
 
 interface ElementPatchApplyResult {
@@ -485,6 +499,7 @@ interface ElementPatchApplyResult {
 const applyElementPatches = async (
   ea: EaLike,
   patch: ScenePatch,
+  canExecute: () => boolean,
 ): Promise<ElementPatchApplyResult> => {
   if (patch.elementPatches.length === 0) {
     return {
@@ -493,7 +508,10 @@ const applyElementPatches = async (
   }
 
   if (hasLegacyElementMutationCapabilities(ea)) {
-    const legacyApplied = await applyElementPatchesViaLegacyEditing(ea, patch)
+    const legacyApplied = await applyElementPatchesViaLegacyEditing(ea, patch, canExecute)
+    // Actor cancellation cannot cancel a host promise. Renew authority before
+    // the fallback path can touch the scene following either settlement.
+    if (!canExecute()) return { ok: false }
     if (legacyApplied) {
       return {
         ok: true,
@@ -503,7 +521,7 @@ const applyElementPatches = async (
 
   if (hasUpdateSceneCapability(ea)) {
     return {
-      ok: applyElementPatchesViaUpdateScene(ea, patch),
+      ok: applyElementPatchesViaUpdateScene(ea, patch, canExecute),
     }
   }
 
@@ -512,8 +530,20 @@ const applyElementPatches = async (
   }
 }
 
-export const applyPatch = async (ea: EaLike, patch: ScenePatch): Promise<ApplyPatchOutcome> => {
+export const applyPatch = async (
+  ea: EaLike,
+  patch: ScenePatch,
+  canExecute: () => boolean = () => true,
+): Promise<ApplyPatchOutcome> => {
+  const expired: ApplyPatchOutcome = {
+    status: "capabilityMissing",
+    reason: "Scene ownership changed during execution.",
+  }
+  if (!canExecute()) return expired
   const preflight = preflightPatch(ea, patch)
+  // Host reads can synchronously resolve/rebind the target. A valid payload is
+  // not authority to mutate a different drawing than the caller captured.
+  if (!canExecute()) return expired
   if (!preflight.ok) {
     return (
       preflight.outcome ?? {
@@ -524,7 +554,8 @@ export const applyPatch = async (ea: EaLike, patch: ScenePatch): Promise<ApplyPa
   }
 
   if (patch.reorder) {
-    const patchApplied = applyPatchViaUpdateScene(ea, patch)
+    const patchApplied = applyPatchViaUpdateScene(ea, patch, canExecute)
+    if (!canExecute()) return expired
     if (!patchApplied) {
       return {
         status: "preflightFailed",
@@ -532,7 +563,8 @@ export const applyPatch = async (ea: EaLike, patch: ScenePatch): Promise<ApplyPa
       }
     }
   } else {
-    const elementApply = await applyElementPatches(ea, patch)
+    const elementApply = await applyElementPatches(ea, patch, canExecute)
+    if (!canExecute()) return expired
     if (!elementApply.ok) {
       return {
         status: "preflightFailed",
@@ -541,6 +573,7 @@ export const applyPatch = async (ea: EaLike, patch: ScenePatch): Promise<ApplyPa
     }
   }
 
+  if (!canExecute()) return expired
   if (patch.selectIds && ea.selectElementsInView) {
     ea.selectElementsInView([...patch.selectIds])
   }

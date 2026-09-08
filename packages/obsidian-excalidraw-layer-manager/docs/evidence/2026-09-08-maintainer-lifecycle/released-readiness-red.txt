@@ -1,0 +1,114 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/runtime.sidepanel-lifecycle-contract.integration.test.ts
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/runtime.sidepanel-lifecycle-contract.integration.test.ts (36 tests | 2 failed) 192ms
+     × recovers a same-leaf replacement from file-open without a layout signal 9ms
+     × keeps a bounded recovery armed when the layout signal still sees Markdown 8ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/runtime.sidepanel-lifecycle-contract.integration.test.ts > runtime sidepanel lifecycle contract > recovers a same-leaf replacement from file-open without a layout signal
+AssertionError: expected null to be { excalidrawAPI: { …(2) }, …(6) } // Object.is equality
+
+- Expected:
+{
+  "_loaded": true,
+  "app": {
+    "metadataCache": {
+      "getFileCache": [Function getFileCache],
+    },
+    "workspace": {
+      "activeLeaf": {
+        "id": "leaf-A",
+        "view": [Circular],
+      },
+      "getActiveFile": [Function getActiveFile],
+      "getMostRecentLeaf": [Function getMostRecentLeaf],
+      "offref": [Function offref],
+      "on": [Function on],
+    },
+  },
+  "excalidrawAPI": {
+    "onChange": [Function Mock],
+    "updateScene": [Function Mock],
+  },
+  "file": {
+    "path": "A.excalidraw.md",
+  },
+  "getViewType": [Function getViewType],
+  "id": "view-A",
+  "leaf": {
+    "id": "leaf-A",
+    "view": [Circular],
+  },
+}
+
++ Received:
+null
+
+ ❯ test/runtime.sidepanel-lifecycle-contract.integration.test.ts:328:37
+    326|       fixture.emitWorkspace("file-open")
+    327|       await flushAsync(10)
+    328|       expect(fixture.ea.targetView).toBe(replacement)
+       |                                     ^
+    329|       expect(runtime.getSnapshot().elements).toHaveLength(1)
+    330|     } finally { runtime.dispose() }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  test/runtime.sidepanel-lifecycle-contract.integration.test.ts > runtime sidepanel lifecycle contract > keeps a bounded recovery armed when the layout signal still sees Markdown
+AssertionError: expected null to be { excalidrawAPI: { …(2) }, …(6) } // Object.is equality
+
+- Expected:
+{
+  "_loaded": true,
+  "app": {
+    "metadataCache": {
+      "getFileCache": [Function getFileCache],
+    },
+    "workspace": {
+      "activeLeaf": {
+        "id": "leaf-A",
+        "view": [Circular],
+      },
+      "getActiveFile": [Function getActiveFile],
+      "getMostRecentLeaf": [Function getMostRecentLeaf],
+      "offref": [Function offref],
+      "on": [Function on],
+    },
+  },
+  "excalidrawAPI": {
+    "onChange": [Function Mock],
+    "updateScene": [Function Mock],
+  },
+  "file": {
+    "path": "A.excalidraw.md",
+  },
+  "getViewType": [Function getViewType],
+  "id": "view-A",
+  "leaf": {
+    "id": "leaf-A",
+    "view": [Circular],
+  },
+}
+
++ Received:
+null
+
+ ❯ test/runtime.sidepanel-lifecycle-contract.integration.test.ts:343:37
+    341|       const replacement = fixture.replaceLeafView()
+    342|       await vi.advanceTimersByTimeAsync(750)
+    343|       expect(fixture.ea.targetView).toBe(replacement)
+       |                                     ^
+    344|       expect(runtime.getSnapshot().elements).toHaveLength(1)
+    345|     } finally { runtime.dispose(); vi.useRealTimers() }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 34 passed (36)
+   Start at  10:34:16
+   Duration  1.06s (transform 707ms, setup 0ms, import 779ms, tests 192ms, environment 0ms)

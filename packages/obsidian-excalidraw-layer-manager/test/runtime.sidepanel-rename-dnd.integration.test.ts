@@ -113,6 +113,15 @@ const makeRuntimeWithSidepanel = (
     emitSceneChange(scene.appState ?? {})
   })
 
+  const api: ReturnType<NonNullable<EaLike["getExcalidrawAPI"]>> = {
+    ...(options.disableUpdateSceneCapability ? {} : { updateScene }),
+    onChange: (callback) => {
+      sceneChangeListeners.add(callback)
+      return () => {
+        sceneChangeListeners.delete(callback)
+      }
+    },
+  }
   const ea: EaLike = {
     setView: vi.fn(() => {
       return {
@@ -127,15 +136,7 @@ const makeRuntimeWithSidepanel = (
       setSelectedIds(ids)
     },
     getScriptSettings: () => ({}),
-    getExcalidrawAPI: () => ({
-      ...(options.disableUpdateSceneCapability ? {} : { updateScene }),
-      onChange: (callback) => {
-        sceneChangeListeners.add(callback)
-        return () => {
-          sceneChangeListeners.delete(callback)
-        }
-      },
-    }),
+    getExcalidrawAPI: () => api,
     sidepanelTab: null,
     createSidepanelTab: () => sidepanelTab.tab,
   }

@@ -859,6 +859,7 @@ export interface SidepanelReleasedViewContext {
   readonly view: unknown
   readonly leaf: unknown
   readonly workspace: WorkspaceLike | undefined
+  readonly filePath?: string | null
 }
 
 export const recoverHostViewFromReplacedLeaf = (
@@ -869,7 +870,9 @@ export const recoverHostViewFromReplacedLeaf = (
     const leaf = context.leaf as { view?: unknown } | null
     const replacement = leaf?.view
     if (!leaf || !replacement || replacement === context.view) return "unavailable"
-    const view = replacement as { getViewType?: () => string }
+    const view = replacement as { getViewType?: () => string; file?: { path?: string } }
+    if (context.filePath && view.file?.path && view.file.path !== context.filePath)
+      return "unavailable"
     const workspace = context.workspace as
       | { activeLeaf?: unknown; getMostRecentLeaf?: () => unknown }
       | undefined

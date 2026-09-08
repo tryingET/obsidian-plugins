@@ -106,7 +106,7 @@ const executeIntentRequest = async (
       }
     }
 
-    const applyOutcome = await applyPatch(ea, planned.value)
+    const applyOutcome = await applyPatch(ea, planned.value, canExecute)
     if (applyOutcome.status === "applied") {
       return {
         status: "applied",
@@ -153,7 +153,7 @@ const runtimeLifecycleMachine = setup({
       }): Promise<RuntimeMutationResult> => {
         if (input.request.type === "APPLY_REQUEST") {
           const outcome: ApplyPatchOutcome = input.request.canExecute()
-            ? await applyPatch(input.ea, input.request.patch)
+            ? await applyPatch(input.ea, input.request.patch, input.request.canExecute)
             : { status: "capabilityMissing", reason: "Scene ownership changed before execution." }
           return {
             kind: "apply",

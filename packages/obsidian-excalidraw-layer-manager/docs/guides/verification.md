@@ -62,9 +62,11 @@ The optional `test:file` helper remains available for targeted execution; the [A
 
 Run the maintained [manual matrix](../project/2026-04-16-layer-manager-manual-verification-matrix.md) in a disposable copy of the [lab vault](../../../../apps/lab-vault/README.md). Record Obsidian and Excalidraw versions, operating system, source revision, bundle SHA-256, fixture identity, callbacks/events observed, and actual outcomes.
 
-At minimum, exercise ordinary features; same-leaf Excalidraw → Markdown → Excalidraw; terminal manager close followed by navigation and scene changes; associated-view close with a sibling tab; explicit rerun; saved naming data; and document/keyboard routing after window migration. Repeated successful cycles do not substitute for the startup, asynchronous fallback, or cross-evaluation races already known to fail.
+At minimum, exercise ordinary features; same-leaf Excalidraw → Markdown → Excalidraw; terminal manager close followed by navigation and scene changes; associated-view close with a sibling tab; explicit rerun; saved naming data; and document/keyboard routing after window migration. Repeated successful cycles do not substitute for explicit startup, asynchronous fallback or cross-evaluation race regressions.
 
 A source revision, compiled artifact, and installed copy are three distinct objects. Establish their relationship by building from the reviewed source and comparing bytes/hashes. Copying an older CI bundle does not establish equivalence to an unmerged candidate.
+
+[AK #5573](../project/2026-09-08-maintainer-lifecycle-hardening.md) records integrated lifecycle regressions and a bounded real-host run, including a failed native ownership attempt before the corrected replay. Its [machine summary](../evidence/2026-09-08-maintainer-lifecycle/summary.json) identifies source/test trees and identical built/installed hashes. These receipts do not cover every UI gesture or exhaustive heap safety; broader historical staging/rename-draft gates remain #5574/#5575.
 
 ## Additional review tools
 

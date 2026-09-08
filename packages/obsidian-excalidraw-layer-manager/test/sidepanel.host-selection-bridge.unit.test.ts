@@ -3,6 +3,37 @@ import { describe, expect, it, vi } from "vitest"
 import { SidepanelHostSelectionBridge } from "../src/ui/sidepanel/selection/hostSelectionBridge.js"
 
 describe("sidepanel host selection bridge", () => {
+  it.each(["view", "api"] as const)(
+    "invalidates delayed selection on same-key %s replacement",
+    async (replacement) => {
+      const oldApi = { updateScene: vi.fn() }
+      const nextApi = { updateScene: vi.fn() }
+      const view = {
+        id: "same-view-id",
+        _loaded: true,
+        file: { path: "same.md" },
+        excalidrawAPI: oldApi,
+      }
+      const select = vi.fn()
+      const host = {
+        targetView: view,
+        selectElementsInView: select,
+        getViewSelectedElements: () => [],
+        getExcalidrawAPI: () => host.targetView.excalidrawAPI,
+      }
+      const bridge = new SidepanelHostSelectionBridge({ host, suppressContentFocusOut: () => {} })
+      bridge.mirrorSelectionToHost(["A"])
+      expect(select).toHaveBeenCalledTimes(1)
+      if (replacement === "view") host.targetView = { ...view, excalidrawAPI: nextApi }
+      else view.excalidrawAPI = nextApi
+      await Promise.resolve()
+      expect(select).toHaveBeenCalledTimes(1)
+      expect(oldApi.updateScene).not.toHaveBeenCalled()
+      expect(nextApi.updateScene).not.toHaveBeenCalled()
+      expect(bridge.hasPendingSelectionMirror()).toBe(false)
+    },
+  )
+
   it("tracks pending mirror state until selection verification completes", async () => {
     const bridge = new SidepanelHostSelectionBridge({
       host: {
@@ -24,6 +55,7 @@ describe("sidepanel host selection bridge", () => {
   it("uses selectElementsInView when available and skips appState fallback on success", async () => {
     const suppressContentFocusOut = vi.fn<() => void>()
     const updateScene = vi.fn<(scene: unknown) => void>()
+    const api = { updateScene }
     const setView = vi.fn<(view?: unknown, reveal?: boolean) => unknown>()
 
     let liveSelectionIds: readonly string[] = []
@@ -38,7 +70,7 @@ describe("sidepanel host selection bridge", () => {
         setView,
         selectElementsInView,
         getViewSelectedElements: () => liveSelectionIds.map((id) => ({ id })),
-        getExcalidrawAPI: () => ({ updateScene }),
+        getExcalidrawAPI: () => api,
       },
       suppressContentFocusOut,
     })
@@ -56,6 +88,7 @@ describe("sidepanel host selection bridge", () => {
   it("accepts targetView rebinding when setView mutates host targetView but returns null", async () => {
     const suppressContentFocusOut = vi.fn<() => void>()
     const updateScene = vi.fn<(scene: unknown) => void>()
+    const api = { updateScene }
 
     let liveSelectionIds: readonly string[] = []
 
@@ -75,7 +108,7 @@ describe("sidepanel host selection bridge", () => {
         liveSelectionIds = [...ids]
       }),
       getViewSelectedElements: () => liveSelectionIds.map((id) => ({ id })),
-      getExcalidrawAPI: () => ({ updateScene }),
+      getExcalidrawAPI: () => api,
     }
 
     const bridge = new SidepanelHostSelectionBridge({
@@ -95,10 +128,11 @@ describe("sidepanel host selection bridge", () => {
   it("falls back to updateScene appState when selection bridge is unavailable", () => {
     const suppressContentFocusOut = vi.fn<() => void>()
     const updateScene = vi.fn<(scene: unknown) => void>()
+    const api = { updateScene }
 
     const bridge = new SidepanelHostSelectionBridge({
       host: {
-        getExcalidrawAPI: () => ({ updateScene }),
+        getExcalidrawAPI: () => api,
       },
       suppressContentFocusOut,
     })
@@ -119,6 +153,7 @@ describe("sidepanel host selection bridge", () => {
   it("requires exact live-selection match before clearing pending mirror state", async () => {
     const suppressContentFocusOut = vi.fn<() => void>()
     const updateScene = vi.fn<(scene: unknown) => void>()
+    const api = { updateScene }
     const selectElementsInView = vi.fn<(ids: string[]) => void>()
 
     const bridge = new SidepanelHostSelectionBridge({
@@ -126,7 +161,7 @@ describe("sidepanel host selection bridge", () => {
         targetView: { _loaded: true },
         selectElementsInView,
         getViewSelectedElements: () => [{ id: "el:A" }, { id: "el:B" }],
-        getExcalidrawAPI: () => ({ updateScene }),
+        getExcalidrawAPI: () => api,
       },
       suppressContentFocusOut,
     })
@@ -141,6 +176,7 @@ describe("sidepanel host selection bridge", () => {
   it("retries selection bridge once and then falls back to updateScene on verification mismatch", async () => {
     const suppressContentFocusOut = vi.fn<() => void>()
     const updateScene = vi.fn<(scene: unknown) => void>()
+    const api = { updateScene }
 
     const selectElementsInView = vi.fn<(ids: string[]) => void>()
 
@@ -149,7 +185,7 @@ describe("sidepanel host selection bridge", () => {
         targetView: { _loaded: true },
         selectElementsInView,
         getViewSelectedElements: () => [],
-        getExcalidrawAPI: () => ({ updateScene }),
+        getExcalidrawAPI: () => api,
       },
       suppressContentFocusOut,
     })
@@ -171,6 +207,7 @@ describe("sidepanel host selection bridge", () => {
 
   it("keeps pending mirror state when fallback cannot be verified", async () => {
     const updateScene = vi.fn<(scene: unknown) => void>()
+    const api = { updateScene }
     const selectElementsInView = vi.fn<(ids: string[]) => void>(() => {
       throw new Error("bridge unavailable")
     })
@@ -180,7 +217,7 @@ describe("sidepanel host selection bridge", () => {
         targetView: { _loaded: true },
         selectElementsInView,
         getViewSelectedElements: () => [],
-        getExcalidrawAPI: () => ({ updateScene }),
+        getExcalidrawAPI: () => api,
       },
       suppressContentFocusOut: () => {},
     })
@@ -197,6 +234,7 @@ describe("sidepanel host selection bridge", () => {
   it("invalidates pending verification so stale retries cannot override newer selection", async () => {
     const suppressContentFocusOut = vi.fn<() => void>()
     const updateScene = vi.fn<(scene: unknown) => void>()
+    const api = { updateScene }
     const selectElementsInView = vi.fn<(ids: string[]) => void>()
 
     const bridge = new SidepanelHostSelectionBridge({
@@ -204,7 +242,7 @@ describe("sidepanel host selection bridge", () => {
         targetView: { _loaded: true },
         selectElementsInView,
         getViewSelectedElements: () => [],
-        getExcalidrawAPI: () => ({ updateScene }),
+        getExcalidrawAPI: () => api,
       },
       suppressContentFocusOut,
     })

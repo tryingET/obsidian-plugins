@@ -1,0 +1,37 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/sidepanel.pending-creation-ownership.unit.test.ts
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/sidepanel.pending-creation-ownership.unit.test.ts (9 tests | 1 failed) 7ms
+     × retains a replacement same-key entry after nested settlement (shared registry=true) 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/sidepanel.pending-creation-ownership.unit.test.ts > sidepanel pending creation ownership > retains a replacement same-key entry after nested settlement (shared registry=true)
+AssertionError: expected "vi.fn()" to not be called at all, but actually been called 1 times
+
+Received:
+
+  1st vi.fn() call:
+
+    Array []
+
+
+Number of calls: 1
+
+ ❯ test/sidepanel.pending-creation-ownership.unit.test.ts:94:25
+     92|       previous.settle()
+     93|       previous.deferOrphan({}, close)
+     94|       expect(close).not.toHaveBeenCalled()
+       |                         ^
+     95|       next.settle()
+     96|       expect(close).toHaveBeenCalledTimes(1)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 8 passed (9)
+   Start at  10:58:59
+   Duration  142ms (transform 26ms, setup 0ms, import 40ms, tests 7ms, environment 0ms)

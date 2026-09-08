@@ -9,9 +9,13 @@ type: "review"
 
 ## Current verdict
 
-**`not ready; blocking issue remains`**
+**Scoped maintainer lifecycle recommendations: implemented and real-host verified by AK #5573. General production readiness: still gated.**
 
-Documentation was reconciled against the published implementation on **2026-09-08**. The normal lifecycle and naming corrections are published; the broader implementation request is not complete. Earlier reports mixed two different candidates. This document resolves that ambiguity rather than marking unshipped work done.
+The [current hardening record](2026-09-08-maintainer-lifecycle-hardening.md) and [machine summary](../evidence/2026-09-08-maintainer-lifecycle/summary.json) identify the accepted source/test trees, 723-test required gate, and final built/installed bundle `a961454aa838022c72c702dc004772b6d4b634efa7015f64569847ba1ce504d2`. Native dogfood used **Obsidian 1.13.4 / Excalidraw 2.27.3** in an isolated disposable vault, including same-drawing mode recovery, five close/navigation/rerun cycles, sibling preservation, both pending-tab delivery orders, post-close effects and popout keyboard routing. Earlier native and harness failures remain in that evidence.
+
+The lifecycle rows below now have integrated regression coverage; the old 44-test overlay was not rerun wholesale. Its separate stale native staging scenario remains **AK #5574**, and its rectangle/frame rename-draft scenarios remain **AK #5575**. Do not call those resolved, or infer exhaustive heap safety from stable observed resource counts. The current strict local docs checker passes; historical unavailable-tool results below are preserved as history.
+
+No personal-vault rollout, checked-in lab artifact refresh, remote CI or upstream PR update is claimed. The remainder of this document preserves the earlier published/unpublished candidate distinction and historical evidence; current lifecycle status is the reconciliation above.
 
 This is the single current closeout for the [approved design](2026-09-06-layer-manager-maintainer-feedback-design.md), [implementation plan](2026-09-06-layer-manager-maintainer-feedback-implementation-plan.md), and [review handoff](2026-09-06-gpt-6-pro-review-handoff.md). The [parallel BDD record](2026-09-07-maintainer-feedback-closeout.md) is historical. No upstream PR update or maintainer reply is part of this documentation task.
 
@@ -75,6 +79,8 @@ To verify the distinction, the documentation audit overlaid only three candidate
 
 ## Remaining blockers
 
+**Historical table, reconciled above:** AK #5573 supersedes the startup, late-continuation, cross-evaluation and readiness lifecycle entries with integrated regressions and bounded native proof. Native staging and rename-draft behavior remain separate open gates (#5574/#5575). The dependency and external-tool rows describe their historical execution context, not current unavailability.
+
 | Area | Evidence / remaining work |
 |---|---|
 | Native mutation staging | Expanded replay fails when stale native EA staging is replayed over unrelated canvas edits. Integrate and verify isolation before claiming general data safety. |
@@ -102,4 +108,4 @@ The 50-file documentation/evidence update was published in commit `5be2586cc4048
 
 The documentation follow-up retires `lmx-host-fixture.yml` and `lmx-verification-handoff.yml` and restores the original `ci.yml` with `contents: read` and the unchanged `npm run check` gate. It removes the temporary source/dependency export, not any product check. The [verification record](../evidence/2026-09-08-code-verification.json) distinguishes this publication result from the historical feature measurements. Ordinary CI on the final cleanup commit is the final repository check; the temporary publisher is not its substitute.
 
-The strict external documentation checker was attempted locally and on the publication runner; both attempts failed because its absolute-path module was absent. AK was unavailable locally. These results remain explicit limitations, not passed checks. Documentation reconciliation is complete; the implementation blockers above remain open.
+At that historical cutoff, the strict external documentation checker was attempted locally and on the publication runner; both attempts failed because its absolute-path module was absent, and AK was unavailable locally. Those failed attempts are not retroactively passed checks. The current verdict above and AK #5573's dated receipts supersede only the explicitly reverified lifecycle/tool results; the separate #5574/#5575 gates remain open.

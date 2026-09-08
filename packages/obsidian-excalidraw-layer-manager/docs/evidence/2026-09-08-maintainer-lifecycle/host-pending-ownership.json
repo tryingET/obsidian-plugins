@@ -1,0 +1,35 @@
+{
+  "id": 1,
+  "result": {
+    "result": {
+      "type": "object",
+      "value": {
+        "results": [
+          {
+            "order": "successor-first",
+            "sameTab": true,
+            "predecessorDisposed": true,
+            "successorDisposed": false,
+            "successorPublished": true,
+            "roots": 1,
+            "managerTabs": 1,
+            "registeredSuccessorTab": true,
+            "pass": true
+          },
+          {
+            "order": "predecessor-first",
+            "sameTab": true,
+            "predecessorDisposed": true,
+            "successorDisposed": false,
+            "successorPublished": true,
+            "roots": 1,
+            "managerTabs": 1,
+            "registeredSuccessorTab": true,
+            "pass": true
+          }
+        ],
+        "qualification": "Native script engine and native script-identity tab reuse, with controlled promise-delivery barriers. Two independent script evaluations; not same-module manager instances."
+      }
+    }
+  }
+}

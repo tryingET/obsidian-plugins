@@ -1,0 +1,253 @@
+{
+  "id": 1,
+  "result": {
+    "result": {
+      "type": "object",
+      "value": {
+        "results": [
+          {
+            "cycle": 0,
+            "opened": {
+              "runtime": true,
+              "roots": 1,
+              "managerTabs": 1,
+              "listeners": {
+                "keydown": 1,
+                "keypress": 1,
+                "keyup": 1
+              },
+              "workspaceRefs": 3,
+              "sceneSubscriptions": 1
+            },
+            "closed": {
+              "disposed": true,
+              "global": false,
+              "roots": 0,
+              "listeners": {
+                "keydown": 0,
+                "keypress": 0,
+                "keyup": 0
+              },
+              "workspaceRefs": 0,
+              "sceneSubscriptions": 0
+            },
+            "navigated": [
+              {
+                "path": "AK5573_plain.md",
+                "type": "markdown",
+                "global": false,
+                "roots": 0
+              },
+              {
+                "path": "AK5573_second.md",
+                "type": "excalidraw",
+                "global": false,
+                "roots": 0
+              },
+              {
+                "path": "testing.md",
+                "type": "excalidraw",
+                "global": false,
+                "roots": 0
+              }
+            ],
+            "pass": true
+          },
+          {
+            "cycle": 1,
+            "opened": {
+              "runtime": true,
+              "roots": 1,
+              "managerTabs": 1,
+              "listeners": {
+                "keydown": 1,
+                "keypress": 1,
+                "keyup": 1
+              },
+              "workspaceRefs": 3,
+              "sceneSubscriptions": 1
+            },
+            "closed": {
+              "disposed": true,
+              "global": false,
+              "roots": 0,
+              "listeners": {
+                "keydown": 0,
+                "keypress": 0,
+                "keyup": 0
+              },
+              "workspaceRefs": 0,
+              "sceneSubscriptions": 0
+            },
+            "navigated": [
+              {
+                "path": "AK5573_plain.md",
+                "type": "markdown",
+                "global": false,
+                "roots": 0
+              },
+              {
+                "path": "AK5573_second.md",
+                "type": "excalidraw",
+                "global": false,
+                "roots": 0
+              },
+              {
+                "path": "testing.md",
+                "type": "excalidraw",
+                "global": false,
+                "roots": 0
+              }
+            ],
+            "pass": true
+          },
+          {
+            "cycle": 2,
+            "opened": {
+              "runtime": true,
+              "roots": 1,
+              "managerTabs": 1,
+              "listeners": {
+                "keydown": 1,
+                "keypress": 1,
+                "keyup": 1
+              },
+              "workspaceRefs": 3,
+              "sceneSubscriptions": 1
+            },
+            "closed": {
+              "disposed": true,
+              "global": false,
+              "roots": 0,
+              "listeners": {
+                "keydown": 0,
+                "keypress": 0,
+                "keyup": 0
+              },
+              "workspaceRefs": 0,
+              "sceneSubscriptions": 0
+            },
+            "navigated": [
+              {
+                "path": "AK5573_plain.md",
+                "type": "markdown",
+                "global": false,
+                "roots": 0
+              },
+              {
+                "path": "AK5573_second.md",
+                "type": "excalidraw",
+                "global": false,
+                "roots": 0
+              },
+              {
+                "path": "testing.md",
+                "type": "excalidraw",
+                "global": false,
+                "roots": 0
+              }
+            ],
+            "pass": true
+          },
+          {
+            "cycle": 3,
+            "opened": {
+              "runtime": true,
+              "roots": 1,
+              "managerTabs": 1,
+              "listeners": {
+                "keydown": 1,
+                "keypress": 1,
+                "keyup": 1
+              },
+              "workspaceRefs": 3,
+              "sceneSubscriptions": 1
+            },
+            "closed": {
+              "disposed": true,
+              "global": false,
+              "roots": 0,
+              "listeners": {
+                "keydown": 0,
+                "keypress": 0,
+                "keyup": 0
+              },
+              "workspaceRefs": 0,
+              "sceneSubscriptions": 0
+            },
+            "navigated": [
+              {
+                "path": "AK5573_plain.md",
+                "type": "markdown",
+                "global": false,
+                "roots": 0
+              },
+              {
+                "path": "AK5573_second.md",
+                "type": "excalidraw",
+                "global": false,
+                "roots": 0
+              },
+              {
+                "path": "testing.md",
+                "type": "excalidraw",
+                "global": false,
+                "roots": 0
+              }
+            ],
+            "pass": true
+          },
+          {
+            "cycle": 4,
+            "opened": {
+              "runtime": true,
+              "roots": 1,
+              "managerTabs": 1,
+              "listeners": {
+                "keydown": 1,
+                "keypress": 1,
+                "keyup": 1
+              },
+              "workspaceRefs": 3,
+              "sceneSubscriptions": 1
+            },
+            "closed": {
+              "disposed": true,
+              "global": false,
+              "roots": 0,
+              "listeners": {
+                "keydown": 0,
+                "keypress": 0,
+                "keyup": 0
+              },
+              "workspaceRefs": 0,
+              "sceneSubscriptions": 0
+            },
+            "navigated": [
+              {
+                "path": "AK5573_plain.md",
+                "type": "markdown",
+                "global": false,
+                "roots": 0
+              },
+              {
+                "path": "AK5573_second.md",
+                "type": "excalidraw",
+                "global": false,
+                "roots": 0
+              },
+              {
+                "path": "testing.md",
+                "type": "excalidraw",
+                "global": false,
+                "roots": 0
+              }
+            ],
+            "pass": true
+          }
+        ],
+        "qualification": "Native script engine, tab close, plain-note/two-drawing navigation and scene update. Counts track registrations made during each invocation, exclude preexisting host listeners, and are not a heap-leak proof."
+      }
+    }
+  }
+}

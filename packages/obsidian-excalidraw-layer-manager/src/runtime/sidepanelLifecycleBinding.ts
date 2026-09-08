@@ -23,10 +23,14 @@ interface RuntimeSidepanelLifecycleBinding {
   readonly dispose: () => void
 }
 
-const owners = new WeakMap<ExcalidrawSidepanelTabLike, RuntimeSidepanelLifecycleBinding>()
+// Script evaluations have independent module state, but the host reuses tabs by
+// script identity. Arbitration must therefore live on the shared host object.
+const ownerKey = Symbol.for("excalidraw-layer-manager.sidepanel-lifecycle-owner")
+const getOwner = (tab: ExcalidrawSidepanelTabLike): RuntimeSidepanelLifecycleBinding | undefined =>
+  Reflect.get(tab, ownerKey) as RuntimeSidepanelLifecycleBinding | undefined
 
 export const hasSidepanelLifecycleOwner = (tab: ExcalidrawSidepanelTabLike): boolean => {
-  return owners.has(tab)
+  return getOwner(tab) !== undefined
 }
 
 const bindTargetView = (ea: LifecycleHost, view: unknown | null): void => {
@@ -52,7 +56,7 @@ export const createRuntimeSidepanelLifecycleBinding = (
   let restore: (() => void)[] = []
 
   const release = (): void => {
-    if (boundTab && owners.get(boundTab) === binding) owners.delete(boundTab)
+    if (boundTab && getOwner(boundTab) === binding) Reflect.deleteProperty(boundTab, ownerKey)
     boundTab = null
     for (const restoreHook of restore) restoreHook()
     restore = []
@@ -64,12 +68,12 @@ export const createRuntimeSidepanelLifecycleBinding = (
     if (tab === boundTab) return
     release()
     if (!tab) return
-    owners.get(tab)?.release()
+    getOwner(tab)?.release()
     boundTab = tab
-    owners.set(tab, binding)
+    Object.defineProperty(tab, ownerKey, { value: binding, configurable: true })
     let closed = false
     const owns = (): boolean =>
-      !disposed && !closed && boundTab === tab && owners.get(tab) === binding
+      !disposed && !closed && boundTab === tab && getOwner(tab) === binding
 
     const install = <
       K extends "onOpen" | "onFocus" | "onClose" | "onExcalidrawViewClosed" | "onWindowMigrated",

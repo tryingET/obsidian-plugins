@@ -1,0 +1,29 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/sidepanel.host-selection-bridge.unit.test.ts
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/sidepanel.host-selection-bridge.unit.test.ts (10 tests | 2 failed) 8ms
+     × invalidates delayed selection on same-key view replacement 4ms
+     × invalidates delayed selection on same-key api replacement 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/sidepanel.host-selection-bridge.unit.test.ts > sidepanel host selection bridge > invalidates delayed selection on same-key view replacement
+ FAIL  test/sidepanel.host-selection-bridge.unit.test.ts > sidepanel host selection bridge > invalidates delayed selection on same-key api replacement
+AssertionError: expected "vi.fn()" to be called 1 times, but got 2 times
+ ❯ test/sidepanel.host-selection-bridge.unit.test.ts:23:20
+     21|     else view.excalidrawAPI = nextApi
+     22|     await Promise.resolve()
+     23|     expect(select).toHaveBeenCalledTimes(1)
+       |                    ^
+     24|     expect(oldApi.updateScene).not.toHaveBeenCalled()
+     25|     expect(nextApi.updateScene).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 8 passed (10)
+   Start at  10:26:14
+   Duration  151ms (transform 46ms, setup 0ms, import 58ms, tests 8ms, environment 0ms)

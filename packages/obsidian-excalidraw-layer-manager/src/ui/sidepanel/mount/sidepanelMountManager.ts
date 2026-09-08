@@ -4,6 +4,7 @@ import {
   hasSidepanelLifecycleOwner,
   type SidepanelLifecycleCallbacks,
 } from "../../../runtime/sidepanelLifecycleBinding.js"
+import { createSidepanelPendingCreationLease } from "../../../runtime/sidepanelPendingCreationOwnership.js"
 
 export interface SidepanelMountTabLike {
   contentEl?: HTMLElement
@@ -20,6 +21,8 @@ export interface SidepanelMountTabLike {
 }
 
 export interface SidepanelMountHostLike {
+  readonly plugin?: object
+  readonly app?: object
   targetView?: unknown | null
   setView?: (view?: unknown, reveal?: boolean) => unknown
   sidepanelTab?: SidepanelMountTabLike | null
@@ -609,13 +612,26 @@ export class SidepanelMountManager {
   readonly #title: string
   readonly #actor: ReturnType<typeof createSidepanelMountActor>
   readonly #lifecycle: ReturnType<typeof createRuntimeSidepanelLifecycleBinding>
+  readonly #pendingCreation: ReturnType<typeof createSidepanelPendingCreationLease>
   #disposed = false
   #creationFailed = false
+  #failure: { readonly error: unknown } | null = null
 
   constructor(input: SidepanelMountManagerInput) {
     this.#host = input.host
     this.#title = input.title
+    this.#pendingCreation = createSidepanelPendingCreationLease(this.#host)
     this.#actor = createSidepanelMountActor(input)
+    this.#actor.subscribe({
+      error: (error) => {
+        this.#failure = { error }
+        try {
+          this.dispose()
+        } finally {
+          input.lifecycle?.requestDispose()
+        }
+      },
+    })
     this.#actor.start()
     this.#lifecycle = createRuntimeSidepanelLifecycleBinding({
       ea: this.#host,
@@ -678,6 +694,7 @@ export class SidepanelMountManager {
     this.#lifecycle.dispose()
     this.#disposed = true
     this.#actor.stop()
+    this.#pendingCreation.dispose()
   }
 
   prepareMount(input: {
@@ -701,6 +718,8 @@ export class SidepanelMountManager {
     })
 
     const tabResolution = this.ensureSidepanelTab()
+    if (this.#failure) throw this.#failure.error
+    if (this.#disposed) return { status: "unavailable" }
     const tab = tabResolution.tab
     if (!tab) {
       if (this.#snapshot.context.pendingTabCreation) {
@@ -782,15 +801,19 @@ export class SidepanelMountManager {
   }
 
   private closeOrphanTab(tab: SidepanelMountTabLike | null): void {
-    // A successor may have adopted the same host result before this continuation.
-    if (!tab || hasSidepanelLifecycleOwner(tab)) return
-    try {
-      tab.close?.()
-    } catch {
-      // The host can already have removed the orphan.
-    } finally {
-      if (this.#host.sidepanelTab === tab) this.#host.sidepanelTab = null
-    }
+    if (!tab) return
+    this.#pendingCreation.deferOrphan(tab, () => {
+      // All live creation deliveries have settled. A successor either adopted
+      // this result (shared hook owner) or no longer has a pending claim on it.
+      if (hasSidepanelLifecycleOwner(tab)) return
+      try {
+        tab.close?.()
+      } catch {
+        // The host can already have removed the orphan.
+      } finally {
+        if (this.#host.sidepanelTab === tab) this.#host.sidepanelTab = null
+      }
+    })
   }
 
   private ensureSidepanelTab(): {
@@ -835,6 +858,7 @@ export class SidepanelMountManager {
       }
 
       if (isPromiseLike<SidepanelMountTabLike | null>(created)) {
+        this.#pendingCreation.begin()
         const pendingTabCreation = Promise.resolve(created)
         this.#actor.send({
           type: "REGISTER_PENDING_TAB_CREATION",
@@ -873,6 +897,7 @@ export class SidepanelMountManager {
             this.#actor.send({ type: "ATTACH_FAILED", reason: "tabCreationFailed" })
           })
           .finally(() => {
+            this.#pendingCreation.settle()
             if (this.#disposed) {
               return
             }

@@ -9,6 +9,8 @@ type: "reference"
 
 This is the maintained host checklist, not a completed test report. The dated path is kept for existing references. Recorded results belong in the [closeout](2026-09-07-layer-manager-closeout.md); known failing expanded scenarios remain blockers even when a normal smoke run passes.
 
+The [AK #5573 record](2026-09-08-maintainer-lifecycle-hardening.md) provides a newer bounded native run on Obsidian 1.13.4 / Excalidraw 2.27.3. It covers the lifecycle/name cases and selected live command-facade features; it does not mark every drag/drop, quick-move or other UI gesture in this checklist exercised. Read its exact receipts rather than treating this matrix as all-green.
+
 ## Prepare
 
 Use a disposable copy of `apps/lab-vault`, with Excalidraw installed separately. Build and deploy the candidate through the [explicit-target workflow](2026-04-14-safe-deployment-and-reload-workflow.md). Record source commit, lock identity, built/installed hashes, OS, Obsidian version, and Excalidraw version. Do not modify a personal vault or commit runtime workspace/cache state.
@@ -33,7 +35,7 @@ Published automated anchors include `runtime.sidepanel-lifecycle-contract.integr
 
 Test synchronous close during initial open, pending legacy failure after disposal, fresh script evaluation while creation is pending, missing API despite a loaded view, readiness without a later event, snapshot-version monotonicity, stale native staging over unrelated edits, and live refresh during an ordinary/frame rename draft.
 
-The unpublished candidate's focused tests reproduce thirteen failures on the reviewed published code. Do not check these off based on the normal-path matrix above. Reproduce each behavior first; then link the accepted regression, implementation commit, and new host observation where applicable.
+The historical unpublished-candidate overlay reproduced thirteen failures on its published baseline. AK #5573 now integrates lifecycle regressions including throwing startup, both native pending-tab delivery orders, real view/API replacement, deferred effect authority and readiness beyond the fast retry window; it retains red evidence and bounded native replays. That historical overlay was not rerun wholesale. Stale staging remains AK #5574, and ordinary/frame rename drafts remain AK #5575. Future candidates must still reverify these gates rather than inherit a blanket pass from a normal smoke run.
 
 ## Record the result
 

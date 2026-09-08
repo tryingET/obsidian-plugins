@@ -15,6 +15,8 @@ Open a copy of this directory as an Obsidian vault. Install/enable the Excalidra
 
 The recorded September smoke baseline was Obsidian 1.13.7 / Excalidraw 2.27.3 on Linux. Record the versions actually used for each new test; do not label an untested version compatible solely because it starts.
 
+The subsequent [AK #5573 lifecycle dogfood](../../packages/obsidian-excalidraw-layer-manager/docs/project/2026-09-08-maintainer-lifecycle-hardening.md) used an isolated copy with Obsidian 1.13.4 / Excalidraw 2.27.3. Its final installed artifact is **not** the checked-in script here: rebuild and explicitly deploy to your disposable copy before replaying those checks. Neither the personal vault nor this checked-in lab script was refreshed by that task.
+
 ## Update the lab script
 
 From the repository root:

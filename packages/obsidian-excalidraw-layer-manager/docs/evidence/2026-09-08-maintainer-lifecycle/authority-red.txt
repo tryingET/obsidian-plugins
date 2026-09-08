@@ -1,0 +1,100 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/runtime.pending-mutation-authority.integration.test.ts
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/runtime.pending-mutation-authority.integration.test.ts (20 tests | 4 failed) 32ms
+     × rejects preflight retargeting before any reorder mutation reaches a replacement drawing 10ms
+     × rejects preflight retargeting before any update mutation reaches a replacement drawing 1ms
+     × rejects preflight retargeting before any legacy mutation reaches a replacement drawing 1ms
+     × renews authority after legacy staging before editing or committing 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/runtime.pending-mutation-authority.integration.test.ts > pending mutation authority > rejects preflight retargeting before any reorder mutation reaches a replacement drawing
+ FAIL  test/runtime.pending-mutation-authority.integration.test.ts > pending mutation authority > rejects preflight retargeting before any update mutation reaches a replacement drawing
+AssertionError: expected "vi.fn()" to not be called at all, but actually been called 1 times
+
+Received:
+
+  1st vi.fn() call:
+
+    Array [
+      Object {
+        "elements": Array [
+          Object {
+            "id": "A",
+            "isDeleted": true,
+            "type": "rectangle",
+          },
+        ],
+      },
+    ]
+
+
+Number of calls: 1
+
+ ❯ test/runtime.pending-mutation-authority.integration.test.ts:40:48
+     38|         expect(outcome.status).toBe("capabilityMissing")
+     39|         expect(originalApi.updateScene).not.toHaveBeenCalled()
+     40|         expect(replacementApi.updateScene).not.toHaveBeenCalled()
+       |                                                ^
+     41|         expect(copy).not.toHaveBeenCalled()
+     42|         expect(commit).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  test/runtime.pending-mutation-authority.integration.test.ts > pending mutation authority > rejects preflight retargeting before any legacy mutation reaches a replacement drawing
+AssertionError: expected "vi.fn()" to not be called at all, but actually been called 1 times
+
+Received:
+
+  1st vi.fn() call:
+
+    Array [
+      Array [
+        Object {
+          "id": "A",
+          "isDeleted": true,
+          "type": "rectangle",
+        },
+      ],
+    ]
+
+
+Number of calls: 1
+
+ ❯ test/runtime.pending-mutation-authority.integration.test.ts:41:26
+     39|         expect(originalApi.updateScene).not.toHaveBeenCalled()
+     40|         expect(replacementApi.updateScene).not.toHaveBeenCalled()
+     41|         expect(copy).not.toHaveBeenCalled()
+       |                          ^
+     42|         expect(commit).not.toHaveBeenCalled()
+     43|         expect(select).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  test/runtime.pending-mutation-authority.integration.test.ts > pending mutation authority > renews authority after legacy staging before editing or committing
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ test/runtime.pending-mutation-authority.integration.test.ts:68:31
+     66|       expect((await runtime.apply({ elementPatches: [{ id: "A", set: {…
+     67|         .toBe("capabilityMissing")
+     68|       expect(editable.locked).toBe(false)
+       |                               ^
+     69|       expect(commit).not.toHaveBeenCalled()
+     70|       expect(api.updateScene).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 16 passed (20)
+   Start at  10:21:41
+   Duration  837ms (transform 648ms, setup 0ms, import 714ms, tests 32ms, environment 0ms)

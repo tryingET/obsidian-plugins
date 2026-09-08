@@ -112,6 +112,10 @@ export class FakeDocument {
     return new FakeDomElement(tagName, this)
   }
 
+  getListenerCount(type: string): number {
+    return this.#listeners.get(type)?.size ?? 0
+  }
+
   addEventListener(type: string, listener: (event: FakeDomEvent) => void): void {
     if (!this.#listeners.has(type)) {
       this.#listeners.set(type, new Set())

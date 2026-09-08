@@ -1,0 +1,32 @@
+{
+  "before": {
+    "keys": {
+      "keydown": 1,
+      "keypress": 1,
+      "keyup": 1
+    },
+    "selected": []
+  },
+  "outside": {
+    "value": "t",
+    "probe": {
+      "key": "t",
+      "defaultPrevented": false,
+      "target": "ak5573-outside-input",
+      "trusted": true
+    },
+    "selected": []
+  },
+  "inside": {
+    "probe": {
+      "key": "ArrowDown",
+      "defaultPrevented": false,
+      "target": "lmx-sidepanel-content-root",
+      "trusted": true
+    },
+    "active": "",
+    "roots": 1
+  },
+  "pass": false,
+  "qualification": "Actual popout execution context: native CDP keyboard input and document listener inspection. Earlier main-context getEventListeners cannot enumerate foreign-context listeners."
+}

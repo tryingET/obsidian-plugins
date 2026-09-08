@@ -382,26 +382,26 @@ const makeRuntimeWithSidepanel = (
     emitSceneChange(scene.appState ?? {})
   })
 
+  const api = {
+    updateScene,
+    onChange: (
+      callback: (
+        elements: readonly RawExcalidrawElement[],
+        appState: unknown,
+        files: unknown,
+      ) => void,
+    ) => {
+      sceneChangeListeners.add(callback)
+      return () => {
+        sceneChangeListeners.delete(callback)
+      }
+    },
+  }
   const getExcalidrawAPI = vi.fn(function (this: EaLike) {
     if (options.requireSetViewForApiCalls === true && !hasFreshViewBinding()) {
       throw new Error("targetView not set")
     }
-
-    return {
-      updateScene,
-      onChange: (
-        callback: (
-          elements: readonly RawExcalidrawElement[],
-          appState: unknown,
-          files: unknown,
-        ) => void,
-      ) => {
-        sceneChangeListeners.add(callback)
-        return () => {
-          sceneChangeListeners.delete(callback)
-        }
-      },
-    }
+    return api
   })
 
   const detachLeaf = vi.fn()

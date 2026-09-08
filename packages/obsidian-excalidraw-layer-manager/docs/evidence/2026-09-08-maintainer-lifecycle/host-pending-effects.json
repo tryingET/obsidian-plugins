@@ -1,0 +1,44 @@
+{
+  "id": 1,
+  "result": {
+    "result": {
+      "type": "object",
+      "value": {
+        "steps": [
+          {
+            "name": "pending legacy rejection after close",
+            "pass": true,
+            "atClose": {
+              "writes": 0,
+              "selections": 0
+            },
+            "after": {
+              "writes": 0,
+              "selections": 0
+            },
+            "outcome": {
+              "error": "Error: Layer Manager runtime disposed."
+            }
+          },
+          {
+            "name": "queued selection verification after close",
+            "pass": true,
+            "beforeClose": {
+              "selectCalls": 1,
+              "updateCalls": 0
+            },
+            "atClose": {
+              "selectCalls": 1,
+              "updateCalls": 0
+            },
+            "after": {
+              "selectCalls": 1,
+              "updateCalls": 0
+            }
+          }
+        ],
+        "qualification": "Real Obsidian, native script invocation and DOM row event, with explicitly injected host promise rejection and stale selection readback. Not spontaneous host failures."
+      }
+    }
+  }
+}

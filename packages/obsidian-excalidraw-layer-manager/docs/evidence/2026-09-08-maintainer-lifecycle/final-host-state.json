@@ -1,0 +1,16 @@
+{
+  "id": 1,
+  "result": {
+    "result": {
+      "type": "object",
+      "value": {
+        "vault": "/home/tryinget/.local/state/pi-quests/tmp/ak5573-host-yTjeVY/vault",
+        "title": "testing - vault - Obsidian 1.13.4",
+        "runtime": false,
+        "roots": 0,
+        "managerTabs": 0,
+        "pendingRegistrySymbols": []
+      }
+    }
+  }
+}

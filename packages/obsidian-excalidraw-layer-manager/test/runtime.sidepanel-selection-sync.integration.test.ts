@@ -264,6 +264,23 @@ describe("sidepanel selection-sync integration", () => {
     expect(selectedRows.length).toBe(1)
   })
 
+  it("invalidates a pending selection retry when the runtime terminally closes", async () => {
+    const fixture = makeRuntimeWithSidepanel(fakeDocument, [{ id: "A", type: "rectangle" }], [])
+    fixture.selectInView.mockImplementation(() => {})
+    const runtime = createLayerManagerRuntime(fixture.ea)
+    const row = flattenElements(getContentRoot(fixture.sidepanelTab.contentEl)).find(
+      (element) => element.tagName === "DIV" && element.style["cursor"] === "pointer",
+    )
+    expect(row).toBeDefined()
+    row?.click()
+    expect(fixture.selectInView).toHaveBeenCalledTimes(1)
+    runtime.dispose()
+    const writesAtClose = fixture.updateScene.mock.calls.length
+    await flushAsync(10)
+    expect(fixture.selectInView).toHaveBeenCalledTimes(1)
+    expect(fixture.updateScene).toHaveBeenCalledTimes(writesAtClose)
+  })
+
   it("mirrors sidepanel row clicks to host selection bridge without churning a healthy targetView binding", async () => {
     const runtime = makeRuntimeWithSidepanel(
       fakeDocument,

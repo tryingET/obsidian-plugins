@@ -1,0 +1,22 @@
+{
+  "id": 1,
+  "result": {
+    "result": {
+      "type": "object",
+      "value": {}
+    },
+    "exceptionDetails": {
+      "exceptionId": 3,
+      "text": "Uncaught (in promise) TypeError: Cannot read properties of undefined (reading 'updateScene')",
+      "lineNumber": 0,
+      "columnNumber": 0,
+      "exception": {
+        "type": "object",
+        "subtype": "error",
+        "className": "TypeError",
+        "description": "TypeError: Cannot read properties of undefined (reading 'updateScene')\n    at <anonymous>:24:40",
+        "objectId": "335900825867002151.1.1"
+      }
+    }
+  }
+}

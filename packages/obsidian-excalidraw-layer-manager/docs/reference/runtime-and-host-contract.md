@@ -1,5 +1,5 @@
 ---
-summary: "Published runtime architecture, real sidepanel callbacks, recovery bounds, and ownership limitations."
+summary: "Runtime architecture, real sidepanel callbacks, cancellable readiness, mutation authority and cross-evaluation ownership."
 read_when:
   - "You are changing lifecycle, mounting, host recovery, scene subscriptions, or mutation ownership."
 type: "reference"
@@ -7,7 +7,7 @@ type: "reference"
 
 # Runtime and host contract
 
-This reference describes the published source tree `783ddbee2dad37cbe289f1812ef4be3a02c56d20`, reviewed at repository commit `dc6defb5553f2946bcf75d15a04e7bf0efad4029`. It does not describe the unpublished 641-test candidate. See [known gaps](../project/2026-09-07-layer-manager-closeout.md#remaining-blockers) before relying on race guarantees.
+This reference describes the repository implementation after [AK #5573 lifecycle hardening](../project/2026-09-08-maintainer-lifecycle-hardening.md), not the old unpublished 641-test candidate or the upstream PR artifact. The [consolidated closeout](../project/2026-09-07-layer-manager-closeout.md) preserves historical identities and remaining broader data/editing gates. Verified lifecycle behavior is not universal host or heap safety.
 
 ## Ownership map
 
@@ -16,6 +16,7 @@ This reference describes the published source tree `783ddbee2dad37cbe289f1812ef4
 | Script entry, runtime identity, workspace and scene subscriptions | [`src/main.ts`](../../src/main.ts) |
 | Refresh/interaction scheduling and queued intent execution | [`runtimeLifecycleMachine.ts`](../../src/runtime/runtimeLifecycleMachine.ts) |
 | Tab-hook composition, restoration, and per-tab ownership | [`sidepanelLifecycleBinding.ts`](../../src/runtime/sidepanelLifecycleBinding.ts) |
+| Cross-evaluation pending creation leases and orphan arbitration | [`sidepanelPendingCreationOwnership.ts`](../../src/runtime/sidepanelPendingCreationOwnership.ts) |
 | Creation, reuse, attachment, and late-result cleanup | [`sidepanelMountManager.ts`](../../src/ui/sidepanel/mount/sidepanelMountManager.ts) |
 | DOM, keyboard/focus routing, and document migration | [`excalidrawSidepanelRenderer.ts`](../../src/ui/excalidrawSidepanelRenderer.ts) |
 | Normalized workspace eligibility and scene binding | [`hostContextCoordinator.ts`](../../src/ui/sidepanel/selection/hostContextCoordinator.ts) and [`hostViewContext.ts`](../../src/ui/sidepanel/selection/hostViewContext.ts) |
@@ -36,25 +37,25 @@ The integration uses the five callbacks declared in [`excalidraw-types.ts`](../.
 | `onClose()` | Mark this binding closed and request disposal of its owning mount/runtime even if the prior callback throws. |
 | `onWindowMigrated(win)` | Compose the prior hook and route migration through the existing renderer/document owner; refresh without creating another runtime. |
 
-Cleanup restores original property descriptors only when the installed handler still owns that property. Superseded hooks are not overwritten. The owner map is a **module-local `WeakMap`**: it is not a cross-evaluation registry. Separately evaluated script bundles remain a known pending-creation risk.
+Cleanup restores original property descriptors only when the installed handler still owns that property. Superseded hooks are not overwritten. A shared `Symbol.for` property on the host tab identifies the adopted hook owner across script evaluations. Pending invocations additionally coordinate through a shared plugin/app registry keyed by script identity; anonymous partial hosts are isolated by host object. Cleanup validates registry/entry identity across reentrancy and removes idle registry state. `tab.getHostEA()` is not treated as a live reuse-owner registry: the native implementation may retain the construction-time EA.
 
 ## Normal lifecycle and shell states
 
-The script entry disposes the previous global runtime before creating and publishing a replacement. Normal runtime disposal is idempotent, releases its actor, subscriptions, renderer, and controller, and clears the global reference only if it still points to that instance. Navigation alone is not a request to start a new manager.
+The script entry disposes the previous global runtime before creating a replacement. Initial rendering waits for runtime callback dependencies; startup renderer/actor failures dispose the candidate, and a failed or disposed candidate is not published. Disposal is idempotent, releases actors, subscriptions, readiness work, pending selection authority, renderer and controller, and clears the global reference only if it still points to that instance. Navigation alone is not a request to start a new manager.
 
 The coordinator distinguishes `live`, `inactive`, and `unbound`. These describe usable drawing context, ineligible workspace context, and an eligible but unconfirmed binding, respectively. An open shell is not proof of a usable scene API. Layer Manager does not detach the shared sidepanel leaf during normal view loss.
 
-The published tests cover normal close, stale workspace and scene callbacks, repeated same-view focus, associated-view loss, migration, and queued writes invalidated by focus changes. They do **not** establish safety for synchronous close during startup or every asynchronous continuation; the expanded replay exposes those gaps.
+Current regressions additionally cover synchronous startup close/errors, generated fresh script evaluations, pending successor delivery orders, no-event API readiness, real view/API replacement, and post-await/deferred effect authority. Native dogfood covers the corresponding maintainer roundtrip, terminal-close cycles, shared-tab arbitration and window/keyboard behavior. See the dated evidence for exact tested versus fault-injected cases.
 
 ## Same-leaf recovery and timers
 
 The runtime subscribes to `file-open`, `active-leaf-change`, and `layout-change`. The extra layout signal was added after real Obsidian testing showed an Excalidraw → Markdown → Excalidraw transition could replace the view without delivering `onFocus(view)`.
 
-Before destructive unload, the runtime retains the released view identity, its leaf, and the original workspace. On a layout signal after focus release, recovery considers only a **different** Excalidraw view in that retained leaf, while that leaf is active or most recent. The replacement needs a live API; an explicit `_loaded` property must be `true`. Binding must be confirmed on the host.
+Before destructive unload, the runtime retains the released view identity, its leaf, file and original workspace. Workspace signals and readiness observation can recover a **different** Excalidraw view in that retained leaf while it is active or most recent. A different file is not interchangeable authority. The replacement needs a live API; an explicit `_loaded` property must be `true`. Binding must be confirmed on the host.
 
-An eligible replacement whose API is still initializing returns `pending`. The runtime coalesces readiness into one timeout at the existing **350 ms** cadence, with at most **20 delayed attempts** in the sequence. Success, loss of eligibility, explicit focus, and disposal clear pending recovery. Exhaustion does not rearm itself, though a later layout notification can start another sequence. These are scheduling bounds, not a guaranteed wall-clock recovery time.
+An eligible replacement whose API is still initializing returns `pending`. Initial and released readiness use **20 delayed attempts at 350 ms**, then a **single 2 s backoff timer** while the relevant context remains eligible. Readiness after the fast phase no longer requires an accidental later workspace event. Success, loss of eligibility, explicit focus and disposal clear the work. These are scheduling bounds, not a wall-clock readiness guarantee; a closed runtime never rearms itself.
 
-A separate 350 ms workspace interval is used only when no workspace subscription reference was retained. It is a fallback observer, not the bounded replacement-readiness timeout. Disposal clears both kinds of owned timer. The current recovery implementation is not a general ready-view discovery service: file-open-only and additional API-readiness cases fail the expanded regression replay.
+A separate 350 ms workspace interval is used only when no workspace subscription reference was retained. It is a fallback observer, not the readiness timeout. Disposal clears all owned timers. Actual target-view and API object changes also renew snapshots/subscriptions even when file/leaf-derived binding strings are unchanged. This remains scoped context recovery, not a general drawing discovery service.
 
 ## Mounting and reuse
 
@@ -62,12 +63,12 @@ The mount owner accepts either `contentEl` or `setContent`, attaches its own roo
 
 Tab creation calls `createSidepanelTab(title, false, true)`: Layer Manager does not request automatic tab persistence across application restart. Remembered quick-move settings are separate from tab persistence.
 
-Only one pending creation is tracked per mount instance. Late disposed results receive deferred orphan cleanup unless the module-local owner map already records a successor. A synchronous creation exception is latched for that mount instance; an asynchronous rejection is reported without a self-triggered refresh loop. A later render can retry the asynchronous path. Fresh script execution is the recovery route after a latched synchronous failure.
+Only one pending creation is tracked per mount instance. Late disposed results defer orphan cleanup while another same-script invocation may still adopt the shared host result; adopted hook ownership is rechecked before closing. Failed/cancelled successors release their lease, and unrelated plugin/script groups cannot claim each other's tabs. Both native promise-delivery orders and nested cleanup are regression-tested. Synchronous creation failure is latched for that mount instance; asynchronous rejection does not create a self-triggered hot retry loop.
 
 ## Mutations and persistence
 
 `executeIntent` remains the canonical route: snapshot → indexes → planner → preflight/apply → refresh. `apply` returns `ApplyPatchOutcome`; intent execution returns `ExecuteIntentOutcome` with a status and attempt count. Patches combining edits and reorder use one `updateScene` commit or fail before that combined commit.
 
-The runtime captures the target identity and authority epoch before queuing writes. This prevents tested queued work from proceeding after focus loss, including refocusing the same view. It is **not** a blanket cancellation guarantee once an awaited host call has begun. Late fallback writes and native EA staging reuse remain blockers in the expanded replay.
+The runtime captures target, API, leaf and authority epoch before queuing writes. Authority is renewed after preflight/host reads and awaited settlement, before subsequent staging, writes, fallback and selection. Deferred selection has its own real-identity guard. This prevents tested post-disposal/retarget continuations, but cannot undo a native commit already started. General stale EA staging replay over unrelated canvas edits remains separately tracked in AK #5574; this lifecycle repair does not claim to resolve that data-safety boundary.
 
 Renderer settings methods are bound to their originating host before being passed to persistence services. Unknown script settings are preserved through the existing persistence owners. The [metadata reference](metadata-contract.md) separately defines drawing data; settings persistence and drawing persistence are different contracts.

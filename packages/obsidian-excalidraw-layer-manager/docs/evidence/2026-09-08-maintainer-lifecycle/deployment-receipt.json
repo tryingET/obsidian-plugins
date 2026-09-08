@@ -1,0 +1,18 @@
+{
+  "deployedAt": "2026-09-08T09:02:05.684Z",
+  "source": "/home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager/dist/LayerManager.md",
+  "target": "/home/tryinget/.local/state/pi-quests/tmp/ak5573-host-yTjeVY/vault/Excalidraw/Scripts/LayerManager.md",
+  "sourceHash": "a961454aa838022c72c702dc004772b6d4b634efa7015f64569847ba1ce504d2",
+  "targetHash": "a961454aa838022c72c702dc004772b6d4b634efa7015f64569847ba1ce504d2",
+  "verified": true,
+  "backupPath": "/home/tryinget/ai-society/softwareco/owned/obsidian-plugins/.tmp/obsidian-excalidraw-layer-manager/deployments/2026-09-08T09-02-05-684Z-pid1909202/previous/LayerManager.md",
+  "backupHash": "9fb68cc35c4cbf6c992ea380081d20913f69830714b191d78370ea20dde76ddc",
+  "receiptPath": "/home/tryinget/ai-society/softwareco/owned/obsidian-plugins/.tmp/obsidian-excalidraw-layer-manager/deployments/2026-09-08T09-02-05-684Z-pid1909202/deployment-receipt.json",
+  "deployRoot": "/home/tryinget/ai-society/softwareco/owned/obsidian-plugins/.tmp/obsidian-excalidraw-layer-manager/deployments",
+  "rollbackCommand": "node -e \"require('node:fs').copyFileSync(process.argv[1], process.argv[2])\" \"/home/tryinget/ai-society/softwareco/owned/obsidian-plugins/.tmp/obsidian-excalidraw-layer-manager/deployments/2026-09-08T09-02-05-684Z-pid1909202/previous/LayerManager.md\" \"/home/tryinget/.local/state/pi-quests/tmp/ak5573-host-yTjeVY/vault/Excalidraw/Scripts/LayerManager.md\"",
+  "manualReloadChecklist": [
+    "Open an Excalidraw drawing in the target vault before re-running LayerManager.",
+    "Re-run LayerManager so the fresh bundle disposes the previous runtime and mounts a new one.",
+    "If the fresh run fails, restore the previous bundle from the recorded backup path and re-run LayerManager."
+  ]
+}

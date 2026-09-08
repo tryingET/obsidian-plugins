@@ -1,0 +1,43 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/runtime.sidepanel-lifecycle-contract.integration.test.ts
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+stdout | test/runtime.sidepanel-lifecycle-contract.integration.test.ts > runtime sidepanel lifecycle contract > protects the native successor host while both creations are pending: predecessor-first
+[LMX] render@2
+- [element] Alpha (1)
+[LMX] render@2
+- [element] Alpha (1)
+
+ ❯ test/runtime.sidepanel-lifecycle-contract.integration.test.ts (33 tests | 1 failed) 200ms
+     × protects the native successor host while both creations are pending: predecessor-first 11ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/runtime.sidepanel-lifecycle-contract.integration.test.ts > runtime sidepanel lifecycle contract > protects the native successor host while both creations are pending: predecessor-first
+AssertionError: expected "vi.fn()" to not be called at all, but actually been called 1 times
+
+Received:
+
+  1st vi.fn() call:
+
+    Array []
+
+
+Number of calls: 1
+
+ ❯ test/runtime.sidepanel-lifecycle-contract.integration.test.ts:364:39
+    362|           resolveOld(sharedTab)
+    363|           await flushAsync(10)
+    364|           expect(sharedTab.close).not.toHaveBeenCalled()
+       |                                       ^
+    365|           expect(active.isDisposed()).toBe(false)
+    366|           successor.ea.sidepanelTab = sharedTab
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 32 passed (33)
+   Start at  10:32:19
+   Duration  1.06s (transform 694ms, setup 0ms, import 769ms, tests 200ms, environment 0ms)

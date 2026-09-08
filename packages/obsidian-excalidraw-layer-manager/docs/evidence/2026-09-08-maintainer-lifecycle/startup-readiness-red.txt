@@ -1,0 +1,120 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/runtime.sidepanel-lifecycle-contract.integration.test.ts
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/runtime.sidepanel-lifecycle-contract.integration.test.ts (30 tests | 3 failed) 231ms
+     × rolls back an initial renderer exception instead of leaking an errored actor 9ms
+     × does not publish or strand listeners when a host open callback throws 27ms
+     × recovers initially missing API without another workspace event and cancels the readiness timer 10ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/runtime.sidepanel-lifecycle-contract.integration.test.ts > runtime sidepanel lifecycle contract > rolls back an initial renderer exception instead of leaking an errored actor
+AssertionError: expected function to throw an error, but it didn't
+ ❯ test/runtime.sidepanel-lifecycle-contract.integration.test.ts:252:67
+    250|     const failure = new Error("initial render failed")
+    251|     const renderer = { render: vi.fn(() => { throw failure }), dispose…
+    252|     expect(() => createLayerManagerRuntime(fixture.ea, renderer)).toTh…
+       |                                                                   ^
+    253|     await flushAsync(4)
+    254|     expect(renderer.dispose).toHaveBeenCalledTimes(1)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  test/runtime.sidepanel-lifecycle-contract.integration.test.ts > runtime sidepanel lifecycle contract > does not publish or strand listeners when a host open callback throws
+AssertionError: expected [Function] to throw an error
+
+- Expected:
+null
+
++ Received:
+undefined
+
+ ❯ test/runtime.sidepanel-lifecycle-contract.integration.test.ts:263:58
+    261|     const fixture = makeRuntimeFixture(fakeDocument)
+    262|     fixture.tab.open = () => { throw new Error("host open failed") }
+    263|     expect(() => new Function("ea", bundle)(fixture.ea)).toThrow("host…
+       |                                                          ^
+    264|     await flushAsync(4)
+    265|     expect(fixture.workspaceListenerCount()).toBe(0)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  test/runtime.sidepanel-lifecycle-contract.integration.test.ts > runtime sidepanel lifecycle contract > recovers initially missing API without another workspace event and cancels the readiness timer
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ test/runtime.sidepanel-lifecycle-contract.integration.test.ts:285:46
+    283|       fixture.liveView["excalidrawAPI"] = api
+    284|       await vi.advanceTimersByTimeAsync(750)
+    285|       expect(runtime.getSnapshot().elements).toHaveLength(1)
+       |                                              ^
+    286|       expect(fixture.subscribe).toHaveBeenCalledTimes(1)
+    287|       runtime.dispose()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+
+Vitest caught 2 unhandled errors during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯⎯ Uncaught Exception ⎯⎯⎯⎯⎯
+Error: initial render failed
+ ❯ test/runtime.sidepanel-lifecycle-contract.integration.test.ts:250:21
+    248|   it("rolls back an initial renderer exception instead of leaking an e…
+    249|     const fixture = makeRuntimeFixture(fakeDocument)
+    250|     const failure = new Error("initial render failed")
+       |                     ^
+    251|     const renderer = { render: vi.fn(() => { throw failure }), dispose…
+    252|     expect(() => createLayerManagerRuntime(fixture.ea, renderer)).toTh…
+ ❯ node_modules/@vitest/runner/dist/chunk-artifact.js:302:11
+ ❯ node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26
+ ❯ node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20
+ ❯ runWithCancel node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10
+ ❯ node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20
+ ❯ runWithTimeout node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10
+ ❯ node_modules/@vitest/runner/dist/chunk-artifact.js:2956:64
+
+This error originated in "test/runtime.sidepanel-lifecycle-contract.integration.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "retains leaf and workspace through destructive unload and delayed API readiness". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+⎯⎯⎯⎯⎯ Uncaught Exception ⎯⎯⎯⎯⎯
+Error: host open failed
+ ❯ Object.fixture.tab.open test/runtime.sidepanel-lifecycle-contract.integration.test.ts:262:38
+    260|   it("does not publish or strand listeners when a host open callback t…
+    261|     const fixture = makeRuntimeFixture(fakeDocument)
+    262|     fixture.tab.open = () => { throw new Error("host open failed") }
+       |                                      ^
+    263|     expect(() => new Function("ea", bundle)(fixture.ea)).toThrow("host…
+    264|     await flushAsync(4)
+ ❯ eval test/runtime.sidepanel-lifecycle-contract.integration.test.ts:263:18
+ ❯ assign2.resolveAssign [as resolve] test/runtime.sidepanel-lifecycle-contract.integration.test.ts:263:18
+ ❯ resolveAndExecuteActionsWithContext test/runtime.sidepanel-lifecycle-contract.integration.test.ts:263:18
+ ❯ resolveActionsAndContext test/runtime.sidepanel-lifecycle-contract.integration.test.ts:263:18
+ ❯ microstep test/runtime.sidepanel-lifecycle-contract.integration.test.ts:263:18
+ ❯ macrostep test/runtime.sidepanel-lifecycle-contract.integration.test.ts:263:18
+ ❯ _StateMachine.transition test/runtime.sidepanel-lifecycle-contract.integration.test.ts:263:18
+ ❯ Actor._process test/runtime.sidepanel-lifecycle-contract.integration.test.ts:263:18
+ ❯ Mailbox.flush test/runtime.sidepanel-lifecycle-contract.integration.test.ts:263:18
+
+This error originated in "test/runtime.sidepanel-lifecycle-contract.integration.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "retains leaf and workspace through destructive unload and delayed API readiness". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 27 passed (30)
+     Errors  2 errors
+   Start at  10:24:08
+   Duration  673ms (transform 292ms, setup 0ms, import 357ms, tests 231ms, environment 0ms)

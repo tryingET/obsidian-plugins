@@ -1,0 +1,22 @@
+{
+  "id": 1,
+  "result": {
+    "result": {
+      "type": "object",
+      "value": {}
+    },
+    "exceptionDetails": {
+      "exceptionId": 5,
+      "text": "Uncaught (in promise) ReferenceError: getEventListeners is not defined",
+      "lineNumber": 0,
+      "columnNumber": 0,
+      "exception": {
+        "type": "object",
+        "subtype": "error",
+        "className": "ReferenceError",
+        "description": "ReferenceError: getEventListeners is not defined\n    at keys (<anonymous>:7:37)\n    at <anonymous>:13:27",
+        "objectId": "335900825867002151.1.1"
+      }
+    }
+  }
+}

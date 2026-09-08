@@ -1,0 +1,23 @@
+{
+  "id": 1,
+  "result": {
+    "result": {
+      "type": "object",
+      "value": {
+        "moved": {
+          "mainDocument": true,
+          "mainRoots": 1,
+          "popRoots": 0,
+          "sameRuntime": true,
+          "disposed": false
+        },
+        "closed": {
+          "runtimeDisposed": true,
+          "global": false,
+          "roots": 0
+        },
+        "pass": true
+      }
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "id": 1,
+  "result": {
+    "result": {
+      "type": "object",
+      "value": {
+        "released": {
+          "sameRuntime": true,
+          "disposed": false,
+          "elements": 0,
+          "siblingPresent": true,
+          "siblingCloseCalls": 0,
+          "sameSideLeaf": true
+        },
+        "recovered": {
+          "sameRuntime": true,
+          "disposed": false,
+          "elements": 6,
+          "siblingPresent": true,
+          "siblingCloseCalls": 0
+        },
+        "closed": {
+          "runtimeDisposed": true,
+          "global": false,
+          "siblingPresent": true,
+          "siblingCloseCalls": 0,
+          "sameSideLeaf": true
+        },
+        "pass": true,
+        "qualification": "Native sidepanel sibling, native drawing mode change, native tab close; no lifecycle callback simulation."
+      }
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "id": 1,
+  "result": {
+    "result": {
+      "type": "object",
+      "value": {
+        "popout": true,
+        "href": "about:blank",
+        "activeElement": "BODY",
+        "root": true,
+        "windowClosed": false,
+        "mainGlobal": true
+      }
+    }
+  }
+}

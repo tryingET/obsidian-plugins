@@ -89,6 +89,22 @@ export class SidepanelHostSelectionBridge {
       return
     }
 
+    if (!expectedSceneBinding && !ensureHostViewContextState(this.#host).ok) {
+      this.invalidatePendingSelectionMirror()
+      return
+    }
+    // Synthetic file/leaf keys can survive replacement. Bind each request to
+    // the actual view, API and leaf owner before its first effect.
+    const targetView = this.#host.targetView
+    const view = targetView as { leaf?: { view?: unknown } } | null | undefined
+    const leafView = view?.leaf?.view
+    const api = this.resolveFallbackApi(expectedSceneBinding)
+    const hasAuthority = (): boolean =>
+      mirrorRequestId === this.#latestMirrorRequestId &&
+      targetView === this.#host.targetView &&
+      leafView === view?.leaf?.view &&
+      api === this.resolveFallbackApi(expectedSceneBinding)
+
     const nextElementIds = [...elementIds]
     const mirrorRequestId = this.#latestMirrorRequestId + 1
     this.#latestMirrorRequestId = mirrorRequestId
@@ -110,7 +126,9 @@ export class SidepanelHostSelectionBridge {
         return "failed"
       }
 
+      if (!hasAuthority()) return "hostUnavailable"
       this.#suppressContentFocusOut()
+      if (!hasAuthority()) return "hostUnavailable"
 
       try {
         this.#host.selectElementsInView([...nextElementIds])
@@ -143,6 +161,7 @@ export class SidepanelHostSelectionBridge {
       }
 
       const selectedElementIds = Object.fromEntries(nextElementIds.map((id) => [id, true]))
+      if (!hasAuthority() || apiCandidate !== api) return false
 
       try {
         updateScene({
@@ -169,6 +188,7 @@ export class SidepanelHostSelectionBridge {
           }
         }
 
+        if (!hasAuthority()) return "hostUnavailable"
         const liveSelectedIds = collectUniqueSelectionIds(
           this.#host.getViewSelectedElements?.() ?? [],
         )
@@ -198,7 +218,8 @@ export class SidepanelHostSelectionBridge {
     }
 
     Promise.resolve().then(() => {
-      if (mirrorRequestId !== this.#latestMirrorRequestId) {
+      if (!hasAuthority()) {
+        if (this.#pendingMirrorRequestId === mirrorRequestId) this.#pendingMirrorRequestId = null
         return
       }
 

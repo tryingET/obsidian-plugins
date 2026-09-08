@@ -136,6 +136,8 @@ const haveEquivalentSnapshots = (
 
   return (
     left.sceneBinding.refreshKey === right.sceneBinding.refreshKey &&
+    left.currentTargetView === right.currentTargetView &&
+    (!right.hasExplicitTargetViewProperty || left.sceneApi === right.sceneApi) &&
     left.targetViewIdentity === right.targetViewIdentity &&
     left.targetViewUsable === right.targetViewUsable &&
     left.hostEligible === right.hostEligible &&

@@ -1933,6 +1933,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   dispose(): void {
     if (this.#disposed) return
     this.#disposed = true
+    this.#hostSelectionBridge.invalidatePendingSelectionMirror()
     if (this.#contentRoot) {
       this.clearMountedOutput()
     }
@@ -2391,7 +2392,9 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       },
     })
 
-    if (mountPreparation.status !== "ready") {
+    // prepareMount may synchronously open the host tab and invoke terminal
+    // close. Never attach a root or document listeners after that callback.
+    if (this.#disposed || mountPreparation.status !== "ready") {
       return null
     }
 
@@ -2424,7 +2427,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.attachOwnerDocumentKeyCapture(ownerDocument)
 
     const attached = mountStrategy.attach(this.#contentRoot)
-    if (!this.#mountManager.finalizeMountAttach(attached)) {
+    if (this.#disposed || !this.#mountManager.finalizeMountAttach(attached)) {
       return null
     }
 

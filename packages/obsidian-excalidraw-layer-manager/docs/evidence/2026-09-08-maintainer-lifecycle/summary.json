@@ -1,0 +1,157 @@
+{
+  "task": 5573,
+  "recordedDate": "2026-09-08",
+  "disposition": "Scoped lifecycle recommendations implemented and verified with real-host dogfood; not blanket production certification.",
+  "maintainerComment": "https://github.com/zsviczian/obsidian-excalidraw-plugin/pull/2737#issuecomment-4406628061",
+  "baselineCommit": "8c6d4019518fa9594635f6119f856834aeb9a6dd",
+  "sourceTree": "1ecba7fdf4383651209b8eaefc7b95867e02d4aa",
+  "testTree": "5a694fd1b26bdb8f414b39f8fc1b8b1316957392",
+  "builtAndInstalledSha256": "a961454aa838022c72c702dc004772b6d4b634efa7015f64569847ba1ce504d2",
+  "packageLockSha256": "7748fa4aa7cda72c4c7a8891d78f0d1c8e44a5b7a44485147d32a3083cf35f81",
+  "environment": {
+    "os": "Linux 7.1.11-arch1-1 x86_64",
+    "obsidian": "1.13.4",
+    "excalidraw": "2.27.3",
+    "node": "26.8.1",
+    "npm": "12.0.2",
+    "hostIsolation": "Separate Obsidian user-data-dir and disposable lab-vault copy; local-only CDP on 127.0.0.1:19573.",
+    "vault": "/home/tryinget/.local/state/pi-quests/tmp/ak5573-host-yTjeVY/vault"
+  },
+  "validation": {
+    "rootCi": "passed: npm run ci",
+    "packageBuild": "passed: npm --prefix packages/obsidian-excalidraw-layer-manager run build",
+    "explicitTargetSync": "passed: LMX_VAULT_TARGET pointed only to disposable lab; deployment-receipt.json",
+    "testsPassed": 723,
+    "testFilesPassed": 65,
+    "baselineTestsPassed": 672,
+    "existingLintWarnings": 20,
+    "coveragePercent": {
+      "statements": 90.06,
+      "branches": 81.99,
+      "functions": 95.01,
+      "lines": 90.22
+    },
+    "strictPackageDocs": "passed: node /home/tryinget/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs packages/obsidian-excalidraw-layer-manager/docs --strict",
+    "optionalTsQuality": "not rerun for this lifecycle patch; previous selected-sample passes are historical, not current certification"
+  },
+  "contractChange": "Replaced prior ~7-second readiness exhaustion/no-recovery expectation with 20x350ms fast attempts then one cancellable 2-second backoff timer; close/focus/irrelevant file cancels. No thresholds lowered.",
+  "testFirstEvidence": [
+    {
+      "artifact": "authority-red.txt",
+      "observation": "4 authority regressions failed before repair"
+    },
+    {
+      "artifact": "startup-readiness-red.txt",
+      "observation": "3 failures and 2 unhandled errors before startup/readiness correction"
+    },
+    {
+      "artifact": "selection-red.txt",
+      "observation": "2 same-key view/API selection failures before identity guard"
+    },
+    {
+      "artifact": "cross-pending-red.txt",
+      "observation": "Predecessor-first pending-tab cleanup failed"
+    },
+    {
+      "artifact": "released-readiness-red.txt",
+      "observation": "2 late readiness failures before corrected contract"
+    },
+    {
+      "artifact": "native-ownership-red.txt",
+      "observation": "Faithful native construction-time getHostEA regression failed"
+    },
+    {
+      "artifact": "ownership-nested-red.txt",
+      "observation": "Nested cleanup lost replacement registry entry before identity-aware flush"
+    }
+  ],
+  "review": {
+    "initialPartialPatch": "Four blockers identified and repaired",
+    "finalRegistryReview": "One nested reentrancy blocker identified, regression added, flush identity guards applied",
+    "finalNestedFocusedTests": "47 passed before final full gate",
+    "limit": "Review is supporting code evidence, not a substitute for native receipts"
+  },
+  "hostProof": [
+    {
+      "artifact": "host-features.json",
+      "result": "pass",
+      "scope": "25 assertions: live command facade, naming/foreign data, visibility/lock/group/reparent/reorder, save/reopen and same-runtime same-leaf mode recovery"
+    },
+    {
+      "artifact": "host-sibling.json",
+      "result": "pass",
+      "scope": "Associated-view loss/recovery and terminal manager close preserve sibling and shared sidepanel leaf"
+    },
+    {
+      "artifact": "host-final-cycles.json",
+      "result": "pass",
+      "scope": "5 native cycles: each live invocation has 1 root/tab, 3 document key listeners, 3 workspace refs and 1 scene subscription; tracked resources zero after close; plain note/two drawings and scene update do not resurrect"
+    },
+    {
+      "artifact": "host-pending-effects.json",
+      "result": "pass",
+      "scope": "Explicitly fault-injected legacy rejection and stale selection readback in real host; no subsequent effects after close"
+    },
+    {
+      "artifact": "host-pending-ownership.json",
+      "result": "pass",
+      "scope": "Native same-script tab reuse with delivery barriers: both predecessor-first and successor-first keep one live successor/tab/root"
+    },
+    {
+      "artifact": "host-popout-open.json",
+      "result": "pass",
+      "scope": "Actual native popout document owns migrated root"
+    },
+    {
+      "artifact": "popout-keyboard.json",
+      "result": "pass",
+      "scope": "Actual popout-context LMX document listeners each1; trusted typing and Tab remain unclaimed outside (Tab advances to next external input); ArrowDown is claimed inside"
+    },
+    {
+      "artifact": "host-return-main.json",
+      "result": "pass",
+      "scope": "Native workspace return preserves runtime/root; terminal close removes root/global runtime"
+    },
+    {
+      "artifact": "final-host-state.json",
+      "result": "pass",
+      "scope": "No runtime, root, manager tab or pending-creation registry symbol after final close"
+    }
+  ],
+  "retainedFailedAttempts": [
+    {
+      "artifact": "failed-native-ownership-a365746b.json",
+      "classification": "product defect",
+      "candidateBundlePrefix": "a365746b",
+      "resolution": "Explicit shared pending-invocation protocol replaced incorrect getHostEA live-owner assumption"
+    },
+    {
+      "artifact": "failed-harness-cycles.json",
+      "classification": "harness error",
+      "resolution": "Wait for actual API readiness before scene update"
+    },
+    {
+      "artifact": "failed-harness-devtools-scope.json",
+      "classification": "harness error",
+      "resolution": "Capture DevTools helper before asynchronous continuation"
+    },
+    {
+      "artifact": "failed-harness-early-event-probe.json",
+      "classification": "harness error",
+      "resolution": "Read retained key event after complete dispatch, not during an early capture microtask"
+    }
+  ],
+  "operationalRecovery": "strategic-1788853891275 aborted after partial changes and initial host work; controller reconciled git/process/host state and continued bounded repair, not mechanical loop retry.",
+  "boundaries": {
+    "policyWeakened": false,
+    "personalVaultModified": false,
+    "checkedInLabScriptRefreshed": false,
+    "upstreamPrUpdated": false,
+    "remoteCiObserved": false,
+    "exhaustiveHeapSafetyClaim": false,
+    "allUiGesturesExercised": false,
+    "historical44TestOverlayRerunWholesale": false,
+    "realHostLongDelayFaultInjection": "Initial/late API timing adversaries are deterministic regression evidence; normal actual host recovery plus native entry-point fault injection are separately recorded.",
+    "remainingBroaderGates": [5574, 5575]
+  }
+}

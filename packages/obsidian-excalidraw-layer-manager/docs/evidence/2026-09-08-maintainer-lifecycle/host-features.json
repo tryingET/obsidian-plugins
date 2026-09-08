@@ -1,0 +1,161 @@
+{
+  "id": 1,
+  "result": {
+    "result": {
+      "type": "object",
+      "value": {
+        "steps": [
+          {
+            "name": "one live manager",
+            "pass": true
+          },
+          {
+            "name": "ordinary rename",
+            "pass": true,
+            "detail": {
+              "status": "applied",
+              "attempts": 1
+            }
+          },
+          {
+            "name": "frame rename",
+            "pass": true,
+            "detail": {
+              "status": "applied",
+              "attempts": 1
+            }
+          },
+          {
+            "name": "ordinary namespaced write and legacy preserved",
+            "pass": true
+          },
+          {
+            "name": "foreign and unknown LMX data preserved",
+            "pass": true
+          },
+          {
+            "name": "frame native name and legacy metadata preserved",
+            "pass": true
+          },
+          {
+            "name": "hide",
+            "pass": true,
+            "detail": {
+              "status": "applied",
+              "attempts": 1
+            }
+          },
+          {
+            "name": "hidden opacity",
+            "pass": true
+          },
+          {
+            "name": "show",
+            "pass": true,
+            "detail": {
+              "status": "applied",
+              "attempts": 1
+            }
+          },
+          {
+            "name": "restored opacity",
+            "pass": true
+          },
+          {
+            "name": "lock",
+            "pass": true,
+            "detail": {
+              "status": "applied",
+              "attempts": 1
+            }
+          },
+          {
+            "name": "locked",
+            "pass": true
+          },
+          {
+            "name": "unlock",
+            "pass": true,
+            "detail": {
+              "status": "applied",
+              "attempts": 1
+            }
+          },
+          {
+            "name": "unlocked",
+            "pass": true
+          },
+          {
+            "name": "group",
+            "pass": true,
+            "detail": {
+              "status": "applied",
+              "attempts": 1
+            }
+          },
+          {
+            "name": "common group",
+            "pass": true
+          },
+          {
+            "name": "move to root / ungroup",
+            "pass": true,
+            "detail": {
+              "status": "applied",
+              "attempts": 1
+            }
+          },
+          {
+            "name": "root membership",
+            "pass": true
+          },
+          {
+            "name": "reorder front",
+            "pass": true,
+            "detail": {
+              "status": "applied",
+              "attempts": 1
+            }
+          },
+          {
+            "name": "scene front order",
+            "pass": true
+          },
+          {
+            "name": "same leaf inactive in markdown",
+            "pass": true
+          },
+          {
+            "name": "same runtime reload without rerun",
+            "pass": true
+          },
+          {
+            "name": "snapshot version monotonic",
+            "pass": true
+          },
+          {
+            "name": "saved ordinary label",
+            "pass": true
+          },
+          {
+            "name": "saved frame name",
+            "pass": true
+          }
+        ],
+        "mode": "real-host command facade and native view/save operations; not all UI gestures",
+        "fixture": {
+          "ordinary": "ymTtmWVq",
+          "other": "yzbZdfLP",
+          "frame": "wOLzL4hF",
+          "drawing": "testing.md",
+          "second": "AK5573_second.md",
+          "plain": "AK5573_plain.md",
+          "leafId": "4a383a49d605b84b",
+          "preparedAt": "2026-09-08T08:23:42.000Z"
+        },
+        "title": "testing - vault - Obsidian 1.13.4",
+        "pluginVersion": "2.27.3"
+      }
+    }
+  }
+}
