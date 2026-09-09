@@ -1,0 +1,5 @@
+Docs — 1 match(es) — page 1/1
+report.md - AK5613 reviewed and improved AK1343 for main; red/green, Chromium input and full CI evidence with explicit host limits.
+Strict check: pass
+
+Reminder: keep docs up to date as behavior changes. When your task matches any "Read when" hint above, read that doc before coding, and add missing coverage.

@@ -35,7 +35,7 @@ Open `apps/lab-vault` as a vault, enable Excalidraw, configure its script folder
 
 ## Work with the panel
 
-The panel supports row and range selection, inline rename, visibility, locking, deletion, grouping, relative ordering, drag/drop, filtering, and quick move with remembered destinations. The header `?` lists the implemented keyboard shortcuts. Filtering changes what is visible; it does not silently narrow structural command targets.
+The panel supports row and range selection, inline rename, visibility, locking, deletion, grouping, relative ordering, drag/drop, filtering, and quick move with remembered destinations. The header `?` opens keyboard help by click, Enter, or Space. Tab enters its scrolling content; Escape closes it and returns focus to the help button. Help stays open at its reading position during ordinary refreshes without moving focus from elsewhere. A new view context or remount resets it; adoption of the existing panel into another window preserves it. Filtering changes what is visible; it does not silently narrow structural command targets.
 
 Normal user close stops the owning runtime. Explicitly running the script again starts a replacement. Losing the associated drawing keeps the panel available in an inactive or unbound state. Ordinary labels are stored in `customData.lmx.label`; frames use native `name`.
 

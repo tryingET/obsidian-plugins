@@ -1,0 +1,153 @@
+src/ui/excalidrawSidepanelRenderer.ts:1553:11 lint/complexity/useOptionalChain  FIXABLE  ━━━━━━━━━━━
+
+  ! Change to an optional chain.
+  
+    1552 │       const targetGroup = context.nodeById.get(targetGroupNodeId)
+  > 1553 │       if (!targetGroup || targetGroup.type !== "group" || !targetGroup.groupId) {
+         │           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    1554 │         this.notify("Keyboard move into group failed: focused row is not a group target.")
+    1555 │         return
+  
+  i Unsafe fix: Change to an optional chain.
+  
+    1551 1551 │   
+    1552 1552 │         const targetGroup = context.nodeById.get(targetGroupNodeId)
+    1553      │ - ······if·(!targetGroup·||·targetGroup.type·!==·"group"·||·!targetGroup.groupId)·{
+         1553 │ + ······if·(targetGroup?.type·!==·"group"·||·!targetGroup.groupId)·{
+    1554 1554 │           this.notify("Keyboard move into group failed: focused row is not a group target.")
+    1555 1555 │           return
+  
+
+src/ui/excalidrawSidepanelRenderer.ts:3022:9 lint/complexity/useOptionalChain  FIXABLE  ━━━━━━━━━━━━
+
+  ! Change to an optional chain.
+  
+    3020 │     contentRoot: HTMLElement | null = this.#contentRoot,
+    3021 │   ): HTMLElement | null {
+  > 3022 │     if (this.#rowTreeRoot && contentRoot && contentRoot.contains(this.#rowTreeRoot)) {
+         │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    3023 │       return this.#rowTreeRoot
+    3024 │     }
+  
+  i Unsafe fix: Change to an optional chain.
+  
+    3020 3020 │       contentRoot: HTMLElement | null = this.#contentRoot,
+    3021 3021 │     ): HTMLElement | null {
+    3022      │ - ····if·(this.#rowTreeRoot·&&·contentRoot·&&·contentRoot.contains(this.#rowTreeRoot))·{
+         3022 │ + ····if·(this.#rowTreeRoot·&&·contentRoot?.contains(this.#rowTreeRoot))·{
+    3023 3023 │         return this.#rowTreeRoot
+    3024 3024 │       }
+  
+
+test/runtime.sidepanel-focus-keyboard.integration.test.ts:3:13 lint/correctness/noUnusedImports  FIXABLE  ━━━━━━━━━━
+
+  ! This import is unused.
+  
+    1 │ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+    2 │ 
+  > 3 │ import type { ScriptSettings } from "../src/adapter/excalidraw-types.js"
+      │             ^^^^^^^^^^^^^^^^^^
+    4 │ import type { LayerNode } from "../src/model/tree.js"
+    5 │ import type { ExecuteIntentOutcome } from "../src/runtime/intentExecution.js"
+  
+  i Unused imports might be the result of an incomplete refactoring.
+  
+  i Unsafe fix: Remove the unused imports.
+  
+       1      │ - import·{·afterEach,·beforeEach,·describe,·expect,·it,·vi·}·from·"vitest"
+            1 │ + import·{·afterEach,·beforeEach,·describe,·expect,·it,·vi·}·from·"vitest"
+       2    2 │   
+       3      │ - import·type·{·ScriptSettings·}·from·"../src/adapter/excalidraw-types.js"
+       4    3 │   import type { LayerNode } from "../src/model/tree.js"
+       5    4 │   import type { ExecuteIntentOutcome } from "../src/runtime/intentExecution.js"
+  
+
+test/runtime.sidepanel-focus-keyboard.integration.test.ts:8:39 lint/correctness/noUnusedImports  FIXABLE  ━━━━━━━━━━
+
+  ! Several of these imports are unused.
+  
+     6 │ import { createExcalidrawSidepanelRenderer } from "../src/ui/excalidrawSidepanelRenderer.js"
+     7 │ import type { LayerManagerUiActions } from "../src/ui/renderer.js"
+   > 8 │ import type { DispatchKeydownOptions, SidepanelTabHarness } from "./sidepanelTestHarness.js"
+       │                                       ^^^^^^^^^^^^^^^^^^^
+     9 │ import {
+    10 │   dispatchClick,
+  
+  i Unused imports might be the result of an incomplete refactoring.
+  
+  i Unsafe fix: Remove the unused imports.
+  
+    8 │ import·type·{·DispatchKeydownOptions,·SidepanelTabHarness·}·from·"./sidepanelTestHarness.js"
+      │                                       --------------------                                  
+
+test/runtime.sidepanel-focus-keyboard.integration.test.ts:326:11 lint/correctness/noUnusedVariables  FIXABLE  ━━━━━━━━━━
+
+  ! This variable inlinePresetButton is unused.
+  
+    324 │     contentRoot = getContentRoot(sidepanelTab.contentEl)
+    325 │     const rootButton = findButtonByExactText(contentRoot, "Root")
+  > 326 │     const inlinePresetButton = findButtonByExactText(contentRoot, "Inside G1")
+        │           ^^^^^^^^^^^^^^^^^^
+    327 │     const secondPresetButton = findButtonByExactText(contentRoot, "Inside G2")
+    328 │     const textFragments = flattenElements(contentRoot)
+  
+  i Unused variables are often the result of typos, incomplete refactors, or other sources of bugs.
+  
+  i Unsafe fix: If this is intentional, prepend inlinePresetButton with an underscore.
+  
+     324  324 │       contentRoot = getContentRoot(sidepanelTab.contentEl)
+     325  325 │       const rootButton = findButtonByExactText(contentRoot, "Root")
+     326      │ - ····const·inlinePresetButton·=·findButtonByExactText(contentRoot,·"Inside·G1")
+          326 │ + ····const·_inlinePresetButton·=·findButtonByExactText(contentRoot,·"Inside·G1")
+     327  327 │       const secondPresetButton = findButtonByExactText(contentRoot, "Inside G2")
+     328  328 │       const textFragments = flattenElements(contentRoot)
+  
+
+test/runtime.sidepanel-focus-keyboard.integration.test.ts:327:11 lint/correctness/noUnusedVariables  FIXABLE  ━━━━━━━━━━
+
+  ! This variable secondPresetButton is unused.
+  
+    325 │     const rootButton = findButtonByExactText(contentRoot, "Root")
+    326 │     const inlinePresetButton = findButtonByExactText(contentRoot, "Inside G1")
+  > 327 │     const secondPresetButton = findButtonByExactText(contentRoot, "Inside G2")
+        │           ^^^^^^^^^^^^^^^^^^
+    328 │     const textFragments = flattenElements(contentRoot)
+    329 │       .map((element) => element.textContent ?? "")
+  
+  i Unused variables are often the result of typos, incomplete refactors, or other sources of bugs.
+  
+  i Unsafe fix: If this is intentional, prepend secondPresetButton with an underscore.
+  
+     325  325 │       const rootButton = findButtonByExactText(contentRoot, "Root")
+     326  326 │       const inlinePresetButton = findButtonByExactText(contentRoot, "Inside G1")
+     327      │ - ····const·secondPresetButton·=·findButtonByExactText(contentRoot,·"Inside·G2")
+          327 │ + ····const·_secondPresetButton·=·findButtonByExactText(contentRoot,·"Inside·G2")
+     328  328 │       const textFragments = flattenElements(contentRoot)
+     329  329 │         .map((element) => element.textContent ?? "")
+  
+
+test/sidepanel.keyboard-help.test.ts:51:11 lint/suspicious/noShadowRestrictedNames ━━━━━━━━━━━━━━━━━
+
+  × Do not shadow the global "escape" property.
+  
+    49 │     button.click()
+    50 │     panel.focus()
+  > 51 │     const escape = new FakeDomEvent("keydown", { key: "Escape" })
+       │           ^^^^^^
+    52 │     panel.dispatchEvent(escape)
+    53 │     expect(escape.defaultPrevented).toBe(true)
+  
+  i Consider renaming this variable. It's easy to confuse the origin of variables when they're named after a known global.
+  
+
+Skipped 6 suggested fixes.
+If you wish to apply the suggested (unsafe) fixes, use the command biome check --write --unsafe
+
+Checked 4 files in 78ms. Fixed 3 files.
+Found 1 error.
+Found 6 warnings.
+check ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Some errors were emitted while applying fixes.
+  
+

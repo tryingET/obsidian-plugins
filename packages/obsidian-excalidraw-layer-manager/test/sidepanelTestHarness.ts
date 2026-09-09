@@ -182,6 +182,16 @@ export class FakeDomElement {
     return this.#children
   }
 
+  #attributes = new Map<string, string>()
+
+  setAttribute(name: string, value: string): void {
+    this.#attributes.set(name, String(value))
+  }
+
+  getAttribute(name: string): string | null {
+    return this.#attributes.get(name) ?? null
+  }
+
   get scrollHeight(): number {
     if (this.#explicitScrollHeight !== null) {
       return this.#explicitScrollHeight

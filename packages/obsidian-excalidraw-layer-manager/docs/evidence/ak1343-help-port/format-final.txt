@@ -1,0 +1,155 @@
+docs/evidence/ak1343-help-port/browser-check.mjs:34:58 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    32 │ let child, owned, cdp
+    33 │ const checks = []
+  > 34 │ const save = (name, value) => writeFile(join(out, name), JSON.stringify(value, null, 2) + "\n")
+       │                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    35 │ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+    36 │ try {
+  
+  i Unsafe fix: Use a template literal.
+  
+     32  32 │   let child, owned, cdp
+     33  33 │   const checks = []
+     34     │ - const·save·=·(name,·value)·=>·writeFile(join(out,·name),·JSON.stringify(value,·null,·2)·+·"\n")
+         34 │ + const·save·=·(name,·value)·=>·writeFile(join(out,·name),·`${JSON.stringify(value,·null,·2)}\n`)
+     35  35 │   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+     36  36 │   try {
+  
+
+src/ui/excalidrawSidepanelRenderer.ts:1563:11 lint/complexity/useOptionalChain  FIXABLE  ━━━━━━━━━━━
+
+  ! Change to an optional chain.
+  
+    1562 │       const targetGroup = context.nodeById.get(targetGroupNodeId)
+  > 1563 │       if (!targetGroup || targetGroup.type !== "group" || !targetGroup.groupId) {
+         │           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    1564 │         this.notify("Keyboard move into group failed: focused row is not a group target.")
+    1565 │         return
+  
+  i Unsafe fix: Change to an optional chain.
+  
+    1561 1561 │   
+    1562 1562 │         const targetGroup = context.nodeById.get(targetGroupNodeId)
+    1563      │ - ······if·(!targetGroup·||·targetGroup.type·!==·"group"·||·!targetGroup.groupId)·{
+         1563 │ + ······if·(targetGroup?.type·!==·"group"·||·!targetGroup.groupId)·{
+    1564 1564 │           this.notify("Keyboard move into group failed: focused row is not a group target.")
+    1565 1565 │           return
+  
+
+src/ui/excalidrawSidepanelRenderer.ts:3034:9 lint/complexity/useOptionalChain  FIXABLE  ━━━━━━━━━━━━
+
+  ! Change to an optional chain.
+  
+    3032 │     contentRoot: HTMLElement | null = this.#contentRoot,
+    3033 │   ): HTMLElement | null {
+  > 3034 │     if (this.#rowTreeRoot && contentRoot && contentRoot.contains(this.#rowTreeRoot)) {
+         │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    3035 │       return this.#rowTreeRoot
+    3036 │     }
+  
+  i Unsafe fix: Change to an optional chain.
+  
+    3032 3032 │       contentRoot: HTMLElement | null = this.#contentRoot,
+    3033 3033 │     ): HTMLElement | null {
+    3034      │ - ····if·(this.#rowTreeRoot·&&·contentRoot·&&·contentRoot.contains(this.#rowTreeRoot))·{
+         3034 │ + ····if·(this.#rowTreeRoot·&&·contentRoot?.contains(this.#rowTreeRoot))·{
+    3035 3035 │         return this.#rowTreeRoot
+    3036 3036 │       }
+  
+
+test/runtime.sidepanel-focus-keyboard.integration.test.ts:3:13 lint/correctness/noUnusedImports  FIXABLE  ━━━━━━━━━━
+
+  ! This import is unused.
+  
+    1 │ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+    2 │ 
+  > 3 │ import type { ScriptSettings } from "../src/adapter/excalidraw-types.js"
+      │             ^^^^^^^^^^^^^^^^^^
+    4 │ import type { LayerNode } from "../src/model/tree.js"
+    5 │ import type { ExecuteIntentOutcome } from "../src/runtime/intentExecution.js"
+  
+  i Unused imports might be the result of an incomplete refactoring.
+  
+  i Unsafe fix: Remove the unused imports.
+  
+       1      │ - import·{·afterEach,·beforeEach,·describe,·expect,·it,·vi·}·from·"vitest"
+            1 │ + import·{·afterEach,·beforeEach,·describe,·expect,·it,·vi·}·from·"vitest"
+       2    2 │   
+       3      │ - import·type·{·ScriptSettings·}·from·"../src/adapter/excalidraw-types.js"
+       4    3 │   import type { LayerNode } from "../src/model/tree.js"
+       5    4 │   import type { ExecuteIntentOutcome } from "../src/runtime/intentExecution.js"
+  
+
+test/runtime.sidepanel-focus-keyboard.integration.test.ts:8:39 lint/correctness/noUnusedImports  FIXABLE  ━━━━━━━━━━
+
+  ! Several of these imports are unused.
+  
+     6 │ import { createExcalidrawSidepanelRenderer } from "../src/ui/excalidrawSidepanelRenderer.js"
+     7 │ import type { LayerManagerUiActions } from "../src/ui/renderer.js"
+   > 8 │ import type { DispatchKeydownOptions, SidepanelTabHarness } from "./sidepanelTestHarness.js"
+       │                                       ^^^^^^^^^^^^^^^^^^^
+     9 │ import {
+    10 │   dispatchClick,
+  
+  i Unused imports might be the result of an incomplete refactoring.
+  
+  i Unsafe fix: Remove the unused imports.
+  
+    8 │ import·type·{·DispatchKeydownOptions,·SidepanelTabHarness·}·from·"./sidepanelTestHarness.js"
+      │                                       --------------------                                  
+
+test/runtime.sidepanel-focus-keyboard.integration.test.ts:326:11 lint/correctness/noUnusedVariables  FIXABLE  ━━━━━━━━━━
+
+  ! This variable inlinePresetButton is unused.
+  
+    324 │     contentRoot = getContentRoot(sidepanelTab.contentEl)
+    325 │     const rootButton = findButtonByExactText(contentRoot, "Root")
+  > 326 │     const inlinePresetButton = findButtonByExactText(contentRoot, "Inside G1")
+        │           ^^^^^^^^^^^^^^^^^^
+    327 │     const secondPresetButton = findButtonByExactText(contentRoot, "Inside G2")
+    328 │     const textFragments = flattenElements(contentRoot)
+  
+  i Unused variables are often the result of typos, incomplete refactors, or other sources of bugs.
+  
+  i Unsafe fix: If this is intentional, prepend inlinePresetButton with an underscore.
+  
+     324  324 │       contentRoot = getContentRoot(sidepanelTab.contentEl)
+     325  325 │       const rootButton = findButtonByExactText(contentRoot, "Root")
+     326      │ - ····const·inlinePresetButton·=·findButtonByExactText(contentRoot,·"Inside·G1")
+          326 │ + ····const·_inlinePresetButton·=·findButtonByExactText(contentRoot,·"Inside·G1")
+     327  327 │       const secondPresetButton = findButtonByExactText(contentRoot, "Inside G2")
+     328  328 │       const textFragments = flattenElements(contentRoot)
+  
+
+test/runtime.sidepanel-focus-keyboard.integration.test.ts:327:11 lint/correctness/noUnusedVariables  FIXABLE  ━━━━━━━━━━
+
+  ! This variable secondPresetButton is unused.
+  
+    325 │     const rootButton = findButtonByExactText(contentRoot, "Root")
+    326 │     const inlinePresetButton = findButtonByExactText(contentRoot, "Inside G1")
+  > 327 │     const secondPresetButton = findButtonByExactText(contentRoot, "Inside G2")
+        │           ^^^^^^^^^^^^^^^^^^
+    328 │     const textFragments = flattenElements(contentRoot)
+    329 │       .map((element) => element.textContent ?? "")
+  
+  i Unused variables are often the result of typos, incomplete refactors, or other sources of bugs.
+  
+  i Unsafe fix: If this is intentional, prepend secondPresetButton with an underscore.
+  
+     325  325 │       const rootButton = findButtonByExactText(contentRoot, "Root")
+     326  326 │       const inlinePresetButton = findButtonByExactText(contentRoot, "Inside G1")
+     327      │ - ····const·secondPresetButton·=·findButtonByExactText(contentRoot,·"Inside·G2")
+          327 │ + ····const·_secondPresetButton·=·findButtonByExactText(contentRoot,·"Inside·G2")
+     328  328 │       const textFragments = flattenElements(contentRoot)
+     329  329 │         .map((element) => element.textContent ?? "")
+  
+
+Skipped 8 suggested fixes.
+If you wish to apply the suggested (unsafe) fixes, use the command biome check --write --unsafe
+
+Checked 7 files in 78ms. Fixed 5 files.
+Found 6 warnings.
+Found 1 info.

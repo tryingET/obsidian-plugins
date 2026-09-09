@@ -46,6 +46,7 @@ import { createRememberedDestinationReconcileActor } from "./sidepanel/quickmove
 import { SidepanelInlineRenameController } from "./sidepanel/rename/inlineRenameController.js"
 import { InlineRenameDomSession } from "./sidepanel/rename/inlineRenameDomSession.js"
 import { createExcalidrawLikeIconNode } from "./sidepanel/render/excalidrawIconNode.js"
+import { SidepanelKeyboardHelp } from "./sidepanel/render/keyboardHelp.js"
 import {
   renderSidepanelQuickMove,
   resolveQuickMoveShortcutTargets,
@@ -181,32 +182,6 @@ const TOOLBAR_FONT_SIZE_PX = 11
 const GROUP_ROW_DROP_EDGE_RATIO = 0.24
 const GROUP_ROW_DROP_EDGE_MIN_PX = 4
 const SIDEPANEL_INTERACTION_DEBUG_FLAG = "LMX_DEBUG_SIDEPANEL_INTERACTION"
-const SIDEPANEL_KEYBOARD_HINT_LINES = [
-  "↑/↓ focus rows",
-  "Shift+↑/↓ extend row selection",
-  "Home/End bounds",
-  "PgUp/PgDn page",
-  "Shift+PgUp/PgDn extend page",
-  "Space select/deselect row",
-  "Ctrl+Space toggle row",
-  "Shift+Space add range to selection",
-  "←/→ collapse/expand",
-  "Enter rename",
-  "Del delete",
-  "Alt+↑/↓ nudge order",
-  "Alt+[ / ] out/in group",
-  "Alt+0 root",
-  "Alt+1..9 pick group",
-  "F/B reorder",
-  "Shift+F/B front/back",
-  "G/U structural",
-] as const
-
-const SIDEPANEL_KEYBOARD_HINT_TOOLTIP = [
-  "Keyboard shortcuts",
-  ...SIDEPANEL_KEYBOARD_HINT_LINES,
-].join("\n")
-
 const resolveRowSelectionDebugSemantics = (
   source: RowSelectionGesture["source"],
 ): {
@@ -648,6 +623,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   })
   #contentRoot: HTMLElement | null = null
   #rowTreeRoot: HTMLDivElement | null = null
+  #statusHeader: HTMLDivElement | null = null
   #renderedRowPreviewStateByNodeId = new Map<string, RenderedRowPreviewState>()
   #lastRenderedDragDropHint: DragDropHint | null = null
   #latestModel: RenderViewModel | null = null
@@ -678,8 +654,10 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     readonly projection: ReturnType<typeof buildSidepanelQuickMoveDestinationProjection>
   } | null = null
   readonly #rowDomIdPrefix = `lmx-row-${++nextSidepanelRendererInstanceId}`
+  readonly #keyboardHelp = new SidepanelKeyboardHelp(`${this.#rowDomIdPrefix}-help`)
 
   readonly #contentKeydownHandler = (event: KeyboardEvent): void => {
+    if (this.#keyboardHelp.ownsTarget(event.target)) return
     traceKeyboardEventIfRelevant("renderer:content-keydown", event, {
       keyboardRoutingActive: this.#focusOwnership.isKeyboardRoutingActive(),
       keyboardCaptureActive: this.#focusOwnership.isKeyboardCaptureActive(),
@@ -692,6 +670,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   }
 
   readonly #documentKeydownHandler = (event: KeyboardEvent): void => {
+    if (this.#keyboardHelp.ownsTarget(event.target)) return
     traceKeyboardEventIfRelevant("renderer:document-keydown", event, {
       keyboardRoutingActive: this.#focusOwnership.isKeyboardRoutingActive(),
       keyboardCaptureActive: this.#focusOwnership.isKeyboardCaptureActive(),
@@ -742,6 +721,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   }
 
   readonly #documentKeypressHandler = (event: KeyboardEvent): void => {
+    if (this.#keyboardHelp.ownsTarget(event.target)) return
     traceKeyboardEventIfRelevant("renderer:document-keypress", event, {
       keyboardRoutingActive: this.#focusOwnership.isKeyboardRoutingActive(),
       keyboardCaptureActive: this.#focusOwnership.isKeyboardCaptureActive(),
@@ -760,6 +740,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   }
 
   readonly #documentKeyupHandler = (event: KeyboardEvent): void => {
+    if (this.#keyboardHelp.ownsTarget(event.target)) return
     traceKeyboardEventIfRelevant("renderer:document-keyup", event, {
       keyboardRoutingActive: this.#focusOwnership.isKeyboardRoutingActive(),
       keyboardCaptureActive: this.#focusOwnership.isKeyboardCaptureActive(),
@@ -1079,6 +1060,7 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     this.renderLiveRows(liveRenderRoot, model.actions, liveRenderState)
     this.finalizeLiveRender(liveRenderRoot.contentRoot)
     this.#inlineRenameDomSession.restoreFocus()
+    this.#keyboardHelp.restoreFocus()
   }
 
   private beginLiveRender(): SidepanelLiveRenderRoot | null {
@@ -1089,6 +1071,10 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
 
     const ownerDocument = contentRoot.ownerDocument
     const activeElementBeforeRender = ownerDocument.activeElement
+    if (this.#keyboardHelp.beforeRender(contentRoot)) {
+      this.cancelDeferredFocusRestore()
+      this.#focusOwnership.setShouldAutofocusContentRoot(false)
+    }
     const previousRowTreeRoot = this.#rowTreeRoot
     const shouldRestoreRowTreeFocus = !!(
       activeElementBeforeRender &&
@@ -1102,7 +1088,10 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
       this.requestRowTreeAutofocus()
     }
 
-    contentRoot.innerHTML = ""
+    // Keep native button activation alive across a refresh between Space down/up.
+    for (const child of Array.from(contentRoot.children)) {
+      if (child !== this.#statusHeader) child.remove()
+    }
     this.#rowTreeRoot = null
     this.clearRenderedRowPreviewState()
 
@@ -1278,10 +1267,17 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     ownerDocument: Document,
     sceneVersion: number,
   ): void {
+    if (this.#statusHeader?.parentElement === container) {
+      const title = this.#statusHeader.children[0]
+      if (title) title.textContent = `Layer Manager · v${sceneVersion}`
+      return
+    }
     const header = ownerDocument.createElement("div")
+    this.#statusHeader = header
     header.style.display = "flex"
     header.style.alignItems = "center"
     header.style.justifyContent = "space-between"
+    header.style.flexWrap = "wrap"
     header.style.gap = "8px"
     header.style.marginBottom = "6px"
 
@@ -1289,7 +1285,11 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     title.style.fontWeight = "600"
     title.textContent = `Layer Manager · v${sceneVersion}`
     header.appendChild(title)
-    header.appendChild(this.createKeyboardHelpButton(ownerDocument))
+    const help = this.#keyboardHelp.render(ownerDocument, () =>
+      this.createIconNode(ownerDocument, "help-circle", "?"),
+    )
+    header.appendChild(help.button)
+    header.appendChild(help.panel)
 
     container.appendChild(header)
   }
@@ -2238,6 +2238,8 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   }
 
   private clearInteractiveBindings(): void {
+    this.#keyboardHelp.reset()
+    this.#statusHeader = null
     this.#inlineRenameDomSession.clear()
     this.#contentRoot?.removeEventListener("keydown", this.#contentKeydownHandler)
     this.#contentRoot?.removeEventListener("focusout", this.#contentFocusOutHandler)
@@ -2580,6 +2582,8 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   }
 
   private resetForViewContextBoundary(): void {
+    this.#keyboardHelp.reset()
+    this.#statusHeader = null
     this.#inlineRenameDomSession.clear()
     this.#hostSelectionBridge.invalidatePendingSelectionMirror()
     this.cancelDeferredFocusRestore()
@@ -3092,6 +3096,10 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
   }
 
   private revealFocusedRowWithinComfortBandIfNeeded(): void {
+    if (this.#keyboardHelp.hasFocus()) {
+      this.#pendingFocusedRowRevealNodeId = null
+      return
+    }
     const pendingNodeId = this.#pendingFocusedRowRevealNodeId
     if (!pendingNodeId || !this.#focusedNodeId || pendingNodeId !== this.#focusedNodeId) {
       return
@@ -3657,24 +3665,6 @@ class ExcalidrawSidepanelRenderer implements LayerManagerRenderer {
     })
 
     return button
-  }
-
-  private createKeyboardHelpButton(ownerDocument: Document): HTMLSpanElement {
-    const helpGlyph = ownerDocument.createElement("span")
-    helpGlyph.title = SIDEPANEL_KEYBOARD_HINT_TOOLTIP
-    helpGlyph.style.minWidth = `${ICON_BUTTON_SIZE_PX}px`
-    helpGlyph.style.minHeight = `${ICON_BUTTON_SIZE_PX}px`
-    helpGlyph.style.display = "inline-flex"
-    helpGlyph.style.alignItems = "center"
-    helpGlyph.style.justifyContent = "center"
-    helpGlyph.style.color = "var(--text-muted, inherit)"
-    helpGlyph.style.cursor = "help"
-    helpGlyph.style.userSelect = "none"
-
-    const iconNode = this.createIconNode(ownerDocument, "help-circle", "?")
-    helpGlyph.appendChild(iconNode)
-
-    return helpGlyph
   }
 
   private createToolbarButton(

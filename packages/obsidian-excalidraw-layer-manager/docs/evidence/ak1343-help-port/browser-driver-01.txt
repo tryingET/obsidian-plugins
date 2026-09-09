@@ -1,0 +1,14 @@
+artifacts=/home/tryinget/.local/state/pi-quests/tmp/ak5613-browser-Lm6seA
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+'false' !== 'true'
+
+    at file:///home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager/docs/evidence/ak1343-help-port/browser-check.mjs:58:29 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: 'false',
+  expected: 'true',
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+cleanup=stopped; retained=/home/tryinget/.local/state/pi-quests/tmp/ak5613-browser-Lm6seA

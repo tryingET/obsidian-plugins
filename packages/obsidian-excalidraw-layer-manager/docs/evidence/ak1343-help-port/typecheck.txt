@@ -1,0 +1,20 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 typecheck
+npm notice run tsc --noEmit
+src/ui/excalidrawSidepanelRenderer.ts(1279,7): error TS2740: Type 'Node' is missing the following properties from type 'HTMLElement': accessKey, accessKeyLabel, autocapitalize, autocorrect, and 268 more.
+src/ui/sidepanel/render/keyboardHelp.ts(73,12): error TS2339: Property 'ariaControls' does not exist on type 'HTMLButtonElement'.
+src/ui/sidepanel/render/keyboardHelp.ts(134,43): error TS2345: Argument of type '(event: KeyboardEvent) => void' is not assignable to parameter of type 'EventListenerOrEventListenerObject'.
+  Type '(event: KeyboardEvent) => void' is not assignable to type 'EventListener'.
+    Types of parameters 'event' and 'evt' are incompatible.
+      Type 'Event' is missing the following properties from type 'KeyboardEvent': altKey, charCode, code, ctrlKey, and 17 more.
+src/ui/sidepanel/render/keyboardHelp.ts(141,48): error TS2345: Argument of type '(event: KeyboardEvent) => void' is not assignable to parameter of type 'EventListenerOrEventListenerObject'.
+  Type '(event: KeyboardEvent) => void' is not assignable to type 'EventListener'.
+    Types of parameters 'event' and 'evt' are incompatible.
+      Type 'Event' is missing the following properties from type 'KeyboardEvent': altKey, charCode, code, ctrlKey, and 17 more.
+test/runtime.sidepanel-focus-keyboard.integration.test.ts(287,5): error TS2722: Cannot invoke an object which is possibly 'undefined'.
+npm error Lifecycle script `typecheck` failed with error:
+npm error code 1
+npm error path /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+npm error workspace obsidian-excalidraw-layer-manager@0.1.0
+npm error location /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+npm error command failed
+npm error command sh -c tsc --noEmit

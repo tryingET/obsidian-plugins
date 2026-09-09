@@ -1,0 +1,11 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/sidepanel.keyboard-help.test.ts test/runtime.sidepanel-focus-keyboard.integration.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+
+ Test Files  2 passed (2)
+      Tests  31 passed (31)
+   Start at  14:12:56
+   Duration  1.14s (transform 422ms, setup 0ms, import 488ms, tests 669ms, environment 0ms)
+

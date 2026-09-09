@@ -1,0 +1,26 @@
+docs/evidence/ak1343-help-port/browser-check.mjs:34:58 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    32 │ let child, owned, cdp
+    33 │ const checks = []
+  > 34 │ const save = (name, value) => writeFile(join(out, name), JSON.stringify(value, null, 2) + "\n")
+       │                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    35 │ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+    36 │ try {
+  
+  i Unsafe fix: Use a template literal.
+  
+     32  32 │   let child, owned, cdp
+     33  33 │   const checks = []
+     34     │ - const·save·=·(name,·value)·=>·writeFile(join(out,·name),·JSON.stringify(value,·null,·2)·+·"\n")
+         34 │ + const·save·=·(name,·value)·=>·writeFile(join(out,·name),·`${JSON.stringify(value,·null,·2)}\n`)
+     35  35 │   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+     36  36 │   try {
+  
+
+Skipped 1 suggested fixes.
+If you wish to apply the suggested (unsafe) fixes, use the command biome check --write --unsafe
+
+Checked 3 files in 9ms. Fixed 1 file.
+Found 1 info.

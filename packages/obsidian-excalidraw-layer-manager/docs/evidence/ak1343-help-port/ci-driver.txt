@@ -1,0 +1,2 @@
+WARN: 8 kernel-protected current-uid process(es) were outside reference inspection
+ERROR: retained-run enforcement failed: process-reference scan incomplete for /home/tryinget/.cache/ai-society-scratch/runs/run-1788137699-9655c994d9827ead

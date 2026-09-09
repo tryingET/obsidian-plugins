@@ -211,7 +211,7 @@ describe("sidepanel focus + keyboard integration", () => {
     expect(actions.reorderFromNodeIds).toHaveBeenNthCalledWith(2, ["group:Outer"], "forward")
   })
 
-  it("renders keyboard shortcuts behind a compact help tooltip", () => {
+  it("Given on-demand help When refreshed Then retains disclosure and owned focus without stealing outside focus", () => {
     const sidepanelTab = makeSidepanelTab(fakeDocument, null)
     const { actions } = makeUiActions()
 
@@ -232,20 +232,62 @@ describe("sidepanel focus + keyboard integration", () => {
     })
 
     const contentRoot = getContentRoot(sidepanelTab.contentEl)
-    const helpGlyph = flattenElements(contentRoot).find(
-      (element) =>
-        element.title.includes("Keyboard shortcuts") &&
-        element.title.includes("Alt+0 root") &&
-        element.title.includes("Ctrl+Space toggle row"),
+    const help = findButtonByTitle(contentRoot, "Keyboard shortcuts")
+    expect(help?.tagName).toBe("BUTTON")
+    if (!help) throw Error("Expected accessible help button")
+    const disclosure = help as FakeDomElement & { ariaExpanded: string }
+    const panel = flattenElements(contentRoot).find(
+      (element) => element.id === help.getAttribute("aria-controls"),
     )
-    const textFragments = flattenElements(contentRoot)
-      .map((element) => element.textContent ?? "")
-      .filter((text) => text.length > 0)
-    expect(helpGlyph).toBeDefined()
-    expect((helpGlyph as FakeDomElement | undefined)?.tagName).toBe("SPAN")
-    expect(textFragments).not.toContain(
-      "Shortcuts: ↑/↓ focus rows · Shift+↑/↓ extend row selection · Home/End bounds · PgUp/PgDn page · Shift+PgUp/PgDn extend page · Space select/deselect row · Ctrl+Space toggle row · Shift+Space add range to selection · ←/→ collapse/expand · Enter rename · Del delete · Alt+↑/↓ nudge order · Alt+[ / ] out/in group · Alt+0 root · Alt+1..9 pick group · F/B reorder · Shift+F/B front/back · G/U structural",
+    expect(panel?.style["display"]).toBe("none")
+    expect(panel?.textContent).toContain("Alt+0 root")
+    expect(panel?.textContent).toContain("Ctrl+Space toggle row")
+    contentRoot.dispatchEvent(new FakeDomEvent("focusin"))
+    for (const type of ["keydown", "keypress", "keyup"]) {
+      const event = new FakeDomEvent(type, { key: " ", code: "Space" })
+      event.target = help as unknown as EventTarget
+      fakeDocument.dispatchEvent(event)
+      expect(event.defaultPrevented).toBe(false)
+      expect(event.propagationStopped).toBe(false)
+    }
+    // Positive control: routing stayed active; the exemption wasn't an outside-focus reset.
+    const rowSpace = new FakeDomEvent("keypress", { key: " ", code: "Space" })
+    rowSpace.target = contentRoot as unknown as EventTarget
+    fakeDocument.dispatchEvent(rowSpace)
+    expect(rowSpace.defaultPrevented).toBe(true)
+    expect(actions.renameNode).not.toHaveBeenCalled()
+    expect(actions.deleteNode).not.toHaveBeenCalled()
+    expect(actions.createGroupFromNodeIds).not.toHaveBeenCalled()
+    help.focus()
+    dispatchClick(help)
+    expect(disclosure.ariaExpanded).toBe("true")
+    const refresh = () =>
+      renderer.render({
+        tree: [makeElementNode("A")],
+        selectedIds: new Set(),
+        sceneVersion: 30,
+        actions,
+      })
+    refresh()
+    expect(findButtonByTitle(getContentRoot(sidepanelTab.contentEl), "Keyboard shortcuts")).toBe(
+      help,
     )
+    expect(disclosure.ariaExpanded).toBe("true")
+    expect(fakeDocument.activeElement).toBe(help)
+    if (!panel) throw Error("Expected help content")
+    panel.scrollTop = 120
+    panel.focus()
+    refresh()
+    expect(fakeDocument.activeElement).toBe(panel)
+    expect(panel.scrollTop).toBe(120)
+    const outside = fakeDocument.createElement("input")
+    outside.focus()
+    refresh()
+    expect(fakeDocument.activeElement).toBe(outside)
+    renderer.dispose?.()
+    const staleEvent = new FakeDomEvent("keydown", { key: "Escape" })
+    help.dispatchEvent(staleEvent)
+    expect(staleEvent.propagationStopped).toBe(false)
   })
 
   it("shows Alt-number group hints and runs the numbered destination without mouse input", async () => {
@@ -1061,6 +1103,42 @@ describe("sidepanel focus + keyboard integration", () => {
 
     contentRoot = getContentRoot(sidepanelTab.contentEl)
     expect(findFirstInput(contentRoot)).toBeDefined()
+  })
+
+  it("Given a distant review cursor When help owns focus Then refresh and queued row reveals do not scroll help away", async () => {
+    const sidepanelTab = makeSidepanelTab(fakeDocument, null)
+    sidepanelTab.contentEl.clientHeight = 120
+    const { actions } = makeUiActions()
+    const renderer = createExcalidrawSidepanelRenderer({
+      sidepanelTab: sidepanelTab.tab,
+      getScriptSettings: () => ({}),
+    })
+    if (!renderer) throw Error("Expected renderer")
+    const model = {
+      tree: Array.from({ length: 40 }, (_, i) => makeElementNode(`${i}`, `Row ${i}`)),
+      selectedIds: new Set<string>(),
+      sceneVersion: 50,
+      actions,
+    }
+    renderer.render(model)
+    let root = getContentRoot(sidepanelTab.contentEl)
+    dispatchKeydown(root, "End")
+    await flushAsync()
+    root = getContentRoot(sidepanelTab.contentEl)
+    expect(sidepanelTab.contentEl.scrollTop).toBeGreaterThan(0)
+    const help = findButtonByTitle(root, "Keyboard shortcuts")
+    if (!help) throw Error("Expected help")
+    const panelId = help.getAttribute("aria-controls")
+    const panel = flattenElements(root).find((element) => element.id === panelId)
+    if (!panel) throw Error("Expected help panel")
+    help.click()
+    panel.focus()
+    sidepanelTab.contentEl.scrollTop = 0
+    renderer.render({ ...model, sceneVersion: 51 })
+    await flushAsync()
+    expect(fakeDocument.activeElement).toBe(panel)
+    expect(sidepanelTab.contentEl.scrollTop).toBe(0)
+    renderer.dispose?.()
   })
 
   it("keeps keyboard review cursor inside a comfort band while navigating long row lists", async () => {

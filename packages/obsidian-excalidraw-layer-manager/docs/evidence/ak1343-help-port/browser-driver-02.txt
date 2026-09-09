@@ -1,0 +1,3 @@
+artifacts=/home/tryinget/.local/state/pi-quests/tmp/ak5613-browser-7oBQXr
+{"status":"passed","checks":["Enter native input toggles exactly once","Space native input toggles exactly once","Refresh between Space down/up preserves one native activation","Tab reaches scrolling region; PageDown scrolls with native defaults","Refresh preserves reading position; Escape closes and returns button focus","Help input never invokes layer actions","Outside focus not stolen by refresh"]}
+cleanup=stopped; retained=/home/tryinget/.local/state/pi-quests/tmp/ak5613-browser-7oBQXr
