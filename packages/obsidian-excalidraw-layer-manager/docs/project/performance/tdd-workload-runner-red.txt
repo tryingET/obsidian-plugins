@@ -1,0 +1,49 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/workload-runner.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/workload-runner.test.ts (3 tests | 2 failed) 9ms
+     × When giant hits the cap Then censor its branch and continue qualified others without replay 4ms
+     × When a non-resource failure occurs Then preserve operational failure and never dispatch the next case 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/workload-runner.test.ts > Given per-shape resource progression and serial native dispatch > When giant hits the cap Then censor its branch and continue qualified others without replay
+Error: case failed; stop whole matrix
+ ❯ advanceWorkloads scripts/performance/workload-runner.js:15:41
+     13|     await checkpoint()
+     14|     const fact = await measure(c, disposition.previousSizes)
+     15|     if (fact.status !== "passed") throw Error("case failed; stop whole…
+       |                                         ^
+     16|     Object.assign(c, fact)
+     17|     await checkpoint()
+ ❯ test/performance/workload-runner.test.ts:13:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  test/performance/workload-runner.test.ts > Given per-shape resource progression and serial native dispatch > When a non-resource failure occurs Then preserve operational failure and never dispatch the next case
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ test/performance/workload-runner.test.ts:23:65
+     21|     await expect(advanceWorkloads(cases, measure)).rejects.toThrow("fo…
+     22|     expect(measure).toHaveBeenCalledOnce()
+     23|     expect(cases.some(c => c.status === "operational-failure")).toBe(t…
+       |                                                                 ^
+     24|   })
+     25|   it("When interrupted during measurement Then a passed child cannot a…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 1 passed (3)
+   Start at  16:34:25
+   Duration  227ms (transform 96ms, setup 0ms, import 112ms, tests 9ms, environment 0ms)
+

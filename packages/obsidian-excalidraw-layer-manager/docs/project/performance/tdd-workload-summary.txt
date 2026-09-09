@@ -1,0 +1,4142 @@
+=== RED: subset reporting scaffold against required accounting and rejection scenarios ===
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/workload-summary.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/workload-summary.test.ts (42 tests | 42 failed) 112ms
+     × When no cases are supplied Then all192 cases remain missing and no aggregate/win exists 5ms
+     × When one case passed and another is censored Then neither missing cases nor censored packets become measured 1ms
+     × When all three role pairs and two holdouts pass Then only that size/shape coverage is complete 1ms
+     × When resource-censored partial packets are supplied Then validate and retain counts without timing aggregation 0ms
+     × When a held-out case passes Then expose semantic inventory without timing statistics or confirmation 6ms
+     × When only baseline and a different seed calibration exist Then never pair across seeds 1ms
+     × When excluding two retained warmups Then report eight subsamples with midpoint median and descriptive maximum p95 1ms
+     × When the shape is ungrouped Then70 packets are complete and expansion/collapse remain inapplicable 1ms
+     × When inputs are reordered Then summary ordering is deterministic and input bytes are unchanged 66ms
+     × When retained warmups have coarser timer quantum Then the matched budget retains that information 1ms
+     × When provenance locks differ but subjects match Then preserve both locks and defer lineage authentication to the controller 1ms
+     × When input median is11ms Then exact10percent boundary yieldswithin-budget 1ms
+     × When input median is11.001ms Then exact10percent boundary yieldsinconclusive 1ms
+     × When settlement median is55ms Then its fixed budget yieldswithin-budget 1ms
+     × When settlement median is55.001ms Then its fixed budget yieldsinconclusive 1ms
+     × When submillisecond timings change within absolute floors Then no percentage-only veto appears 1ms
+     × When one measured render tail is150ms Then catastrophic guard yieldswithin-budget 1ms
+     × When one measured render tail is150.001ms Then catastrophic guard yieldsinconclusive 1ms
+     × When one cell exceeds its budget Then keep exact cell reasons but never infer an improvement or candidate regression 1ms
+     × Whenduplicate-id occurs Then fail closed rather than report a passing subset 1ms
+     × Whenduplicate-key occurs Then fail closed rather than report a passing subset 0ms
+     × Whennonce occurs Then fail closed rather than report a passing subset 0ms
+     × Whensource occurs Then fail closed rather than report a passing subset 0ms
+     × Whenscript occurs Then fail closed rather than report a passing subset 0ms
+     × Whenlock occurs Then fail closed rather than report a passing subset 0ms
+     × Whencandidate occurs Then fail closed rather than report a passing subset 0ms
+     × Whensize occurs Then fail closed rather than report a passing subset 1ms
+     × Whenseed occurs Then fail closed rather than report a passing subset 1ms
+     × Whenshape occurs Then fail closed rather than report a passing subset 1ms
+     × Whenunknown-status occurs Then fail closed rather than report a passing subset 1ms
+     × Whenmissing-packet occurs Then fail closed rather than report a passing subset 1ms
+     × Whenduplicate-packet occurs Then fail closed rather than report a passing subset 1ms
+     × Whenextra-packet occurs Then fail closed rather than report a passing subset 1ms
+     × Whenoperation occurs Then fail closed rather than report a passing subset 1ms
+     × Whenindex occurs Then fail closed rather than report a passing subset 2ms
+     × Whenscene occurs Then fail closed rather than report a passing subset 1ms
+     × Whensemantic occurs Then fail closed rather than report a passing subset 1ms
+     × Whentiming occurs Then fail closed rather than report a passing subset 7ms
+     × Whenquantum occurs Then fail closed rather than report a passing subset 1ms
+     × Whenbudget-overflow occurs Then fail closed rather than report a passing subset 1ms
+     × When a not-admitted case carries packets Then do not silently adopt contradictory evidence 1ms
+     × When a partial censored packet lies Then reject it even though no timing aggregate would include it 0ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 42 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/workload-summary.test.ts > Given per-workload reporting must preserve missing and censored coverage > When no cases are supplied Then all192 cases remain missing and no aggregate/win exists
+AssertionError: expected undefined to match object { requiredCases: 192, …(3) }
+
+- Expected:
+{
+  "missingCases": 192,
+  "passedCases": 0,
+  "requiredCases": 192,
+  "suppliedCases": 0,
+}
+
++ Received:
+undefined
+
+ ❯ test/performance/workload-summary.test.ts:40:28
+     38|   it("When no cases are supplied Then all192 cases remain missing and …
+     39|     const summary = summarizeWorkloadCases([])
+     40|     expect(summary.counts).toMatchObject({ requiredCases: 192, supplie…
+       |                            ^
+     41|     expect(summary.coverage).toHaveLength(24)
+     42|     expect(summary.coverage.every(c => !c.complete)).toBe(true)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/42]⎯
+
+ FAIL  test/performance/workload-summary.test.ts > Given per-workload reporting must preserve missing and censored coverage > When one case passed and another is censored Then neither missing cases nor censored packets become measured
+AssertionError: expected undefined to match object { passedCases: 1, …(5) }
+
+- Expected:
+{
+  "measuredTimingSamples": 72,
+  "missingCases": 189,
+  "notAdmittedCases": 1,
+  "passedCases": 1,
+  "resourceCensoredCases": 1,
+  "retainedSamples": 90,
+}
+
++ Received:
+undefined
+
+ ❯ test/performance/workload-summary.test.ts:50:28
+     48|     const omitted = { ...censored, id: "not-admitted", seed: 558303, s…
+     49|     const summary = summarizeWorkloadCases([makeCase(), censored, omit…
+     50|     expect(summary.counts).toMatchObject({ passedCases: 1, resourceCen…
+       |                            ^
+     51|       missingCases: 189, retainedSamples: 90, measuredTimingSamples: 7…
+     52|     expect(summary.coverage.find(c => c.size === 10000 && c.shape === …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/42]⎯
+
+ FAIL  test/performance/workload-summary.test.ts > Given per-workload reporting must preserve missing and censored coverage > When all three role pairs and two holdouts pass Then only that size/shape coverage is complete
+TypeError: Cannot read properties of undefined (reading 'filter')
+ ❯ test/performance/workload-summary.test.ts:62:29
+     60|     cases.push(makeCase("holdout", 10000, "ten", 958301), makeCase("ho…
+     61|     const summary = summarizeWorkloadCases(cases)
+     62|     expect(summary.coverage.filter(c => c.complete)).toEqual([expect.o…
+       |                             ^
+     63|     expect(summary.counts).toMatchObject({ suppliedCases: 8, missingCa…
+     64|     expect(summary.globalAggregateAvailable).toBe(false)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/42]⎯
+
+ FAIL  test/performance/workload-summary.test.ts > Given per-workload reporting must preserve missing and censored coverage > When resource-censored partial packets are supplied Then validate and retain counts without timing aggregation
+AssertionError: expected undefined to match object { retainedSamples: 12, …(1) }
+
+- Expected:
+{
+  "measuredTimingSamples": 0,
+  "retainedSamples": 12,
+}
+
++ Received:
+undefined
+
+ ❯ test/performance/workload-summary.test.ts:70:28
+     68|     const c = makeCase(); c.status = "resource-censored"; c.packets = …
+     69|     const summary = summarizeWorkloadCases([c])
+     70|     expect(summary.counts).toMatchObject({ retainedSamples: 12, measur…
+       |                            ^
+     71|     expect(summary.cases[0]).toMatchObject({ status: "resource-censore…
+     72|     expect(summary.cases[0]?.operations).toBeUndefined()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/42]⎯
+
+ FAIL  test/performance/workload-summary.test.ts > Given per-workload reporting must preserve missing and censored coverage > When a held-out case passes Then expose semantic inventory without timing statistics or confirmation
+AssertionError: expected { …(11) } to match object { sampleCount: 9, …(3) }
+(11 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "holdoutTimingConfirmed": false,
+-   "measuredCount": 0,
+-   "sampleCount": 9,
+-   "semanticOperations": [
+-     "external-closed",
+-     "open",
+-     "select",
+-     "expand",
+-     "rename",
+-     "external",
+-     "reorder",
+-     "collapse",
+-     "close",
++   "hostNonce": "native-nonce-10000-giant-958301-holdout",
++   "id": "10000-giant-958301-holdout",
++   "lockHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
++   "packets": [
++     {
++       "beforeHashes": {
++         "rows": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++         "scene": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
++         "selection": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++       },
++       "checks": [
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "scene-exact",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "rows-exact",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "selection-exact",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "runtime-fresh",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "staging-preserved",
++         },
++       ],
++       "counts": {
++         "rows": 10000,
++         "scene": 10000,
++         "selected": 0,
++       },
++       "index": 0,
++       "inputPhase": "post-requestAnimationFrame",
++       "native": true,
++       "operation": "external-closed",
++       "status": "passed",
++       "timerQuantumMs": 0.01,
++       "timing": {
++         "inputSync": 10,
++         "promiseComplete": 10,
++         "renderOpportunities": [
++           75,
++           100,
++         ],
++         "renderOpportunity": 100,
++         "settlement": 50,
++       },
++     },
++     {
++       "beforeHashes": {
++         "rows": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++         "scene": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
++         "selection": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++       },
++       "checks": [
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "scene-exact",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "rows-exact",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "selection-exact",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "runtime-fresh",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "staging-preserved",
++         },
++       ],
++       "counts": {
++         "rows": 10000,
++         "scene": 10000,
++         "selected": 0,
++       },
++       "index": 0,
++       "inputPhase": "post-requestAnimationFrame",
++       "native": true,
++       "operation": "open",
++       "status": "passed",
++       "timerQuantumMs": 0.01,
++       "timing": {
++         "inputSync": 10,
++         "promiseComplete": 10,
++         "renderOpportunities": [
++           75,
++           100,
++         ],
++         "renderOpportunity": 100,
++         "settlement": 50,
++       },
++     },
++     {
++       "beforeHashes": {
++         "rows": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++         "scene": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
++         "selection": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++       },
++       "checks": [
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "scene-exact",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "rows-exact",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "selection-exact",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "runtime-fresh",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "staging-preserved",
++         },
++       ],
++       "counts": {
++         "rows": 10000,
++         "scene": 10000,
++         "selected": 0,
++       },
++       "index": 0,
++       "inputPhase": "post-requestAnimationFrame",
++       "native": true,
++       "operation": "select",
++       "status": "passed",
++       "timerQuantumMs": 0.01,
++       "timing": {
++         "inputSync": 10,
++         "promiseComplete": 10,
++         "renderOpportunities": [
++           75,
++           100,
++         ],
++         "renderOpportunity": 100,
++         "settlement": 50,
++       },
++     },
++     {
++       "beforeHashes": {
++         "rows": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++         "scene": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
++         "selection": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++       },
++       "checks": [
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "scene-exact",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "rows-exact",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "selection-exact",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "runtime-fresh",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "staging-preserved",
++         },
++       ],
++       "counts": {
++         "rows": 10000,
++         "scene": 10000,
++         "selected": 0,
++       },
++       "index": 0,
++       "inputPhase": "post-requestAnimationFrame",
++       "native": true,
++       "operation": "expand",
++       "status": "passed",
++       "timerQuantumMs": 0.01,
++       "timing": {
++         "inputSync": 10,
++         "promiseComplete": 10,
++         "renderOpportunities": [
++           75,
++           100,
++         ],
++         "renderOpportunity": 100,
++         "settlement": 50,
++       },
++     },
++     {
++       "beforeHashes": {
++         "rows": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++         "scene": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
++         "selection": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++       },
++       "checks": [
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "scene-exact",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "rows-exact",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "selection-exact",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "runtime-fresh",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "staging-preserved",
++         },
++       ],
++       "counts": {
++         "rows": 10000,
++         "scene": 10000,
++         "selected": 0,
++       },
++       "index": 0,
++       "inputPhase": "post-requestAnimationFrame",
++       "native": true,
++       "operation": "rename",
++       "status": "passed",
++       "timerQuantumMs": 0.01,
++       "timing": {
++         "inputSync": 10,
++         "promiseComplete": 10,
++         "renderOpportunities": [
++           75,
++           100,
++         ],
++         "renderOpportunity": 100,
++         "settlement": 50,
++       },
++     },
++     {
++       "beforeHashes": {
++         "rows": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++         "scene": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
++         "selection": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++       },
++       "checks": [
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "scene-exact",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "rows-exact",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "selection-exact",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "runtime-fresh",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "staging-preserved",
++         },
++       ],
++       "counts": {
++         "rows": 10000,
++         "scene": 10000,
++         "selected": 0,
++       },
++       "index": 0,
++       "inputPhase": "post-requestAnimationFrame",
++       "native": true,
++       "operation": "external",
++       "status": "passed",
++       "timerQuantumMs": 0.01,
++       "timing": {
++         "inputSync": 10,
++         "promiseComplete": 10,
++         "renderOpportunities": [
++           75,
++           100,
++         ],
++         "renderOpportunity": 100,
++         "settlement": 50,
++       },
++     },
++     {
++       "beforeHashes": {
++         "rows": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++         "scene": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
++         "selection": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++       },
++       "checks": [
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "scene-exact",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "rows-exact",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "selection-exact",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "runtime-fresh",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "staging-preserved",
++         },
++       ],
++       "counts": {
++         "rows": 10000,
++         "scene": 10000,
++         "selected": 0,
++       },
++       "index": 0,
++       "inputPhase": "post-requestAnimationFrame",
++       "native": true,
++       "operation": "reorder",
++       "status": "passed",
++       "timerQuantumMs": 0.01,
++       "timing": {
++         "inputSync": 10,
++         "promiseComplete": 10,
++         "renderOpportunities": [
++           75,
++           100,
++         ],
++         "renderOpportunity": 100,
++         "settlement": 50,
++       },
++     },
++     {
++       "beforeHashes": {
++         "rows": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++         "scene": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
++         "selection": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++       },
++       "checks": [
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "scene-exact",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "rows-exact",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "selection-exact",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "runtime-fresh",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "staging-preserved",
++         },
++       ],
++       "counts": {
++         "rows": 10000,
++         "scene": 10000,
++         "selected": 0,
++       },
++       "index": 0,
++       "inputPhase": "post-requestAnimationFrame",
++       "native": true,
++       "operation": "collapse",
++       "status": "passed",
++       "timerQuantumMs": 0.01,
++       "timing": {
++         "inputSync": 10,
++         "promiseComplete": 10,
++         "renderOpportunities": [
++           75,
++           100,
++         ],
++         "renderOpportunity": 100,
++         "settlement": 50,
++       },
++     },
++     {
++       "beforeHashes": {
++         "rows": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++         "scene": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
++         "selection": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++       },
++       "checks": [
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "scene-exact",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "rows-exact",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "selection-exact",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "runtime-fresh",
++         },
++         {
++           "actual": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++           "id": "staging-preserved",
++         },
+        ],
++       "counts": {
++         "rows": 10000,
++         "scene": 10000,
++         "selected": 0,
++       },
++       "index": 0,
++       "inputPhase": "post-requestAnimationFrame",
++       "native": true,
++       "operation": "close",
++       "status": "passed",
++       "timerQuantumMs": 0.01,
++       "timing": {
++         "inputSync": 10,
++         "promiseComplete": 10,
++         "renderOpportunities": [
++           75,
++           100,
++         ],
++         "renderOpportunity": 100,
++         "settlement": 50,
++       },
++     },
++   ],
++   "role": "holdout",
++   "scriptHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
++   "seed": 958301,
++   "shape": "giant",
++   "size": 10000,
++   "sourceHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++   "status": "passed",
+  }
+
+ ❯ test/performance/workload-summary.test.ts:76:30
+     74|   it("When a held-out case passes Then expose semantic inventory witho…
+     75|     const summary = summarizeWorkloadCases([makeCase("holdout")])
+     76|     expect(summary.cases[0]).toMatchObject({ sampleCount: 9, measuredC…
+       |                              ^
+     77|     expect(summary.cases[0]?.operations).toBeUndefined()
+     78|     expect(summary.pairs).toEqual([])
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/42]⎯
+
+ FAIL  test/performance/workload-summary.test.ts > Given per-workload reporting must preserve missing and censored coverage > When only baseline and a different seed calibration exist Then never pair across seeds
+AssertionError: Target cannot be null or undefined.
+ ❯ test/performance/workload-summary.test.ts:82:27
+     80|   it("When only baseline and a different seed calibration exist Then n…
+     81|     const summary = summarizeWorkloadCases([makeCase(), makeCase("cali…
+     82|     expect(summary.pairs).toHaveLength(2)
+       |                           ^
+     83|     expect(summary.pairs.every(p => p.status === "unpaired")).toBe(tru…
+     84|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/42]⎯
+
+ FAIL  test/performance/workload-summary.test.ts > Given complete native timing packets > When excluding two retained warmups Then report eight subsamples with midpoint median and descriptive maximum p95
+AssertionError: expected undefined to match object { sampleCount: 10, …(3) }
+
+- Expected:
+{
+  "measuredCount": 8,
+  "metrics": {
+    "inputSync": {
+      "median": 4.5,
+      "p95": 8,
+    },
+    "renderOpportunity": {
+      "median": 100,
+      "p95": 100,
+    },
+    "settlement": {
+      "median": 50,
+      "p95": 50,
+    },
+  },
+  "sampleCount": 10,
+  "warmupCount": 2,
+}
+
++ Received:
+undefined
+
+ ❯ test/performance/workload-summary.test.ts:91:26
+     89|     const c = rewrite(makeCase(), p => packet(10000, p.operation, p.in…
+     90|       p.index < 2 ? 950 : 50, p.index < 2 ? 1000 : 100))
+     91|     expect(operation(c)).toMatchObject({ sampleCount: 10, warmupCount:…
+       |                          ^
+     92|       metrics: { inputSync: { median: 4.5, p95: 8 }, settlement: { med…
+     93|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/42]⎯
+
+ FAIL  test/performance/workload-summary.test.ts > Given complete native timing packets > When the shape is ungrouped Then70 packets are complete and expansion/collapse remain inapplicable
+AssertionError: expected undefined to match object { retainedSamples: 70, …(1) }
+
+- Expected:
+{
+  "measuredTimingSamples": 56,
+  "retainedSamples": 70,
+}
+
++ Received:
+undefined
+
+ ❯ test/performance/workload-summary.test.ts:97:28
+     95|     const c = makeCase("baseline", 1000, "ungrouped")
+     96|     const summary = summarizeWorkloadCases([c])
+     97|     expect(summary.counts).toMatchObject({ retainedSamples: 70, measur…
+       |                            ^
+     98|     expect(summary.cases[0]?.operations?.map(o => o.operation)).toEqua…
+     99|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/42]⎯
+
+ FAIL  test/performance/workload-summary.test.ts > Given complete native timing packets > When inputs are reordered Then summary ordering is deterministic and input bytes are unchanged
+AssertionError: expected { status: 'descriptive-subset', …(1) } to deeply equal { status: 'descriptive-subset', …(1) }
+
+- Expected
++ Received
+
+@@ -1,10 +1,10 @@
+  {
+    "cases": [
+      {
+-       "hostNonce": "native-nonce-10000-giant-558301-baseline",
+-       "id": "10000-giant-558301-baseline",
++       "hostNonce": "native-nonce-10000-giant-558301-calibration",
++       "id": "10000-giant-558301-calibration",
+        "lockHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "packets": [
+          {
+            "beforeHashes": {
+              "rows": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+@@ -41,14 +41,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 9,
++           "index": 0,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "close",
++           "operation": "external-closed",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -96,14 +96,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 9,
++           "index": 0,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "collapse",
++           "operation": "open",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -151,14 +151,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 9,
++           "index": 0,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "reorder",
++           "operation": "select",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -206,14 +206,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 9,
++           "index": 0,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external",
++           "operation": "expand",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -261,11 +261,11 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 9,
++           "index": 0,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+            "operation": "rename",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+@@ -316,14 +316,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 9,
++           "index": 0,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "expand",
++           "operation": "external",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -371,14 +371,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 9,
++           "index": 0,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "select",
++           "operation": "reorder",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -426,14 +426,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 9,
++           "index": 0,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "open",
++           "operation": "collapse",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -481,14 +481,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 9,
++           "index": 0,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external-closed",
++           "operation": "close",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -536,14 +536,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 8,
++           "index": 1,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "close",
++           "operation": "external-closed",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -591,14 +591,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 8,
++           "index": 1,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "collapse",
++           "operation": "open",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -646,14 +646,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 8,
++           "index": 1,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "reorder",
++           "operation": "select",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -701,14 +701,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 8,
++           "index": 1,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external",
++           "operation": "expand",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -756,11 +756,11 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 8,
++           "index": 1,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+            "operation": "rename",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+@@ -811,14 +811,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 8,
++           "index": 1,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "expand",
++           "operation": "external",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -866,14 +866,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 8,
++           "index": 1,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "select",
++           "operation": "reorder",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -921,14 +921,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 8,
++           "index": 1,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "open",
++           "operation": "collapse",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -976,14 +976,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 8,
++           "index": 1,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external-closed",
++           "operation": "close",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -1031,14 +1031,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 7,
++           "index": 2,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "close",
++           "operation": "external-closed",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -1086,14 +1086,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 7,
++           "index": 2,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "collapse",
++           "operation": "open",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -1141,14 +1141,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 7,
++           "index": 2,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "reorder",
++           "operation": "select",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -1196,14 +1196,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 7,
++           "index": 2,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external",
++           "operation": "expand",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -1251,11 +1251,11 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 7,
++           "index": 2,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+            "operation": "rename",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+@@ -1306,14 +1306,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 7,
++           "index": 2,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "expand",
++           "operation": "external",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -1361,14 +1361,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 7,
++           "index": 2,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "select",
++           "operation": "reorder",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -1416,14 +1416,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 7,
++           "index": 2,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "open",
++           "operation": "collapse",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -1471,14 +1471,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 7,
++           "index": 2,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external-closed",
++           "operation": "close",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -1526,14 +1526,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 6,
++           "index": 3,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "close",
++           "operation": "external-closed",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -1581,14 +1581,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 6,
++           "index": 3,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "collapse",
++           "operation": "open",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -1636,14 +1636,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 6,
++           "index": 3,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "reorder",
++           "operation": "select",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -1691,14 +1691,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 6,
++           "index": 3,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external",
++           "operation": "expand",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -1746,11 +1746,11 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 6,
++           "index": 3,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+            "operation": "rename",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+@@ -1801,14 +1801,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 6,
++           "index": 3,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "expand",
++           "operation": "external",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -1856,14 +1856,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 6,
++           "index": 3,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "select",
++           "operation": "reorder",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -1911,14 +1911,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 6,
++           "index": 3,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "open",
++           "operation": "collapse",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -1966,14 +1966,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 6,
++           "index": 3,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external-closed",
++           "operation": "close",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -2021,14 +2021,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 5,
++           "index": 4,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "close",
++           "operation": "external-closed",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -2076,14 +2076,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 5,
++           "index": 4,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "collapse",
++           "operation": "open",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -2131,14 +2131,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 5,
++           "index": 4,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "reorder",
++           "operation": "select",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -2186,14 +2186,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 5,
++           "index": 4,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external",
++           "operation": "expand",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -2241,11 +2241,11 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 5,
++           "index": 4,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+            "operation": "rename",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+@@ -2296,14 +2296,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 5,
++           "index": 4,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "expand",
++           "operation": "external",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -2351,14 +2351,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 5,
++           "index": 4,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "select",
++           "operation": "reorder",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -2406,14 +2406,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 5,
++           "index": 4,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "open",
++           "operation": "collapse",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -2461,14 +2461,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 5,
++           "index": 4,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external-closed",
++           "operation": "close",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -2516,14 +2516,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 4,
++           "index": 5,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "close",
++           "operation": "external-closed",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -2571,14 +2571,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 4,
++           "index": 5,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "collapse",
++           "operation": "open",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -2626,14 +2626,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 4,
++           "index": 5,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "reorder",
++           "operation": "select",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -2681,14 +2681,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 4,
++           "index": 5,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external",
++           "operation": "expand",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -2736,11 +2736,11 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 4,
++           "index": 5,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+            "operation": "rename",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+@@ -2791,14 +2791,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 4,
++           "index": 5,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "expand",
++           "operation": "external",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -2846,14 +2846,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 4,
++           "index": 5,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "select",
++           "operation": "reorder",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -2901,14 +2901,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 4,
++           "index": 5,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "open",
++           "operation": "collapse",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -2956,14 +2956,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 4,
++           "index": 5,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external-closed",
++           "operation": "close",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -3011,14 +3011,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 3,
++           "index": 6,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "close",
++           "operation": "external-closed",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -3066,14 +3066,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 3,
++           "index": 6,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "collapse",
++           "operation": "open",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -3121,14 +3121,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 3,
++           "index": 6,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "reorder",
++           "operation": "select",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -3176,14 +3176,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 3,
++           "index": 6,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external",
++           "operation": "expand",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -3231,11 +3231,11 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 3,
++           "index": 6,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+            "operation": "rename",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+@@ -3286,14 +3286,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 3,
++           "index": 6,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "expand",
++           "operation": "external",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -3341,14 +3341,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 3,
++           "index": 6,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "select",
++           "operation": "reorder",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -3396,14 +3396,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 3,
++           "index": 6,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "open",
++           "operation": "collapse",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -3451,14 +3451,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 3,
++           "index": 6,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external-closed",
++           "operation": "close",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -3506,14 +3506,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 2,
++           "index": 7,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "close",
++           "operation": "external-closed",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -3561,14 +3561,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 2,
++           "index": 7,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "collapse",
++           "operation": "open",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -3616,14 +3616,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 2,
++           "index": 7,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "reorder",
++           "operation": "select",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -3671,14 +3671,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 2,
++           "index": 7,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external",
++           "operation": "expand",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -3726,11 +3726,11 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 2,
++           "index": 7,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+            "operation": "rename",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+@@ -3781,14 +3781,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 2,
++           "index": 7,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "expand",
++           "operation": "external",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -3836,14 +3836,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 2,
++           "index": 7,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "select",
++           "operation": "reorder",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -3891,14 +3891,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 2,
++           "index": 7,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "open",
++           "operation": "collapse",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -3946,14 +3946,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 2,
++           "index": 7,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external-closed",
++           "operation": "close",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -4001,14 +4001,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 1,
++           "index": 8,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "close",
++           "operation": "external-closed",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -4056,14 +4056,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 1,
++           "index": 8,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "collapse",
++           "operation": "open",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -4111,14 +4111,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 1,
++           "index": 8,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "reorder",
++           "operation": "select",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -4166,14 +4166,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 1,
++           "index": 8,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external",
++           "operation": "expand",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -4221,11 +4221,11 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 1,
++           "index": 8,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+            "operation": "rename",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+@@ -4276,14 +4276,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 1,
++           "index": 8,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "expand",
++           "operation": "external",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -4331,14 +4331,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 1,
++           "index": 8,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "select",
++           "operation": "reorder",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -4386,14 +4386,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 1,
++           "index": 8,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "open",
++           "operation": "collapse",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -4441,14 +4441,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 1,
++           "index": 8,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external-closed",
++           "operation": "close",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -4496,14 +4496,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 0,
++           "index": 9,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "close",
++           "operation": "external-closed",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -4551,14 +4551,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 0,
++           "index": 9,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "collapse",
++           "operation": "open",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -4606,14 +4606,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 0,
++           "index": 9,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "reorder",
++           "operation": "select",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -4661,14 +4661,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 0,
++           "index": 9,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external",
++           "operation": "expand",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -4716,11 +4716,11 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 0,
++           "index": 9,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+            "operation": "rename",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+@@ -4771,14 +4771,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 0,
++           "index": 9,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "expand",
++           "operation": "external",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -4826,14 +4826,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 0,
++           "index": 9,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "select",
++           "operation": "reorder",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -4881,14 +4881,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 0,
++           "index": 9,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "open",
++           "operation": "collapse",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -4936,14 +4936,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 0,
++           "index": 9,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external-closed",
++           "operation": "close",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -4954,21 +4954,21 @@
+              "renderOpportunity": 100,
+              "settlement": 50,
+            },
+          },
+        ],
+-       "role": "baseline",
++       "role": "calibration",
+        "scriptHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "seed": 558301,
+        "shape": "giant",
+        "size": 10000,
+        "sourceHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "status": "passed",
+      },
+      {
+-       "hostNonce": "native-nonce-10000-giant-558301-calibration",
+-       "id": "10000-giant-558301-calibration",
++       "hostNonce": "native-nonce-10000-giant-558301-baseline",
++       "id": "10000-giant-558301-baseline",
+        "lockHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "packets": [
+          {
+            "beforeHashes": {
+              "rows": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+@@ -5005,14 +5005,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 9,
++           "index": 0,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "close",
++           "operation": "external-closed",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -5060,14 +5060,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 9,
++           "index": 0,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "collapse",
++           "operation": "open",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -5115,14 +5115,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 9,
++           "index": 0,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "reorder",
++           "operation": "select",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -5170,14 +5170,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 9,
++           "index": 0,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external",
++           "operation": "expand",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -5225,11 +5225,11 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 9,
++           "index": 0,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+            "operation": "rename",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+@@ -5280,14 +5280,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 9,
++           "index": 0,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "expand",
++           "operation": "external",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -5335,14 +5335,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 9,
++           "index": 0,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "select",
++           "operation": "reorder",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -5390,14 +5390,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 9,
++           "index": 0,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "open",
++           "operation": "collapse",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -5445,14 +5445,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 9,
++           "index": 0,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external-closed",
++           "operation": "close",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -5500,14 +5500,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 8,
++           "index": 1,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "close",
++           "operation": "external-closed",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -5555,14 +5555,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 8,
++           "index": 1,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "collapse",
++           "operation": "open",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -5610,14 +5610,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 8,
++           "index": 1,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "reorder",
++           "operation": "select",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -5665,14 +5665,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 8,
++           "index": 1,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external",
++           "operation": "expand",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -5720,11 +5720,11 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 8,
++           "index": 1,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+            "operation": "rename",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+@@ -5775,14 +5775,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 8,
++           "index": 1,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "expand",
++           "operation": "external",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -5830,14 +5830,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 8,
++           "index": 1,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "select",
++           "operation": "reorder",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -5885,14 +5885,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 8,
++           "index": 1,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "open",
++           "operation": "collapse",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -5940,14 +5940,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 8,
++           "index": 1,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external-closed",
++           "operation": "close",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -5995,14 +5995,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 7,
++           "index": 2,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "close",
++           "operation": "external-closed",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -6050,14 +6050,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 7,
++           "index": 2,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "collapse",
++           "operation": "open",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -6105,14 +6105,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 7,
++           "index": 2,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "reorder",
++           "operation": "select",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -6160,14 +6160,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 7,
++           "index": 2,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external",
++           "operation": "expand",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -6215,11 +6215,11 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 7,
++           "index": 2,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+            "operation": "rename",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+@@ -6270,14 +6270,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 7,
++           "index": 2,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "expand",
++           "operation": "external",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -6325,14 +6325,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 7,
++           "index": 2,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "select",
++           "operation": "reorder",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -6380,14 +6380,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 7,
++           "index": 2,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "open",
++           "operation": "collapse",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -6435,14 +6435,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 7,
++           "index": 2,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external-closed",
++           "operation": "close",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -6490,14 +6490,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 6,
++           "index": 3,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "close",
++           "operation": "external-closed",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -6545,14 +6545,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 6,
++           "index": 3,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "collapse",
++           "operation": "open",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -6600,14 +6600,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 6,
++           "index": 3,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "reorder",
++           "operation": "select",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -6655,14 +6655,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 6,
++           "index": 3,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external",
++           "operation": "expand",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -6710,11 +6710,11 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 6,
++           "index": 3,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+            "operation": "rename",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+@@ -6765,14 +6765,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 6,
++           "index": 3,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "expand",
++           "operation": "external",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -6820,14 +6820,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 6,
++           "index": 3,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "select",
++           "operation": "reorder",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -6875,14 +6875,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 6,
++           "index": 3,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "open",
++           "operation": "collapse",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -6930,14 +6930,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 6,
++           "index": 3,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external-closed",
++           "operation": "close",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -6985,14 +6985,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 5,
++           "index": 4,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "close",
++           "operation": "external-closed",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -7040,14 +7040,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 5,
++           "index": 4,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "collapse",
++           "operation": "open",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -7095,14 +7095,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 5,
++           "index": 4,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "reorder",
++           "operation": "select",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -7150,14 +7150,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 5,
++           "index": 4,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external",
++           "operation": "expand",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -7205,11 +7205,11 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 5,
++           "index": 4,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+            "operation": "rename",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+@@ -7260,14 +7260,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 5,
++           "index": 4,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "expand",
++           "operation": "external",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -7315,14 +7315,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 5,
++           "index": 4,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "select",
++           "operation": "reorder",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -7370,14 +7370,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 5,
++           "index": 4,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "open",
++           "operation": "collapse",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -7425,14 +7425,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 5,
++           "index": 4,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external-closed",
++           "operation": "close",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -7480,14 +7480,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 4,
++           "index": 5,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "close",
++           "operation": "external-closed",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -7535,14 +7535,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 4,
++           "index": 5,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "collapse",
++           "operation": "open",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -7590,14 +7590,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 4,
++           "index": 5,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "reorder",
++           "operation": "select",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -7645,14 +7645,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 4,
++           "index": 5,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external",
++           "operation": "expand",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -7700,11 +7700,11 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 4,
++           "index": 5,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+            "operation": "rename",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+@@ -7755,14 +7755,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 4,
++           "index": 5,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "expand",
++           "operation": "external",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -7810,14 +7810,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 4,
++           "index": 5,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "select",
++           "operation": "reorder",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -7865,14 +7865,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 4,
++           "index": 5,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "open",
++           "operation": "collapse",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -7920,14 +7920,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 4,
++           "index": 5,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external-closed",
++           "operation": "close",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -7975,14 +7975,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 3,
++           "index": 6,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "close",
++           "operation": "external-closed",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -8030,14 +8030,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 3,
++           "index": 6,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "collapse",
++           "operation": "open",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -8085,14 +8085,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 3,
++           "index": 6,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "reorder",
++           "operation": "select",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -8140,14 +8140,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 3,
++           "index": 6,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external",
++           "operation": "expand",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -8195,11 +8195,11 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 3,
++           "index": 6,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+            "operation": "rename",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+@@ -8250,14 +8250,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 3,
++           "index": 6,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "expand",
++           "operation": "external",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -8305,14 +8305,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 3,
++           "index": 6,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "select",
++           "operation": "reorder",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -8360,14 +8360,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 3,
++           "index": 6,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "open",
++           "operation": "collapse",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -8415,14 +8415,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 3,
++           "index": 6,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external-closed",
++           "operation": "close",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -8470,14 +8470,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 2,
++           "index": 7,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "close",
++           "operation": "external-closed",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -8525,14 +8525,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 2,
++           "index": 7,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "collapse",
++           "operation": "open",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -8580,14 +8580,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 2,
++           "index": 7,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "reorder",
++           "operation": "select",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -8635,14 +8635,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 2,
++           "index": 7,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external",
++           "operation": "expand",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -8690,11 +8690,11 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 2,
++           "index": 7,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+            "operation": "rename",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+@@ -8745,14 +8745,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 2,
++           "index": 7,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "expand",
++           "operation": "external",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -8800,14 +8800,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 2,
++           "index": 7,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "select",
++           "operation": "reorder",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -8855,14 +8855,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 2,
++           "index": 7,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "open",
++           "operation": "collapse",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -8910,14 +8910,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 2,
++           "index": 7,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external-closed",
++           "operation": "close",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -8965,14 +8965,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 1,
++           "index": 8,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "close",
++           "operation": "external-closed",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -9020,14 +9020,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 1,
++           "index": 8,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "collapse",
++           "operation": "open",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -9075,14 +9075,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 1,
++           "index": 8,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "reorder",
++           "operation": "select",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -9130,14 +9130,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 1,
++           "index": 8,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external",
++           "operation": "expand",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -9185,11 +9185,11 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 1,
++           "index": 8,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+            "operation": "rename",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+@@ -9240,14 +9240,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 1,
++           "index": 8,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "expand",
++           "operation": "external",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -9295,14 +9295,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 1,
++           "index": 8,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "select",
++           "operation": "reorder",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -9350,14 +9350,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 1,
++           "index": 8,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "open",
++           "operation": "collapse",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -9405,14 +9405,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 1,
++           "index": 8,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external-closed",
++           "operation": "close",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -9460,14 +9460,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 0,
++           "index": 9,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "close",
++           "operation": "external-closed",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -9515,14 +9515,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 0,
++           "index": 9,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "collapse",
++           "operation": "open",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -9570,14 +9570,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 0,
++           "index": 9,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "reorder",
++           "operation": "select",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -9625,14 +9625,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 0,
++           "index": 9,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external",
++           "operation": "expand",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -9680,11 +9680,11 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 0,
++           "index": 9,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+            "operation": "rename",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+@@ -9735,14 +9735,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 0,
++           "index": 9,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "expand",
++           "operation": "external",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -9790,14 +9790,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 0,
++           "index": 9,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "select",
++           "operation": "reorder",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -9845,14 +9845,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 0,
++           "index": 9,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "open",
++           "operation": "collapse",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -9900,14 +9900,14 @@
+            "counts": {
+              "rows": 10000,
+              "scene": 10000,
+              "selected": 0,
+            },
+-           "index": 0,
++           "index": 9,
+            "inputPhase": "post-requestAnimationFrame",
+            "native": true,
+-           "operation": "external-closed",
++           "operation": "close",
+            "status": "passed",
+            "timerQuantumMs": 0.01,
+            "timing": {
+              "inputSync": 10,
+              "promiseComplete": 10,
+@@ -9918,11 +9918,11 @@
+              "renderOpportunity": 100,
+              "settlement": 50,
+            },
+          },
+        ],
+-       "role": "calibration",
++       "role": "baseline",
+        "scriptHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "seed": 558301,
+        "shape": "giant",
+        "size": 10000,
+        "sourceHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+
+ ❯ test/performance/workload-summary.test.ts:105:19
+    103|     const first = summarizeWorkloadCases(cases)
+    104|     const second = summarizeWorkloadCases([...cases].reverse().map(c =…
+    105|     expect(first).toEqual(second)
+       |                   ^
+    106|     expect(JSON.stringify(cases)).toBe(before)
+    107|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/42]⎯
+
+ FAIL  test/performance/workload-summary.test.ts > Given complete native timing packets > When retained warmups have coarser timer quantum Then the matched budget retains that information
+TypeError: Cannot read properties of undefined (reading '0')
+ ❯ pair test/performance/workload-summary.test.ts:34:128
+     32| function rewrite(c: Case, change: (p: Packet) => Packet) { c.packets =…
+     33| const operation = (c: Case, name = "rename") => summarizeWorkloadCases…
+     34| const pair = (baseline = makeCase(), calibration = makeCase("calibrati…
+       |                                                                                                                                ^
+     35|
+     36| // Synthetic packets exercise accounting and rejection only, not nativ…
+ ❯ test/performance/workload-summary.test.ts:110:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/42]⎯
+
+ FAIL  test/performance/workload-summary.test.ts > Given independent same-seed unchanged controls > When provenance locks differ but subjects match Then preserve both locks and defer lineage authentication to the controller
+AssertionError: expected undefined to deeply equal [ …(2) ]
+
+- Expected:
+[
+  "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+]
+
++ Received:
+undefined
+
+ ❯ test/performance/workload-summary.test.ts:119:32
+    117|     const c = makeCase("calibration"); c.lockHash = hash("d")
+    118|     const summary = summarizeWorkloadCases([makeCase(), c])
+    119|     expect(summary.lockHashes).toEqual([hash("c"), hash("d")])
+       |                                ^
+    120|     expect(summary.pairs[0]).toMatchObject({ status: "within-budget", …
+    121|     expect(summary.claimLimit).toContain("controller")
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/42]⎯
+
+ FAIL  test/performance/workload-summary.test.ts > Given independent same-seed unchanged controls > When input median is11ms Then exact10percent boundary yieldswithin-budget
+ FAIL  test/performance/workload-summary.test.ts > Given independent same-seed unchanged controls > When input median is11.001ms Then exact10percent boundary yieldsinconclusive
+TypeError: Cannot read properties of undefined (reading '0')
+ ❯ pair test/performance/workload-summary.test.ts:34:128
+     32| function rewrite(c: Case, change: (p: Packet) => Packet) { c.packets =…
+     33| const operation = (c: Case, name = "rename") => summarizeWorkloadCases…
+     34| const pair = (baseline = makeCase(), calibration = makeCase("calibrati…
+       |                                                                                                                                ^
+     35|
+     36| // Synthetic packets exercise accounting and rejection only, not nativ…
+ ❯ test/performance/workload-summary.test.ts:125:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/42]⎯
+
+ FAIL  test/performance/workload-summary.test.ts > Given independent same-seed unchanged controls > When settlement median is55ms Then its fixed budget yieldswithin-budget
+ FAIL  test/performance/workload-summary.test.ts > Given independent same-seed unchanged controls > When settlement median is55.001ms Then its fixed budget yieldsinconclusive
+TypeError: Cannot read properties of undefined (reading '0')
+ ❯ pair test/performance/workload-summary.test.ts:34:128
+     32| function rewrite(c: Case, change: (p: Packet) => Packet) { c.packets =…
+     33| const operation = (c: Case, name = "rename") => summarizeWorkloadCases…
+     34| const pair = (baseline = makeCase(), calibration = makeCase("calibrati…
+       |                                                                                                                                ^
+     35|
+     36| // Synthetic packets exercise accounting and rejection only, not nativ…
+ ❯ test/performance/workload-summary.test.ts:129:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/42]⎯
+
+ FAIL  test/performance/workload-summary.test.ts > Given independent same-seed unchanged controls > When submillisecond timings change within absolute floors Then no percentage-only veto appears
+TypeError: Cannot read properties of undefined (reading '0')
+ ❯ pair test/performance/workload-summary.test.ts:34:128
+     32| function rewrite(c: Case, change: (p: Packet) => Packet) { c.packets =…
+     33| const operation = (c: Case, name = "rename") => summarizeWorkloadCases…
+     34| const pair = (baseline = makeCase(), calibration = makeCase("calibrati…
+       |                                                                                                                                ^
+     35|
+     36| // Synthetic packets exercise accounting and rejection only, not nativ…
+ ❯ test/performance/workload-summary.test.ts:134:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/42]⎯
+
+ FAIL  test/performance/workload-summary.test.ts > Given independent same-seed unchanged controls > When one measured render tail is150ms Then catastrophic guard yieldswithin-budget
+ FAIL  test/performance/workload-summary.test.ts > Given independent same-seed unchanged controls > When one measured render tail is150.001ms Then catastrophic guard yieldsinconclusive
+TypeError: Cannot read properties of undefined (reading '0')
+ ❯ pair test/performance/workload-summary.test.ts:34:128
+     32| function rewrite(c: Case, change: (p: Packet) => Packet) { c.packets =…
+     33| const operation = (c: Case, name = "rename") => summarizeWorkloadCases…
+     34| const pair = (baseline = makeCase(), calibration = makeCase("calibrati…
+       |                                                                                                                                ^
+     35|
+     36| // Synthetic packets exercise accounting and rejection only, not nativ…
+ ❯ test/performance/workload-summary.test.ts:138:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/42]⎯
+
+ FAIL  test/performance/workload-summary.test.ts > Given independent same-seed unchanged controls > When one cell exceeds its budget Then keep exact cell reasons but never infer an improvement or candidate regression
+TypeError: Cannot read properties of undefined (reading '0')
+ ❯ test/performance/workload-summary.test.ts:143:27
+    141|     const c = rewrite(makeCase("calibration"), p => p.operation === "r…
+    142|     const summary = summarizeWorkloadCases([makeCase(), c])
+    143|     const cells = summary.pairs[0]?.cells ?? []
+       |                           ^
+    144|     expect(cells.filter(cell => cell.status === "inconclusive")).toHav…
+    145|     expect(cells.find(cell => cell.cell.operation === "rename")?.reaso…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/42]⎯
+
+ FAIL  test/performance/workload-summary.test.ts > Given incomplete, incompatible or malformed inputs > Whenduplicate-id occurs Then fail closed rather than report a passing subset
+ FAIL  test/performance/workload-summary.test.ts > Given incomplete, incompatible or malformed inputs > Whenduplicate-key occurs Then fail closed rather than report a passing subset
+ FAIL  test/performance/workload-summary.test.ts > Given incomplete, incompatible or malformed inputs > Whennonce occurs Then fail closed rather than report a passing subset
+ FAIL  test/performance/workload-summary.test.ts > Given incomplete, incompatible or malformed inputs > Whensource occurs Then fail closed rather than report a passing subset
+ FAIL  test/performance/workload-summary.test.ts > Given incomplete, incompatible or malformed inputs > Whenscript occurs Then fail closed rather than report a passing subset
+ FAIL  test/performance/workload-summary.test.ts > Given incomplete, incompatible or malformed inputs > Whenlock occurs Then fail closed rather than report a passing subset
+ FAIL  test/performance/workload-summary.test.ts > Given incomplete, incompatible or malformed inputs > Whencandidate occurs Then fail closed rather than report a passing subset
+ FAIL  test/performance/workload-summary.test.ts > Given incomplete, incompatible or malformed inputs > Whensize occurs Then fail closed rather than report a passing subset
+ FAIL  test/performance/workload-summary.test.ts > Given incomplete, incompatible or malformed inputs > Whenseed occurs Then fail closed rather than report a passing subset
+ FAIL  test/performance/workload-summary.test.ts > Given incomplete, incompatible or malformed inputs > Whenshape occurs Then fail closed rather than report a passing subset
+ FAIL  test/performance/workload-summary.test.ts > Given incomplete, incompatible or malformed inputs > Whenunknown-status occurs Then fail closed rather than report a passing subset
+ FAIL  test/performance/workload-summary.test.ts > Given incomplete, incompatible or malformed inputs > Whenmissing-packet occurs Then fail closed rather than report a passing subset
+ FAIL  test/performance/workload-summary.test.ts > Given incomplete, incompatible or malformed inputs > Whenduplicate-packet occurs Then fail closed rather than report a passing subset
+ FAIL  test/performance/workload-summary.test.ts > Given incomplete, incompatible or malformed inputs > Whenextra-packet occurs Then fail closed rather than report a passing subset
+ FAIL  test/performance/workload-summary.test.ts > Given incomplete, incompatible or malformed inputs > Whenoperation occurs Then fail closed rather than report a passing subset
+ FAIL  test/performance/workload-summary.test.ts > Given incomplete, incompatible or malformed inputs > Whenindex occurs Then fail closed rather than report a passing subset
+ FAIL  test/performance/workload-summary.test.ts > Given incomplete, incompatible or malformed inputs > Whenscene occurs Then fail closed rather than report a passing subset
+ FAIL  test/performance/workload-summary.test.ts > Given incomplete, incompatible or malformed inputs > Whensemantic occurs Then fail closed rather than report a passing subset
+ FAIL  test/performance/workload-summary.test.ts > Given incomplete, incompatible or malformed inputs > Whentiming occurs Then fail closed rather than report a passing subset
+ FAIL  test/performance/workload-summary.test.ts > Given incomplete, incompatible or malformed inputs > Whenquantum occurs Then fail closed rather than report a passing subset
+ FAIL  test/performance/workload-summary.test.ts > Given incomplete, incompatible or malformed inputs > Whenbudget-overflow occurs Then fail closed rather than report a passing subset
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/workload-summary.test.ts:176:52
+    174|       if (mode === "quantum") p.timerQuantumMs = 0
+    175|       if (mode === "budget-overflow") for (const p of c.packets) p.tim…
+    176|       expect(() => summarizeWorkloadCases([b, c])).toThrow()
+       |                                                    ^
+    177|     },
+    178|   )
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/42]⎯
+
+ FAIL  test/performance/workload-summary.test.ts > Given incomplete, incompatible or malformed inputs > When a not-admitted case carries packets Then do not silently adopt contradictory evidence
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/workload-summary.test.ts:181:47
+    179|   it("When a not-admitted case carries packets Then do not silently ad…
+    180|     const c = makeCase(); c.status = "not-admitted"
+    181|     expect(() => summarizeWorkloadCases([c])).toThrow()
+       |                                               ^
+    182|   })
+    183|   it("When a partial censored packet lies Then reject it even though n…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/42]⎯
+
+ FAIL  test/performance/workload-summary.test.ts > Given incomplete, incompatible or malformed inputs > When a partial censored packet lies Then reject it even though no timing aggregate would include it
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/workload-summary.test.ts:185:47
+    183|   it("When a partial censored packet lies Then reject it even though n…
+    184|     const c = makeCase(); c.status = "resource-censored"; c.packets = …
+    185|     expect(() => summarizeWorkloadCases([c])).toThrow()
+       |                                               ^
+    186|   })
+    187| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/42]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  42 failed (42)
+   Start at  16:31:10
+   Duration  303ms (transform 41ms, setup 0ms, import 51ms, tests 112ms, environment 0ms)
+
+
+exit=1
+
+=== GREEN: implemented subset accounting with unchanged native packet/policy imports ===
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/workload-summary.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+
+ Test Files  1 passed (1)
+      Tests  42 passed (42)
+   Start at  16:33:25
+   Duration  289ms (transform 113ms, setup 0ms, import 131ms, tests 72ms, environment 0ms)
+
+
+exit=0
+test/performance/workload-summary.test.ts:341:15 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    339 │     const b = makeCase(),
+    340 │       c = makeCase("calibration")
+  > 341 │     const p = c.packets[0]!
+        │               ^^^^^^^^^^^^^
+    342 │     if (mode === "duplicate-id") c.id = b.id
+    343 │     if (mode === "duplicate-key") {
+  
+
+test/performance/workload-summary.test.ts:362:30 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    360 │     if (mode === "index") p.index = 10
+    361 │     if (mode === "scene") p.counts.scene = 1000
+  > 362 │     if (mode === "semantic") p.checks[0]!.actual = hash("f")
+        │                              ^^^^^^^^^^^^
+    363 │     if (mode === "timing") p.timing.inputSync = NaN
+    364 │     if (mode === "quantum") p.timerQuantumMs = 0
+  
+
+test/performance/workload-summary.test.ts:377:5 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    375 │     c.status = "resource-censored"
+    376 │     c.packets = c.packets.slice(0, 1)
+  > 377 │     c.packets[0]!.native = false
+        │     ^^^^^^^^^^^^^
+    378 │     expect(() => summarizeWorkloadCases([c])).toThrow()
+    379 │   })
+  
+
+Checked 3 files in 13ms. Fixed 3 files.
+Found 3 warnings.
+
+=== Controller status-extension RED ===
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/workload-summary.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/workload-summary.test.ts (45 tests | 3 failed) 57ms
+     × When a supplied case ispending Then keep its missing coverage and do not infer statistics 5ms
+     × When a supplied case isdispatched-effect-indeterminate Then keep its missing coverage and do not infer statistics 1ms
+     × When a supplied case isoperational-failure Then keep its missing coverage and do not infer statistics 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/workload-summary.test.ts > Given per-workload reporting must preserve missing and censored coverage > When a supplied case ispending Then keep its missing coverage and do not infer statistics
+ FAIL  test/performance/workload-summary.test.ts > Given per-workload reporting must preserve missing and censored coverage > When a supplied case isdispatched-effect-indeterminate Then keep its missing coverage and do not infer statistics
+ FAIL  test/performance/workload-summary.test.ts > Given per-workload reporting must preserve missing and censored coverage > When a supplied case isoperational-failure Then keep its missing coverage and do not infer statistics
+Error: unknown case status
+ ❯ requireThat scripts/performance/workload-summary.js:14:21
+     12|
+     13| function requireThat(value, message) {
+     14|   if (!value) throw Error(message)
+       |                     ^
+     15| }
+     16| function text(value, label) {
+ ❯ validateCase scripts/performance/workload-summary.js:80:3
+ ❯ scripts/performance/workload-summary.js:266:34
+ ❯ summarizeWorkloadCases scripts/performance/workload-summary.js:266:23
+ ❯ test/performance/workload-summary.test.ts:100:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 42 passed (45)
+   Start at  16:34:36
+   Duration  294ms (transform 126ms, setup 0ms, import 144ms, tests 57ms, environment 0ms)
+
+
+exit=1
+
+=== Status-extension GREEN and final formatting ===
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/workload-summary.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+
+ Test Files  1 passed (1)
+      Tests  45 passed (45)
+   Start at  16:35:34
+   Duration  260ms (transform 97ms, setup 0ms, import 118ms, tests 60ms, environment 0ms)
+
+
+exit=0
+test/performance/workload-summary.test.ts:370:15 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    368 │     const b = makeCase(),
+    369 │       c = makeCase("calibration")
+  > 370 │     const p = c.packets[0]!
+        │               ^^^^^^^^^^^^^
+    371 │     if (mode === "duplicate-id") c.id = b.id
+    372 │     if (mode === "duplicate-key") {
+  
+
+test/performance/workload-summary.test.ts:391:30 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    389 │     if (mode === "index") p.index = 10
+    390 │     if (mode === "scene") p.counts.scene = 1000
+  > 391 │     if (mode === "semantic") p.checks[0]!.actual = hash("f")
+        │                              ^^^^^^^^^^^^
+    392 │     if (mode === "timing") p.timing.inputSync = NaN
+    393 │     if (mode === "quantum") p.timerQuantumMs = 0
+  
+
+test/performance/workload-summary.test.ts:406:5 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    404 │     c.status = "resource-censored"
+    405 │     c.packets = c.packets.slice(0, 1)
+  > 406 │     c.packets[0]!.native = false
+        │     ^^^^^^^^^^^^^
+    407 │     expect(() => summarizeWorkloadCases([c])).toThrow()
+    408 │   })
+  
+
+Checked 3 files in 13ms. Fixed 2 files.
+Found 3 warnings.
+
+biome_write_exit=0
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 typecheck
+npm notice run tsc --noEmit
+
+typecheck_exit=0
+
+=== Final scoped verification (no native execution) ===
+Checked 3 files in 13ms. No fixes applied.
+format_exit=0
+Checked 3 files in 8ms. No fixes applied.
+biome_check_exit=0
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/workload-summary.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+
+ Test Files  1 passed (1)
+      Tests  45 passed (45)
+   Start at  16:36:25
+   Duration  288ms (transform 124ms, setup 0ms, import 144ms, tests 57ms, environment 0ms)
+
+test_exit=0
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 typecheck
+npm notice run tsc --noEmit
+typecheck_exit=0
+syntax_exit=0
+  306 scripts/performance/workload-summary.js
+  100 scripts/performance/workload-summary.d.ts
+  416 test/performance/workload-summary.test.ts
+  822 total
+02b65e6947f166939b1573acef8ced699ee5fd3b00522b1c4be97a10d04ac38d  scripts/performance/workload-summary.js
+fd472ea7c65384cb56db3e17bf73956472c71a3483927ccfe202d15831b0c83c  scripts/performance/workload-summary.d.ts
+fc8121ec6a7cc3dc81c14719e7b17695316a48f1cb201b3b1c19d3dec5fc384d  test/performance/workload-summary.test.ts

@@ -1,0 +1,75 @@
+scripts/performance/workload-evidence.js:57:22 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    55 │       "same-shape all predecessor seeds/roles/holdouts; verified resource failures censor only own equal/larger shape; operational failures stop; no global aggregate",
+    56 │   }
+  > 57 │   const serialized = JSON.stringify(current, null, 2) + "\n"
+       │                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    58 │   await importLegacyCases(current) // Validate dispositions/packets before publishing a carry-forward lock.
+    59 │   await writeFile(output, serialized, { flag: "wx" })
+  
+  i Unsafe fix: Use a template literal.
+  
+     55  55 │         "same-shape all predecessor seeds/roles/holdouts; verified resource failures censor only own equal/larger shape; operational failures stop; no global aggregate",
+     56  56 │     }
+     57     │ - ··const·serialized·=·JSON.stringify(current,·null,·2)·+·"\n"
+         57 │ + ··const·serialized·=·`${JSON.stringify(current,·null,·2)}\n`
+     58  58 │     await importLegacyCases(current) // Validate dispositions/packets before publishing a carry-forward lock.
+     59  59 │     await writeFile(output, serialized, { flag: "wx" })
+  
+
+scripts/performance/workload-matrix.js:102:9 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    100 │       await appendFile(
+    101 │         join(output, "dispatches.jsonl"),
+  > 102 │         JSON.stringify({ at: c.startedAt, id: c.id, command: "heavy-job", argv }) + "\n",
+        │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    103 │       )
+    104 │       const log = await open(join(output, `${c.id}-driver.txt`), "wx")
+  
+  i Unsafe fix: Use a template literal.
+  
+    100 100 │         await appendFile(
+    101 101 │           join(output, "dispatches.jsonl"),
+    102     │ - ········JSON.stringify({·at:·c.startedAt,·id:·c.id,·command:·"heavy-job",·argv·})·+·"\n",
+        102 │ + ········`${JSON.stringify({·at:·c.startedAt,·id:·c.id,·command:·"heavy-job",·argv·})}\n`,
+    103 103 │         )
+    104 104 │         const log = await open(join(output, `${c.id}-driver.txt`), "wx")
+  
+
+test/performance/workload-evidence.test.ts:103:17 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    101 │   ])("When %s drifts Then reject the apparent pass", (mode) => {
+    102 │     const f = fixture()
+  > 103 │     const row = f.rows[0]!
+        │                 ^^^^^^^^^^
+    104 │     if (mode === "nonce") row.hostNonce = "foreign"
+    105 │     if (mode === "subject") row.sourceHash = hash("d")
+  
+
+test/performance/workload-policy.test.ts:40:21 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    38 │     const cases = plan()
+    39 │     for (const c of cases) if (c.size === 10000) c.status = "passed"
+  > 40 │     const holdout = cases.find(
+       │                     ^^^^^^^^^^^
+  > 41 │       (c) => c.size === 10000 && c.shape === "pairs" && c.role === "holdout",
+  > 42 │     )!
+       │     ^^
+    43 │     holdout.status = "pending"
+    44 │     expect(() => workloadDisposition(target(cases, 50000), cases)).toThrow()
+  
+
+Skipped 2 suggested fixes.
+If you wish to apply the suggested (unsafe) fixes, use the command biome check --write --unsafe
+
+Checked 11 files in 10ms. Fixed 10 files.
+Found 2 warnings.
+Found 2 infos.

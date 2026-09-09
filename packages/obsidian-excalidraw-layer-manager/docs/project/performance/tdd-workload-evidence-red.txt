@@ -1,0 +1,32 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/workload-evidence.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/workload-evidence.test.ts (12 tests | 3 failed) 11ms
+     × When pid drifts Then reject the apparent pass 3ms
+     × When profile drifts Then reject the apparent pass 1ms
+     × When page drifts Then reject the apparent pass 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/workload-evidence.test.ts > Given old and new frozen case evidence retains its original identity > When pid drifts Then reject the apparent pass
+ FAIL  test/performance/workload-evidence.test.ts > Given old and new frozen case evidence retains its original identity > When profile drifts Then reject the apparent pass
+ FAIL  test/performance/workload-evidence.test.ts > Given old and new frozen case evidence retains its original identity > When page drifts Then reject the apparent pass
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/workload-evidence.test.ts:41:31
+     39|       if (mode === "profile") f.identity.observed.profile = "/foreign/…
+     40|       if (mode === "page") f.identity.page.id = "foreign"
+     41|       expect(() => verify(f)).toThrow()
+       |                               ^
+     42|     },
+     43|   )
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 9 passed (12)
+   Start at  16:31:47
+   Duration  215ms (transform 86ms, setup 0ms, import 110ms, tests 11ms, environment 0ms)
+

@@ -1,0 +1,26 @@
+Docs — 5 match(es) — page 1/1
+2026-09-08-as-is-and-campaign-readiness.md - AK #5581: exploratory large-scene baseline and verified blockers to unattended LayerManager optimization.
+2026-09-09-intermediate-diagnostic.md - Operator-authorized exploratory2k giant/skewed comparison with conditional5k bracketing, separate from incomplete native baseline.
+2026-09-09-native-evaluator.md - AK5583 native evaluator protocol v2, safety boundaries, replay commands and evidence interpretation.
+2026-09-09-native-results.md - AK5583 frozen native evaluator validation and resource-censored matrix: 50 passed, one interrupted, 141 untouched; task incomplete.
+2026-09-09-per-workload-progression.md - AK5583 approved per-shape progression, compatible frozen evidence carry-forward, independent resource censoring and subset calibration reporting.
+Strict check: pass
+
+Reminder: keep docs up to date as behavior changes. When your task matches any "Read when" hint above, read that doc before coding, and add missing coverage.
+Docs — 13 match(es) — page 1/1
+2026-04-08--workflow-architecture-concern-packet-direction-primary.md - Raw session capture of meta-workflow insights: concern packets, direction-primary planning, and the role of ak knowledge.
+2026-09-08--analysis-layer-manager-performance-readiness.md - AK #5581: retained exploratory 100k-element baseline; unattended campaign withheld on verified Level-4 defects.
+2026-09-08-layer-manager-dependency-upgrade.md - AK #5564 RefactorOps toolchain and XState upgrade with verification boundaries and follow-up.
+2026-09-08-maintainer-lifecycle-dogfood.md - AK #5573 closeout: lifecycle regressions and real Obsidian dogfood, including a native failure that invalidated the first ownership fix.
+2026-09-08-native-staging-isolation.md - AK #5574 native stale-staging reproduction and verified isolation repair.
+2026-09-08-prompt-mutant-resolution.md - AK #5572 resolves one genuine and one equivalent prompt-service mutant; source-aligned quality, CI and build pass.
+2026-09-08-rename-refresh-ownership.md - AK #5575 sequential closeout: native rename focus/caret and stale-event ownership proof.
+2026-09-08-ts-quality-triage.md - AK #5565 closeout: optional CRAP failure traced to diff-path scope mismatch; build verified, repair tracked separately.
+2026-09-08-ts-quality-wrapper-repair.md - AK #5566 repairs diff coordinates with red/green regressions; real replay removes CRAP blocker but exposes two surviving mutants.
+2026-09-08-upstream-pr-replacement.md - AK #5580 publication receipt: two-file PR #2925 opened; #2737 cross-linked and closed with one maintainer mention.
+2026-09-09--ak1343-help-port.md - AK5613 integrates a reviewed, improved AK1343 keyboard-help disclosure with browser input and CI evidence; AK1344 excluded.
+2026-09-09--ak5583-native-evaluator.md - AK5583: native evaluator development, Gherkin/TDD evidence, approved v2 preregistration and frozen matrix launch.
+README.md - Repo-local session capture for the obsidian-plugins monorepo KES flow.
+Strict check: pass
+
+Reminder: keep docs up to date as behavior changes. When your task matches any "Read when" hint above, read that doc before coding, and add missing coverage.

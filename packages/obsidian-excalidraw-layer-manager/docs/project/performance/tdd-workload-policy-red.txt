@@ -1,0 +1,76 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/workload-policy.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/workload-policy.test.ts (13 tests | 4 failed) 9ms
+     × When one shape completed10k Then50k does not borrow or wait for unrelated shapes 2ms
+     × When a shape is resource-censored Then its remaining equal/larger cases are not admitted, not passed 1ms
+     × When inventory is incomplete or target counterfeit Then refuse fabricated predecessor proof 1ms
+     × When a real resource crossing ends with exit1 and verified shutdown Then censor only that branch 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/workload-policy.test.ts > Given independent workload progression with unchanged native guards > When one shape completed10k Then50k does not borrow or wait for unrelated shapes
+Error: whole predecessor size incomplete
+ ❯ workloadDisposition scripts/performance/workload-policy.js:14:11
+     12|   const previous = NATIVE_POLICY.sizes.filter(size => size < target.si…
+     13|   if (cases.some(c => previous.includes(c.size) && c.status !== "passe…
+     14|     throw Error("whole predecessor size incomplete")
+       |           ^
+     15|   return { kind: "admit", previousSizes: previous }
+     16| }
+ ❯ test/performance/workload-policy.test.ts:22:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  test/performance/workload-policy.test.ts > Given independent workload progression with unchanged native guards > When a shape is resource-censored Then its remaining equal/larger cases are not admitted, not passed
+Error: whole predecessor size incomplete
+ ❯ workloadDisposition scripts/performance/workload-policy.js:14:11
+     12|   const previous = NATIVE_POLICY.sizes.filter(size => size < target.si…
+     13|   if (cases.some(c => previous.includes(c.size) && c.status !== "passe…
+     14|     throw Error("whole predecessor size incomplete")
+       |           ^
+     15|   return { kind: "admit", previousSizes: previous }
+     16| }
+ ❯ test/performance/workload-policy.test.ts:34:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  test/performance/workload-policy.test.ts > Given independent workload progression with unchanged native guards > When inventory is incomplete or target counterfeit Then refuse fabricated predecessor proof
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/workload-policy.test.ts:39:71
+     37|     const cases = plan(); const c = target(cases, 10000)
+     38|     expect(() => workloadDisposition(c, cases.slice(1))).toThrow()
+     39|     expect(() => workloadDisposition({ ...c, shape: "fake" }, cases)).…
+       |                                                                       ^
+     40|   })
+     41|   it("When a real resource crossing ends with exit1 and verified shutd…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  test/performance/workload-policy.test.ts > Given independent workload progression with unchanged native guards > When a real resource crossing ends with exit1 and verified shutdown Then censor only that branch
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ test/performance/workload-policy.test.ts:42:78
+     40|   })
+     41|   it("When a real resource crossing ends with exit1 and verified shutd…
+     42|     expect(isResourceCensor(failure(), { code: 1, signal: null }, cros…
+       |                                                                              ^
+     43|   })
+     44|   it.each(["focus", "semantic", "cleanup", "signal", "owner", "missing…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 9 passed (13)
+   Start at  16:28:03
+   Duration  162ms (transform 48ms, setup 0ms, import 63ms, tests 9ms, environment 0ms)
+

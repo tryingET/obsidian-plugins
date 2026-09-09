@@ -192,3 +192,54 @@ incomplete full baseline remain unchanged.
 
 [Diagnostic results and byte-verified archive](../packages/obsidian-excalidraw-layer-manager/docs/project/performance/2026-09-09-intermediate-diagnostic.md).
 All native hosts stopped; no automatic larger run or optimization follows.
+
+### Approved per-workload continuation (15:04 UTC)
+
+Operator subsequently approved independent shape progression (evidence8746), captured in
+AK5583 done-contract version2. The known10k giant resource failure censors its remaining
+same/larger branch; unrelated shapes advance only with their own complete smaller-size
+seed/role/holdout proof. Operational/semantic/focus/provenance failures still stop globally.
+[Protocol amendment](../packages/obsidian-excalidraw-layer-manager/docs/project/performance/2026-09-09-per-workload-progression.md).
+
+Another task committed keyboard-help changesa681f6e on main. Initial compatibility rejection
+caught this before native execution. Evidence8747 records preserving that change and running
+an isolated detached source worktree atbffb51d, with only new controller/tests overlaid.
+Current-main integration CI1111/91 and isolated-subject CI1098/90 passed. Original source,
+bundle, native helpers and old test bytes remain identical; dependencies copied locally.
+
+Continuation freeze evidence8750:
+`99a13058b6a8f65358a0d1f65702d6d8efd503b88cb74a16a377919b5aa9bb4a`.
+The old archive was SHA-verified/tar-compared; all51 inherited artifacts were independently
+revalidated (50passed+1resource-censored), preserving old lock IDs/nonces. No2k/5k diagnostic
+samples were adopted into this matrix.78new tests passed red→green; independent review closed
+zero-sample-envelope and late-resource-finalizer consumer gaps before freeze.
+
+Fresh isolated native prerequisites passed (evidence8751), actual childexit0/owner success,
+after desktop-continuity canary hold release. New serial controller launched from
+`/home/tryinget/.local/state/pi-quests/tmp/ak5583-workloads.vEdTvK/subject`.
+Working evidence root is its parent; `matrix/workload-index.json` and `matrix-exit.txt` own
+observed execution outcome. Native workload completion is **not asserted at this checkpoint**.
+Do not archive the whole working root indiscriminately: `subject/` includes an active git
+worktree and copied dependencies. Preserve measured evidence separately; no active cleanup.
+
+### Partial continuation outcome and focus/owner-capacity stop
+
+`matrix` and fresh `matrix-02` each rejected focus during10k-pairs firstopen; raw failures,
+zero complete new cases and stopped cleanup were preserved. A foreground `matrix-03` then
+measured10k-pairs through29valid packets until sampled RSS8290.09MiB crossed8192MiB. The
+controller correctly censored that branch and continued to10k-ungrouped. Ungrouped passed
+five operations, then rejected focus during reorder(index0); no resource crossing was recorded
+(peak7455.75MiB). All native groups stopped and owner scratch cleanup succeeded.
+
+Focus-ID telemetry showed the desktop focus moving to AGNT; operator manual workstation use
+was later clarified through the peer. No automatic focus-stealing conclusion or relaxed
+focus guard is justified. The read-only telemetry observer is stopped. Original50passed
+cases remain; actual resource-censored cases are now giant+pairs. Partial summary/byte-verified
+archive are linked in the per-workload report; no larger-size or complete-baseline proof.
+
+Owner failure-record capacity reached99/100 (retainedroots4/5). The follow-up form for short
+hands-off batches and bounded record-only maintenance timed out with no answers. No new
+maintenance/native launch is authorized from silence. Next continuation must authenticate
+and import the new pairs resource receipt rather than rerunning it, and needs explicit
+operator focus/readiness coordination plus owner admission capacity. Batch pause/resume is
+not implemented; task5583 remains incomplete under the amended contract.

@@ -1,0 +1,53 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/workload-evidence.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/workload-evidence.test.ts (17 tests | 2 failed) 18ms
+     × When filesystem evidence is zero-resource Then accept only corroborated resource censoring 5ms
+     × When filesystem evidence is late-resource Then accept only corroborated resource censoring 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/workload-evidence.test.ts > Given old and new frozen case evidence retains its original identity > When filesystem evidence is zero-resource Then accept only corroborated resource censoring
+AssertionError: promise rejected "Error: missing/unreadable envelope invent… { code: '…' }" instead of resolving
+ ❯ test/performance/workload-evidence.test.ts:110:32
+    108|       const inspected = inspectWorkloadCase(f.c, "/synthetic-case", f.…
+    109|       if (["zero-resource", "late-resource"].includes(mode))
+    110|         await expect(inspected).resolves.toMatchObject({ status: "reso…
+       |                                ^
+    111|       else await expect(inspected).rejects.toThrow()
+    112|     },
+
+Caused by: Error: missing/unreadable envelope inventory
+ ❯ test/performance/workload-evidence.test.ts:103:61
+ ❯ readRows scripts/performance/workload-evidence.js:14:23
+ ❯ Module.inspectWorkloadCase scripts/performance/workload-evidence.js:130:22
+ ❯ test/performance/workload-evidence.test.ts:110:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { code: 'ENOENT' }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  test/performance/workload-evidence.test.ts > Given old and new frozen case evidence retains its original identity > When filesystem evidence is late-resource Then accept only corroborated resource censoring
+AssertionError: promise rejected "Error: operational/semantic/provenance fa…" instead of resolving
+ ❯ test/performance/workload-evidence.test.ts:110:32
+    108|       const inspected = inspectWorkloadCase(f.c, "/synthetic-case", f.…
+    109|       if (["zero-resource", "late-resource"].includes(mode))
+    110|         await expect(inspected).resolves.toMatchObject({ status: "reso…
+       |                                ^
+    111|       else await expect(inspected).rejects.toThrow()
+    112|     },
+
+Caused by: Error: operational/semantic/provenance failure, not resource censoring: 1000-ungrouped-558301-baseline-0: Error: sampled native resource limit
+ ❯ Module.inspectWorkloadCase scripts/performance/workload-evidence.js:160:11
+ ❯ test/performance/workload-evidence.test.ts:110:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 15 passed (17)
+   Start at  16:43:17
+   Duration  251ms (transform 109ms, setup 0ms, import 141ms, tests 18ms, environment 0ms)
+

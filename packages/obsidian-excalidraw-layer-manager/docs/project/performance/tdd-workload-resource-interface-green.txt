@@ -1,0 +1,11 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/workload-policy.test.ts test/performance/workload-evidence.test.ts test/performance/workload-runner.test.ts test/performance/workload-summary.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+
+ Test Files  4 passed (4)
+      Tests  78 passed (78)
+   Start at  16:44:28
+   Duration  269ms (transform 292ms, setup 0ms, import 435ms, tests 98ms, environment 0ms)
+

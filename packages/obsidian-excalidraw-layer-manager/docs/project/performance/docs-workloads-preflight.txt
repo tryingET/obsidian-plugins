@@ -1,0 +1,9 @@
+Docs — 5 match(es) — page 1/1
+2026-09-08-as-is-and-campaign-readiness.md - AK #5581: exploratory large-scene baseline and verified blockers to unattended LayerManager optimization.
+2026-09-09-intermediate-diagnostic.md - Operator-authorized exploratory2k giant/skewed comparison with conditional5k bracketing, separate from incomplete native baseline.
+2026-09-09-native-evaluator.md - AK5583 native evaluator protocol v2, safety boundaries, replay commands and evidence interpretation.
+2026-09-09-native-results.md - AK5583 frozen native evaluator validation and resource-censored matrix: 50 passed, one interrupted, 141 untouched; task incomplete.
+2026-09-09-per-workload-progression.md - AK5583 approved per-shape progression, compatible frozen evidence carry-forward, independent resource censoring and subset calibration reporting.
+Strict check: pass
+
+Reminder: keep docs up to date as behavior changes. When your task matches any "Read when" hint above, read that doc before coding, and add missing coverage.

@@ -1,0 +1,60 @@
+scripts/performance/workload-evidence.js:57:22 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    55 │       "same-shape all predecessor seeds/roles/holdouts; verified resource failures censor only own equal/larger shape; operational failures stop; no global aggregate",
+    56 │   }
+  > 57 │   const serialized = JSON.stringify(current, null, 2) + "\n"
+       │                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    58 │   await importLegacyCases(current) // Validate dispositions/packets before publishing a carry-forward lock.
+    59 │   await writeFile(output, serialized, { flag: "wx" })
+  
+  i Unsafe fix: Use a template literal.
+  
+     55  55 │         "same-shape all predecessor seeds/roles/holdouts; verified resource failures censor only own equal/larger shape; operational failures stop; no global aggregate",
+     56  56 │     }
+     57     │ - ··const·serialized·=·JSON.stringify(current,·null,·2)·+·"\n"
+         57 │ + ··const·serialized·=·`${JSON.stringify(current,·null,·2)}\n`
+     58  58 │     await importLegacyCases(current) // Validate dispositions/packets before publishing a carry-forward lock.
+     59  59 │     await writeFile(output, serialized, { flag: "wx" })
+  
+
+test/performance/workload-evidence.test.ts:124:18 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    122 │         if (path.endsWith("host-identity.json")) return JSON.stringify(f.identity)
+    123 │         if (path.endsWith("resource-samples.jsonl"))
+  > 124 │           return JSON.stringify({ rssMiB: 8194, availableMiB: 12000 }) + "\n"
+        │                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    125 │         if (path.endsWith("envelopes.jsonl")) {
+    126 │           if (mode !== "late-resource")
+  
+  i Unsafe fix: Use a template literal.
+  
+    122 122 │           if (path.endsWith("host-identity.json")) return JSON.stringify(f.identity)
+    123 123 │           if (path.endsWith("resource-samples.jsonl"))
+    124     │ - ··········return·JSON.stringify({·rssMiB:·8194,·availableMiB:·12000·})·+·"\n"
+        124 │ + ··········return·`${JSON.stringify({·rssMiB:·8194,·availableMiB:·12000·})}\n`
+    125 125 │           if (path.endsWith("envelopes.jsonl")) {
+    126 126 │             if (mode !== "late-resource")
+  
+
+test/performance/workload-evidence.test.ts:161:17 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    159 │   ])("When %s drifts Then reject the apparent pass", (mode) => {
+    160 │     const f = fixture()
+  > 161 │     const row = f.rows[0]!
+        │                 ^^^^^^^^^^
+    162 │     if (mode === "nonce") row.hostNonce = "foreign"
+    163 │     if (mode === "subject") row.sourceHash = hash("d")
+  
+
+Skipped 3 suggested fixes.
+If you wish to apply the suggested (unsafe) fixes, use the command biome check --write --unsafe
+
+Checked 4 files in 9ms. Fixed 3 files.
+Found 1 warning.
+Found 2 infos.
