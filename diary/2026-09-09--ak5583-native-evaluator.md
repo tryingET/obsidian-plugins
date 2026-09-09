@@ -172,3 +172,23 @@ and byte-verified native raw archive preserve the evidence. The original accepta
 remains unchanged; task5583 is incomplete. A follow-up decision form timed out with its default
 recommendation selected; no new diagnostic task or acceptance amendment is authorized from
 that ambiguous response. All native work stopped; desktop-continuity peer was notified.
+
+### Explicit2k and conditional5k diagnostic continuation
+
+The operator subsequently explicitly requested2k insights and5k only if useful (evidence8713).
+Resumed5583 only for separately labelled diagnostics within its existing scope; no baseline
+contract amendment. New policy/lifecycle tests passed red→green, CI1020/86 passed, and fresh
+native prerequisites passed before diagnostic freeze8714. Original subject/helper bytes
+remain unchanged; new diagnostic runner does not emit baseline-role envelopes.
+
+First2k attempt failed startup before any scene/sample; cleanup stopped and owner removed
+scratch (evidence8717). After nonoverlap/cleanup reconciliation, one fresh-host pair passed.
+Both2k cases then met predeclared headroom gates; evidence8719 admitted useful5k bracketing.
+All four2k/5k giant/skewed cases passed90/90 samples, childexit0, stopped cleanup and owner
+success. Giant2k/5k used3.89/6.54GiB peak sampled RSS and median reorder1.47/3.98s; skewed
+used~2.06GiB with reorder0.15/0.30s. Visible rows and selection size vary together: profiling
+hypotheses only, not a proven leak/cause or universal safe capacity. Original10k failure and
+incomplete full baseline remain unchanged.
+
+[Diagnostic results and byte-verified archive](../packages/obsidian-excalidraw-layer-manager/docs/project/performance/2026-09-09-intermediate-diagnostic.md).
+All native hosts stopped; no automatic larger run or optimization follows.

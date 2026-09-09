@@ -1,0 +1,39 @@
+scripts/performance/intermediate-case.js:77:62 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    75 │       const snapshot = { at: new Date().toISOString(), ...(await resources(host.owned.pid)) }
+    76 │       resourceSamples.push(snapshot)
+  > 77 │       await appendFile(join(root, "resource-samples.jsonl"), JSON.stringify(snapshot) + "\n")
+       │                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    78 │       assertResources(snapshot)
+    79 │     } catch (error) {
+  
+  i Unsafe fix: Use a template literal.
+  
+     75  75 │         const snapshot = { at: new Date().toISOString(), ...(await resources(host.owned.pid)) }
+     76  76 │         resourceSamples.push(snapshot)
+     77     │ - ······await·appendFile(join(root,·"resource-samples.jsonl"),·JSON.stringify(snapshot)·+·"\n")
+         77 │ + ······await·appendFile(join(root,·"resource-samples.jsonl"),·`${JSON.stringify(snapshot)}\n`)
+     78  78 │         assertResources(snapshot)
+     79  79 │       } catch (error) {
+  
+
+test/performance/intermediate-policy.test.ts:35:21 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    33 │     (mode) => {
+    34 │       const rows = pair()
+  > 35 │       const first = rows[0]!
+       │                     ^^^^^^^^
+    36 │       if (mode === "missing") rows.pop()
+    37 │       if (mode === "failed") first.status = "failed"
+  
+
+Skipped 1 suggested fixes.
+If you wish to apply the suggested (unsafe) fixes, use the command biome check --write --unsafe
+
+Checked 4 files in 9ms. Fixed 2 files.
+Found 1 warning.
+Found 1 info.

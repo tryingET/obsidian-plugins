@@ -1,0 +1,214 @@
+test/performance/intermediate-lifecycle.test.ts:111:7 lint/suspicious/noThenProperty ━━━━━━━━━━━━━━━
+
+  × This object defines a then property.
+  
+    109 │     const failure = Error("injected stop rejection")
+    110 │     return {
+  > 111 │       then(yes: (value: never) => unknown, no: (reason: Error) => unknown) {
+        │       ^^^^
+    112 │         attempt.handled = true
+    113 │         return Promise.reject(failure).then(yes, no)
+  
+  i Values with a then property can be treated like promises by await and dynamic imports, which can cause unexpected behavior.
+  
+  i Rename this property to something other than then unless you intentionally need a thenable object.
+  
+
+Checked 1 file in 9ms. Fixed 1 file.
+Found 1 error.
+check ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Some errors were emitted while applying fixes.
+  
+
+
+=== Actual unfixed driver RED ===
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/intermediate-lifecycle.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+stdout | test/performance/intermediate-lifecycle.test.ts > Given the actual intermediate driver with no native, network or filesystem effects > When interruption arrives during final copying Then failed exit and retained failed result forbid5k admission
+2000/giant: cycle 1/10
+
+stdout | test/performance/intermediate-lifecycle.test.ts > Given the actual intermediate driver with no native, network or filesystem effects > When interruption arrives during final copying Then failed exit and retained failed result forbid5k admission
+2000/giant: cycle 2/10
+
+stdout | test/performance/intermediate-lifecycle.test.ts > Given the actual intermediate driver with no native, network or filesystem effects > When interruption arrives during final copying Then failed exit and retained failed result forbid5k admission
+2000/giant: cycle 3/10
+
+stdout | test/performance/intermediate-lifecycle.test.ts > Given the actual intermediate driver with no native, network or filesystem effects > When interruption arrives during final copying Then failed exit and retained failed result forbid5k admission
+2000/giant: cycle 4/10
+
+stdout | test/performance/intermediate-lifecycle.test.ts > Given the actual intermediate driver with no native, network or filesystem effects > When interruption arrives during final copying Then failed exit and retained failed result forbid5k admission
+2000/giant: cycle 5/10
+
+stdout | test/performance/intermediate-lifecycle.test.ts > Given the actual intermediate driver with no native, network or filesystem effects > When interruption arrives during final copying Then failed exit and retained failed result forbid5k admission
+2000/giant: cycle 6/10
+
+stdout | test/performance/intermediate-lifecycle.test.ts > Given the actual intermediate driver with no native, network or filesystem effects > When interruption arrives during final copying Then failed exit and retained failed result forbid5k admission
+2000/giant: cycle 7/10
+
+stdout | test/performance/intermediate-lifecycle.test.ts > Given the actual intermediate driver with no native, network or filesystem effects > When interruption arrives during final copying Then failed exit and retained failed result forbid5k admission
+2000/giant: cycle 8/10
+
+stdout | test/performance/intermediate-lifecycle.test.ts > Given the actual intermediate driver with no native, network or filesystem effects > When interruption arrives during final copying Then failed exit and retained failed result forbid5k admission
+2000/giant: cycle 9/10
+
+stdout | test/performance/intermediate-lifecycle.test.ts > Given the actual intermediate driver with no native, network or filesystem effects > When interruption arrives during final copying Then failed exit and retained failed result forbid5k admission
+2000/giant: cycle 10/10
+
+stdout | test/performance/intermediate-lifecycle.test.ts > Given the actual intermediate driver with no native, network or filesystem effects > When interruption arrives during final copying Then failed exit and retained failed result forbid5k admission
+Retained diagnostic: /mock-evidence/2000-giant
+
+stdout | test/performance/intermediate-lifecycle.test.ts > Given the actual intermediate driver with no native, network or filesystem effects > When interrupted stop rejects Then consume every rejection and retain indeterminate cleanup
+Retained diagnostic: /mock-evidence/2000-giant
+
+stdout | test/performance/intermediate-lifecycle.test.ts > Given the actual intermediate driver with no native, network or filesystem effects > When resource-watchdog stop rejects Then no interval rejection escapes and failure artifacts survive
+Retained diagnostic: /mock-evidence/2000-giant
+
+ ❯ test/performance/intermediate-lifecycle.test.ts (3 tests | 3 failed) 187ms
+     × When interruption arrives during final copying Then failed exit and retained failed result forbid5k admission 176ms
+     × When interrupted stop rejects Then consume every rejection and retain indeterminate cleanup 7ms
+     × When resource-watchdog stop rejects Then no interval rejection escapes and failure artifacts survive 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/intermediate-lifecycle.test.ts > Given the actual intermediate driver with no native, network or filesystem effects > When interruption arrives during final copying Then failed exit and retained failed result forbid5k admission
+AssertionError: expected undefined to be 1 // Object.is equality
+
+- Expected:
+1
+
++ Received:
+undefined
+
+ ❯ test/performance/intermediate-lifecycle.test.ts:179:30
+    177|     await run()
+    178|     expect(fired).toBe(true)
+    179|     expect(process.exitCode).toBe(1)
+       |                              ^
+    180|     expect(retained[`${output}/diagnostic-result.json`]).toMatchObject…
+    181|     expect(retained[`${output}/raw-samples.jsonl`]).toBe("mock native …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  test/performance/intermediate-lifecycle.test.ts > Given the actual intermediate driver with no native, network or filesystem effects > When interrupted stop rejects Then consume every rejection and retain indeterminate cleanup
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ test/performance/intermediate-lifecycle.test.ts:187:62
+    185|     await run()
+    186|     expect(stopAttempts.length).toBeGreaterThanOrEqual(2)
+    187|     expect(stopAttempts.every((attempt) => attempt.handled)).toBe(true)
+       |                                                              ^
+    188|     expect(unhandled).toEqual([])
+    189|     expect(process.exitCode).toBe(1)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  test/performance/intermediate-lifecycle.test.ts > Given the actual intermediate driver with no native, network or filesystem effects > When resource-watchdog stop rejects Then no interval rejection escapes and failure artifacts survive
+AssertionError: expected [ Error: injected stop rejection ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   Error {
++     "message": "injected stop rejection",
++   },
++ ]
+
+ ❯ test/performance/intermediate-lifecycle.test.ts:198:23
+    196|     mode = "watchdog-stop"
+    197|     await run()
+    198|     expect(unhandled).toEqual([])
+       |                       ^
+    199|     expect(process.exitCode).toBe(1)
+    200|     expect(retained[`${output}/resource-stop.json`]).toBeDefined()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed (3)
+   Start at  12:20:24
+   Duration  361ms (transform 220ms, setup 0ms, import 84ms, tests 187ms, environment 0ms)
+
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+npm error workspace obsidian-excalidraw-layer-manager@0.1.0
+npm error location /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+npm error command failed
+npm error command sh -c vitest run test/performance/intermediate-lifecycle.test.ts --cache=false
+
+exit=1
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 typecheck
+npm notice run tsc --noEmit
+
+=== After parent lifecycle correction GREEN check ===
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/intermediate-lifecycle.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  12:21:43
+   Duration  298ms (transform 160ms, setup 0ms, import 67ms, tests 141ms, environment 0ms)
+
+
+exit=0
+test/performance/intermediate-lifecycle.test.ts:111:7 lint/suspicious/noThenProperty ━━━━━━━━━━━━━━━
+
+  × This object defines a then property.
+  
+    109 │     const failure = Error("injected stop rejection")
+    110 │     return {
+  > 111 │       then(yes: (value: never) => unknown, no: (reason: Error) => unknown) {
+        │       ^^^^
+    112 │         attempt.handled = true
+    113 │         return Promise.reject(failure).then(yes, no)
+  
+  i Values with a then property can be treated like promises by await and dynamic imports, which can cause unexpected behavior.
+  
+  i Rename this property to something other than then unless you intentionally need a thenable object.
+  
+
+Checked 1 file in 8ms. No fixes applied.
+Found 1 error.
+check ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Some errors were emitted while running checks.
+  
+
+
+=== Final typecheck ===
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 typecheck
+npm notice run tsc --noEmit
+
+exit=0
+
+=== Intentional thenable documented; final focused gates ===
+Checked 1 file in 6ms. No fixes applied.
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/intermediate-lifecycle.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  12:22:28
+   Duration  418ms (transform 277ms, setup 0ms, import 151ms, tests 177ms, environment 0ms)
+
+
+exit=0

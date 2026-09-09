@@ -1,0 +1,28 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/intermediate-policy.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/intermediate-policy.test.ts (11 tests | 1 failed) 6ms
+     × When resource readings are invalid or over the original caps Then fail closed 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/intermediate-policy.test.ts > Given exploratory 2k sizing is separate from the frozen baseline > When resource readings are invalid or over the original caps Then fail closed
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/intermediate-policy.test.ts:37:69
+     35|     expect(() => assertResources({ rssMiB: 1000, availableMiB: 8192 })…
+     36|     for (const rssMiB of [-1, NaN, Infinity, 8192])
+     37|       expect(() => assertResources({ rssMiB, availableMiB: 8192 })).to…
+       |                                                                     ^
+     38|     expect(() => assertResources({ rssMiB: 1000, availableMiB: 4095 })…
+     39|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 10 passed (11)
+   Start at  12:14:20
+   Duration  146ms (transform 38ms, setup 0ms, import 48ms, tests 6ms, environment 0ms)
+
