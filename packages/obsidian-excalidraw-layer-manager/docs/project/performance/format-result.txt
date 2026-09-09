@@ -1,0 +1,182 @@
+npm notice run npx
+npm notice run 'biome' check --write scripts/performance test/performance --max-diagnostics=30
+scripts/performance/native-page.js:52:21 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    50 │         .sort()
+    51 │         .filter((k) => value[k] !== undefined)
+  > 52 │         .map((k) => JSON.stringify(k) + ":" + canonical(value[k]))
+       │                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    53 │         .join(",")}}`
+    54 │     return JSON.stringify(value)
+  
+  i Unsafe fix: Use a template literal.
+  
+     50  50 │           .sort()
+     51  51 │           .filter((k) => value[k] !== undefined)
+     52     │ - ········.map((k)·=>·JSON.stringify(k)·+·":"·+·canonical(value[k]))
+         52 │ + ········.map((k)·=>·`${JSON.stringify(k)}:${canonical(value[k])}`)
+     53  53 │           .join(",")}}`
+     54  54 │       return JSON.stringify(value)
+  
+
+scripts/performance/native-page.js:57:13 lint/style/useNodejsImportProtocol  FIXABLE  ━━━━━━━━━━━━━━
+
+  i A Node.js builtin module should be imported with the node: protocol.
+  
+    55 │   }
+    56 │   const digest = (value) =>
+  > 57 │     require("crypto").createHash("sha256").update(canonical(value)).digest("hex")
+       │             ^^^^^^^^
+    58 │   const equal = (actual, expected, label) => {
+    59 │     if (digest(actual) !== digest(expected)) throw Error(`${label}: exact semantic mismatch`)
+  
+  i Using the node: protocol is more explicit and signals that the imported module belongs to Node.js.
+  
+  i Unsafe fix: Add the node: protocol.
+  
+     55  55 │     }
+     56  56 │     const digest = (value) =>
+     57     │ - ····require("crypto").createHash("sha256").update(canonical(value)).digest("hex")
+         57 │ + ····require("node:crypto").createHash("sha256").update(canonical(value)).digest("hex")
+     58  58 │     const equal = (actual, expected, label) => {
+     59  59 │       if (digest(actual) !== digest(expected)) throw Error(`${label}: exact semantic mismatch`)
+  
+
+scripts/performance/native-page.js:120:11 lint/style/useNodejsImportProtocol  FIXABLE  ━━━━━━━━━━━━━
+
+  i A Node.js builtin module should be imported with the node: protocol.
+  
+    118 │     pluginVersion: p.manifest.version,
+    119 │   }
+  > 120 │   require("fs").writeFileSync(
+        │           ^^^^
+    121 │     config.output + "/fixture.json",
+    122 │     JSON.stringify({ ...fixture, template, descriptors }),
+  
+  i Using the node: protocol is more explicit and signals that the imported module belongs to Node.js.
+  
+  i Unsafe fix: Add the node: protocol.
+  
+    118 118 │       pluginVersion: p.manifest.version,
+    119 119 │     }
+    120     │ - ··require("fs").writeFileSync(
+        120 │ + ··require("node:fs").writeFileSync(
+    121 121 │       config.output + "/fixture.json",
+    122 122 │       JSON.stringify({ ...fixture, template, descriptors }),
+  
+
+scripts/performance/native-page.js:121:5 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    119 │   }
+    120 │   require("fs").writeFileSync(
+  > 121 │     config.output + "/fixture.json",
+        │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    122 │     JSON.stringify({ ...fixture, template, descriptors }),
+    123 │   )
+  
+  i Unsafe fix: Use a template literal.
+  
+    119 119 │     }
+    120 120 │     require("fs").writeFileSync(
+    121     │ - ····config.output·+·"/fixture.json",
+        121 │ + ····`${config.output}/fixture.json`,
+    122 122 │       JSON.stringify({ ...fixture, template, descriptors }),
+    123 123 │     )
+  
+
+scripts/performance/native-page.js:376:15 lint/style/useNodejsImportProtocol  FIXABLE  ━━━━━━━━━━━━━
+
+  i A Node.js builtin module should be imported with the node: protocol.
+  
+    374 │     observer?.disconnect()
+    375 │     if (raw)
+  > 376 │       require("fs").appendFileSync(
+        │               ^^^^
+    377 │         b.config.output + "/raw-samples.jsonl",
+    378 │         JSON.stringify(raw) + "\n",
+  
+  i Using the node: protocol is more explicit and signals that the imported module belongs to Node.js.
+  
+  i Unsafe fix: Add the node: protocol.
+  
+    374 374 │       observer?.disconnect()
+    375 375 │       if (raw)
+    376     │ - ······require("fs").appendFileSync(
+        376 │ + ······require("node:fs").appendFileSync(
+    377 377 │           b.config.output + "/raw-samples.jsonl",
+    378 378 │           JSON.stringify(raw) + "\n",
+  
+
+scripts/performance/native-page.js:377:9 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    375 │     if (raw)
+    376 │       require("fs").appendFileSync(
+  > 377 │         b.config.output + "/raw-samples.jsonl",
+        │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    378 │         JSON.stringify(raw) + "\n",
+    379 │       )
+  
+  i Unsafe fix: Use a template literal.
+  
+    375 375 │       if (raw)
+    376 376 │         require("fs").appendFileSync(
+    377     │ - ········b.config.output·+·"/raw-samples.jsonl",
+        377 │ + ········`${b.config.output}/raw-samples.jsonl`,
+    378 378 │           JSON.stringify(raw) + "\n",
+    379 379 │         )
+  
+
+scripts/performance/native-page.js:378:9 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    376 │       require("fs").appendFileSync(
+    377 │         b.config.output + "/raw-samples.jsonl",
+  > 378 │         JSON.stringify(raw) + "\n",
+        │         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    379 │       )
+    380 │   }
+  
+  i Unsafe fix: Use a template literal.
+  
+    376 376 │         require("fs").appendFileSync(
+    377 377 │           b.config.output + "/raw-samples.jsonl",
+    378     │ - ········JSON.stringify(raw)·+·"\n",
+        378 │ + ········`${JSON.stringify(raw)}\n`,
+    379 379 │         )
+    380 380 │     }
+  
+
+scripts/performance/native-page.js:153:7 lint/complexity/useOptionalChain  FIXABLE  ━━━━━━━━━━━━━━━━
+
+  ! Change to an optional chain.
+  
+    151 │ export async function runNativeOperation(operation, index) {
+    152 │   const b = globalThis.__AK5583
+  > 153 │   if (!b || b.effect !== "settled")
+        │       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    154 │     throw Error("fixture unavailable or previous effects indeterminate")
+    155 │   const { api, runtime, digest, equal, dto, sceneProjection, expectedRows } = b
+  
+  i Unsafe fix: Change to an optional chain.
+  
+    151 151 │   export async function runNativeOperation(operation, index) {
+    152 152 │     const b = globalThis.__AK5583
+    153     │ - ··if·(!b·||·b.effect·!==·"settled")
+        153 │ + ··if·(b?.effect·!==·"settled")
+    154 154 │       throw Error("fixture unavailable or previous effects indeterminate")
+    155 155 │     const { api, runtime, digest, equal, dto, sceneProjection, expectedRows } = b
+  
+
+Skipped 8 suggested fixes.
+If you wish to apply the suggested (unsafe) fixes, use the command biome check --write --unsafe
+
+Checked 21 files in 20ms. Fixed 15 files.
+Found 1 warning.
+Found 7 infos.

@@ -1,0 +1,93 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-packet.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/native-packet.test.ts (7 tests | 6 failed) 7ms
+     × When a no-op or stale cache pretends to be faster Then exact expected semantics reject it 2ms
+     × When a row is dropped Then exact row identity digest rejects it 0ms
+     × When checks are bypassed Then the independently enforced mandatory inventory rejects it 0ms
+     × When every scene/row/selection state is unchanged Then no work is claimed 0ms
+     × When one frame or invalid timing is reported Then settlement is rejected 0ms
+     × When a failure or Node proxy arrives Then aggregation cannot turn it into success 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/native-packet.test.ts > Given independent native semantic digests and complete raw timing evidence > When a no-op or stale cache pretends to be faster Then exact expected semantics reject it
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/native-packet.test.ts:9:46
+      7|   it("When a no-op or stale cache pretends to be faster Then exact exp…
+      8|     const sample=good(); sample.checks[0].actual=hash("b")
+      9|     expect(()=>validateNativePacket(sample)).toThrow()
+       |                                              ^
+     10|     sample.checks[0].actual=hash("a"); sample.checks[3].actual=hash("b…
+     11|     expect(()=>validateNativePacket(sample)).toThrow()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  test/performance/native-packet.test.ts > Given independent native semantic digests and complete raw timing evidence > When a row is dropped Then exact row identity digest rejects it
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/native-packet.test.ts:15:46
+     13|   it("When a row is dropped Then exact row identity digest rejects it"…
+     14|     const sample=good(); sample.checks[1].actual=hash("c")
+     15|     expect(()=>validateNativePacket(sample)).toThrow()
+       |                                              ^
+     16|   })
+     17|   it("When checks are bypassed Then the independently enforced mandato…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  test/performance/native-packet.test.ts > Given independent native semantic digests and complete raw timing evidence > When checks are bypassed Then the independently enforced mandatory inventory rejects it
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/native-packet.test.ts:19:46
+     17|   it("When checks are bypassed Then the independently enforced mandato…
+     18|     const sample=good(); sample.checks.pop()
+     19|     expect(()=>validateNativePacket(sample)).toThrow()
+       |                                              ^
+     20|   })
+     21|   it("When every scene/row/selection state is unchanged Then no work i…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  test/performance/native-packet.test.ts > Given independent native semantic digests and complete raw timing evidence > When every scene/row/selection state is unchanged Then no work is claimed
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/native-packet.test.ts:23:46
+     21|   it("When every scene/row/selection state is unchanged Then no work i…
+     22|     const sample=good(); sample.beforeHashes.scene=hash("a")
+     23|     expect(()=>validateNativePacket(sample)).toThrow()
+       |                                              ^
+     24|   })
+     25|   it("When one frame or invalid timing is reported Then settlement is …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  test/performance/native-packet.test.ts > Given independent native semantic digests and complete raw timing evidence > When one frame or invalid timing is reported Then settlement is rejected
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/native-packet.test.ts:27:46
+     25|   it("When one frame or invalid timing is reported Then settlement is …
+     26|     const sample=good(); sample.timing.renderOpportunities=[8]
+     27|     expect(()=>validateNativePacket(sample)).toThrow()
+       |                                              ^
+     28|     sample.timing.renderOpportunities=[5,8]; sample.timing.settlement=9
+     29|     expect(()=>validateNativePacket(sample)).toThrow()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  test/performance/native-packet.test.ts > Given independent native semantic digests and complete raw timing evidence > When a failure or Node proxy arrives Then aggregation cannot turn it into success
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/native-packet.test.ts:32:67
+     30|   })
+     31|   it("When a failure or Node proxy arrives Then aggregation cannot tur…
+     32|     expect(()=>validateNativePacket({...good(),status:"failed"})).toTh…
+       |                                                                   ^
+     33|     expect(()=>validateNativePacket({...good(),native:false})).toThrow…
+     34|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 1 passed (7)
+   Start at  05:59:56
+   Duration  165ms (transform 46ms, setup 0ms, import 55ms, tests 7ms, environment 0ms)
+

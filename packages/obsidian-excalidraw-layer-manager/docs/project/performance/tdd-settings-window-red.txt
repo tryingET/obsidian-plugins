@@ -1,0 +1,636 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-window.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+(node:3896036) PromiseRejectionHandledWarning: Promise rejection was handled asynchronously (rejection id: 14)
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ❯ test/performance/native-window.test.ts (8 tests | 8 failed) 20ms
+     × When preparing input Then close only its exact Settings window before focusing the drawing host 4ms
+     × When no secondary window exists Then leave the main host intact 5ms
+     × When inventory is foreign-renderer Then fail before closing or focusing anything 3ms
+     × When inventory is unknown-window Then fail before closing or focusing anything 2ms
+     × When inventory is duplicate-settings Then fail before closing or focusing anything 1ms
+     × When inventory is wrong-main Then fail before closing or focusing anything 1ms
+     × When Settings prevents close Then fail rather than destroy it or admit measurement 2ms
+     × When serialized into guarded CDP Then use no module closure bindings 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/native-window.test.ts > Given an identity-verified disposable native host with startup Settings > When preparing input Then close only its exact Settings window before focusing the drawing host
+AssertionError: expected "vi.fn()" to be called once, but got 0 times
+ ❯ test/performance/native-window.test.ts:32:30
+     30|     const f = fixture()
+     31|     const result = await prepareNativeWindow(f.remote)
+     32|     expect(f.settings.close).toHaveBeenCalledOnce()
+       |                              ^
+     33|     expect(f.main.close).not.toHaveBeenCalled()
+     34|     expect(f.settings.close.mock.invocationCallOrder[0]).toBeLessThan(…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  test/performance/native-window.test.ts > Given an identity-verified disposable native host with startup Settings > When no secondary window exists Then leave the main host intact
+AssertionError: expected { current: 1, …(2) } to match object { Object (closedSettings, remaining) }
+(14 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "closedSettings": [],
+-   "remaining": [
+-     1,
++   "after": {
++     "bounds": {
++       "height": 1000,
++       "width": 900,
++       "x": 0,
++       "y": 0,
++     },
++     "focused": false,
++     "id": 1,
++     "modal": false,
++     "offscreen": undefined,
++     "parent": undefined,
++     "rendererPid": 42,
++     "title": "vault",
++     "url": "app://obsidian.md/index.html",
++     "visible": true,
++     "webContentsId": 1,
++   },
++   "before": [
++     {
++       "bounds": {
++         "height": 1000,
++         "width": 900,
++         "x": 0,
++         "y": 0,
++       },
++       "focused": false,
++       "id": 1,
++       "modal": false,
++       "offscreen": undefined,
++       "parent": undefined,
++       "rendererPid": 42,
++       "title": "vault",
++       "url": "app://obsidian.md/index.html",
++       "visible": true,
++       "webContentsId": 1,
++     },
+    ],
++   "current": 1,
+  }
+
+ ❯ test/performance/native-window.test.ts:39:49
+     37|   it("When no secondary window exists Then leave the main host intact"…
+     38|     const f = fixture(); f.windows.pop()
+     39|     expect(await prepareNativeWindow(f.remote)).toMatchObject({ closed…
+       |                                                 ^
+     40|     expect(f.main.close).not.toHaveBeenCalled()
+     41|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  test/performance/native-window.test.ts > Given an identity-verified disposable native host with startup Settings > When inventory is foreign-renderer Then fail before closing or focusing anything
+AssertionError: promise resolved "{ current: 1, before: [ …(2) ], …(1) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "after": {
++     "bounds": {
++       "height": 1000,
++       "width": 900,
++       "x": 0,
++       "y": 0,
++     },
++     "focused": false,
++     "id": 1,
++     "modal": false,
++     "offscreen": undefined,
++     "parent": undefined,
++     "rendererPid": 42,
++     "title": "vault",
++     "url": "app://obsidian.md/index.html",
++     "visible": true,
++     "webContentsId": 1,
++   },
++   "before": [
++     {
++       "bounds": {
++         "height": 1000,
++         "width": 900,
++         "x": 0,
++         "y": 0,
++       },
++       "focused": false,
++       "id": 1,
++       "modal": false,
++       "offscreen": undefined,
++       "parent": undefined,
++       "rendererPid": 42,
++       "title": "vault",
++       "url": "app://obsidian.md/index.html",
++       "visible": true,
++       "webContentsId": 1,
++     },
++     {
++       "bounds": {
++         "height": 1000,
++         "width": 900,
++         "x": 0,
++         "y": 0,
++       },
++       "focused": false,
++       "id": 2,
++       "modal": false,
++       "offscreen": undefined,
++       "parent": undefined,
++       "rendererPid": 99,
++       "title": "Settings - vault - Obsidian 1.13.4",
++       "url": "about:blank",
++       "visible": true,
++       "webContentsId": 2,
++     },
++   ],
++   "current": 1,
+  }
+
+ ❯ test/performance/native-window.test.ts:49:50
+     47|       if (mode === "duplicate-settings") f.windows.push(f.window(3, "S…
+     48|       if (mode === "wrong-main") f.main.webContents.getURL = () => "ab…
+     49|       await expect(prepareNativeWindow(f.remote)).rejects.toThrow(/nat…
+       |                                                  ^
+     50|       expect(f.settings.close).not.toHaveBeenCalled()
+     51|       expect(f.main.focus).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  test/performance/native-window.test.ts > Given an identity-verified disposable native host with startup Settings > When inventory is unknown-window Then fail before closing or focusing anything
+AssertionError: promise resolved "{ current: 1, before: [ …(3) ], …(1) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "after": {
++     "bounds": {
++       "height": 1000,
++       "width": 900,
++       "x": 0,
++       "y": 0,
++     },
++     "focused": false,
++     "id": 1,
++     "modal": false,
++     "offscreen": undefined,
++     "parent": undefined,
++     "rendererPid": 42,
++     "title": "vault",
++     "url": "app://obsidian.md/index.html",
++     "visible": true,
++     "webContentsId": 1,
++   },
++   "before": [
++     {
++       "bounds": {
++         "height": 1000,
++         "width": 900,
++         "x": 0,
++         "y": 0,
++       },
++       "focused": false,
++       "id": 1,
++       "modal": false,
++       "offscreen": undefined,
++       "parent": undefined,
++       "rendererPid": 42,
++       "title": "vault",
++       "url": "app://obsidian.md/index.html",
++       "visible": true,
++       "webContentsId": 1,
++     },
++     {
++       "bounds": {
++         "height": 1000,
++         "width": 900,
++         "x": 0,
++         "y": 0,
++       },
++       "focused": false,
++       "id": 2,
++       "modal": false,
++       "offscreen": undefined,
++       "parent": undefined,
++       "rendererPid": 42,
++       "title": "Settings - vault - Obsidian 1.13.4",
++       "url": "about:blank",
++       "visible": true,
++       "webContentsId": 2,
++     },
++     {
++       "bounds": {
++         "height": 1000,
++         "width": 900,
++         "x": 0,
++         "y": 0,
++       },
++       "focused": false,
++       "id": 3,
++       "modal": false,
++       "offscreen": undefined,
++       "parent": undefined,
++       "rendererPid": 42,
++       "title": "Other",
++       "url": "about:blank",
++       "visible": true,
++       "webContentsId": 3,
++     },
++   ],
++   "current": 1,
+  }
+
+ ❯ test/performance/native-window.test.ts:49:50
+     47|       if (mode === "duplicate-settings") f.windows.push(f.window(3, "S…
+     48|       if (mode === "wrong-main") f.main.webContents.getURL = () => "ab…
+     49|       await expect(prepareNativeWindow(f.remote)).rejects.toThrow(/nat…
+       |                                                  ^
+     50|       expect(f.settings.close).not.toHaveBeenCalled()
+     51|       expect(f.main.focus).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  test/performance/native-window.test.ts > Given an identity-verified disposable native host with startup Settings > When inventory is duplicate-settings Then fail before closing or focusing anything
+AssertionError: promise resolved "{ current: 1, before: [ …(3) ], …(1) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "after": {
++     "bounds": {
++       "height": 1000,
++       "width": 900,
++       "x": 0,
++       "y": 0,
++     },
++     "focused": false,
++     "id": 1,
++     "modal": false,
++     "offscreen": undefined,
++     "parent": undefined,
++     "rendererPid": 42,
++     "title": "vault",
++     "url": "app://obsidian.md/index.html",
++     "visible": true,
++     "webContentsId": 1,
++   },
++   "before": [
++     {
++       "bounds": {
++         "height": 1000,
++         "width": 900,
++         "x": 0,
++         "y": 0,
++       },
++       "focused": false,
++       "id": 1,
++       "modal": false,
++       "offscreen": undefined,
++       "parent": undefined,
++       "rendererPid": 42,
++       "title": "vault",
++       "url": "app://obsidian.md/index.html",
++       "visible": true,
++       "webContentsId": 1,
++     },
++     {
++       "bounds": {
++         "height": 1000,
++         "width": 900,
++         "x": 0,
++         "y": 0,
++       },
++       "focused": false,
++       "id": 2,
++       "modal": false,
++       "offscreen": undefined,
++       "parent": undefined,
++       "rendererPid": 42,
++       "title": "Settings - vault - Obsidian 1.13.4",
++       "url": "about:blank",
++       "visible": true,
++       "webContentsId": 2,
++     },
++     {
++       "bounds": {
++         "height": 1000,
++         "width": 900,
++         "x": 0,
++         "y": 0,
++       },
++       "focused": false,
++       "id": 3,
++       "modal": false,
++       "offscreen": undefined,
++       "parent": undefined,
++       "rendererPid": 42,
++       "title": "Settings - vault",
++       "url": "about:blank",
++       "visible": true,
++       "webContentsId": 3,
++     },
++   ],
++   "current": 1,
+  }
+
+ ❯ test/performance/native-window.test.ts:49:50
+     47|       if (mode === "duplicate-settings") f.windows.push(f.window(3, "S…
+     48|       if (mode === "wrong-main") f.main.webContents.getURL = () => "ab…
+     49|       await expect(prepareNativeWindow(f.remote)).rejects.toThrow(/nat…
+       |                                                  ^
+     50|       expect(f.settings.close).not.toHaveBeenCalled()
+     51|       expect(f.main.focus).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+ FAIL  test/performance/native-window.test.ts > Given an identity-verified disposable native host with startup Settings > When inventory is wrong-main Then fail before closing or focusing anything
+AssertionError: promise resolved "{ current: 1, before: [ …(2) ], …(1) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "after": {
++     "bounds": {
++       "height": 1000,
++       "width": 900,
++       "x": 0,
++       "y": 0,
++     },
++     "focused": false,
++     "id": 1,
++     "modal": false,
++     "offscreen": undefined,
++     "parent": undefined,
++     "rendererPid": 42,
++     "title": "vault",
++     "url": "about:blank",
++     "visible": true,
++     "webContentsId": 1,
++   },
++   "before": [
++     {
++       "bounds": {
++         "height": 1000,
++         "width": 900,
++         "x": 0,
++         "y": 0,
++       },
++       "focused": false,
++       "id": 1,
++       "modal": false,
++       "offscreen": undefined,
++       "parent": undefined,
++       "rendererPid": 42,
++       "title": "vault",
++       "url": "about:blank",
++       "visible": true,
++       "webContentsId": 1,
++     },
++     {
++       "bounds": {
++         "height": 1000,
++         "width": 900,
++         "x": 0,
++         "y": 0,
++       },
++       "focused": false,
++       "id": 2,
++       "modal": false,
++       "offscreen": undefined,
++       "parent": undefined,
++       "rendererPid": 42,
++       "title": "Settings - vault - Obsidian 1.13.4",
++       "url": "about:blank",
++       "visible": true,
++       "webContentsId": 2,
++     },
++   ],
++   "current": 1,
+  }
+
+ ❯ test/performance/native-window.test.ts:49:50
+     47|       if (mode === "duplicate-settings") f.windows.push(f.window(3, "S…
+     48|       if (mode === "wrong-main") f.main.webContents.getURL = () => "ab…
+     49|       await expect(prepareNativeWindow(f.remote)).rejects.toThrow(/nat…
+       |                                                  ^
+     50|       expect(f.settings.close).not.toHaveBeenCalled()
+     51|       expect(f.main.focus).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/8]⎯
+
+ FAIL  test/performance/native-window.test.ts > Given an identity-verified disposable native host with startup Settings > When Settings prevents close Then fail rather than destroy it or admit measurement
+AssertionError: promise resolved "{ current: 1, before: [ …(2) ], …(1) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "after": {
++     "bounds": {
++       "height": 1000,
++       "width": 900,
++       "x": 0,
++       "y": 0,
++     },
++     "focused": false,
++     "id": 1,
++     "modal": false,
++     "offscreen": undefined,
++     "parent": undefined,
++     "rendererPid": 42,
++     "title": "vault",
++     "url": "app://obsidian.md/index.html",
++     "visible": true,
++     "webContentsId": 1,
++   },
++   "before": [
++     {
++       "bounds": {
++         "height": 1000,
++         "width": 900,
++         "x": 0,
++         "y": 0,
++       },
++       "focused": false,
++       "id": 1,
++       "modal": false,
++       "offscreen": undefined,
++       "parent": undefined,
++       "rendererPid": 42,
++       "title": "vault",
++       "url": "app://obsidian.md/index.html",
++       "visible": true,
++       "webContentsId": 1,
++     },
++     {
++       "bounds": {
++         "height": 1000,
++         "width": 900,
++         "x": 0,
++         "y": 0,
++       },
++       "focused": false,
++       "id": 2,
++       "modal": false,
++       "offscreen": undefined,
++       "parent": undefined,
++       "rendererPid": 42,
++       "title": "Settings - vault - Obsidian 1.13.4",
++       "url": "about:blank",
++       "visible": true,
++       "webContentsId": 2,
++     },
++   ],
++   "current": 1,
+  }
+
+ ❯ test/performance/native-window.test.ts:57:57
+     55|     vi.useFakeTimers()
+     56|     const f = fixture(); f.settings.close.mockImplementation(() => {})
+     57|     const result = expect(prepareNativeWindow(f.remote)).rejects.toThr…
+       |                                                         ^
+     58|     await vi.runAllTimersAsync()
+     59|     await result
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/8]⎯
+
+ FAIL  test/performance/native-window.test.ts > Given an identity-verified disposable native host with startup Settings > When serialized into guarded CDP Then use no module closure bindings
+AssertionError: expected { current: 1, before: [ …(2) ], …(1) } to match object { closedSettings: [ 2 ], …(1) }
+(14 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "closedSettings": [
+-     2,
+-   ],
+-   "remaining": [
+-     1,
++   "after": {
++     "bounds": {
++       "height": 1000,
++       "width": 900,
++       "x": 0,
++       "y": 0,
++     },
++     "focused": false,
++     "id": 1,
++     "modal": false,
++     "offscreen": undefined,
++     "parent": undefined,
++     "rendererPid": 42,
++     "title": "vault",
++     "url": "app://obsidian.md/index.html",
++     "visible": true,
++     "webContentsId": 1,
++   },
++   "before": [
++     {
++       "bounds": {
++         "height": 1000,
++         "width": 900,
++         "x": 0,
++         "y": 0,
++       },
++       "focused": false,
++       "id": 1,
++       "modal": false,
++       "offscreen": undefined,
++       "parent": undefined,
++       "rendererPid": 42,
++       "title": "vault",
++       "url": "app://obsidian.md/index.html",
++       "visible": true,
++       "webContentsId": 1,
++     },
++     {
++       "bounds": {
++         "height": 1000,
++         "width": 900,
++         "x": 0,
++         "y": 0,
++       },
++       "focused": false,
++       "id": 2,
++       "modal": false,
++       "offscreen": undefined,
++       "parent": undefined,
++       "rendererPid": 42,
++       "title": "Settings - vault - Obsidian 1.13.4",
++       "url": "about:blank",
++       "visible": true,
++       "webContentsId": 2,
++     },
+    ],
++   "current": 1,
+  }
+
+ ❯ test/performance/native-window.test.ts:65:40
+     63|     const f = fixture()
+     64|     const serialized = new Function(`return (${prepareNativeWindow.toS…
+     65|     expect(await serialized(f.remote)).toMatchObject({ closedSettings:…
+       |                                        ^
+     66|   })
+     67| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/8]⎯
+
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+
+Vitest caught 1 unhandled error during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+AssertionError: promise resolved "{ current: 1, before: [ …(2) ], …(1) }" instead of rejecting
+ ❯ Assertion.__VITEST_REJECTS__ node_modules/@vitest/expect/dist/index.js:1747:17
+ ❯ Assertion.propertyGetter node_modules/chai/index.js:1570:27
+ ❯ Object.proxyGetter [as get] node_modules/chai/index.js:1659:22
+ ❯ test/performance/native-window.test.ts:57:57
+     55|     vi.useFakeTimers()
+     56|     const f = fixture(); f.settings.close.mockImplementation(() => {})
+     57|     const result = expect(prepareNativeWindow(f.remote)).rejects.toThr…
+       |                                                         ^
+     58|     await vi.runAllTimersAsync()
+     59|     await result
+ ❯ node_modules/@vitest/runner/dist/chunk-artifact.js:302:11
+ ❯ node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26
+ ❯ node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20
+ ❯ runWithCancel node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10
+
+This error originated in "test/performance/native-window.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "When Settings prevents close Then fail rather than destroy it or admit measurement". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+
+ Test Files  1 failed (1)
+      Tests  8 failed (8)
+     Errors  1 error
+   Start at  10:41:29
+   Duration  211ms (transform 76ms, setup 0ms, import 87ms, tests 20ms, environment 0ms)
+

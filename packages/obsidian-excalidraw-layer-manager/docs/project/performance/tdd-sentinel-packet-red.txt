@@ -1,0 +1,67 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-sentinel-packet.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/native-sentinel-packet.test.ts (5 tests | 4 failed) 6ms
+     × When the actual failed sentinel return shape arrives Then no .failed-field shortcut passes 2ms
+     × When a check bypass empties the list Then every([]) must not certify success 0ms
+     × When a critical proof is missing, duplicated, false or synthetic Then reject 0ms
+     × When the evaluator inventory itself is empty Then fail closed 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/native-sentinel-packet.test.ts > Given the independent required native sentinel inventory > When the actual failed sentinel return shape arrives Then no .failed-field shortcut passes
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/native-sentinel-packet.test.ts:8:111
+      6|   it('When complete native checks pass Then the receipt is admissible'…
+      7|   it('When the actual failed sentinel return shape arrives Then no .fa…
+      8|     expect(()=>validateSentinelReceipt({status:'failed',checks:[],erro…
+       |                                                                                                               ^
+      9|   })
+     10|   it('When a check bypass empties the list Then every([]) must not cer…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  test/performance/native-sentinel-packet.test.ts > Given the independent required native sentinel inventory > When a check bypass empties the list Then every([]) must not certify success
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/native-sentinel-packet.test.ts:10:157
+      8|     expect(()=>validateSentinelReceipt({status:'failed',checks:[],erro…
+      9|   })
+     10|   it('When a check bypass empties the list Then every([]) must not cer…
+       |                                                                                                                                                             ^
+     11|   it('When a critical proof is missing, duplicated, false or synthetic…
+     12|     const sample=good();sample.checks.pop()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  test/performance/native-sentinel-packet.test.ts > Given the independent required native sentinel inventory > When a critical proof is missing, duplicated, false or synthetic Then reject
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/native-sentinel-packet.test.ts:13:58
+     11|   it('When a critical proof is missing, duplicated, false or synthetic…
+     12|     const sample=good();sample.checks.pop()
+     13|     expect(()=>validateSentinelReceipt(sample,required)).toThrow()
+       |                                                          ^
+     14|     expect(()=>validateSentinelReceipt({...good(),checks:[...good().ch…
+     15|     expect(()=>validateSentinelReceipt({...good(),checks:[...good().ch…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  test/performance/native-sentinel-packet.test.ts > Given the independent required native sentinel inventory > When the evaluator inventory itself is empty Then fail closed
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/native-sentinel-packet.test.ts:18:121
+     16|     expect(()=>validateSentinelReceipt({...good(),native:false},requir…
+     17|   })
+     18|   it('When the evaluator inventory itself is empty Then fail closed',(…
+       |                                                                                                                         ^
+     19| })
+     20|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 1 passed (5)
+   Start at  06:50:07
+   Duration  139ms (transform 29ms, setup 0ms, import 37ms, tests 6ms, environment 0ms)
+

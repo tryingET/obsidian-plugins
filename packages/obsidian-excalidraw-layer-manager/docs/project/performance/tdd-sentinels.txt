@@ -1,0 +1,606 @@
+Synthetic preflight TDD; no native host contacted.
+RED behavioral unsafe stub
+Command: npm test -- test/performance/native-sentinels.test.ts --cache=false
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-sentinels.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/native-sentinels.test.ts (4 tests | 4 failed) 7ms
+     × When called in Node Then it refuses to label the proxy native 4ms
+     × When output is outside the verified disposable vault parent Then no evidence or fixture is written 1ms
+     × When an existing manager is present Then a serialized function refuses implicit adoption 0ms
+     × When a prior sentinel log already exists Then no mutation is replayed or appended 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/native-sentinels.test.ts > Given supplementary native sentinel preflight (synthetic tests, not native proof) > When called in Node Then it refuses to label the proxy native
+AssertionError: expected 'passed' to be 'failed' // Object.is equality
+
+Expected: "failed"
+Received: "passed"
+
+ ❯ test/performance/native-sentinels.test.ts:21:27
+     19|   it("When called in Node Then it refuses to label the proxy native", …
+     20|     const result = await runNativeSentinels({ output: "/owned/run" })
+     21|     expect(result.status).toBe("failed")
+       |                           ^
+     22|     expect(result.error).toContain("native Electron")
+     23|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  test/performance/native-sentinels.test.ts > Given supplementary native sentinel preflight (synthetic tests, not native proof) > When output is outside the verified disposable vault parent Then no evidence or fixture is written
+AssertionError: expected 'passed' to be 'failed' // Object.is equality
+
+Expected: "failed"
+Received: "passed"
+
+ ❯ test/performance/native-sentinels.test.ts:27:27
+     25|     const fs = fakeNative()
+     26|     const result = await runNativeSentinels({ output: "/foreign" })
+     27|     expect(result.status).toBe("failed")
+       |                           ^
+     28|     expect(result.error).toContain("output")
+     29|     expect(fs.writeFileSync).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  test/performance/native-sentinels.test.ts > Given supplementary native sentinel preflight (synthetic tests, not native proof) > When an existing manager is present Then a serialized function refuses implicit adoption
+AssertionError: expected 'passed' to be 'failed' // Object.is equality
+
+Expected: "failed"
+Received: "passed"
+
+ ❯ test/performance/native-sentinels.test.ts:36:27
+     34|     const serialized = new Function(`return (${runNativeSentinels.toSt…
+     35|     const result = await serialized({ output: "/owned/run" })
+     36|     expect(result.status).toBe("failed")
+       |                           ^
+     37|     expect(result.error).toContain("closed manager")
+     38|     expect(fs.writeFileSync).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  test/performance/native-sentinels.test.ts > Given supplementary native sentinel preflight (synthetic tests, not native proof) > When a prior sentinel log already exists Then no mutation is replayed or appended
+AssertionError: expected 'passed' to be 'failed' // Object.is equality
+
+Expected: "failed"
+Received: "passed"
+
+ ❯ test/performance/native-sentinels.test.ts:44:27
+     42|     fs.writeFileSync.mockImplementation(() => { throw Object.assign(Er…
+     43|     const result = await runNativeSentinels({ output: "/owned/run" })
+     44|     expect(result.status).toBe("failed")
+       |                           ^
+     45|     expect(result.error).toContain("existing attempt")
+     46|     expect(fs.appendFileSync).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed (4)
+   Start at  06:26:54
+   Duration  124ms (transform 19ms, setup 0ms, import 28ms, tests 7ms, environment 0ms)
+
+
+RED exit=1
+
+GREEN implementation attempt 1
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-sentinels.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/native-sentinels.test.ts (4 tests | 2 failed) 8ms
+     × When output is outside the verified disposable vault parent Then no evidence or fixture is written 4ms
+     × When a prior sentinel log already exists Then no mutation is replayed or appended 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/native-sentinels.test.ts > Given supplementary native sentinel preflight (synthetic tests, not native proof) > When output is outside the verified disposable vault parent Then no evidence or fixture is written
+AssertionError: expected 'Error: ENOENT: no such file or direct…' to contain 'output'
+
+Expected: "output"
+Received: "Error: ENOENT: no such file or directory, lstat '/owned'"
+
+ ❯ test/performance/native-sentinels.test.ts:28:26
+     26|     const result = await runNativeSentinels({ output: "/foreign" })
+     27|     expect(result.status).toBe("failed")
+     28|     expect(result.error).toContain("output")
+       |                          ^
+     29|     expect(fs.writeFileSync).not.toHaveBeenCalled()
+     30|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  test/performance/native-sentinels.test.ts > Given supplementary native sentinel preflight (synthetic tests, not native proof) > When a prior sentinel log already exists Then no mutation is replayed or appended
+AssertionError: expected 'Error: ENOENT: no such file or direct…' to contain 'existing attempt'
+
+Expected: "existing attempt"
+Received: "Error: ENOENT: no such file or directory, lstat '/owned'"
+
+ ❯ test/performance/native-sentinels.test.ts:45:26
+     43|     const result = await runNativeSentinels({ output: "/owned/run" })
+     44|     expect(result.status).toBe("failed")
+     45|     expect(result.error).toContain("existing attempt")
+       |                          ^
+     46|     expect(fs.appendFileSync).not.toHaveBeenCalled()
+     47|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 2 passed (4)
+   Start at  06:31:21
+   Duration  137ms (transform 28ms, setup 0ms, import 40ms, tests 8ms, environment 0ms)
+
+
+GREEN exit=1
+
+GREEN attempt 2: fake host executes serialized function, matching native invocation (module-local Node require is not fake host global require)
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-sentinels.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  06:32:05
+   Duration  131ms (transform 30ms, setup 0ms, import 40ms, tests 4ms, environment 0ms)
+
+
+GREEN exit=0
+
+Final validation (synthetic preflight only; native execution remains parent-owned)
+npm notice run npx
+npm notice run 'biome' check --write scripts/performance/native-sentinels.js test/performance/native-sentinels.test.ts
+Checked 2 files in 15ms. No fixes applied.
+Biome exit=0
+Syntax exit=0
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-sentinels.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  06:34:02
+   Duration  138ms (transform 32ms, setup 0ms, import 42ms, tests 4ms, environment 0ms)
+
+Vitest exit=0
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 typecheck
+npm notice run tsc --noEmit
+Package typecheck exit=0
+  458 scripts/performance/native-sentinels.js
+   58 test/performance/native-sentinels.test.ts
+  516 total
+5f24309ebf14e452ba1012f20fc79fb198c14aca0ab6616f90ede5dd74fb5231  scripts/performance/native-sentinels.js
+459641caa8523e3876919a5a2834ca8efb98cacf8f98d934006c0e08155d7407  test/performance/native-sentinels.test.ts
+
+Revision 2 staging audit RED: unsafe helper stub (no native contact)
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-sentinels.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/native-sentinels.test.ts (12 tests | 6 failed) 15ms
+     × When B is copied on the intended EA Then the target/instance proof and descriptor restoration are exact 4ms
+     × When B is copied on another EA or A is copied incidentally Then an idle staging dictionary cannot pass 2ms
+     × When incidental or multiple-instance copying occurs Then initial capture rejects ambiguity 1ms
+     × When another writer replaces the observer Then restoration reports unresolved rather than overwriting it 1ms
+     × When a later sentinel insertion fails Then already-armed rollback restores prior descriptors and removes earlier inserts 1ms
+     × When a staged slot is changed by another writer Then rollback records unresolved and preserves the foreign value 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/native-sentinels.test.ts > Given target-specific native command-EA staging observation (synthetic helper tests) > When B is copied on the intended EA Then the target/instance proof and descriptor restoration are exact
+AssertionError: expected undefined to be { elementsDict: {}, imagesDict: {} } // Object.is equality
+
+- Expected:
+{
+  "elementsDict": {},
+  "imagesDict": {},
+}
+
++ Received:
+undefined
+
+ ❯ test/performance/native-sentinels.test.ts:78:23
+     76|     const w=prototypeFixture(), audit=auditFactory()
+     77|     const result=await audit.command(w.proto,['B'],async()=>{w.proto.c…
+     78|     expect(result.ea).toBe(w.a);expect(result.proof).toMatchObject({co…
+       |                       ^
+     79|     expect(Object.getOwnPropertyDescriptor(w.proto,'copyViewElementsTo…
+     80|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  test/performance/native-sentinels.test.ts > Given target-specific native command-EA staging observation (synthetic helper tests) > When B is copied on another EA or A is copied incidentally Then an idle staging dictionary cannot pass
+AssertionError: promise resolved "{ outcome: undefined }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "outcome": undefined,
+  }
+
+ ❯ test/performance/native-sentinels.test.ts:84:168
+     82|     for(const wrong of ['instance','target']) {
+     83|       const w=prototypeFixture(), audit=auditFactory()
+     84|       await expect(audit.command(w.proto,['B'],async()=>{w.proto.copyV…
+       |                                                                                                                                                                        ^
+     85|       expect(Object.getOwnPropertyDescriptor(w.proto,'copyViewElements…
+     86|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  test/performance/native-sentinels.test.ts > Given target-specific native command-EA staging observation (synthetic helper tests) > When incidental or multiple-instance copying occurs Then initial capture rejects ambiguity
+AssertionError: promise resolved "{ outcome: undefined }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "outcome": undefined,
+  }
+
+ ❯ test/performance/native-sentinels.test.ts:90:178
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  test/performance/native-sentinels.test.ts > Given target-specific native command-EA staging observation (synthetic helper tests) > When another writer replaces the observer Then restoration reports unresolved rather than overwriting it
+AssertionError: promise resolved "{ outcome: undefined }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "outcome": undefined,
+  }
+
+ ❯ test/performance/native-sentinels.test.ts:99:173
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  test/performance/native-sentinels.test.ts > Given target-specific native command-EA staging observation (synthetic helper tests) > When a later sentinel insertion fails Then already-armed rollback restores prior descriptors and removes earlier inserts
+AssertionError: expected [Function] to throw an error
+
+- Expected:
+null
+
++ Received:
+undefined
+
+ ❯ test/performance/native-sentinels.test.ts:109:34
+    107|     const staged=audit.slots([{object:dict,key:'A',value:stale},{objec…
+    108|     const rollback=()=>staged.restore() // armed before install
+    109|     expect(()=>staged.install()).toThrow('partial insertion')
+       |                                  ^
+    110|     expect(rollback().status).toBe('restored')
+    111|     expect(Object.getOwnPropertyDescriptor(dict,'A')).toEqual(original)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  test/performance/native-sentinels.test.ts > Given target-specific native command-EA staging observation (synthetic helper tests) > When a staged slot is changed by another writer Then rollback records unresolved and preserves the foreign value
+AssertionError: expected 'restored' to be 'unresolved' // Object.is equality
+
+Expected: "unresolved"
+Received: "restored"
+
+ ❯ test/performance/native-sentinels.test.ts:124:37
+    122|     const audit=auditFactory(), dict:Record<string,unknown>={}, staged…
+    123|     staged.install();const foreign={id:'foreign'};dict['A']=foreign
+    124|     expect(staged.restore().status).toBe('unresolved');expect(dict['A'…
+       |                                     ^
+    125|   })
+    126| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 6 passed (12)
+   Start at  06:50:48
+   Duration  199ms (transform 64ms, setup 0ms, import 75ms, tests 15ms, environment 0ms)
+
+
+Staging audit RED exit=1
+
+Revision 2 staging audit GREEN implementation attempt
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-sentinels.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+
+ Test Files  1 passed (1)
+      Tests  12 passed (12)
+   Start at  06:55:16
+   Duration  175ms (transform 63ms, setup 0ms, import 74ms, tests 10ms, environment 0ms)
+
+
+Staging audit GREEN exit=0
+
+Revision 3 RED: explicit expression/inventory and pending copy isolation (synthetic; no host contact)
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-sentinels.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/native-sentinels.test.ts (16 tests | 3 failed) 19ms
+     × When the literal expression is evaluated without module bindings Then native preflight still fails closed 4ms
+     × When the controller reads the trusted inventory Then critical staging, persistence and disposal checks are required 2ms
+     × When a pending dictionary is used directly during copying Then isolation cannot be reported as passed 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/native-sentinels.test.ts > Given an explicit native expression builder (synthetic serialization tests) > When the literal expression is evaluated without module bindings Then native preflight still fails closed
+AssertionError: expected undefined to be type of 'function'
+
+Expected: "function"
+Received: "undefined"
+
+ ❯ test/performance/native-sentinels.test.ts:64:53
+     62| describe("Given an explicit native expression builder (synthetic seria…
+     63|   it("When the literal expression is evaluated without module bindings…
+     64|     expect(sentinels.buildNativeSentinelExpression).toBeTypeOf("functi…
+       |                                                     ^
+     65|     const expression = sentinels.buildNativeSentinelExpression({ outpu…
+     66|     expect(expression).toContain("function createStagingAudit")
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  test/performance/native-sentinels.test.ts > Given an explicit native expression builder (synthetic serialization tests) > When the controller reads the trusted inventory Then critical staging, persistence and disposal checks are required
+AssertionError: expected undefined to deeply equal ArrayContaining{…}
+
+- Expected:
+ArrayContaining [
+  "external A version advanced",
+  "B rename after fresh external A with OLD A pending: exact native staging route",
+  "When saved/reopened Then all mixed geometry, order, text/freehand, frame membership and metadata survive",
+  "When navigating to testing.md Then the disposed manager does not resurrect",
+]
+
++ Received:
+undefined
+
+ ❯ test/performance/native-sentinels.test.ts:73:42
+     71|   })
+     72|   it("When the controller reads the trusted inventory Then critical st…
+     73|     expect(sentinels.requiredCheckNames).toEqual(expect.arrayContainin…
+       |                                          ^
+     74|       "external A version advanced",
+     75|       "B rename after fresh external A with OLD A pending: exact nativ…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  test/performance/native-sentinels.test.ts > Given target-specific native command-EA staging observation (synthetic helper tests) > When a pending dictionary is used directly during copying Then isolation cannot be reported as passed
+AssertionError: promise resolved "{ outcome: undefined, …(2) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "ea": {
++     "elementsDict": {},
++     "imagesDict": {},
++   },
++   "outcome": undefined,
++   "proof": {
++     "cleanup": {
++       "conflicts": [],
++       "status": "restored",
++     },
++     "copyCalls": 1,
++     "matchedEA": true,
++     "observed": [
++       {
++         "argCount": 1,
++         "ids": [
++           "B",
++         ],
++         "isolated": false,
++       },
++     ],
++     "pendingAtDispatch": true,
++     "targets": [
++       "B",
++     ],
++   },
+  }
+
+ ❯ test/performance/native-sentinels.test.ts:104:22
+    102|     await expect(audit.command(w.proto, ["B"], async () => {
+    103|       w.proto.copyViewElementsToEAforEditing.call(w.a, [{ id: "B" }])
+    104|     }, w.a, pending)).rejects.toThrow("staging audit")
+       |                      ^
+    105|     expect(Object.getOwnPropertyDescriptor(w.proto, "copyViewElementsT…
+    106|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 13 passed (16)
+   Start at  07:18:58
+   Duration  194ms (transform 66ms, setup 0ms, import 77ms, tests 19ms, environment 0ms)
+
+Revision 3 RED exit=1
+
+Revision 3 GREEN validation (synthetic only; approved fourth file)
+npm notice run npx
+npm notice run 'biome' check --write scripts/performance/native-sentinels.js scripts/performance/native-sentinel-audit.js test/performance/native-sentinels.test.ts --max-diagnostics=10
+Checked 3 files in 21ms. Fixed 3 files.
+Biome exit=0
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-sentinels.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+
+ Test Files  1 passed (1)
+      Tests  16 passed (16)
+   Start at  07:21:23
+   Duration  209ms (transform 98ms, setup 0ms, import 110ms, tests 11ms, environment 0ms)
+
+Vitest exit=0
+Sentinel syntax exit=0
+Helper syntax exit=0
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 typecheck
+npm notice run tsc --noEmit
+test/performance/native-summary.test.ts(111,10): error TS2345: Argument of type 'Envelope | undefined' is not assignable to parameter of type 'Envelope'.
+  Type 'undefined' is not assignable to type 'Envelope'.
+test/performance/native-summary.test.ts(260,36): error TS2532: Object is possibly 'undefined'.
+test/performance/native-summary.test.ts(260,72): error TS2532: Object is possibly 'undefined'.
+test/performance/native-summary.test.ts(269,68): error TS2532: Object is possibly 'undefined'.
+Package typecheck exit=1
+  483 packages/obsidian-excalidraw-layer-manager/scripts/performance/native-sentinels.js
+  181 packages/obsidian-excalidraw-layer-manager/scripts/performance/native-sentinel-audit.js
+  279 packages/obsidian-excalidraw-layer-manager/test/performance/native-sentinels.test.ts
+  943 total
+
+Revision 3 final synthetic verification; native 01 failure is NOT resolved/proven by these tests.
+Recovered scope approval from active JSONL custom message 847f9013 (2026-09-09T05:01:27.598Z); WebSocket error 834c4662 occurred afterward. Explicit builder replaces prior raw function serialization contract.
+npm notice run npx
+npm notice run 'biome' check --write scripts/performance/native-sentinels.js scripts/performance/native-sentinel-audit.js test/performance/native-sentinels.test.ts --max-diagnostics=10
+Checked 3 files in 17ms. Fixed 1 file.
+Biome exit=0
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-sentinels.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+
+ Test Files  1 passed (1)
+      Tests  18 passed (18)
+   Start at  07:22:27
+   Duration  204ms (transform 77ms, setup 0ms, import 89ms, tests 11ms, environment 0ms)
+
+Vitest exit=0
+Both JS syntax exit=0
+  483 packages/obsidian-excalidraw-layer-manager/scripts/performance/native-sentinels.js
+  181 packages/obsidian-excalidraw-layer-manager/scripts/performance/native-sentinel-audit.js
+  322 packages/obsidian-excalidraw-layer-manager/test/performance/native-sentinels.test.ts
+  986 total
+843cbb88d041f3f0a206c3e88067c20ec2ceb31d4e588b4e03a537ecb7fa2969  packages/obsidian-excalidraw-layer-manager/scripts/performance/native-sentinels.js
+e3641e4d3b022cae06946eac68abaab1121b1f9b151bf1db40d85d1219b68746  packages/obsidian-excalidraw-layer-manager/scripts/performance/native-sentinel-audit.js
+7522e14f3fac4e93cce9626db65adc433387cae5a1d189ef1e79271afc98142e  packages/obsidian-excalidraw-layer-manager/test/performance/native-sentinels.test.ts
+
+Revision 4 fixture RED (synthetic, native diagnostic frameColor addition, no product code changes)
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-sentinels.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/native-sentinels.test.ts (20 tests | 2 failed) 19ms
+     × When EA already authored metadata Then frame colors and foreign/unknown fields survive sentinel decoration 6ms
+     × When EA omitted frameColor Then the frame fixture authors explicit valid colors before insertion without decorating ordinary elements as frames 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/native-sentinels.test.ts > Given native fixture metadata construction (synthetic source-slice tests) > When EA already authored metadata Then frame colors and foreign/unknown fields survive sentinel decoration
+AssertionError: expected { …(2) } to deeply equal { frameColor: { …(3) }, …(3) }
+
+- Expected
++ Received
+
+  {
+    "foreign": {
+-     "existing": true,
+      "sentinel": "foreign-frame",
+-   },
+-   "frameColor": {
+-     "fill": "#445566",
+-     "nameColor": "#778899",
+-     "stroke": "#112233",
+    },
+    "lmx": {
+-     "prior": "keep",
+      "unknownKey": "unknown-frame",
+    },
+-   "owner": "EA",
+  }
+
+ ❯ test/performance/native-sentinels.test.ts:24:20
+     22|     const customData = { frameColor: colors, owner: "EA", foreign: { e…
+     23|     const result = decorateFixture({ customData }, "frame")
+     24|     expect(result).toEqual({ frameColor: colors, owner: "EA", foreign:…
+       |                    ^
+     25|     expect(customData.foreign).toEqual({ existing: true })
+     26|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  test/performance/native-sentinels.test.ts > Given native fixture metadata construction (synthetic source-slice tests) > When EA omitted frameColor Then the frame fixture authors explicit valid colors before insertion without decorating ordinary elements as frames
+AssertionError: expected { …(2) } to deeply equal { frameColor: { …(3) }, …(2) }
+
+- Expected
++ Received
+
+  {
+    "foreign": {
+      "sentinel": "foreign-frame",
+    },
+-   "frameColor": {
+-     "fill": "#ADADAD",
+-     "nameColor": "#7A7A7A",
+-     "stroke": "#D4D4D4",
+-   },
+    "lmx": {
+      "unknownKey": "unknown-frame",
+    },
+  }
+
+ ❯ test/performance/native-sentinels.test.ts:28:42
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 18 passed (20)
+   Start at  07:33:12
+   Duration  176ms (transform 39ms, setup 0ms, import 50ms, tests 19ms, environment 0ms)
+
+Fixture RED exit=1
+
+Revision 4 fixture GREEN: preserve EA customData and author explicit frameColor only when absent, before authoredFixture capture/insertion. Exact oracle unchanged.
+npm notice run npx
+npm notice run 'biome' check --write scripts/performance/native-sentinels.js test/performance/native-sentinels.test.ts --max-diagnostics=10
+Checked 2 files in 17ms. Fixed 2 files.
+Biome exit=0
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-sentinels.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+
+ Test Files  1 passed (1)
+      Tests  20 passed (20)
+   Start at  07:33:37
+   Duration  139ms (transform 31ms, setup 0ms, import 43ms, tests 12ms, environment 0ms)
+
+Fixture GREEN exit=0
+Syntax exit=0
+  493 packages/obsidian-excalidraw-layer-manager/scripts/performance/native-sentinels.js
+  366 packages/obsidian-excalidraw-layer-manager/test/performance/native-sentinels.test.ts
+  859 total
+d1a3d1d9cd4074ef75e861fc954ee198725e171842fa2e6786f34ca8282516c2  packages/obsidian-excalidraw-layer-manager/scripts/performance/native-sentinels.js
+e3641e4d3b022cae06946eac68abaab1121b1f9b151bf1db40d85d1219b68746  packages/obsidian-excalidraw-layer-manager/scripts/performance/native-sentinel-audit.js
+0d96bb4f35023fb059523b89e95108c1d0ee270852d70fee593e976d1034e081  packages/obsidian-excalidraw-layer-manager/test/performance/native-sentinels.test.ts

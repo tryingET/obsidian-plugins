@@ -1,0 +1,624 @@
+WARN: 7 kernel-protected current-uid process(es) were outside reference inspection
+WARN: 7 kernel-protected current-uid process(es) were outside reference inspection
+retention_admission={"label": "ak5583-ci-reviewed", "retention_deferral": {"admission_scan_scope": "readable-current-uid", "deferred_manifest_sha256": "3048a36f394c095946a69be97f41e225677711cb42170b71d4560beb92efaeba", "deferred_root_dev": 50, "deferred_root_ino": 355143172, "deferred_run_id": "run-1788137699-9655c994d9827ead", "mode": "named-run-age-only", "owner_decision_id": "154", "protected_process_count": 7, "schema": "ai-society-heavy-job-retention-deferral/v1"}, "run_id": "run-1788939619-f6a4670b6c9878fc", "task_id": "5583"}
+retention_deferred_age_run=run-1788137699-9655c994d9827ead
+npm run ci
+npm notice run ci
+npm notice run bash ./scripts/ci/full.sh
+ok: ci smoke
+[package-gate] ./packages/obsidian-excalidraw-layer-manager :: npm run check
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 check
+npm notice run npm run verify:recovery && npm run deadcode && npm run test:coverage && node build/verifyDeploymentWorkflow.mjs
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 verify:recovery
+npm notice run node build/recoveryVerificationGate.mjs
+[recovery-gate] check:fast
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 check:fast
+npm notice run npm run lint && npm run typecheck && npm run typecheck:scripts
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 lint
+npm notice run biome check .
+docs/evidence/2026-09-08-rename-refresh/rename-acceptance.js:51:42 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    49 │     for (const kind of ["ordinary", "frame"]) {
+    50 │       const before = label(kind)
+  > 51 │       const original = await begin(kind, "AK5575 " + kind + " verified")
+       │                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    52 │       for (let cycle = 0; cycle < 3; cycle++) {
+    53 │         rt.refresh()
+  
+  i Unsafe fix: Use a template literal.
+  
+     49  49 │       for (const kind of ["ordinary", "frame"]) {
+     50  50 │         const before = label(kind)
+     51     │ - ······const·original·=·await·begin(kind,·"AK5575·"·+·kind·+·"·verified")
+         51 │ + ······const·original·=·await·begin(kind,·`AK5575·${kind}·verified`)
+     52  52 │         for (let cycle = 0; cycle < 3; cycle++) {
+     53  53 │           rt.refresh()
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-acceptance.js:57:11 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    55 │         const i = current()
+    56 │         check(
+  > 57 │           kind + " refresh " + cycle + " keeps focused draft/caret",
+       │           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    58 │           !!i &&
+    59 │             document.activeElement === i &&
+  
+  i Unsafe fix: Use a template literal.
+  
+     55  55 │           const i = current()
+     56  56 │           check(
+     57     │ - ··········kind·+·"·refresh·"·+·cycle·+·"·keeps·focused·draft/caret",
+         57 │ + ··········`${kind}·refresh·${cycle}·keeps·focused·draft/caret`,
+     58  58 │             !!i &&
+     59  59 │               document.activeElement === i &&
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-acceptance.js:60:25 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    58 │           !!i &&
+    59 │             document.activeElement === i &&
+  > 60 │             i.value === "AK5575 " + kind + " verified" &&
+       │                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    61 │             i.selectionStart === 4 &&
+    62 │             i.selectionEnd === 10 &&
+  
+  i Unsafe fix: Use a template literal.
+  
+     58  58 │             !!i &&
+     59  59 │               document.activeElement === i &&
+     60     │ - ············i.value·===·"AK5575·"·+·kind·+·"·verified"·&&
+         60 │ + ············i.value·===·`AK5575·${kind}·verified`·&&
+     61  61 │               i.selectionStart === 4 &&
+     62  62 │               i.selectionEnd === 10 &&
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-acceptance.js:75:9 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    73 │       await sleep(100)
+    74 │       check(
+  > 75 │         kind + " stale input/Enter/Escape/blur have no effect",
+       │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    76 │         writes === count &&
+    77 │           current() === active &&
+  
+  i Unsafe fix: Use a template literal.
+  
+     73  73 │         await sleep(100)
+     74  74 │         check(
+     75     │ - ········kind·+·"·stale·input/Enter/Escape/blur·have·no·effect",
+         75 │ + ········`${kind}·stale·input/Enter/Escape/blur·have·no·effect`,
+     76  76 │           writes === count &&
+     77  77 │             current() === active &&
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-acceptance.js:78:28 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    76 │         writes === count &&
+    77 │           current() === active &&
+  > 78 │           active.value === "AK5575 " + kind + " verified" &&
+       │                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    79 │           label(kind) === before,
+    80 │         { writesBefore: count, writesAfter: writes },
+  
+  i Unsafe fix: Use a template literal.
+  
+     76  76 │           writes === count &&
+     77  77 │             current() === active &&
+     78     │ - ··········active.value·===·"AK5575·"·+·kind·+·"·verified"·&&
+         78 │ + ··········active.value·===·`AK5575·${kind}·verified`·&&
+     79  79 │             label(kind) === before,
+     80  80 │           { writesBefore: count, writesAfter: writes },
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-acceptance.js:92:9 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    90 │       await sleep(250)
+    91 │       check(
+  > 92 │         kind + " legitimate " + (kind === "ordinary" ? "Enter" : "blur") + " commits exactly once",
+       │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    93 │         writes === count + 1 && label(kind) === "AK5575 " + kind + " verified",
+    94 │         { writesBefore: count, writesAfter: writes, label: label(kind) },
+  
+  i Unsafe fix: Use a template literal.
+  
+     90  90 │         await sleep(250)
+     91  91 │         check(
+     92     │ - ········kind·+·"·legitimate·"·+·(kind·===·"ordinary"·?·"Enter"·:·"blur")·+·"·commits·exactly·once",
+         92 │ + ········`${kind}·legitimate·${kind·===·"ordinary"·?·"Enter"·:·"blur"}·commits·exactly·once`,
+     93  93 │           writes === count + 1 && label(kind) === "AK5575 " + kind + " verified",
+     94  94 │           { writesBefore: count, writesAfter: writes, label: label(kind) },
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-acceptance.js:93:49 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    91 │       check(
+    92 │         kind + " legitimate " + (kind === "ordinary" ? "Enter" : "blur") + " commits exactly once",
+  > 93 │         writes === count + 1 && label(kind) === "AK5575 " + kind + " verified",
+       │                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    94 │         { writesBefore: count, writesAfter: writes, label: label(kind) },
+    95 │       )
+  
+  i Unsafe fix: Use a template literal.
+  
+     91  91 │         check(
+     92  92 │           kind + " legitimate " + (kind === "ordinary" ? "Enter" : "blur") + " commits exactly once",
+     93     │ - ········writes·===·count·+·1·&&·label(kind)·===·"AK5575·"·+·kind·+·"·verified",
+         93 │ + ········writes·===·count·+·1·&&·label(kind)·===·`AK5575·${kind}·verified`,
+     94  94 │           { writesBefore: count, writesAfter: writes, label: label(kind) },
+     95  95 │         )
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-acceptance.js:96:40 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    94 │         { writesBefore: count, writesAfter: writes, label: label(kind) },
+    95 │       )
+  > 96 │       const cancel = await begin(kind, "AK5575 cancelled " + kind)
+       │                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    97 │       key(cancel, "Escape")
+    98 │       cancel.dispatchEvent(new FocusEvent("blur"))
+  
+  i Unsafe fix: Use a template literal.
+  
+     94  94 │           { writesBefore: count, writesAfter: writes, label: label(kind) },
+     95  95 │         )
+     96     │ - ······const·cancel·=·await·begin(kind,·"AK5575·cancelled·"·+·kind)
+         96 │ + ······const·cancel·=·await·begin(kind,·`AK5575·cancelled·${kind}`)
+     97  97 │         key(cancel, "Escape")
+     98  98 │         cancel.dispatchEvent(new FocusEvent("blur"))
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-acceptance.js:101:9 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+     99 │       await sleep(150)
+    100 │       check(
+  > 101 │         kind + " Escape cancels and late blur stays inert",
+        │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    102 │         writes === count + 1 && label(kind) === "AK5575 " + kind + " verified",
+    103 │       )
+  
+  i Unsafe fix: Use a template literal.
+  
+     99  99 │         await sleep(150)
+    100 100 │         check(
+    101     │ - ········kind·+·"·Escape·cancels·and·late·blur·stays·inert",
+        101 │ + ········`${kind}·Escape·cancels·and·late·blur·stays·inert`,
+    102 102 │           writes === count + 1 && label(kind) === "AK5575 " + kind + " verified",
+    103 103 │         )
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-acceptance.js:102:49 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    100 │       check(
+    101 │         kind + " Escape cancels and late blur stays inert",
+  > 102 │         writes === count + 1 && label(kind) === "AK5575 " + kind + " verified",
+        │                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    103 │       )
+    104 │       check(
+  
+  i Unsafe fix: Use a template literal.
+  
+    100 100 │         check(
+    101 101 │           kind + " Escape cancels and late blur stays inert",
+    102     │ - ········writes·===·count·+·1·&&·label(kind)·===·"AK5575·"·+·kind·+·"·verified",
+        102 │ + ········writes·===·count·+·1·&&·label(kind)·===·`AK5575·${kind}·verified`,
+    103 103 │         )
+    104 104 │         check(
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-acceptance.js:105:9 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    103 │       )
+    104 │       check(
+  > 105 │         kind + " Escape returns keyboard focus to manager",
+        │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    106 │         document.activeElement ===
+    107 │           document.querySelector('#lmx-sidepanel-content-root [role="tree"]'),
+  
+  i Unsafe fix: Use a template literal.
+  
+    103 103 │         )
+    104 104 │         check(
+    105     │ - ········kind·+·"·Escape·returns·keyboard·focus·to·manager",
+        105 │ + ········`${kind}·Escape·returns·keyboard·focus·to·manager`,
+    106 106 │           document.activeElement ===
+    107 107 │             document.querySelector('#lmx-sidepanel-content-root [role="tree"]'),
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-acceptance.js:119:9 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    117 │     for (const kind of ["ordinary", "frame"])
+    118 │       check(
+  > 119 │         kind + " committed name survives saved reopen",
+        │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    120 │         label(kind) === "AK5575 " + kind + " verified",
+    121 │       )
+  
+  i Unsafe fix: Use a template literal.
+  
+    117 117 │       for (const kind of ["ordinary", "frame"])
+    118 118 │         check(
+    119     │ - ········kind·+·"·committed·name·survives·saved·reopen",
+        119 │ + ········`${kind}·committed·name·survives·saved·reopen`,
+    120 120 │           label(kind) === "AK5575 " + kind + " verified",
+    121 121 │         )
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-acceptance.js:120:25 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    118 │       check(
+    119 │         kind + " committed name survives saved reopen",
+  > 120 │         label(kind) === "AK5575 " + kind + " verified",
+        │                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    121 │       )
+    122 │     const terminal = await begin("ordinary", "AK5575 disposed must not write")
+  
+  i Unsafe fix: Use a template literal.
+  
+    118 118 │         check(
+    119 119 │           kind + " committed name survives saved reopen",
+    120     │ - ········label(kind)·===·"AK5575·"·+·kind·+·"·verified",
+        120 │ + ········label(kind)·===·`AK5575·${kind}·verified`,
+    121 121 │         )
+    122 122 │       const terminal = await begin("ordinary", "AK5575 disposed must not write")
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-refresh.js:25:27 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    23 │       ...document.querySelectorAll('#lmx-sidepanel-content-root [role="treeitem"]'),
+    24 │     ].find((r) => r.id.endsWith(id))
+  > 25 │     if (!row) throw Error("row missing " + id)
+       │                           ^^^^^^^^^^^^^^^^^^^
+    26 │     row.querySelector('[aria-label="Rename layer"]').click()
+    27 │     await sleep(80)
+  
+  i Unsafe fix: Use a template literal.
+  
+     23  23 │         ...document.querySelectorAll('#lmx-sidepanel-content-root [role="treeitem"]'),
+     24  24 │       ].find((r) => r.id.endsWith(id))
+     25     │ - ····if·(!row)·throw·Error("row·missing·"·+·id)
+         25 │ + ····if·(!row)·throw·Error(`row·missing·${id}`)
+     26  26 │       row.querySelector('[aria-label="Rename layer"]').click()
+     27  27 │       await sleep(80)
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-refresh.js:30:19 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    28 │     const input = document.querySelector('#lmx-sidepanel-content-root [role="treeitem"] input')
+    29 │     if (!input) throw Error("input missing")
+  > 30 │     const draft = "AK5575 " + kind + " uncommitted draft"
+       │                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    31 │     input.focus()
+    32 │     input.value = draft
+  
+  i Unsafe fix: Use a template literal.
+  
+     28  28 │       const input = document.querySelector('#lmx-sidepanel-content-root [role="treeitem"] input')
+     29  29 │       if (!input) throw Error("input missing")
+     30     │ - ····const·draft·=·"AK5575·"·+·kind·+·"·uncommitted·draft"
+         30 │ + ····const·draft·=·`AK5575·${kind}·uncommitted·draft`
+     31  31 │       input.focus()
+     32  32 │       input.value = draft
+  
+
+scripts/performance/native-case.js:72:62 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    70 │     try {
+    71 │       const snapshot = { at: new Date().toISOString(), ...(await resources(host.owned.pid)) }
+  > 72 │       await appendFile(join(root, "resource-samples.jsonl"), JSON.stringify(snapshot) + "\n")
+       │                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    73 │       if (
+    74 │         snapshot.rssMiB >= RESOURCE_LIMITS.rssMiB ||
+  
+  i Unsafe fix: Use a template literal.
+  
+     70  70 │       try {
+     71  71 │         const snapshot = { at: new Date().toISOString(), ...(await resources(host.owned.pid)) }
+     72     │ - ······await·appendFile(join(root,·"resource-samples.jsonl"),·JSON.stringify(snapshot)·+·"\n")
+         72 │ + ······await·appendFile(join(root,·"resource-samples.jsonl"),·`${JSON.stringify(snapshot)}\n`)
+     73  73 │         if (
+     74  74 │           snapshot.rssMiB >= RESOURCE_LIMITS.rssMiB ||
+  
+
+scripts/performance/native-case.js:138:55 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    136 │       }
+    137 │       envelopes.push(envelope)
+  > 138 │       await appendFile(join(root, "envelopes.jsonl"), JSON.stringify(envelope) + "\n")
+        │                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    139 │     }
+    140 │     console.log(
+  
+  i Unsafe fix: Use a template literal.
+  
+    136 136 │         }
+    137 137 │         envelopes.push(envelope)
+    138     │ - ······await·appendFile(join(root,·"envelopes.jsonl"),·JSON.stringify(envelope)·+·"\n")
+        138 │ + ······await·appendFile(join(root,·"envelopes.jsonl"),·`${JSON.stringify(envelope)}\n`)
+    139 139 │       }
+    140 140 │       console.log(
+  
+
+scripts/performance/native-matrix.js:143:9 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    141 │       await appendFile(
+    142 │         join(output, "dispatches.jsonl"),
+  > 143 │         JSON.stringify({ at: c.startedAt, case: c.id, command: "heavy-job", argv }) + "\n",
+        │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    144 │       )
+    145 │       const log = await open(join(output, `${c.id}-driver.txt`), "wx")
+  
+  i Unsafe fix: Use a template literal.
+  
+    141 141 │         await appendFile(
+    142 142 │           join(output, "dispatches.jsonl"),
+    143     │ - ········JSON.stringify({·at:·c.startedAt,·case:·c.id,·command:·"heavy-job",·argv·})·+·"\n",
+        143 │ + ········`${JSON.stringify({·at:·c.startedAt,·case:·c.id,·command:·"heavy-job",·argv·})}\n`,
+    144 144 │         )
+    145 145 │         const log = await open(join(output, `${c.id}-driver.txt`), "wx")
+  
+
+scripts/performance/native-preparation.js:59:21 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    57 │         .sort()
+    58 │         .filter((k) => value[k] !== undefined)
+  > 59 │         .map((k) => JSON.stringify(k) + ":" + canonical(value[k]))
+       │                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    60 │         .join(",")}}`
+    61 │     return JSON.stringify(value)
+  
+  i Unsafe fix: Use a template literal.
+  
+     57  57 │           .sort()
+     58  58 │           .filter((k) => value[k] !== undefined)
+     59     │ - ········.map((k)·=>·JSON.stringify(k)·+·":"·+·canonical(value[k]))
+         59 │ + ········.map((k)·=>·`${JSON.stringify(k)}:${canonical(value[k])}`)
+     60  60 │           .join(",")}}`
+     61  61 │       return JSON.stringify(value)
+  
+
+scripts/performance/native-prerequisites.js:69:54 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    67 │     argv,
+    68 │   }
+  > 69 │   await writeFile(join(output, `${kind}-exit.json`), JSON.stringify(receipt, null, 2) + "\n", {
+       │                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    70 │     flag: "wx",
+    71 │   })
+  
+  i Unsafe fix: Use a template literal.
+  
+    67 67 │       argv,
+    68 68 │     }
+    69    │ - ··await·writeFile(join(output,·`${kind}-exit.json`),·JSON.stringify(receipt,·null,·2)·+·"\n",·{
+       69 │ + ··await·writeFile(join(output,·`${kind}-exit.json`),·`${JSON.stringify(receipt,·null,·2)}\n`,·{
+    70 70 │       flag: "wx",
+    71 71 │     })
+  
+
+The number of diagnostics exceeds the limit allowed. Use --max-diagnostics to increase it.
+Diagnostics not shown: 27.
+Checked 269 files in 78ms. No fixes applied.
+Found 21 warnings.
+Found 26 infos.
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 typecheck
+npm notice run tsc --noEmit
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 typecheck:scripts
+npm notice run tsc -p tsconfig.scripts.json
+[recovery-gate] test
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+
+ Test Files  81 passed (81)
+      Tests  975 passed (975)
+   Start at  09:40:21
+   Duration  17.18s (transform 44.06s, setup 0ms, import 56.96s, tests 26.39s, environment 7ms)
+
+[recovery-gate] arch
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 arch
+npm notice run depcruise --config .dependency-cruiser.cjs src
+
+✔ no dependency violations found (0 modules, 0 dependencies cruised)
+
+‼ missing-typescript-transpiler: dependency-cruiser detected a TypeScript environment,
+    but not a compatible TypeScript compiler (typescript: >=2.0.0 <7.0.0). This means
+    it's likely to have missed TypeScript sources and dependencies.
+
+    Install typescript to get better results (e.g. npm i -D typescript@^6).
+
+    => Support for typescript@>=7 will follow when its API is published and stable.
+
+[recovery-gate] docs:strict
+Docs — 50 match(es) — page 1/3
+README.md - Task-oriented index and authority rules for all Layer Manager documentation.
+guides/usage.md - Operator guide for row selection, naming, organization, quick move, and recoverable host states.
+guides/verification.md - Exact verification commands, external prerequisites, test-first workflow, and evidence requirements.
+project/2026-04-08-projection-kernel-recovery.md - Contract note for the Layer Manager projection-kernel recovery wave: authority split, non-negotiable rules, and execution order.
+project/2026-04-09-projection-kernel-recovery-blueprint.md - Frozen module map, contract-test matrix, and execution blueprint for the Layer Manager X projection-kernel recovery wave.
+project/2026-04-09-vitest-targeted-file-oom-investigation.md - Investigation note for task 1022: runtime.sidepanel-quickmove-persistence.integration.test.ts OOMs when run as a full targeted file under Vitest, while most individual cases pass in isolation.
+project/2026-04-14-safe-deployment-and-reload-workflow.md - Maintained build, explicit-target deployment, hash verification, reload, and rollback procedure.
+project/2026-04-15-evidence-layer-manager-drop-onto-grouping-policy.md - Evidence note for the LayerManager drop-onto grouping policy decision: current drag/drop semantics, current preview weakness, and the operator trigger that surfaced the decision pressure.
+project/2026-04-15-problem-intent-layer-manager-drop-onto-grouping-policy.md - Problem intent for whether dragging one LayerManager row onto another should create a group automatically, and under what activation contract if allowed.
+project/2026-04-15-review-layer-manager-drop-onto-grouping-policy.md - Structured review memo for the LayerManager drop-onto grouping RFC, concluding that plain row-on-row auto-grouping should not be authorized and that the current RFC is precise enough to proceed to ADR for that bounded decision.
+project/2026-04-15-rfc-layer-manager-drop-onto-grouping-policy.md - RFC for whether LayerManager row-on-row drag/drop should create groups automatically, and if so under what explicit activation contract.
+project/2026-04-16-evidence-layer-manager-host-context-authority-and-focus-routing.md - Evidence snapshot for the LayerManager regression cluster where host-context switching, targetView rebinding, and document-level focus routing drift out of sync.
+project/2026-04-16-layer-manager-active-leaf-guidance-and-plan.md - Implementation note translating maintainer feedback into concrete LayerManager constraints: rebind to the active leaf for live Excalidraw authority, keep the sidepanel shell truthful when the host leaves it visible, and treat same-file front/back mode changes as real binding changes.
+project/2026-04-16-layer-manager-host-context-coordinator-execution-plan.md - Execution blueprint for turning the LayerManager host-context RFC into concrete implementation slices for fresh sessions.
+project/2026-04-16-layer-manager-manual-verification-matrix.md - Maintained real-host acceptance matrix covering core features, lifecycle, naming, migration, and remaining race regressions.
+project/2026-04-16-layer-manager-sidepanel-split-brain-root-cause.md - First-principles root-cause note for LayerManager's split-brain lifecycle: the sidepanel shell persists as host state while Excalidraw targetView authority can die independently.
+project/2026-04-16-problem-intent-layer-manager-host-context-authority-and-focus-routing.md - Problem framing for how LayerManager should own host-context switching, rebinding, shell truthfulness, and document-level focus routing without further regression whack-a-mole.
+project/2026-04-16-rfc-layer-manager-host-context-authority-and-focus-routing.md - RFC for centralizing LayerManager host-context switching, shell truthfulness, and document-level focus routing so switching becomes deterministic instead of patch-driven.
+project/2026-04-17-layer-manager-host-context-fresh-context-implementation-note.md - Package-local implementation note for the landed LayerManager host-context redesign, code ownership map, and evidence surfaces for fresh-context work.
+project/2026-04-17-layer-manager-host-context-packet-closeout.md - Closeout note for the LayerManager host-context packet that landed scene-bound authority, recorder-backed diagnostics, and fail-closed sidepanel bridging.
+Showing 20 of 50 match(es) (page 1/3).
+Next steps: --page 2, --full-list, --verbose
+Strict check: pass
+
+Reminder: keep docs up to date as behavior changes. When your task matches any "Read when" hint above, read that doc before coding, and add missing coverage.
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 deadcode
+npm notice run knip
+Configuration hints (12)
+@biomejs/biome                            knip.json  Remove from ignoreDependencies
+tsc                                       knip.json  Remove from ignoreBinaries    
+biome                                     knip.json  Remove from ignoreBinaries    
+vitest                                    knip.json  Remove from ignoreBinaries    
+depcruise                                 knip.json  Remove from ignoreBinaries    
+knip                                      knip.json  Remove from ignoreBinaries    
+build/build.mjs                           knip.json  Remove redundant entry pattern
+build/recoveryVerificationGate.mjs        knip.json  Remove redundant entry pattern
+build/run-ts-quality.mjs                  knip.json  Remove redundant entry pattern
+build/sync-excalidraw-automate-doc.mjs    knip.json  Remove redundant entry pattern
+build/sync-to-vault.mjs                   knip.json  Remove redundant entry pattern
+build/verifyDeploymentWorkflow.mjs        knip.json  Remove redundant entry pattern
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test:coverage
+npm notice run vitest run --coverage
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+      Coverage enabled with v8
+
+
+ Test Files  81 passed (81)
+      Tests  975 passed (975)
+   Start at  09:40:39
+   Duration  25.07s (transform 39.19s, setup 0ms, import 54.29s, tests 36.72s, environment 7ms)
+
+ % Coverage report from v8
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |   90.31 |    82.37 |   95.29 |   90.43 |                   
+ ...-layer-manager |      80 |      100 |     100 |      80 |                   
+  ...y-cruiser.cjs |       0 |      100 |     100 |       0 | 2                 
+ ...er-manager/src |   86.07 |    80.56 |   89.83 |    87.4 |                   
+  main.ts          |   86.07 |    80.56 |   89.83 |    87.4 | ...5,973-997,1013 
+ ...er/src/adapter |   93.52 |    87.93 |     100 |   95.18 |                   
+  ...rawAdapter.ts |   93.07 |    87.63 |     100 |   94.91 | ...35,448,464,469 
+  ...gIsolation.ts |     100 |     92.3 |     100 |     100 | 20                
+ ...r/src/commands |   90.42 |    80.45 |   98.59 |   90.18 |                   
+  createGroup.ts   |   97.36 |    81.81 |     100 |   97.29 | 51                
+  deleteNode.ts    |   83.33 |       50 |     100 |   83.33 | 17                
+  helpers.ts       |   95.12 |    89.47 |     100 |   95.12 | 74,96             
+  renameNode.ts    |    91.3 |    78.57 |     100 |    91.3 | 35,58             
+  reorderNode.ts   |   88.03 |    78.15 |   96.77 |   87.62 | ...21,433,455,459 
+  reparentNode.ts  |   93.61 |    89.28 |     100 |   93.33 | 30,43,51          
+  toggleLock.ts    |   84.61 |       50 |     100 |   83.33 | 17,25             
+  ...Visibility.ts |      90 |    83.33 |     100 |   89.47 | 17,25             
+ ...ger/src/domain |   96.97 |    90.18 |     100 |   96.91 |                   
+  invariants.ts    |   97.53 |    96.55 |     100 |   97.53 | 73,92             
+  treeBuilder.ts   |   96.81 |    87.82 |     100 |   96.73 | ...07,482,598,623 
+ ...ager/src/model |     100 |       96 |     100 |     100 |                   
+  lmxMetadata.ts   |     100 |    93.33 |     100 |     100 | 17                
+ ...er/src/runtime |   93.87 |    86.17 |   93.84 |    93.6 |                   
+  ...cleMachine.ts |   79.71 |       65 |    82.6 |   79.41 | ...56-262,276,383 
+  ...nOwnership.ts |   97.91 |     90.9 |     100 |     100 | 51,71-76          
+ ...ager/src/state |   94.11 |    83.33 |     100 |   93.75 |                   
+  store.ts         |   94.11 |    83.33 |     100 |   93.75 | 57                
+ ...manager/src/ui |   84.17 |    73.24 |   87.74 |   84.24 |                   
+  controller.ts    |   86.25 |    67.14 |    86.2 |   86.07 | ...88,420,429-433 
+  ...elRenderer.ts |   83.95 |    73.75 |    88.1 |   84.05 | ...3620,3709,3716 
+  renderer.ts      |      80 |       75 |   66.66 |      80 | 77,87             
+ ...epanel/actions |      90 |    88.57 |     100 |      90 |                   
+  ...Controller.ts |      90 |    88.57 |     100 |      90 | ...09-110,164-165 
+ ...panel/dragdrop |   86.08 |    78.34 |     100 |   86.01 |                   
+  ...Controller.ts |   86.08 |    78.34 |     100 |   86.01 | ...44,750,754,768 
+ ...idepanel/focus |   94.92 |    90.14 |     100 |   94.92 |                   
+  ...oordinator.ts |   92.85 |    84.09 |     100 |   92.85 | ...44,314,369,388 
+ ...panel/keyboard |   88.35 |     81.7 |     100 |   88.17 |                   
+  ...Controller.ts |   88.17 |    81.48 |     100 |   87.98 | ...,967,1019-1020 
+ ...idepanel/mount |    86.2 |    79.26 |   97.67 |   87.11 |                   
+  ...untManager.ts |    86.2 |    79.26 |   97.67 |   87.11 | ...81,893,915,917 
+ ...depanel/prompt |   97.53 |    89.65 |     100 |   97.53 |                   
+  ...ionService.ts |   97.53 |    89.65 |     100 |   97.53 | 156,168           
+ ...anel/quickmove |   92.93 |    82.37 |   97.56 |   92.81 |                   
+  ...Projection.ts |   96.39 |    82.75 |   96.55 |   96.26 | 40,93,181,194     
+  presetHelpers.ts |   91.17 |    85.36 |     100 |   91.17 | ...,77,99,121,145 
+  ...nceService.ts |   93.75 |    84.61 |     100 |   93.67 | ...03,304-305,387 
+  ...ileMachine.ts |   79.31 |    66.66 |    92.3 |   79.31 | ...28,143,170-171 
+ ...depanel/rename |   87.85 |     82.6 |   95.34 |   87.68 |                   
+  ...Controller.ts |   83.49 |    76.92 |   93.75 |   83.49 | ...03-304,375,490 
+  ...DomSession.ts |     100 |    96.29 |     100 |     100 | 97                
+ ...depanel/render |      96 |    88.23 |   96.19 |   95.97 |                   
+  ...awIconNode.ts |   97.67 |    94.44 |     100 |   97.67 | 235               
+  ...veRenderer.ts |   90.77 |       75 |   91.89 |   90.67 | ...64-665,685,693 
+  rowModel.ts      |   97.26 |     92.5 |     100 |   97.18 | 181,194           
+  rowRenderer.ts   |   98.74 |     95.6 |   95.23 |   98.74 | 144,342,364       
+ ...anel/selection |   90.45 |     85.1 |   97.93 |    90.6 |                   
+  ...oordinator.ts |   97.05 |    93.75 |   93.33 |   97.05 | 87,193            
+  ...htRecorder.ts |   94.06 |    81.35 |     100 |    93.8 | ...96,136,142,249 
+  ...tionBridge.ts |   72.72 |    66.05 |     100 |    74.6 | ...61,266-269,277 
+  ...iewContext.ts |   92.92 |    88.42 |   97.87 |   92.85 | ...46,875,901,921 
+  nodeContext.ts   |   95.65 |    81.81 |     100 |   95.45 | 26,39             
+  ...kSelection.ts |   79.24 |    78.78 |   88.88 |   77.55 | 29-35,68,110-115  
+  sceneBinding.ts  |   92.85 |    93.75 |     100 |   92.85 | 122,130           
+  selectionIds.ts  |   96.77 |    91.66 |     100 |   96.55 | 43                
+  ...Reconciler.ts |     100 |    86.79 |     100 |     100 | ...03-107,135-137 
+  ...Resolution.ts |   97.43 |    90.32 |     100 |   97.36 | 68                
+  ...eSelection.ts |   95.45 |    94.44 |     100 |   94.87 | 89,113            
+ ...panel/settings |   92.47 |    82.75 |     100 |    92.3 |                   
+  ...WriteQueue.ts |   92.47 |    82.75 |     100 |    92.3 | ...08,187,246,348 
+ ...r-manager/test |   93.61 |    80.35 |   96.25 |   93.44 |                   
+  ...estHarness.ts |   93.35 |    78.21 |    96.1 |   93.19 | ...91-492,557,649 
+ .../test/fixtures |   99.06 |    97.87 |     100 |   99.04 |                   
+  ...raceLoader.ts |     100 |    98.98 |     100 |     100 | 243               
+  ...playTraces.ts |   96.82 |    95.23 |     100 |   96.66 | 94,124            
+-------------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 90.31% ( 6631/7342 )
+Branches     : 82.37% ( 3752/4555 )
+Functions    : 95.29% ( 1276/1339 )
+Lines        : 90.43% ( 6466/7150 )
+================================================================================
+[build] Wrote /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager/dist/LayerManager.md
+[sync] Copied /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager/dist/LayerManager.md -> /home/tryinget/.cache/ai-society-scratch/runs/run-1788939619-f6a4670b6c9878fc/work/tmp/lmx-deploy-verify-lh7ZhD/vault/Excalidraw/Scripts/LayerManager.md
+[sync] Backed up previous target -> /home/tryinget/.cache/ai-society-scratch/runs/run-1788939619-f6a4670b6c9878fc/work/tmp/lmx-deploy-verify-lh7ZhD/deploy-receipts/2026-04-14T00-00-00-000Z-pid44656/previous/LayerManager.md
+[sync] Verified copied bundle sha256=9032818dda258072ff77a20f380cdade62866996e9bee90e1ee410ae988f42b1
+[sync] Wrote deployment receipt -> /home/tryinget/.cache/ai-society-scratch/runs/run-1788939619-f6a4670b6c9878fc/work/tmp/lmx-deploy-verify-lh7ZhD/deploy-receipts/2026-04-14T00-00-00-000Z-pid44656/deployment-receipt.json
+[sync] Reload workflow: Open an Excalidraw drawing in the target vault before re-running LayerManager. Re-run LayerManager so the fresh bundle disposes the previous runtime and mounts a new one. If the fresh run fails, restore the previous bundle from the recorded backup path and re-run LayerManager.
+[deploy-verify] ok: safe deployment + reload receipt workflow verified via /home/tryinget/.cache/ai-society-scratch/runs/run-1788939619-f6a4670b6c9878fc/work/tmp/lmx-deploy-verify-lh7ZhD/vault/Excalidraw/Scripts/LayerManager.md
+WARN: 7 kernel-protected current-uid process(es) were outside reference inspection
+WARN: 7 kernel-protected current-uid process(es) were outside reference inspection
+heavy_job_result=success scratch_cleanup=removed

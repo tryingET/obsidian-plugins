@@ -1,0 +1,98 @@
+npm notice run npx
+npm notice run 'biome' check --write scripts/performance/native-page.js scripts/performance/native-evaluate.js scripts/performance/native-fixture.d.ts scripts/performance/native-fixture.js scripts/performance/native-host.d.ts scripts/performance/native-host.js scripts/performance/native-packet.d.ts scripts/performance/native-packet.js scripts/performance/native-mutants.js scripts/performance/native-run.js scripts/performance/native-safety.d.ts scripts/performance/native-safety.js scripts/performance/native-settlement.d.ts scripts/performance/native-settlement.js test/performance/native-fixture.test.ts test/performance/native-packet.test.ts test/performance/native-safety.test.ts test/performance/native-settlement.test.ts test/performance/native-cdp.test.ts --max-diagnostics=4
+scripts/performance/native-page.js:59:21 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    57 │         .sort()
+    58 │         .filter((k) => value[k] !== undefined)
+  > 59 │         .map((k) => JSON.stringify(k) + ":" + canonical(value[k]))
+       │                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    60 │         .join(",")}}`
+    61 │     return JSON.stringify(value)
+  
+  i Unsafe fix: Use a template literal.
+  
+     57  57 │           .sort()
+     58  58 │           .filter((k) => value[k] !== undefined)
+     59     │ - ········.map((k)·=>·JSON.stringify(k)·+·":"·+·canonical(value[k]))
+         59 │ + ········.map((k)·=>·`${JSON.stringify(k)}:${canonical(value[k])}`)
+     60  60 │           .join(",")}}`
+     61  61 │       return JSON.stringify(value)
+  
+
+scripts/performance/native-page.js:64:13 lint/style/useNodejsImportProtocol  FIXABLE  ━━━━━━━━━━━━━━
+
+  i A Node.js builtin module should be imported with the node: protocol.
+  
+    62 │   }
+    63 │   const digest = (value) =>
+  > 64 │     require("crypto").createHash("sha256").update(canonical(value)).digest("hex")
+       │             ^^^^^^^^
+    65 │   const equal = (actual, expected, label) => {
+    66 │     if (digest(actual) !== digest(expected)) throw Error(`${label}: exact semantic mismatch`)
+  
+  i Using the node: protocol is more explicit and signals that the imported module belongs to Node.js.
+  
+  i Unsafe fix: Add the node: protocol.
+  
+     62  62 │     }
+     63  63 │     const digest = (value) =>
+     64     │ - ····require("crypto").createHash("sha256").update(canonical(value)).digest("hex")
+         64 │ + ····require("node:crypto").createHash("sha256").update(canonical(value)).digest("hex")
+     65  65 │     const equal = (actual, expected, label) => {
+     66  66 │       if (digest(actual) !== digest(expected)) throw Error(`${label}: exact semantic mismatch`)
+  
+
+scripts/performance/native-page.js:142:11 lint/style/useNodejsImportProtocol  FIXABLE  ━━━━━━━━━━━━━
+
+  i A Node.js builtin module should be imported with the node: protocol.
+  
+    140 │     pluginVersion: p.manifest.version,
+    141 │   }
+  > 142 │   require("fs").writeFileSync(
+        │           ^^^^
+    143 │     config.output + "/fixture.json",
+    144 │     JSON.stringify({ ...fixture, template, descriptors }),
+  
+  i Using the node: protocol is more explicit and signals that the imported module belongs to Node.js.
+  
+  i Unsafe fix: Add the node: protocol.
+  
+    140 140 │       pluginVersion: p.manifest.version,
+    141 141 │     }
+    142     │ - ··require("fs").writeFileSync(
+        142 │ + ··require("node:fs").writeFileSync(
+    143 143 │       config.output + "/fixture.json",
+    144 144 │       JSON.stringify({ ...fixture, template, descriptors }),
+  
+
+scripts/performance/native-page.js:143:5 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    141 │   }
+    142 │   require("fs").writeFileSync(
+  > 143 │     config.output + "/fixture.json",
+        │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    144 │     JSON.stringify({ ...fixture, template, descriptors }),
+    145 │   )
+  
+  i Unsafe fix: Use a template literal.
+  
+    141 141 │     }
+    142 142 │     require("fs").writeFileSync(
+    143     │ - ····config.output·+·"/fixture.json",
+        143 │ + ····`${config.output}/fixture.json`,
+    144 144 │       JSON.stringify({ ...fixture, template, descriptors }),
+    145 145 │     )
+  
+
+Skipped 8 suggested fixes.
+If you wish to apply the suggested (unsafe) fixes, use the command biome check --write --unsafe
+
+The number of diagnostics exceeds the limit allowed. Use --max-diagnostics to increase it.
+Diagnostics not shown: 4.
+Checked 19 files in 18ms. Fixed 11 files.
+Found 1 warning.
+Found 7 infos.

@@ -1,0 +1,2 @@
+npm notice run npx
+npm notice run 'tsc' --ignoreConfig --allowJs --checkJs --noEmit --strict --target es2022 --module nodenext --moduleResolution nodenext --types node --skipLibCheck scripts/performance/native-process.js scripts/performance/native-summary.js scripts/performance/native-policy.js

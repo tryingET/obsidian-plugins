@@ -1,0 +1,49 @@
+npm notice run npx
+npm notice run 'biome' check --write scripts/performance/native-summary.js scripts/performance/native-prerequisite-proof.js scripts/performance/native-prerequisites.js scripts/performance/native-matrix.js scripts/performance/native-mutants.js scripts/performance/native-prerequisite-proof.d.ts test/performance/native-summary.test.ts test/performance/native-prerequisite-proof.test.ts --max-diagnostics=2
+scripts/performance/native-matrix.js:143:9 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    141 │       await appendFile(
+    142 │         join(output, "dispatches.jsonl"),
+  > 143 │         JSON.stringify({ at: c.startedAt, case: c.id, command: "heavy-job", argv }) + "\n",
+        │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    144 │       )
+    145 │       const log = await open(join(output, `${c.id}-driver.txt`), "wx")
+  
+  i Unsafe fix: Use a template literal.
+  
+    141 141 │         await appendFile(
+    142 142 │           join(output, "dispatches.jsonl"),
+    143     │ - ········JSON.stringify({·at:·c.startedAt,·case:·c.id,·command:·"heavy-job",·argv·})·+·"\n",
+        143 │ + ········`${JSON.stringify({·at:·c.startedAt,·case:·c.id,·command:·"heavy-job",·argv·})}\n`,
+    144 144 │         )
+    145 145 │         const log = await open(join(output, `${c.id}-driver.txt`), "wx")
+  
+
+scripts/performance/native-prerequisites.js:69:54 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    67 │     argv,
+    68 │   }
+  > 69 │   await writeFile(join(output, `${kind}-exit.json`), JSON.stringify(receipt, null, 2) + "\n", {
+       │                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    70 │     flag: "wx",
+    71 │   })
+  
+  i Unsafe fix: Use a template literal.
+  
+    67 67 │       argv,
+    68 68 │     }
+    69    │ - ··await·writeFile(join(output,·`${kind}-exit.json`),·JSON.stringify(receipt,·null,·2)·+·"\n",·{
+       69 │ + ··await·writeFile(join(output,·`${kind}-exit.json`),·`${JSON.stringify(receipt,·null,·2)}\n`,·{
+    70 70 │       flag: "wx",
+    71 71 │     })
+  
+
+Skipped 3 suggested fixes.
+If you wish to apply the suggested (unsafe) fixes, use the command biome check --write --unsafe
+
+Checked 8 files in 20ms. Fixed 8 files.
+Found 2 infos.

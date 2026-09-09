@@ -1,0 +1,11 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-sentinels.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+
+ Test Files  1 passed (1)
+      Tests  20 passed (20)
+   Start at  09:02:27
+   Duration  152ms (transform 37ms, setup 0ms, import 50ms, tests 12ms, environment 0ms)
+

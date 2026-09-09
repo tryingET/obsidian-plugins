@@ -1,0 +1,14 @@
+test/performance/native-window.test.ts:47:7 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    45 │     expect(f.main.close).not.toHaveBeenCalled()
+    46 │     expect(f.settings.close.mock.invocationCallOrder[0]).toBeLessThan(
+  > 47 │       f.main.focus.mock.invocationCallOrder[0]!,
+       │       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    48 │     )
+    49 │     expect(result).toMatchObject({ current: 1, closedSettings: [2], remaining: [1] })
+  
+
+Checked 3 files in 17ms. Fixed 3 files.
+Found 1 warning.

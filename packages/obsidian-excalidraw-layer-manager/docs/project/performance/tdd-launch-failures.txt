@@ -1,0 +1,241 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-launch-failures.test.ts test/performance/native-run-failures.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+stdout | test/performance/native-run-failures.test.ts > Given the actual native-run driver with all host and filesystem effects injected > When host.stop throws after a passed probe Then retain raw result and indeterminate closeout, exit unsuccessfully
+Retained evidence: /mock-evidence/native-case
+
+stdout | test/performance/native-run-failures.test.ts > Given the actual native-run driver with all host and filesystem effects injected > When failure-report writing throws Then still stop the host, retain the original failure in closeout and exit unsuccessfully
+Retained evidence: /mock-evidence/native-case
+
+stdout | test/performance/native-run-failures.test.ts > Given the actual native-run driver with all host and filesystem effects injected > When post-result integrity fails Then a semantic pass cannot make driver exit successfully
+Retained evidence: /mock-evidence/native-case
+
+ ❯ test/performance/native-run-failures.test.ts (5 tests | 3 failed) 59ms
+     × When host.stop throws after a passed probe Then retain raw result and indeterminate closeout, exit unsuccessfully 51ms
+     × When failure-report writing throws Then still stop the host, retain the original failure in closeout and exit unsuccessfully 3ms
+     × When post-result integrity fails Then a semantic pass cannot make driver exit successfully 1ms
+ ❯ test/performance/native-launch-failures.test.ts (6 tests | 6 failed) 13ms
+     × When spawn emits an error Then retain launch failure and no-child cleanup, close log and release only its alias 7ms
+     × When the child exits before CDP appears Then reconcile the captured identity without replay 1ms
+     × When identity capture fails Then do not signal an unverified PID or delete its alias; retain indeterminate cleanup 1ms
+     × When owned-write fails Then cleanup still uses the in-memory owned identity and original launch failure escapes 1ms
+     × When owned-write-report-fails fails Then cleanup still uses the in-memory owned identity and original launch failure escapes 1ms
+     × When owned stop itself rejects Then never report stopped or remove the alias 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/native-launch-failures.test.ts > Given launchHost owns only a fresh injected native process > When spawn emits an error Then retain launch failure and no-child cleanup, close log and release only its alias
+AssertionError: expected [Function] to throw error including 'injected spawn failure' but got 'Cannot read properties of undefined (…'
+
+Expected: "injected spawn failure"
+Received: "Cannot read properties of undefined (reading 'catch')"
+
+ ❯ test/performance/native-launch-failures.test.ts:69:63
+     67|   it("When spawn emits an error Then retain launch failure and no-chil…
+     68|     mode = "spawn-error"
+     69|     await expect(launchHost(root, "/never-executed-obsidian")).rejects…
+       |                                                               ^
+     70|     expect(saved[`${root}/launch-failure.json`]).toMatchObject({ error…
+     71|     expect(saved[`${root}/host-cleanup.json`]).toMatchObject({ status:…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+ FAIL  test/performance/native-launch-failures.test.ts > Given launchHost owns only a fresh injected native process > When the child exits before CDP appears Then reconcile the captured identity without replay
+AssertionError: expected [Function] to throw error including 'owned host exited 1/null' but got 'Cannot read properties of undefined (…'
+
+Expected: "owned host exited 1/null"
+Received: "Cannot read properties of undefined (reading 'catch')"
+
+ ❯ test/performance/native-launch-failures.test.ts:79:63
+     77|   it("When the child exits before CDP appears Then reconcile the captu…
+     78|     mode = "early-exit"
+     79|     await expect(launchHost(root, "/never-executed-obsidian")).rejects…
+       |                                                               ^
+     80|     expect(io.stop).toHaveBeenCalledWith(expect.objectContaining({ pid…
+     81|     expect(saved[`${root}/host-cleanup.json`]).toMatchObject({ status:…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+ FAIL  test/performance/native-launch-failures.test.ts > Given launchHost owns only a fresh injected native process > When identity capture fails Then do not signal an unverified PID or delete its alias; retain indeterminate cleanup
+AssertionError: expected [Function] to throw error including 'identity read failure' but got 'Cannot read properties of undefined (…'
+
+Expected: "identity read failure"
+Received: "Cannot read properties of undefined (reading 'catch')"
+
+ ❯ test/performance/native-launch-failures.test.ts:87:63
+     85|   it("When identity capture fails Then do not signal an unverified PID…
+     86|     mode = "identity"
+     87|     await expect(launchHost(root, "/never-executed-obsidian")).rejects…
+       |                                                               ^
+     88|     expect(saved[`${root}/host-cleanup.json`]).toMatchObject({ status:…
+     89|     expect(io.stop).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯
+
+ FAIL  test/performance/native-launch-failures.test.ts > Given launchHost owns only a fresh injected native process > When owned-write fails Then cleanup still uses the in-memory owned identity and original launch failure escapes
+ FAIL  test/performance/native-launch-failures.test.ts > Given launchHost owns only a fresh injected native process > When owned-write-report-fails fails Then cleanup still uses the in-memory owned identity and original launch failure escapes
+AssertionError: expected [Function] to throw error including 'owned-process write failure' but got 'Cannot read properties of undefined (…'
+
+Expected: "owned-process write failure"
+Received: "Cannot read properties of undefined (reading 'catch')"
+
+ ❯ test/performance/native-launch-failures.test.ts:96:65
+     94|     "When %s fails Then cleanup still uses the in-memory owned identit…
+     95|       mode = failure
+     96|       await expect(launchHost(root, "/never-executed-obsidian")).rejec…
+       |                                                                 ^
+     97|       expect(io.stop).toHaveBeenCalledWith(expect.objectContaining({ p…
+     98|       expect(saved[`${root}/host-cleanup.json`]).toMatchObject({ statu…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯
+
+ FAIL  test/performance/native-launch-failures.test.ts > Given launchHost owns only a fresh injected native process > When owned stop itself rejects Then never report stopped or remove the alias
+AssertionError: expected [Function] to throw error including 'owned-process write failure' but got 'Cannot read properties of undefined (…'
+
+Expected: "owned-process write failure"
+Received: "Cannot read properties of undefined (reading 'catch')"
+
+ ❯ test/performance/native-launch-failures.test.ts:107:63
+    105|     mode = "owned-write"
+    106|     io.stop.mockRejectedValue(Error("injected stop failure"))
+    107|     await expect(launchHost(root, "/never-executed-obsidian")).rejects…
+       |                                                               ^
+    108|     expect(saved[`${root}/host-cleanup.json`]).toMatchObject({ status:…
+    109|     expect(io.unlink).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯
+
+ FAIL  test/performance/native-run-failures.test.ts > Given the actual native-run driver with all host and filesystem effects injected > When host.stop throws after a passed probe Then retain raw result and indeterminate closeout, exit unsuccessfully
+AssertionError: expected undefined to match object { status: 'passed' }
+
+- Expected:
+{
+  "status": "passed",
+}
+
++ Received:
+undefined
+
+ ❯ test/performance/native-run-failures.test.ts:63:47
+     61|     await runDriver()
+     62|     expect(process.exitCode).toBe(1)
+     63|     expect(retained[`${output}/result.json`]).toMatchObject({ status: …
+       |                                               ^
+     64|     expect(retained[`${output}/closeout.json`]).toMatchObject({ failur…
+     65|     expect(retained[`${output}/program-provenance.json`]).toBeDefined()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯
+
+ FAIL  test/performance/native-run-failures.test.ts > Given the actual native-run driver with all host and filesystem effects injected > When failure-report writing throws Then still stop the host, retain the original failure in closeout and exit unsuccessfully
+AssertionError: expected { …(3) } to match object { …(2) }
+(1 matching property omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "cleanup": {
+      "status": "stopped",
+    },
+-   "failure": "Error: injected probe failure",
++   "failure": "Error: [vitest] No \"buildNativeSentinelExpression\" export is defined on the \"../../scripts/performance/native-sentinels.js\" mock. Did you forget to return it from \"vi.mock\"?
++ If you need to partially mock a module, you can use \"importOriginal\" helper inside:
++ ",
+  }
+
+ ❯ test/performance/native-run-failures.test.ts:75:49
+     73|     expect(process.exitCode).toBe(1)
+     74|     expect(retained[`${output}/failure.json`]).toBeUndefined()
+     75|     expect(retained[`${output}/closeout.json`]).toMatchObject({ failur…
+       |                                                 ^
+     76|     expect(retained[`${output}/expression.txt`]).toBeTypeOf("string")
+     77|     expect(io.stop).toHaveBeenCalledOnce()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/9]⎯
+
+ FAIL  test/performance/native-run-failures.test.ts > Given the actual native-run driver with all host and filesystem effects injected > When post-result integrity fails Then a semantic pass cannot make driver exit successfully
+AssertionError: expected undefined to match object { status: 'passed' }
+
+- Expected:
+{
+  "status": "passed",
+}
+
++ Received:
+undefined
+
+ ❯ test/performance/native-run-failures.test.ts:102:47
+    100|     await runDriver()
+    101|     expect(process.exitCode).toBe(1)
+    102|     expect(retained[`${output}/result.json`]).toMatchObject({ status: …
+       |                                               ^
+    103|     expect(retained[`${output}/closeout.json`]).toMatchObject({ failur…
+    104|     expect(io.stop).toHaveBeenCalledOnce()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/9]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  9 failed | 2 passed (11)
+   Start at  10:46:08
+   Duration  325ms (transform 266ms, setup 0ms, import 343ms, tests 72ms, environment 0ms)
+
+
+=== Corrected Promise/optional-export mocks; first red is test scaffolding, not implementation bug ===
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-launch-failures.test.ts test/performance/native-run-failures.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+
+ Test Files  2 passed (2)
+      Tests  11 passed (11)
+   Start at  10:47:15
+   Duration  285ms (transform 311ms, setup 0ms, import 261ms, tests 121ms, environment 0ms)
+
+
+=== Formatting and typecheck ===
+Checked 3 files in 8ms. Fixed 2 files.
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 typecheck
+npm notice run tsc --noEmit
+test/performance/native-launch-failures.test.ts(30,33): error TS4111: Property 'TMPDIR' comes from an index signature, so it must be accessed with ['TMPDIR'].
+test/performance/native-launch-failures.test.ts(37,15): error TS4111: Property 'TMPDIR' comes from an index signature, so it must be accessed with ['TMPDIR'].
+test/performance/native-launch-failures.test.ts(70,5): error TS2375: Type 'EventEmitter<DefaultEventMap> & { pid: number | undefined; exitCode: number | null; signalCode: null; }' is not assignable to type 'EventEmitter<DefaultEventMap> & { pid?: number; exitCode?: number | null; signalCode?: string | null; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Type 'EventEmitter<DefaultEventMap> & { pid: number | undefined; exitCode: number | null; signalCode: null; }' is not assignable to type '{ pid?: number; exitCode?: number | null; signalCode?: string | null; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+    Types of property 'pid' are incompatible.
+      Type 'number | undefined' is not assignable to type 'number'.
+        Type 'undefined' is not assignable to type 'number'.
+test/performance/native-launch-failures.test.ts(84,53): error TS4111: Property 'TMPDIR' comes from an index signature, so it must be accessed with ['TMPDIR'].
+test/performance/native-launch-failures.test.ts(85,20): error TS4111: Property 'TMPDIR' comes from an index signature, so it must be accessed with ['TMPDIR'].
+test/performance/native-run-failures.test.ts(44,85): error TS4111: Property 'TMPDIR' comes from an index signature, so it must be accessed with ['TMPDIR'].
+test/performance/native-run-failures.test.ts(61,15): error TS4111: Property 'TMPDIR' comes from an index signature, so it must be accessed with ['TMPDIR'].
+test/performance/native-run-failures.test.ts(92,54): error TS4111: Property 'TMPDIR' comes from an index signature, so it must be accessed with ['TMPDIR'].
+test/performance/native-run-failures.test.ts(93,20): error TS4111: Property 'TMPDIR' comes from an index signature, so it must be accessed with ['TMPDIR'].
+test/performance/native-run-failures.test.ts(97,16): error TS7016: Could not find a declaration file for module '../../scripts/performance/native-run.js'. '/home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager/scripts/performance/native-run.js' implicitly has an 'any' type.
+npm error Lifecycle script `typecheck` failed with error:
+npm error code 1
+npm error path /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+npm error workspace obsidian-excalidraw-layer-manager@0.1.0
+npm error location /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+npm error command failed
+npm error command sh -c tsc --noEmit
+
+=== Final bounded validation ===
+Checked 3 files in 8ms. Fixed 1 file.
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 typecheck
+npm notice run tsc --noEmit
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-launch-failures.test.ts test/performance/native-run-failures.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+
+ Test Files  2 passed (2)
+      Tests  11 passed (11)
+   Start at  10:48:40
+   Duration  275ms (transform 264ms, setup 0ms, import 224ms, tests 118ms, environment 0ms)
+
+
+Scope/claim: Eleven injected control-flow regression tests pass against current actual launchHost/native-run. No JS implementation changed by this peer. Initial 9fail/2pass was missing Promise/optional exports in mock scaffolding, not a product/evaluator defect or implementation red→green. Final Biome, package typecheck and targeted tests passed. All filesystem/process/network/host calls injected; no native/host/heavy-job/AK/git action. Added conservative opaque launchHost declaration only with parent permission.

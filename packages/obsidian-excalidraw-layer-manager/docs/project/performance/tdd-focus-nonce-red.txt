@@ -1,0 +1,29 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-focus.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/native-focus.test.ts (4 tests | 1 failed) 7ms
+     × When one fresh host has two windows Then bind exact PID AND the nonce title set through guarded CDP 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/native-focus.test.ts > Given native desktop focus must not target a personal Obsidian window > When one fresh host has two windows Then bind exact PID AND the nonce title set through guarded CDP
+Error: unique exact-PID native window required; no focus fallback
+ ❯ selectOwnedWindow scripts/performance/native-focus.js:11:11
+      9|   const matches = Object.values(windows).filter((window) => window?.pi…
+     10|   if (matches.length !== 1 || !Number.isSafeInteger(matches[0].id) || …
+     11|     throw Error("unique exact-PID native window required; no focus fal…
+       |           ^
+     12|   return matches[0]
+     13| }
+ ❯ test/performance/native-focus.test.ts:7:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 passed (4)
+   Start at  08:21:31
+   Duration  172ms (transform 49ms, setup 0ms, import 59ms, tests 7ms, environment 0ms)
+

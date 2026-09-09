@@ -1,0 +1,35 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-matrix-plan.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/native-matrix-plan.test.ts (2 tests | 1 failed) 6ms
+     × When planned Then retain 144 training/control hosts and48 distinct semantic-only holdouts 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/native-matrix-plan.test.ts > Given approved paired-seed protocol v2 before a native baseline > When planned Then retain 144 training/control hosts and48 distinct semantic-only holdouts
+AssertionError: expected [] to have a length of 72 but got +0
+
+- Expected
++ Received
+
+- 72
++ 0
+
+ ❯ test/performance/native-matrix-plan.test.ts:6:49
+      4|   it('When planned Then retain 144 training/control hosts and48 distin…
+      5|     const plan=buildMatrixPlan()
+      6|     expect(plan.filter(c=>c.role==='baseline')).toHaveLength(72)
+       |                                                 ^
+      7|     expect(plan.filter(c=>c.role==='calibration')).toHaveLength(72)
+      8|     expect(plan.filter(c=>c.role==='holdout')).toHaveLength(48)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  07:16:12
+   Duration  190ms (transform 74ms, setup 0ms, import 88ms, tests 6ms, environment 0ms)
+

@@ -1,0 +1,37 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-freeze.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/native-freeze.test.ts (2 tests | 1 failed) 11ms
+     × When a checker is bypassed, added, or removed Then byte identity fails closed 8ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/native-freeze.test.ts > Given an independently pinned evaluator inventory > When a checker is bypassed, added, or removed Then byte identity fails closed
+AssertionError: promise resolved "undefined" instead of rejecting
+
+- Expected:
+Error {
+  "message": "rejected promise",
+}
+
++ Received:
+undefined
+
+ ❯ test/performance/native-freeze.test.ts:13:44
+     11|       await expect(verifyTree(root,frozen)).resolves.toBeUndefined()
+     12|       await writeFile(join(root,'check.js'),'return true')
+     13|       await expect(verifyTree(root,frozen)).rejects.toThrow('frozen tr…
+       |                                            ^
+     14|       await writeFile(join(root,'check.js'),'throw Error("required ora…
+     15|       await writeFile(join(root,'extra.js'),'bypass')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  06:48:15
+   Duration  175ms (transform 54ms, setup 0ms, import 75ms, tests 11ms, environment 0ms)
+

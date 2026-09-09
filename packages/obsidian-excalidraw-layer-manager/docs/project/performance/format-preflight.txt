@@ -1,0 +1,847 @@
+npm notice run npx
+npm notice run 'biome' check scripts/performance test/performance --max-diagnostics=15
+scripts/performance/native-fixture.d.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+     1  1 │   export interface Descriptor {
+     2    │ - ··id:·string;·type:·string;·x:·number;·y:·number;·width:·number;·height:·number;
+     3    │ - ··angle:·number;·groupIds:·string[];·frameId:·null;·isDeleted:·boolean;
+     4    │ - ··locked:·boolean;·opacity:·number;
+        2 │ + ··id:·string
+        3 │ + ··type:·string
+        4 │ + ··x:·number
+        5 │ + ··y:·number
+        6 │ + ··width:·number
+        7 │ + ··height:·number
+        8 │ + ··angle:·number
+        9 │ + ··groupIds:·string[]
+       10 │ + ··frameId:·null
+       11 │ + ··isDeleted:·boolean
+       12 │ + ··locked:·boolean
+       13 │ + ··opacity:·number
+     5 14 │     customData: { foreign: { sentinel: string }; lmx: { label: string; unknown: number } }
+     6 15 │   }
+     7    │ - export·interface·ExpectedRow·{·id:·string;·level:·number;·expanded:·boolean·|·null·}
+       16 │ + export·interface·ExpectedRow·{
+       17 │ + ··id:·string
+       18 │ + ··level:·number
+       19 │ + ··expanded:·boolean·|·null
+       20 │ + }
+     8 21 │   export function makeDescriptors(size: number, shape: string, seed: number): Descriptor[]
+     9 22 │   export function expectedRows(elements: Descriptor[], expanded: string[] | "all"): ExpectedRow[]
+  
+
+scripts/performance/native-fixture.js format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+     1   1 │   // Independent seeded oracle. No LayerManager imports, indexes, planners or derived trees.
+     2   2 │   export function makeDescriptors(size, shape, seed) {
+     3     │ - ··if·(!Number.isSafeInteger(size)·||·size·<·1·||·!Number.isSafeInteger(seed))·throw·Error("invalid·fixture·dimensions")
+         3 │ + ··if·(!Number.isSafeInteger(size)·||·size·<·1·||·!Number.isSafeInteger(seed))
+         4 │ + ····throw·Error("invalid·fixture·dimensions")
+     4   5 │     let state = seed >>> 0
+     5     │ - ··const·random·=·()·=>·{·state·=·(Math.imul(state,·1664525)·+·1013904223)·>>>·0;·return·state·}
+         6 │ + ··const·random·=·()·=>·{
+         7 │ + ····state·=·(Math.imul(state,·1664525)·+·1013904223)·>>>·0
+         8 │ + ····return·state
+         9 │ + ··}
+     6  10 │     return Array.from({ length: size }, (_, i) => {
+     7  11 │       let groupIds
+     8     │ - ····const·group·=·n·=>·`g${seed}x${n}`
+        12 │ + ····const·group·=·(n)·=>·`g${seed}x${n}`
+     9  13 │       switch (shape) {
+    10     │ - ······case·"ungrouped":·groupIds·=·[];·break
+    11     │ - ······case·"pairs":·groupIds·=·[group(Math.floor(i·/·2))];·break
+    12     │ - ······case·"ten":·groupIds·=·[group(Math.floor(i·/·10))];·break
+    13     │ - ······case·"giant":·groupIds·=·[group(0)];·break
+    14     │ - ······case·"nested8":·groupIds·=·Array.from({·length:·8·},·(_,·depth)·=>·`${group(Math.floor(i·/·2·**·(depth·+·1)))}d${depth}`);·break
+    15     │ - ······case·"skewed":·groupIds·=·[i·<·Math.floor(size·*·.9)·?·group(0)·:·group(1·+·Math.floor((i·-·Math.floor(size·*·.9))·/·2))];·break
+    16     │ - ······default:·throw·Error("unfrozen·shape")
+        14 │ + ······case·"ungrouped":
+        15 │ + ········groupIds·=·[]
+        16 │ + ········break
+        17 │ + ······case·"pairs":
+        18 │ + ········groupIds·=·[group(Math.floor(i·/·2))]
+        19 │ + ········break
+        20 │ + ······case·"ten":
+        21 │ + ········groupIds·=·[group(Math.floor(i·/·10))]
+        22 │ + ········break
+        23 │ + ······case·"giant":
+        24 │ + ········groupIds·=·[group(0)]
+        25 │ + ········break
+        26 │ + ······case·"nested8":
+        27 │ + ········groupIds·=·Array.from(
+        28 │ + ··········{·length:·8·},
+        29 │ + ··········(_,·depth)·=>·`${group(Math.floor(i·/·2·**·(depth·+·1)))}d${depth}`,
+        30 │ + ········)
+        31 │ + ········break
+        32 │ + ······case·"skewed":
+        33 │ + ········groupIds·=·[
+        34 │ + ··········i·<·Math.floor(size·*·0.9)
+        35 │ + ············?·group(0)
+        36 │ + ············:·group(1·+·Math.floor((i·-·Math.floor(size·*·0.9))·/·2)),
+        37 │ + ········]
+        38 │ + ········break
+        39 │ + ······default:
+        40 │ + ········throw·Error("unfrozen·shape")
+    17  41 │       }
+    18     │ - ····return·{·id:·`e${seed}x${i}`,·type:·"rectangle",·x:·(i·%·100)·*·35·+·random()·%·7,·y:·Math.floor(i·/·100)·*·28,·width:·20·+·random()·%·5,·height:·15,·angle:·0,·groupIds,·frameId:·null,·isDeleted:·false,·locked:·false,·opacity:·100,·customData:·{·foreign:·{·sentinel:·`s${seed}x${i}`·},·lmx:·{·label:·`Layer·${i}`,·unknown:·seed·}·}·}
+        42 │ + ····return·{
+        43 │ + ······id:·`e${seed}x${i}`,
+        44 │ + ······type:·"rectangle",
+        45 │ + ······x:·(i·%·100)·*·35·+·(random()·%·7),
+        46 │ + ······y:·Math.floor(i·/·100)·*·28,
+        47 │ + ······width:·20·+·(random()·%·5),
+        48 │ + ······height:·15,
+        49 │ + ······angle:·0,
+        50 │ + ······groupIds,
+        51 │ + ······frameId:·null,
+        52 │ + ······isDeleted:·false,
+        53 │ + ······locked:·false,
+        54 │ + ······opacity:·100,
+        55 │ + ······customData:·{
+        56 │ + ········foreign:·{·sentinel:·`s${seed}x${i}`·},
+        57 │ + ········lmx:·{·label:·`Layer·${i}`,·unknown:·seed·},
+        58 │ + ······},
+        59 │ + ····}
+    19  60 │     })
+    20  61 │   }
+    21  62 │   
+    22  63 │   export function sceneProjection(elements) {
+    23     │ - ··return·elements.map(e·=>·{
+        64 │ + ··return·elements.map((e)·=>·{
+    24  65 │       // Host bookkeeping may legitimately advance; every other native field is guarded.
+    25  66 │       const { version: _v, versionNonce: _vn, updated: _u, index: _i, ...semantic } = e
+    ······ │ 
+    29  70 │   
+    30  71 │   export function expectedRows(elements, expanded) {
+    31     │ - ··const·roots·=·[],·groups·=·new·Map()
+        72 │ + ··const·roots·=·[],
+        73 │ + ····groups·=·new·Map()
+    32  74 │     for (const e of [...elements].reverse()) {
+    33  75 │       if (e.isDeleted) continue
+    34     │ - ····let·siblings·=·roots,·prefix·=·""
+        76 │ + ····let·siblings·=·roots,
+        77 │ + ······prefix·=·""
+    35  78 │       for (const group of [...e.groupIds].reverse()) {
+    36  79 │         prefix = prefix ? `${prefix}/${group}` : group
+    37  80 │         const id = `group:${prefix}`
+    38  81 │         let node = groups.get(id)
+    39     │ - ······if·(!node)·{·node·=·{·id,·children:·[]·};·groups.set(id,·node);·siblings.push(node)·}
+        82 │ + ······if·(!node)·{
+        83 │ + ········node·=·{·id,·children:·[]·}
+        84 │ + ········groups.set(id,·node)
+        85 │ + ········siblings.push(node)
+        86 │ + ······}
+    40  87 │         siblings = node.children
+    41  88 │       }
+    42  89 │       siblings.push({ id: `el:${e.id}`, children: null })
+    43  90 │     }
+    44     │ - ··const·set·=·new·Set(expanded·===·"all"·?·[]·:·expanded),·rows·=·[]
+        91 │ + ··const·set·=·new·Set(expanded·===·"all"·?·[]·:·expanded),
+        92 │ + ····rows·=·[]
+    45  93 │     const walk = (nodes, level) => {
+    46  94 │       for (const node of nodes) {
+  
+
+scripts/performance/native-host.d.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+    1    │ - interface·SocketLike·extends·EventTarget·{·send(value:·string):·void;·close():·void·}
+       1 │ + interface·SocketLike·extends·EventTarget·{
+       2 │ + ··send(value:·string):·void
+       3 │ + ··close():·void
+       4 │ + }
+    2  5 │   export class Cdp {
+    3  6 │     constructor(socket: SocketLike)
+    4    │ - ··static·connect(url:·string,·timeout?:·number,·Socket?:·new·(url:·string)·=>·SocketLike):·Promise<Cdp>
+       7 │ + ··static·connect(
+       8 │ + ····url:·string,
+       9 │ + ····timeout?:·number,
+      10 │ + ····Socket?:·new·(url:·string)·=>·SocketLike,
+      11 │ + ··):·Promise<Cdp>
+    5 12 │     call(method: string, params?: Record<string, unknown>): Promise<unknown>
+    6 13 │     evaluate(expression: string): Promise<unknown>
+  
+
+scripts/performance/native-packet.js format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+     3  3 │   import { CONTRACT } from "./evaluator-contract.mjs"
+     4  4 │   export function validateNativePacket(sample) {
+     5    │ - ··if·(sample?.status·!==·'passed'·||·sample.native·!==·true)·throw·Error('native·successful·sample·required')
+     6    │ - ··if·(!Array.isArray(sample.checks)·||·sample.checks.length·!==·CONTRACT.mandatoryChecks.length·||·new·Set(sample.checks.map(c=>c.id)).size·!==·CONTRACT.mandatoryChecks.length)·throw·Error('mandatory·checks·missing/duplicated')
+     7    │ - ··for(const·id·of·CONTRACT.mandatoryChecks)·{
+     8    │ - ····const·check=sample.checks.find(c=>c.id===id)
+     9    │ - ····if(!check·||·!/^[0-9a-f]{64}$/.test(check.actual)·||·check.actual!==check.expected)·throw·Error(`semantic·failure:·${id}`)
+        5 │ + ··if·(sample?.status·!==·"passed"·||·sample.native·!==·true)
+        6 │ + ····throw·Error("native·successful·sample·required")
+        7 │ + ··if·(
+        8 │ + ····!Array.isArray(sample.checks)·||
+        9 │ + ····sample.checks.length·!==·CONTRACT.mandatoryChecks.length·||
+       10 │ + ····new·Set(sample.checks.map((c)·=>·c.id)).size·!==·CONTRACT.mandatoryChecks.length
+       11 │ + ··)
+       12 │ + ····throw·Error("mandatory·checks·missing/duplicated")
+       13 │ + ··for·(const·id·of·CONTRACT.mandatoryChecks)·{
+       14 │ + ····const·check·=·sample.checks.find((c)·=>·c.id·===·id)
+       15 │ + ····if·(!check·||·!/^[0-9a-f]{64}$/.test(check.actual)·||·check.actual·!==·check.expected)
+       16 │ + ······throw·Error(`semantic·failure:·${id}`)
+    10 17 │     }
+    11    │ - ··if(!['scene','rows','selection'].some(name=>sample.beforeHashes?.[name]!==sample.checks.find(c=>c.id===`${name}-exact`).expected))·throw·Error('no-op·work')
+    12    │ - ··for(const·name·of·['scene','rows','selection'])·if(!/^[0-9a-f]{64}$/.test(sample.beforeHashes?.[name]))·throw·Error('before-state·proof·missing')
+    13    │ - ··for(const·name·of·['scene','rows','selected'])·if(!Number.isSafeInteger(sample.counts?.[name])·||·sample.counts[name]<0)·throw·Error('invalid·count')
+    14    │ - ··const·t=sample.timing
+    15    │ - ··if(!t·||·!Array.isArray(t.renderOpportunities)·||·t.renderOpportunities.length<2)·throw·Error('two·render·opportunities·required')
+    16    │ - ··const·ordered=[t.inputSync,t.promiseComplete,t.settlement,...t.renderOpportunities,t.renderOpportunity]
+    17    │ - ··let·previous=0
+    18    │ - ··for(const·duration·of·ordered)·{·if(!Number.isFinite(duration)·||·duration<previous)·throw·Error('invalid·timing·order');·previous=duration·}
+       18 │ + ··if·(
+       19 │ + ····!["scene",·"rows",·"selection"].some(
+       20 │ + ······(name)·=>
+       21 │ + ········sample.beforeHashes?.[name]·!==
+       22 │ + ········sample.checks.find((c)·=>·c.id·===·`${name}-exact`).expected,
+       23 │ + ····)
+       24 │ + ··)
+       25 │ + ····throw·Error("no-op·work")
+       26 │ + ··for·(const·name·of·["scene",·"rows",·"selection"])
+       27 │ + ····if·(!/^[0-9a-f]{64}$/.test(sample.beforeHashes?.[name]))
+       28 │ + ······throw·Error("before-state·proof·missing")
+       29 │ + ··for·(const·name·of·["scene",·"rows",·"selected"])
+       30 │ + ····if·(!Number.isSafeInteger(sample.counts?.[name])·||·sample.counts[name]·<·0)
+       31 │ + ······throw·Error("invalid·count")
+       32 │ + ··const·t·=·sample.timing
+       33 │ + ··if·(!t·||·!Array.isArray(t.renderOpportunities)·||·t.renderOpportunities.length·<·2)
+       34 │ + ····throw·Error("two·render·opportunities·required")
+       35 │ + ··const·ordered·=·[
+       36 │ + ····t.inputSync,
+       37 │ + ····t.promiseComplete,
+       38 │ + ····t.settlement,
+       39 │ + ····...t.renderOpportunities,
+       40 │ + ····t.renderOpportunity,
+       41 │ + ··]
+       42 │ + ··let·previous·=·0
+       43 │ + ··for·(const·duration·of·ordered)·{
+       44 │ + ····if·(!Number.isFinite(duration)·||·duration·<·previous)·throw·Error("invalid·timing·order")
+       45 │ + ····previous·=·duration
+       46 │ + ··}
+    19 47 │     return sample
+    20 48 │   }
+  
+
+scripts/performance/native-probe.js format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+     1    │ - (async·()·=>·{
+     2    │ - ··const·sleep·=·ms·=>·new·Promise(r·=>·setTimeout(r,·ms))
+        1 │ + ;(async·()·=>·{
+        2 │ + ··const·sleep·=·(ms)·=>·new·Promise((r)·=>·setTimeout(r,·ms))
+     3  3 │     const until = Date.now() + 60000
+     4    │ - ··while·(!app.plugins?.plugins?.['obsidian-excalidraw-plugin']·&&·Date.now()·<·until)·await·sleep(100)
+     5    │ - ··const·p·=·app.plugins?.plugins?.['obsidian-excalidraw-plugin']
+     6    │ - ··if·(!p)·return·{failed:'Excalidraw·not·loaded',apiVersion:require('obsidian').apiVersion,plugins:O...
+     7    │ - ··const·file·=·app.vault.getAbstractFileByPath('testing.md')
+        4 │ + ··while·(!app.plugins?.plugins?.["obsidian-excalidraw-plugin"]·&&·Date.now()·<·until)
+        5 │ + ····await·sleep(100)
+        6 │ + ··const·p·=·app.plugins?.plugins?.["obsidian-excalidraw-plugin"]
+        7 │ + ··if·(!p)
+        8 │ + ····return·{
+        9 │ + ······failed:·"Excalidraw·not·loaded",
+       10 │ + ······apiVersion:·require("obsidian").apiVersion,
+       11 │ + ······plugins:·Object.keys(app.plugins.plugins),
+       12 │ + ······manifest:·app.plugins.manifests["obsidian-excalidraw-plugin"],
+       13 │ + ······enabled:·[...(app.plugins.enabledPlugins·??·[])],
+       14 │ + ······body:·document.body.innerText.slice(0,·3000),
+       15 │ + ······methods:·Object.getOwnPropertyNames(Object.getPrototypeOf(app.plugins)),
+       16 │ + ······loadResult:·await·app.plugins
+       17 │ + ········.loadPlugin("obsidian-excalidraw-plugin")
+       18 │ + ········.then(()·=>·"loaded")
+       19 │ + ········.catch((error)·=>·String(error)),
+       20 │ + ····}
+       21 │ + ··const·file·=·app.vault.getAbstractFileByPath("testing.md")
+     8 22 │     const leaf = app.workspace.getLeaf(false)
+     9    │ - ··await·leaf.openFile(file,·{state:{type:'excalidraw'}})
+    10    │ - ··await·leaf.setViewState({type:'excalidraw',state:{file:'testing.md'},active:true})
+       23 │ + ··await·leaf.openFile(file,·{·state:·{·type:·"excalidraw"·}·})
+       24 │ + ··await·leaf.setViewState({·type:·"excalidraw",·state:·{·file:·"testing.md"·},·active:·true·})
+    11 25 │     while (!leaf.view.excalidrawAPI && Date.now() < until) await sleep(100)
+    12    │ - ··if·(!leaf.view.excalidrawAPI)·throw·Error('Native·canvas·unavailable')
+    13    │ - ··await·p.scriptEngine.executeScriptFile(leaf.view,·app.vault.getAbstractFileByPath('Excalidraw/Scripts/LayerManager.md'),·'LayerManager')
+       26 │ + ··if·(!leaf.view.excalidrawAPI)·throw·Error("Native·canvas·unavailable")
+       27 │ + ··await·p.scriptEngine.executeScriptFile(
+       28 │ + ····leaf.view,
+       29 │ + ····app.vault.getAbstractFileByPath("Excalidraw/Scripts/LayerManager.md"),
+       30 │ + ····"LayerManager",
+       31 │ + ··)
+    14 32 │     while (!globalThis.excalidrawLayerManagerRuntime && Date.now() < until) await sleep(100)
+    15 33 │     const rt = globalThis.excalidrawLayerManagerRuntime
+    16    │ - ··if·(!rt)·throw·Error('manager·unavailable')
+    17    │ - ··return·{native:true,·canvas:leaf.view.excalidrawAPI.getSceneElements().length,·runtime:rt.getSnapshot().elements.length,·rows:[...document.querySelectorAll('[role="treeitem"]')].map(r=>({id:r.id,·text:r.textContent,level:r.getAttribute('aria-level'),expanded:r.getAttribute('aria-expanded')})),·focus:document.hasFocus(),·manifest:p.manifest,·snapshotKeys:Object.keys(rt.getSnapshot())}
+       34 │ + ··if·(!rt)·throw·Error("manager·unavailable")
+       35 │ + ··return·{
+       36 │ + ····native:·true,
+       37 │ + ····canvas:·leaf.view.excalidrawAPI.getSceneElements().length,
+       38 │ + ····runtime:·rt.getSnapshot().elements.length,
+       39 │ + ····rows:·[...document.querySelectorAll('[role="treeitem"]')].map((r)·=>·({
+       40 │ + ······id:·r.id,
+       41 │ + ······text:·r.textContent,
+       42 │ + ······level:·r.getAttribute("aria-level"),
+       43 │ + ······expanded:·r.getAttribute("aria-expanded"),
+       44 │ + ····})),
+       45 │ + ····focus:·document.hasFocus(),
+       46 │ + ····manifest:·p.manifest,
+       47 │ + ····snapshotKeys:·Object.keys(rt.getSnapshot()),
+       48 │ + ··}
+    18 49 │   })()
+    19 50 │   
+  
+
+scripts/performance/native-run.js:3:1 assist/source/organizeImports  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━
+
+  × Some imports or exports are not organized.
+  
+    1 │ // Development probe only, NOT a benchmark. Use under the admitted heavy-job wrapper.
+    2 │ import { cp, mkdir, mkdtemp, readdir, readFile } from 'node:fs/promises'
+  > 3 │ import { resolve, join } from 'node:path'
+      │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  > 4 │ import { launchHost, json } from './native-host.js'
+      │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    5 │ 
+    6 │ const [outputArg, executable, program] = process.argv.slice(2)
+  
+  i Sort the imported names.
+  
+    1 │ // Development probe only, NOT a benchmark. Use under the admitted heavy-job wrapper.
+    2 │ import { cp, mkdir, mkdtemp, readdir, readFile } from 'node:fs/promises'
+  > 3 │ import { resolve, join } from 'node:path'
+      │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    4 │ import { launchHost, json } from './native-host.js'
+    5 │ 
+  
+  i Sort the imported names.
+  
+    2 │ import { cp, mkdir, mkdtemp, readdir, readFile } from 'node:fs/promises'
+    3 │ import { resolve, join } from 'node:path'
+  > 4 │ import { launchHost, json } from './native-host.js'
+      │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    5 │ 
+    6 │ const [outputArg, executable, program] = process.argv.slice(2)
+  
+  i Safe fix: Organize imports and exports (Biome)
+  
+     1  1 │   // Development probe only, NOT a benchmark. Use under the admitted heavy-job wrapper.
+     2  2 │   import { cp, mkdir, mkdtemp, readdir, readFile } from 'node:fs/promises'
+     3    │ - import·{·resolve,·join·}·from·'node:path'
+     4    │ - import·{·launchHost,·json·}·from·'./native-host.js'
+        3 │ + import·{·join,·resolve·}·from·'node:path'
+        4 │ + import·{·json,·launchHost·}·from·'./native-host.js'
+     5  5 │   
+     6  6 │   const [outputArg, executable, program] = process.argv.slice(2)
+  
+
+scripts/performance/native-run.js format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+     1  1 │   // Development probe only, NOT a benchmark. Use under the admitted heavy-job wrapper.
+     2    │ - import·{·cp,·mkdir,·mkdtemp,·readdir,·readFile·}·from·'node:fs/promises'
+     3    │ - import·{·resolve,·join·}·from·'node:path'
+     4    │ - import·{·launchHost,·json·}·from·'./native-host.js'
+        2 │ + import·{·cp,·mkdir,·mkdtemp,·readdir,·readFile·}·from·"node:fs/promises"
+        3 │ + import·{·resolve,·join·}·from·"node:path"
+        4 │ + import·{·launchHost,·json·}·from·"./native-host.js"
+     5  5 │   
+     6  6 │   const [outputArg, executable, program] = process.argv.slice(2)
+     7    │ - if·(!outputArg·||·!executable·||·!program)·throw·Error('artifact-dir,·executable·and·browser-program·required')
+     8    │ - const·output=resolve(outputArg)
+        7 │ + if·(!outputArg·||·!executable·||·!program)
+        8 │ + ··throw·Error("artifact-dir,·executable·and·browser-program·required")
+        9 │ + const·output·=·resolve(outputArg)
+     9 10 │   await mkdir(output) // exclusive: never overwrite an earlier run
+    10    │ - const·root=await·mkdtemp(join(process.env.TMPDIR,'ak5583-native-'))
+       11 │ + const·root·=·await·mkdtemp(join(process.env.TMPDIR,·"ak5583-native-"))
+    11 12 │   let host, failure, cleanup
+    12 13 │   try {
+    13    │ - ··host=await·launchHost(root,executable)
+    14    │ - ··const·result=await·host.evaluate(await·readFile(program,'utf8'))
+    15    │ - ··await·json(join(root,'result.json'),result)
+    16    │ - ··if(!result·||·result.failed)·throw·Error(`native·program·failed:·${result?.failed}`)
+    17    │ - ··console.log(JSON.stringify({output,result}))
+    18    │ - }·catch(error)·{
+    19    │ - ··failure=String(error);process.exitCode=1
+    20    │ - ··await·json(join(root,'failure.json'),{error:failure,effect:'indeterminate·until·cleanup;·never·replay·same·mutation',at:new·Date().toISOString()}).catch(()=>{})
+       14 │ + ··host·=·await·launchHost(root,·executable)
+       15 │ + ··const·result·=·await·host.evaluate(await·readFile(program,·"utf8"))
+       16 │ + ··await·json(join(root,·"result.json"),·result)
+       17 │ + ··if·(!result·||·result.failed)·throw·Error(`native·program·failed:·${result?.failed}`)
+       18 │ + ··console.log(JSON.stringify({·output,·result·}))
+       19 │ + }·catch·(error)·{
+       20 │ + ··failure·=·String(error)
+       21 │ + ··process.exitCode·=·1
+       22 │ + ··await·json(join(root,·"failure.json"),·{
+       23 │ + ····error:·failure,
+       24 │ + ····effect:·"indeterminate·until·cleanup;·never·replay·same·mutation",
+       25 │ + ····at:·new·Date().toISOString(),
+       26 │ + ··}).catch(()·=>·{})
+    21 27 │   } finally {
+    22    │ - ··try·{if(host)·cleanup=await·host.stop()}·catch(error)·{cleanup={status:'indeterminate',error:String(error)}}
+    23    │ - ··if(!cleanup)·cleanup=await·readFile(join(root,'host-cleanup.json'),'utf8').then(JSON.parse).catch(()=>({status:'indeterminate',reason:'no·cleanup·receipt'}))
+    24    │ - ··if(!['stopped','already-absent'].includes(cleanup.status))·process.exitCode=1
+    25    │ - ··await·json(join(root,'closeout.json'),{failure:failure??null,cleanup,nativeMeasurementClaim:false}).catch(()=>{})
+    26    │ - ··for(const·entry·of·await·readdir(root,{withFileTypes:true}))·if(entry.isFile())·await·cp(join(root,entry.name),join(output,entry.name))
+       28 │ + ··try·{
+       29 │ + ····if·(host)·cleanup·=·await·host.stop()
+       30 │ + ··}·catch·(error)·{
+       31 │ + ····cleanup·=·{·status:·"indeterminate",·error:·String(error)·}
+       32 │ + ··}
+       33 │ + ··if·(!cleanup)
+       34 │ + ····cleanup·=·await·readFile(join(root,·"host-cleanup.json"),·"utf8")
+       35 │ + ······.then(JSON.parse)
+       36 │ + ······.catch(()·=>·({·status:·"indeterminate",·reason:·"no·cleanup·receipt"·}))
+       37 │ + ··if·(!["stopped",·"already-absent"].includes(cleanup.status))·process.exitCode·=·1
+       38 │ + ··await·json(join(root,·"closeout.json"),·{
+       39 │ + ····failure:·failure·??·null,
+       40 │ + ····cleanup,
+       41 │ + ····nativeMeasurementClaim:·false,
+       42 │ + ··}).catch(()·=>·{})
+       43 │ + ··for·(const·entry·of·await·readdir(root,·{·withFileTypes:·true·}))
+       44 │ + ····if·(entry.isFile())·await·cp(join(root,·entry.name),·join(output,·entry.name))
+    27 45 │     console.log(`Retained evidence: ${output}`)
+    28 46 │   }
+  
+
+scripts/performance/native-safety.d.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+    1    │ - export·function·assertHostIdentity(owned:·Record<string,·unknown>,·observed:·Record<string,·unknown>):·void
+    2    │ - export·function·admitSize(size:·number,·state:·{·completedSizes:·number[];·pilotPassed:·boolean;·effect:·string;·rssMiB:·number;·availableMiB:·number·}):·void
+    3    │ - export·const·RESOURCE_LIMITS:·{·readonly·rssMiB:·number;·readonly·availableMiB:·number;·readonly·operationMs:·number;·readonly·startupMs:·number·}
+       1 │ + export·function·assertHostIdentity(
+       2 │ + ··owned:·Record<string,·unknown>,
+       3 │ + ··observed:·Record<string,·unknown>,
+       4 │ + ):·void
+       5 │ + export·function·admitSize(
+       6 │ + ··size:·number,
+       7 │ + ··state:·{
+       8 │ + ····completedSizes:·number[]
+       9 │ + ····pilotPassed:·boolean
+      10 │ + ····effect:·string
+      11 │ + ····rssMiB:·number
+      12 │ + ····availableMiB:·number
+      13 │ + ··},
+      14 │ + ):·void
+      15 │ + export·const·RESOURCE_LIMITS:·{
+      16 │ + ··readonly·rssMiB:·number
+      17 │ + ··readonly·availableMiB:·number
+      18 │ + ··readonly·operationMs:·number
+      19 │ + ··readonly·startupMs:·number
+      20 │ + }
+    4 21 │   
+  
+
+scripts/performance/native-safety.js format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+     1  1 │   // Native admission policy; checks identity, not authenticity of caller-supplied data.
+     2    │ - export·const·RESOURCE_LIMITS·=·Object.freeze({·rssMiB:·8192,·availableMiB:·4096,·operationMs:·120000,·startupMs:·120000·})
+        2 │ + export·const·RESOURCE_LIMITS·=·Object.freeze({
+        3 │ + ··rssMiB:·8192,
+        4 │ + ··availableMiB:·4096,
+        5 │ + ··operationMs:·120000,
+        6 │ + ··startupMs:·120000,
+        7 │ + })
+     3  8 │   
+     4  9 │   export function assertHostIdentity(owned, observed) {
+     5 10 │     for (const key of ["vault", "profile", "pid", "start", "targetId", "nonce", "scriptHash"]) {
+     6    │ - ····if·(owned[key]·===·undefined·||·owned[key]·!==·observed[key])·throw·Error(`host·identity·mismatch:·${key}`)
+       11 │ + ····if·(owned[key]·===·undefined·||·owned[key]·!==·observed[key])
+       12 │ + ······throw·Error(`host·identity·mismatch:·${key}`)
+     7 13 │     }
+     8    │ - ··if·(observed.url·!==·"app://obsidian.md/index.html"·||·observed.native·!==·true)·throw·Error("not·native·Obsidian")
+       14 │ + ··if·(observed.url·!==·"app://obsidian.md/index.html"·||·observed.native·!==·true)
+       15 │ + ····throw·Error("not·native·Obsidian")
+     9 16 │   }
+    10 17 │   
+    ····· │ 
+    13 20 │     const index = sizes.indexOf(size)
+    14 21 │     if (index < 0) throw Error("unfrozen size")
+    15    │ - ··if·(state.effect·!==·"settled")·throw·Error("effects·indeterminate:·reconcile·before·any·further·work")
+    16    │ - ··if·(!Number.isFinite(state.rssMiB)·||·!Number.isFinite(state.availableMiB)·||·state.rssMiB·>=·RESOURCE_LIMITS.rssMiB·||·state.availableMiB·<·RESOURCE_LIMITS.availableMiB)·throw·Error("resource·gate")
+    17    │ - ··if·(index·>·0·&&·(!state.pilotPassed·||·!sizes.slice(0,·index).every(n·=>·state.completedSizes.includes(n))))·throw·Error("pilot/predecessor·proof·missing")
+       22 │ + ··if·(state.effect·!==·"settled")
+       23 │ + ····throw·Error("effects·indeterminate:·reconcile·before·any·further·work")
+       24 │ + ··if·(
+       25 │ + ····!Number.isFinite(state.rssMiB)·||
+       26 │ + ····!Number.isFinite(state.availableMiB)·||
+       27 │ + ····state.rssMiB·>=·RESOURCE_LIMITS.rssMiB·||
+       28 │ + ····state.availableMiB·<·RESOURCE_LIMITS.availableMiB
+       29 │ + ··)
+       30 │ + ····throw·Error("resource·gate")
+       31 │ + ··if·(
+       32 │ + ····index·>·0·&&
+       33 │ + ····(!state.pilotPassed·||·!sizes.slice(0,·index).every((n)·=>·state.completedSizes.includes(n)))
+       34 │ + ··)
+       35 │ + ····throw·Error("pilot/predecessor·proof·missing")
+    18 36 │   }
+    19 37 │   
+  
+
+test/performance/native-cdp.test.ts:3:1 assist/source/organizeImports  FIXABLE  ━━━━━━━━━━━━━━━━━━━━
+
+  × This statement must be preceded by a blank line. Add a newline before this statement.
+  
+     1 │ import { afterEach, describe, expect, it, vi } from "vitest"
+     2 │ import { Cdp } from "../../scripts/performance/native-host.js"
+   > 3 │ class Socket extends EventTarget {
+       │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   > 4 │   static latest: Socket
+        ...
+   > 8 │   close(){this.dispatchEvent(new Event("close"))}
+   > 9 │ }
+       │ ^
+    10 │ afterEach(()=>vi.useRealTimers())
+    11 │ describe("Given a bounded native CDP connection",()=>{
+  
+  i Safe fix: Organize imports and exports (Biome)
+  
+     1  1 │   import { afterEach, describe, expect, it, vi } from "vitest"
+     2  2 │   import { Cdp } from "../../scripts/performance/native-host.js"
+        3 │ + 
+     3  4 │   class Socket extends EventTarget {
+     4  5 │     static latest: Socket
+  
+
+test/performance/native-cdp.test.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+     3  3 │   class Socket extends EventTarget {
+     4  4 │     static latest: Socket
+     5    │ - ··sent:·unknown[]=[]
+     6    │ - ··constructor(_url?:string){super();Socket.latest=this}
+     7    │ - ··send(value:string){this.sent.push(JSON.parse(value))}
+     8    │ - ··close(){this.dispatchEvent(new·Event("close"))}
+        5 │ + ··sent:·unknown[]·=·[]
+        6 │ + ··constructor(_url?:·string)·{
+        7 │ + ····super()
+        8 │ + ····Socket.latest·=·this
+        9 │ + ··}
+       10 │ + ··send(value:·string)·{
+       11 │ + ····this.sent.push(JSON.parse(value))
+       12 │ + ··}
+       13 │ + ··close()·{
+       14 │ + ····this.dispatchEvent(new·Event("close"))
+       15 │ + ··}
+     9 16 │   }
+    10    │ - afterEach(()=>vi.useRealTimers())
+    11    │ - describe("Given·a·bounded·native·CDP·connection",()=>{
+    12    │ - ··it("When·the·handshake·never·opens·Then·startup·fails·rather·than·hanging",async()=>{
+       17 │ + afterEach(()·=>·vi.useRealTimers())
+       18 │ + describe("Given·a·bounded·native·CDP·connection",·()·=>·{
+       19 │ + ··it("When·the·handshake·never·opens·Then·startup·fails·rather·than·hanging",·async·()·=>·{
+    13 20 │       vi.useFakeTimers()
+    14    │ - ····const·connecting=Cdp.connect("ws://127.0.0.1/fresh",50,Socket)
+    15    │ - ····const·assertion=expect(connecting).rejects.toThrow("handshake·timeout")
+       21 │ + ····const·connecting·=·Cdp.connect("ws://127.0.0.1/fresh",·50,·Socket)
+       22 │ + ····const·assertion·=·expect(connecting).rejects.toThrow("handshake·timeout")
+    16 23 │       await vi.advanceTimersByTimeAsync(51)
+    17 24 │       await assertion
+    18 25 │     })
+    19    │ - ··it("When·the·socket·closes·before·opening·Then·startup·fails·immediately",async()=>{
+    20    │ - ····const·connecting=Cdp.connect("ws://127.0.0.1/fresh",50,Socket)
+    21    │ - ····const·assertion=expect(connecting).rejects.toThrow("closed·before·open")
+    22    │ - ····Socket.latest.close();await·assertion
+       26 │ + ··it("When·the·socket·closes·before·opening·Then·startup·fails·immediately",·async·()·=>·{
+       27 │ + ····const·connecting·=·Cdp.connect("ws://127.0.0.1/fresh",·50,·Socket)
+       28 │ + ····const·assertion·=·expect(connecting).rejects.toThrow("closed·before·open")
+       29 │ + ····Socket.latest.close()
+       30 │ + ····await·assertion
+    23 31 │     })
+    24    │ - ··it("When·an·in-flight·command·times·out·Then·no·mutation·can·be·mechanically·replayed",async()=>{
+       32 │ + ··it("When·an·in-flight·command·times·out·Then·no·mutation·can·be·mechanically·replayed",·async·()·=>·{
+    25 33 │       vi.useFakeTimers()
+    26    │ - ····const·socket=new·Socket(),·cdp=new·Cdp(socket)
+    27    │ - ····const·call=cdp.call("Runtime.evaluate",{expression:"mutate()"})
+    28    │ - ····const·assertion=expect(call).rejects.toThrow("effects·indeterminate")
+    29    │ - ····await·vi.advanceTimersByTimeAsync(120001);await·assertion
+    30    │ - ····await·expect(cdp.call("Runtime.evaluate",{expression:"mutate()"})).rejects.toThrow("cannot·replay")
+       34 │ + ····const·socket·=·new·Socket(),
+       35 │ + ······cdp·=·new·Cdp(socket)
+       36 │ + ····const·call·=·cdp.call("Runtime.evaluate",·{·expression:·"mutate()"·})
+       37 │ + ····const·assertion·=·expect(call).rejects.toThrow("effects·indeterminate")
+       38 │ + ····await·vi.advanceTimersByTimeAsync(120001)
+       39 │ + ····await·assertion
+       40 │ + ····await·expect(cdp.call("Runtime.evaluate",·{·expression:·"mutate()"·})).rejects.toThrow(
+       41 │ + ······"cannot·replay",
+       42 │ + ····)
+    31 43 │       expect(socket.sent).toHaveLength(1)
+    32 44 │     })
+    33    │ - ··it("When·the·target·disconnects·Then·all·pending·calls·fail",async()=>{
+    34    │ - ····const·socket=new·Socket(),·cdp=new·Cdp(socket)
+    35    │ - ····const·first=expect(cdp.call("Runtime.evaluate")).rejects.toThrow("indeterminate")
+    36    │ - ····socket.close();await·first
+       45 │ + ··it("When·the·target·disconnects·Then·all·pending·calls·fail",·async·()·=>·{
+       46 │ + ····const·socket·=·new·Socket(),
+       47 │ + ······cdp·=·new·Cdp(socket)
+       48 │ + ····const·first·=·expect(cdp.call("Runtime.evaluate")).rejects.toThrow("indeterminate")
+       49 │ + ····socket.close()
+       50 │ + ····await·first
+    37 51 │       await expect(cdp.call("Runtime.evaluate")).rejects.toThrow()
+    38 52 │     })
+  
+
+test/performance/native-packet.test.ts:3:1 assist/source/organizeImports  FIXABLE  ━━━━━━━━━━━━━━━━━
+
+  × This statement must be preceded by a blank line. Add a newline before this statement.
+  
+    1 │ import { describe, expect, it } from "vitest"
+    2 │ import { validateNativePacket } from "../../scripts/performance/native-packet.js"
+  > 3 │ const hash = (n:string) => n.repeat(64)
+      │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    4 │ const good = () => ({status:"passed",native:true,operation:"rename",index:0,inputPath:"native comman...
+    5 │ describe("Given independent native semantic digests and complete raw timing evidence",()=>{
+  
+  i Safe fix: Organize imports and exports (Biome)
+  
+     1  1 │   import { describe, expect, it } from "vitest"
+     2  2 │   import { validateNativePacket } from "../../scripts/performance/native-packet.js"
+        3 │ + 
+     3  4 │   const hash = (n:string) => n.repeat(64)
+     4  5 │   ...ne:hash("b"),rows:hash("a"),selection:hash("a")}})
+  
+
+test/performance/native-packet.test.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+     1  1 │   import { describe, expect, it } from "vitest"
+     2  2 │   import { validateNativePacket } from "../../scripts/performance/native-packet.js"
+     3    │ - const·hash·=·(n:string)·=>·n.repeat(64)
+     4    │ - ...tatus:"passed",native:true,operation:"rename",index:0,inputPath:"native·command·facade",checks:["sce...
+     5    │ - describe("Given·independent·native·semantic·digests·and·complete·raw·timing·evidence",()=>{
+     6    │ - ··it("When·all·mandatory·proofs·hold·Then·the·sample·is·admitted",()=>expect(()=>validateNativePacket(good())).not.toThrow())
+     7    │ - ··it("When·a·no-op·or·stale·cache·pretends·to·be·faster·Then·exact·expected·semantics·reject·it",()=>{
+     8    │ - ····const·sample=good();·const·scene=sample.checks.find(c=>c.id==='scene-exact'),·runtime=sample.checks.find(c=>c.id==='runtime-fresh');·if(!scene·||·!runtime)·throw·Error('fixture');·scene.actual=hash("b")
+     9    │ - ····expect(()=>validateNativePacket(sample)).toThrow()
+    10    │ - ····scene.actual=hash("a");·runtime.actual=hash("b")
+    11    │ - ····expect(()=>validateNativePacket(sample)).toThrow()
+        3 │ + const·hash·=·(n:·string)·=>·n.repeat(64)
+        4 │ + const·good·=·()·=>·({
+        5 │ + ··status:·"passed",
+        6 │ + ··native:·true,
+        7 │ + ··operation:·"rename",
+        8 │ + ··index:·0,
+        9 │ + ··inputPath:·"native·command·facade",
+       10 │ + ··checks:·[
+       11 │ + ····"scene-exact",
+       12 │ + ····"rows-exact",
+       13 │ + ····"selection-exact",
+       14 │ + ····"runtime-fresh",
+       15 │ + ····"staging-preserved",
+       16 │ + ··].map((id)·=>·({·id,·actual:·hash("a"),·expected:·hash("a")·})),
+       17 │ + ··counts:·{·scene:·1000,·rows:·1000,·selected:·0·},
+       18 │ + ··timing:·{
+       19 │ + ····inputSync:·1,
+       20 │ + ····promiseComplete:·2,
+       21 │ + ····settlement:·3,
+       22 │ + ····renderOpportunity:·8,
+       23 │ + ····renderOpportunities:·[5,·8],
+       24 │ + ··},
+       25 │ + ··beforeHashes:·{·scene:·hash("b"),·rows:·hash("a"),·selection:·hash("a")·},
+       26 │ + })
+       27 │ + describe("Given·independent·native·semantic·digests·and·complete·raw·timing·evidence",·()·=>·{
+       28 │ + ··it("When·all·mandatory·proofs·hold·Then·the·sample·is·admitted",·()·=>
+       29 │ + ····expect(()·=>·validateNativePacket(good())).not.toThrow())
+       30 │ + ··it("When·a·no-op·or·stale·cache·pretends·to·be·faster·Then·exact·expected·semantics·reject·it",·()·=>·{
+       31 │ + ····const·sample·=·good()
+       32 │ + ····const·scene·=·sample.checks.find((c)·=>·c.id·===·"scene-exact"),
+       33 │ + ······runtime·=·sample.checks.find((c)·=>·c.id·===·"runtime-fresh")
+       34 │ + ····if·(!scene·||·!runtime)·throw·Error("fixture")
+       35 │ + ····scene.actual·=·hash("b")
+       36 │ + ····expect(()·=>·validateNativePacket(sample)).toThrow()
+       37 │ + ····scene.actual·=·hash("a")
+       38 │ + ····runtime.actual·=·hash("b")
+       39 │ + ····expect(()·=>·validateNativePacket(sample)).toThrow()
+    12 40 │     })
+    13    │ - ··it("When·a·row·is·dropped·Then·exact·row·identity·digest·rejects·it",()=>{
+    14    │ - ····const·sample=good();·const·rows=sample.checks.find(c=>c.id==='rows-exact');·if(!rows)·throw·Error('fixture');·rows.actual=hash("c")
+    15    │ - ····expect(()=>validateNativePacket(sample)).toThrow()
+       41 │ + ··it("When·a·row·is·dropped·Then·exact·row·identity·digest·rejects·it",·()·=>·{
+       42 │ + ····const·sample·=·good()
+       43 │ + ····const·rows·=·sample.checks.find((c)·=>·c.id·===·"rows-exact")
+       44 │ + ····if·(!rows)·throw·Error("fixture")
+       45 │ + ····rows.actual·=·hash("c")
+       46 │ + ····expect(()·=>·validateNativePacket(sample)).toThrow()
+    16 47 │     })
+    17    │ - ··it("When·checks·are·bypassed·Then·the·independently·enforced·mandatory·inventory·rejects·it",()=>{
+    18    │ - ····const·sample=good();·sample.checks.pop()
+    19    │ - ····expect(()=>validateNativePacket(sample)).toThrow()
+       48 │ + ··it("When·checks·are·bypassed·Then·the·independently·enforced·mandatory·inventory·rejects·it",·()·=>·{
+       49 │ + ····const·sample·=·good()
+       50 │ + ····sample.checks.pop()
+       51 │ + ····expect(()·=>·validateNativePacket(sample)).toThrow()
+    20 52 │     })
+    21    │ - ··it("When·every·scene/row/selection·state·is·unchanged·Then·no·work·is·claimed",()=>{
+    22    │ - ····const·sample=good();·sample.beforeHashes.scene=hash("a")
+    23    │ - ····expect(()=>validateNativePacket(sample)).toThrow()
+       53 │ + ··it("When·every·scene/row/selection·state·is·unchanged·Then·no·work·is·claimed",·()·=>·{
+       54 │ + ····const·sample·=·good()
+       55 │ + ····sample.beforeHashes.scene·=·hash("a")
+       56 │ + ····expect(()·=>·validateNativePacket(sample)).toThrow()
+    24 57 │     })
+    25    │ - ··it("When·one·frame·or·invalid·timing·is·reported·Then·settlement·is·rejected",()=>{
+    26    │ - ····const·sample=good();·sample.timing.renderOpportunities=[8]
+    27    │ - ····expect(()=>validateNativePacket(sample)).toThrow()
+    28    │ - ····sample.timing.renderOpportunities=[5,8];·sample.timing.settlement=9
+    29    │ - ····expect(()=>validateNativePacket(sample)).toThrow()
+       58 │ + ··it("When·one·frame·or·invalid·timing·is·reported·Then·settlement·is·rejected",·()·=>·{
+       59 │ + ····const·sample·=·good()
+       60 │ + ····sample.timing.renderOpportunities·=·[8]
+       61 │ + ····expect(()·=>·validateNativePacket(sample)).toThrow()
+       62 │ + ····sample.timing.renderOpportunities·=·[5,·8]
+       63 │ + ····sample.timing.settlement·=·9
+       64 │ + ····expect(()·=>·validateNativePacket(sample)).toThrow()
+    30 65 │     })
+    31    │ - ··it("When·a·failure·or·Node·proxy·arrives·Then·aggregation·cannot·turn·it·into·success",()=>{
+    32    │ - ····expect(()=>validateNativePacket({...good(),status:"failed"})).toThrow()
+    33    │ - ····expect(()=>validateNativePacket({...good(),native:false})).toThrow()
+       66 │ + ··it("When·a·failure·or·Node·proxy·arrives·Then·aggregation·cannot·turn·it·into·success",·()·=>·{
+       67 │ + ····expect(()·=>·validateNativePacket({·...good(),·status:·"failed"·})).toThrow()
+       68 │ + ····expect(()·=>·validateNativePacket({·...good(),·native:·false·})).toThrow()
+    34 69 │     })
+    35 70 │   })
+  
+
+test/performance/native-safety.test.ts:2:1 assist/source/organizeImports  FIXABLE  ━━━━━━━━━━━━━━━━━
+
+  × Sort the imported names.
+  
+    1 │ import { describe, expect, it } from "vitest"
+  > 2 │ import { assertHostIdentity, admitSize } from "../../scripts/performance/native-safety.js"
+      │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    3 │ 
+    4 │ describe("Given a newly owned disposable Obsidian host", () => {
+  
+  i Safe fix: Organize imports and exports (Biome)
+  
+     1  1 │   import { describe, expect, it } from "vitest"
+     2    │ - import·{·assertHostIdentity,·admitSize·}·from·"../../scripts/performance/native-safety.js"
+        2 │ + import·{·admitSize,·assertHostIdentity·}·from·"../../scripts/performance/native-safety.js"
+     3  3 │   
+     4  4 │   describe("Given a newly owned disposable Obsidian host", () => {
+  
+
+test/performance/native-safety.test.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+     3  3 │   
+     4  4 │   describe("Given a newly owned disposable Obsidian host", () => {
+     5    │ - ··const·owned·=·{·vault:·"/owned/run/vault",·profile:·"/owned/run/profile",·pid:·123,·start:·"99",·targetId:·"fresh",·nonce:·"unique",·scriptHash:·"a".repeat(64)·}
+        5 │ + ··const·owned·=·{
+        6 │ + ····vault:·"/owned/run/vault",
+        7 │ + ····profile:·"/owned/run/profile",
+        8 │ + ····pid:·123,
+        9 │ + ····start:·"99",
+       10 │ + ····targetId:·"fresh",
+       11 │ + ····nonce:·"unique",
+       12 │ + ····scriptHash:·"a".repeat(64),
+       13 │ + ··}
+     6 14 │     const observed = { ...owned, url: "app://obsidian.md/index.html", native: true }
+     7 15 │     it("When all live identities agree Then admission succeeds", () => {
+     8 16 │       expect(() => assertHostIdentity(owned, observed)).not.toThrow()
+     9 17 │     })
+    10    │ - ··for·(const·key·of·["vault",·"profile",·"pid",·"start",·"targetId",·"nonce",·"scriptHash",·"url",·"native"])·{
+       18 │ + ··for·(const·key·of·[
+       19 │ + ····"vault",
+       20 │ + ····"profile",
+       21 │ + ····"pid",
+       22 │ + ····"start",
+       23 │ + ····"targetId",
+       24 │ + ····"nonce",
+       25 │ + ····"scriptHash",
+       26 │ + ····"url",
+       27 │ + ····"native",
+       28 │ + ··])·{
+    11 29 │       it(`When ${key} drifts Then the host is rejected before effects`, () => {
+    12 30 │         expect(() => assertHostIdentity(owned, { ...observed, [key]: "stale" })).toThrow()
+    ····· │ 
+    14 32 │     }
+    15 33 │     it("When an old case timed out Then larger work cannot be admitted", () => {
+    16    │ - ····expect(()·=>·admitSize(10000,·{·completedSizes:·[1000],·pilotPassed:·true,·effect:·"indeterminate",·rssMiB:·500,·availableMiB:·16000·})).toThrow()
+       34 │ + ····expect(()·=>
+       35 │ + ······admitSize(10000,·{
+       36 │ + ········completedSizes:·[1000],
+       37 │ + ········pilotPassed:·true,
+       38 │ + ········effect:·"indeterminate",
+       39 │ + ········rssMiB:·500,
+       40 │ + ········availableMiB:·16000,
+       41 │ + ······}),
+       42 │ + ····).toThrow()
+    17 43 │     })
+    18 44 │     it("When pilot or predecessor proof is missing Then larger work is rejected", () => {
+    19    │ - ····expect(()·=>·admitSize(10000,·{·completedSizes:·[],·pilotPassed:·false,·effect:·"settled",·rssMiB:·500,·availableMiB:·16000·})).toThrow()
+    20    │ - ····expect(()·=>·admitSize(100000,·{·completedSizes:·[1000],·pilotPassed:·true,·effect:·"settled",·rssMiB:·500,·availableMiB:·16000·})).toThrow()
+       45 │ + ····expect(()·=>
+       46 │ + ······admitSize(10000,·{
+       47 │ + ········completedSizes:·[],
+       48 │ + ········pilotPassed:·false,
+       49 │ + ········effect:·"settled",
+       50 │ + ········rssMiB:·500,
+       51 │ + ········availableMiB:·16000,
+       52 │ + ······}),
+       53 │ + ····).toThrow()
+       54 │ + ····expect(()·=>
+       55 │ + ······admitSize(100000,·{
+       56 │ + ········completedSizes:·[1000],
+       57 │ + ········pilotPassed:·true,
+       58 │ + ········effect:·"settled",
+       59 │ + ········rssMiB:·500,
+       60 │ + ········availableMiB:·16000,
+       61 │ + ······}),
+       62 │ + ····).toThrow()
+    21 63 │     })
+    22 64 │     it("When memory headroom is insufficient Then even the pilot is rejected", () => {
+    23    │ - ····expect(()·=>·admitSize(1000,·{·completedSizes:·[],·pilotPassed:·false,·effect:·"settled",·rssMiB:·7500,·availableMiB:·500·})).toThrow()
+       65 │ + ····expect(()·=>
+       66 │ + ······admitSize(1000,·{
+       67 │ + ········completedSizes:·[],
+       68 │ + ········pilotPassed:·false,
+       69 │ + ········effect:·"settled",
+       70 │ + ········rssMiB:·7500,
+       71 │ + ········availableMiB:·500,
+       72 │ + ······}),
+       73 │ + ····).toThrow()
+    24 74 │     })
+    25 75 │     it("When 1k semantics and resources pass Then 10k is admissible", () => {
+    26    │ - ····expect(()·=>·admitSize(10000,·{·completedSizes:·[1000],·pilotPassed:·true,·effect:·"settled",·rssMiB:·500,·availableMiB:·16000·})).not.toThrow()
+       76 │ + ····expect(()·=>
+       77 │ + ······admitSize(10000,·{
+       78 │ + ········completedSizes:·[1000],
+       79 │ + ········pilotPassed:·true,
+       80 │ + ········effect:·"settled",
+       81 │ + ········rssMiB:·500,
+       82 │ + ········availableMiB:·16000,
+       83 │ + ······}),
+       84 │ + ····).not.toThrow()
+    27 85 │     })
+    28 86 │   })
+  
+
+The number of diagnostics exceeds the limit allowed. Use --max-diagnostics to increase it.
+Diagnostics not shown: 15.
+Checked 21 files in 23ms. No fixes applied.
+Found 22 errors.
+Found 1 warning.
+Found 7 infos.
+check ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Some errors were emitted while running checks.
+  
+

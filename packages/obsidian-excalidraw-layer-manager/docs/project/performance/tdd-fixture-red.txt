@@ -1,0 +1,26 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-fixture.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/native-fixture.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/native-fixture.test.ts [ test/performance/native-fixture.test.ts ]
+Error: Cannot find module '../../scripts/performance/native-fixture.js' imported from /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager/test/performance/native-fixture.test.ts
+ ❯ test/performance/native-fixture.test.ts:2:1
+      1| import { describe, expect, it } from "vitest"
+      2| import { makeDescriptors, expectedRows, sceneProjection } from "../../…
+       | ^
+      3|
+      4| describe("Given frozen seeded scene descriptors independent of LayerMa…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  05:52:24
+   Duration  116ms (transform 17ms, setup 0ms, import 0ms, tests 0ms, environment 0ms)
+

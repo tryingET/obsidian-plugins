@@ -1,0 +1,28 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-fixture.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/native-fixture.test.ts (5 tests | 1 failed) 33ms
+     × When a grouped leaf goes to front Then it stays within its parent scope 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/native-fixture.test.ts > Given frozen seeded scene descriptors independent of LayerManager > When a grouped leaf goes to front Then it stays within its parent scope
+TypeError: expectedFrontOrder is not a function
+ ❯ test/performance/native-fixture.test.ts:11:12
+      9| describe("Given frozen seeded scene descriptors independent of LayerMa…
+     10|   it('When a grouped leaf goes to front Then it stays within its paren…
+     11|     expect(expectedFrontOrder(makeDescriptors(4,'pairs',1),'e1x0').map…
+       |            ^
+     12|     expect(expectedFrontOrder(makeDescriptors(4,'ungrouped',1),'e1x0')…
+     13|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  06:19:40
+   Duration  186ms (transform 36ms, setup 0ms, import 46ms, tests 33ms, environment 0ms)
+

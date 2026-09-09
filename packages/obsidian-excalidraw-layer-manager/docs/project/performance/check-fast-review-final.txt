@@ -1,0 +1,437 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 check:fast
+npm notice run npm run lint && npm run typecheck && npm run typecheck:scripts
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 lint
+npm notice run biome check .
+docs/evidence/2026-09-08-rename-refresh/rename-acceptance.js:51:42 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    49 │     for (const kind of ["ordinary", "frame"]) {
+    50 │       const before = label(kind)
+  > 51 │       const original = await begin(kind, "AK5575 " + kind + " verified")
+       │                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    52 │       for (let cycle = 0; cycle < 3; cycle++) {
+    53 │         rt.refresh()
+  
+  i Unsafe fix: Use a template literal.
+  
+     49  49 │       for (const kind of ["ordinary", "frame"]) {
+     50  50 │         const before = label(kind)
+     51     │ - ······const·original·=·await·begin(kind,·"AK5575·"·+·kind·+·"·verified")
+         51 │ + ······const·original·=·await·begin(kind,·`AK5575·${kind}·verified`)
+     52  52 │         for (let cycle = 0; cycle < 3; cycle++) {
+     53  53 │           rt.refresh()
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-acceptance.js:57:11 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    55 │         const i = current()
+    56 │         check(
+  > 57 │           kind + " refresh " + cycle + " keeps focused draft/caret",
+       │           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    58 │           !!i &&
+    59 │             document.activeElement === i &&
+  
+  i Unsafe fix: Use a template literal.
+  
+     55  55 │           const i = current()
+     56  56 │           check(
+     57     │ - ··········kind·+·"·refresh·"·+·cycle·+·"·keeps·focused·draft/caret",
+         57 │ + ··········`${kind}·refresh·${cycle}·keeps·focused·draft/caret`,
+     58  58 │             !!i &&
+     59  59 │               document.activeElement === i &&
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-acceptance.js:60:25 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    58 │           !!i &&
+    59 │             document.activeElement === i &&
+  > 60 │             i.value === "AK5575 " + kind + " verified" &&
+       │                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    61 │             i.selectionStart === 4 &&
+    62 │             i.selectionEnd === 10 &&
+  
+  i Unsafe fix: Use a template literal.
+  
+     58  58 │             !!i &&
+     59  59 │               document.activeElement === i &&
+     60     │ - ············i.value·===·"AK5575·"·+·kind·+·"·verified"·&&
+         60 │ + ············i.value·===·`AK5575·${kind}·verified`·&&
+     61  61 │               i.selectionStart === 4 &&
+     62  62 │               i.selectionEnd === 10 &&
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-acceptance.js:75:9 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    73 │       await sleep(100)
+    74 │       check(
+  > 75 │         kind + " stale input/Enter/Escape/blur have no effect",
+       │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    76 │         writes === count &&
+    77 │           current() === active &&
+  
+  i Unsafe fix: Use a template literal.
+  
+     73  73 │         await sleep(100)
+     74  74 │         check(
+     75     │ - ········kind·+·"·stale·input/Enter/Escape/blur·have·no·effect",
+         75 │ + ········`${kind}·stale·input/Enter/Escape/blur·have·no·effect`,
+     76  76 │           writes === count &&
+     77  77 │             current() === active &&
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-acceptance.js:78:28 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    76 │         writes === count &&
+    77 │           current() === active &&
+  > 78 │           active.value === "AK5575 " + kind + " verified" &&
+       │                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    79 │           label(kind) === before,
+    80 │         { writesBefore: count, writesAfter: writes },
+  
+  i Unsafe fix: Use a template literal.
+  
+     76  76 │           writes === count &&
+     77  77 │             current() === active &&
+     78     │ - ··········active.value·===·"AK5575·"·+·kind·+·"·verified"·&&
+         78 │ + ··········active.value·===·`AK5575·${kind}·verified`·&&
+     79  79 │             label(kind) === before,
+     80  80 │           { writesBefore: count, writesAfter: writes },
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-acceptance.js:92:9 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    90 │       await sleep(250)
+    91 │       check(
+  > 92 │         kind + " legitimate " + (kind === "ordinary" ? "Enter" : "blur") + " commits exactly once",
+       │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    93 │         writes === count + 1 && label(kind) === "AK5575 " + kind + " verified",
+    94 │         { writesBefore: count, writesAfter: writes, label: label(kind) },
+  
+  i Unsafe fix: Use a template literal.
+  
+     90  90 │         await sleep(250)
+     91  91 │         check(
+     92     │ - ········kind·+·"·legitimate·"·+·(kind·===·"ordinary"·?·"Enter"·:·"blur")·+·"·commits·exactly·once",
+         92 │ + ········`${kind}·legitimate·${kind·===·"ordinary"·?·"Enter"·:·"blur"}·commits·exactly·once`,
+     93  93 │           writes === count + 1 && label(kind) === "AK5575 " + kind + " verified",
+     94  94 │           { writesBefore: count, writesAfter: writes, label: label(kind) },
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-acceptance.js:93:49 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    91 │       check(
+    92 │         kind + " legitimate " + (kind === "ordinary" ? "Enter" : "blur") + " commits exactly once",
+  > 93 │         writes === count + 1 && label(kind) === "AK5575 " + kind + " verified",
+       │                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    94 │         { writesBefore: count, writesAfter: writes, label: label(kind) },
+    95 │       )
+  
+  i Unsafe fix: Use a template literal.
+  
+     91  91 │         check(
+     92  92 │           kind + " legitimate " + (kind === "ordinary" ? "Enter" : "blur") + " commits exactly once",
+     93     │ - ········writes·===·count·+·1·&&·label(kind)·===·"AK5575·"·+·kind·+·"·verified",
+         93 │ + ········writes·===·count·+·1·&&·label(kind)·===·`AK5575·${kind}·verified`,
+     94  94 │           { writesBefore: count, writesAfter: writes, label: label(kind) },
+     95  95 │         )
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-acceptance.js:96:40 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    94 │         { writesBefore: count, writesAfter: writes, label: label(kind) },
+    95 │       )
+  > 96 │       const cancel = await begin(kind, "AK5575 cancelled " + kind)
+       │                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    97 │       key(cancel, "Escape")
+    98 │       cancel.dispatchEvent(new FocusEvent("blur"))
+  
+  i Unsafe fix: Use a template literal.
+  
+     94  94 │           { writesBefore: count, writesAfter: writes, label: label(kind) },
+     95  95 │         )
+     96     │ - ······const·cancel·=·await·begin(kind,·"AK5575·cancelled·"·+·kind)
+         96 │ + ······const·cancel·=·await·begin(kind,·`AK5575·cancelled·${kind}`)
+     97  97 │         key(cancel, "Escape")
+     98  98 │         cancel.dispatchEvent(new FocusEvent("blur"))
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-acceptance.js:101:9 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+     99 │       await sleep(150)
+    100 │       check(
+  > 101 │         kind + " Escape cancels and late blur stays inert",
+        │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    102 │         writes === count + 1 && label(kind) === "AK5575 " + kind + " verified",
+    103 │       )
+  
+  i Unsafe fix: Use a template literal.
+  
+     99  99 │         await sleep(150)
+    100 100 │         check(
+    101     │ - ········kind·+·"·Escape·cancels·and·late·blur·stays·inert",
+        101 │ + ········`${kind}·Escape·cancels·and·late·blur·stays·inert`,
+    102 102 │           writes === count + 1 && label(kind) === "AK5575 " + kind + " verified",
+    103 103 │         )
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-acceptance.js:102:49 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    100 │       check(
+    101 │         kind + " Escape cancels and late blur stays inert",
+  > 102 │         writes === count + 1 && label(kind) === "AK5575 " + kind + " verified",
+        │                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    103 │       )
+    104 │       check(
+  
+  i Unsafe fix: Use a template literal.
+  
+    100 100 │         check(
+    101 101 │           kind + " Escape cancels and late blur stays inert",
+    102     │ - ········writes·===·count·+·1·&&·label(kind)·===·"AK5575·"·+·kind·+·"·verified",
+        102 │ + ········writes·===·count·+·1·&&·label(kind)·===·`AK5575·${kind}·verified`,
+    103 103 │         )
+    104 104 │         check(
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-acceptance.js:105:9 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    103 │       )
+    104 │       check(
+  > 105 │         kind + " Escape returns keyboard focus to manager",
+        │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    106 │         document.activeElement ===
+    107 │           document.querySelector('#lmx-sidepanel-content-root [role="tree"]'),
+  
+  i Unsafe fix: Use a template literal.
+  
+    103 103 │         )
+    104 104 │         check(
+    105     │ - ········kind·+·"·Escape·returns·keyboard·focus·to·manager",
+        105 │ + ········`${kind}·Escape·returns·keyboard·focus·to·manager`,
+    106 106 │           document.activeElement ===
+    107 107 │             document.querySelector('#lmx-sidepanel-content-root [role="tree"]'),
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-acceptance.js:119:9 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    117 │     for (const kind of ["ordinary", "frame"])
+    118 │       check(
+  > 119 │         kind + " committed name survives saved reopen",
+        │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    120 │         label(kind) === "AK5575 " + kind + " verified",
+    121 │       )
+  
+  i Unsafe fix: Use a template literal.
+  
+    117 117 │       for (const kind of ["ordinary", "frame"])
+    118 118 │         check(
+    119     │ - ········kind·+·"·committed·name·survives·saved·reopen",
+        119 │ + ········`${kind}·committed·name·survives·saved·reopen`,
+    120 120 │           label(kind) === "AK5575 " + kind + " verified",
+    121 121 │         )
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-acceptance.js:120:25 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    118 │       check(
+    119 │         kind + " committed name survives saved reopen",
+  > 120 │         label(kind) === "AK5575 " + kind + " verified",
+        │                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    121 │       )
+    122 │     const terminal = await begin("ordinary", "AK5575 disposed must not write")
+  
+  i Unsafe fix: Use a template literal.
+  
+    118 118 │         check(
+    119 119 │           kind + " committed name survives saved reopen",
+    120     │ - ········label(kind)·===·"AK5575·"·+·kind·+·"·verified",
+        120 │ + ········label(kind)·===·`AK5575·${kind}·verified`,
+    121 121 │         )
+    122 122 │       const terminal = await begin("ordinary", "AK5575 disposed must not write")
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-refresh.js:25:27 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    23 │       ...document.querySelectorAll('#lmx-sidepanel-content-root [role="treeitem"]'),
+    24 │     ].find((r) => r.id.endsWith(id))
+  > 25 │     if (!row) throw Error("row missing " + id)
+       │                           ^^^^^^^^^^^^^^^^^^^
+    26 │     row.querySelector('[aria-label="Rename layer"]').click()
+    27 │     await sleep(80)
+  
+  i Unsafe fix: Use a template literal.
+  
+     23  23 │         ...document.querySelectorAll('#lmx-sidepanel-content-root [role="treeitem"]'),
+     24  24 │       ].find((r) => r.id.endsWith(id))
+     25     │ - ····if·(!row)·throw·Error("row·missing·"·+·id)
+         25 │ + ····if·(!row)·throw·Error(`row·missing·${id}`)
+     26  26 │       row.querySelector('[aria-label="Rename layer"]').click()
+     27  27 │       await sleep(80)
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-refresh.js:30:19 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    28 │     const input = document.querySelector('#lmx-sidepanel-content-root [role="treeitem"] input')
+    29 │     if (!input) throw Error("input missing")
+  > 30 │     const draft = "AK5575 " + kind + " uncommitted draft"
+       │                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    31 │     input.focus()
+    32 │     input.value = draft
+  
+  i Unsafe fix: Use a template literal.
+  
+     28  28 │       const input = document.querySelector('#lmx-sidepanel-content-root [role="treeitem"] input')
+     29  29 │       if (!input) throw Error("input missing")
+     30     │ - ····const·draft·=·"AK5575·"·+·kind·+·"·uncommitted·draft"
+         30 │ + ····const·draft·=·`AK5575·${kind}·uncommitted·draft`
+     31  31 │       input.focus()
+     32  32 │       input.value = draft
+  
+
+scripts/performance/native-preparation.js:59:21 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    57 │         .sort()
+    58 │         .filter((k) => value[k] !== undefined)
+  > 59 │         .map((k) => JSON.stringify(k) + ":" + canonical(value[k]))
+       │                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    60 │         .join(",")}}`
+    61 │     return JSON.stringify(value)
+  
+  i Unsafe fix: Use a template literal.
+  
+     57  57 │           .sort()
+     58  58 │           .filter((k) => value[k] !== undefined)
+     59     │ - ········.map((k)·=>·JSON.stringify(k)·+·":"·+·canonical(value[k]))
+         59 │ + ········.map((k)·=>·`${JSON.stringify(k)}:${canonical(value[k])}`)
+     60  60 │           .join(",")}}`
+     61  61 │       return JSON.stringify(value)
+  
+
+scripts/performance/native-preparation.js:64:13 lint/style/useNodejsImportProtocol  FIXABLE  ━━━━━━━━━━
+
+  i A Node.js builtin module should be imported with the node: protocol.
+  
+    62 │   }
+    63 │   const digest = (value) =>
+  > 64 │     require("crypto").createHash("sha256").update(canonical(value)).digest("hex")
+       │             ^^^^^^^^
+    65 │   const equal = (actual, expected, label) => {
+    66 │     if (digest(actual) !== digest(expected)) throw Error(`${label}: exact semantic mismatch`)
+  
+  i Using the node: protocol is more explicit and signals that the imported module belongs to Node.js.
+  
+  i Unsafe fix: Add the node: protocol.
+  
+     62  62 │     }
+     63  63 │     const digest = (value) =>
+     64     │ - ····require("crypto").createHash("sha256").update(canonical(value)).digest("hex")
+         64 │ + ····require("node:crypto").createHash("sha256").update(canonical(value)).digest("hex")
+     65  65 │     const equal = (actual, expected, label) => {
+     66  66 │       if (digest(actual) !== digest(expected)) throw Error(`${label}: exact semantic mismatch`)
+  
+
+scripts/performance/native-preparation.js:142:11 lint/style/useNodejsImportProtocol  FIXABLE  ━━━━━━━━━━
+
+  i A Node.js builtin module should be imported with the node: protocol.
+  
+    140 │     pluginVersion: p.manifest.version,
+    141 │   }
+  > 142 │   require("fs").writeFileSync(
+        │           ^^^^
+    143 │     config.output + "/fixture.json",
+    144 │     JSON.stringify({
+  
+  i Using the node: protocol is more explicit and signals that the imported module belongs to Node.js.
+  
+  i Unsafe fix: Add the node: protocol.
+  
+    140 140 │       pluginVersion: p.manifest.version,
+    141 141 │     }
+    142     │ - ··require("fs").writeFileSync(
+        142 │ + ··require("node:fs").writeFileSync(
+    143 143 │       config.output + "/fixture.json",
+    144 144 │       JSON.stringify({
+  
+
+scripts/performance/native-preparation.js:143:5 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    141 │   }
+    142 │   require("fs").writeFileSync(
+  > 143 │     config.output + "/fixture.json",
+        │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    144 │     JSON.stringify({
+    145 │       ...fixture,
+  
+  i Unsafe fix: Use a template literal.
+  
+    141 141 │     }
+    142 142 │     require("fs").writeFileSync(
+    143     │ - ····config.output·+·"/fixture.json",
+        143 │ + ····`${config.output}/fixture.json`,
+    144 144 │       JSON.stringify({
+    145 145 │         ...fixture,
+  
+
+scripts/performance/native-prerequisites.js:69:54 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    67 │     argv,
+    68 │   }
+  > 69 │   await writeFile(join(output, `${kind}-exit.json`), JSON.stringify(receipt, null, 2) + "\n", {
+       │                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    70 │     flag: "wx",
+    71 │   })
+  
+  i Unsafe fix: Use a template literal.
+  
+    67 67 │       argv,
+    68 68 │     }
+    69    │ - ··await·writeFile(join(output,·`${kind}-exit.json`),·JSON.stringify(receipt,·null,·2)·+·"\n",·{
+       69 │ + ··await·writeFile(join(output,·`${kind}-exit.json`),·`${JSON.stringify(receipt,·null,·2)}\n`,·{
+    70 70 │       flag: "wx",
+    71 71 │     })
+  
+
+The number of diagnostics exceeds the limit allowed. Use --max-diagnostics to increase it.
+Diagnostics not shown: 27.
+Checked 269 files in 63ms. No fixes applied.
+Found 21 warnings.
+Found 26 infos.
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 typecheck
+npm notice run tsc --noEmit
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 typecheck:scripts
+npm notice run tsc -p tsconfig.scripts.json

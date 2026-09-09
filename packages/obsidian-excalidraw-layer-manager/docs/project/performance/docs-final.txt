@@ -1,0 +1,28 @@
+Docs — 96 match(es) — page 1/5
+AGENTS.md - Repo-level meta context for the Obsidian plugin family monorepo.
+README.md - Monorepo root overview and operator entrypoint for the Obsidian plugin family.
+apps/lab-vault/00-lab-home.md - Start here inside the lab vault: setup, the test drawing, and current verification guidance.
+apps/lab-vault/Excalidraw/Scripts/LayerManager.md - [missing front matter]
+apps/lab-vault/Excalidraw/Scripts/README.md - Lab script destination, generated-file ownership, and the distinction from the personal sync default.
+apps/lab-vault/README.md - Disposable lab-vault setup and explicit-target Layer Manager testing without changing personal notes.
+apps/lab-vault/testing.md - LayerManager smoke fixture for the lab-vault Excalidraw proving ground.
+context_window_recovery_prompt.md - Fresh-context recovery prompt for extracting the late-session workflow architecture insights from the 2026-04-08 obsidian-plugins session into a bounded synthesis and owner-aware plan.
+diary/2026-04-08--workflow-architecture-concern-packet-direction-primary.md - Raw session capture of meta-workflow insights: concern packets, direction-primary planning, and the role of ak knowledge.
+diary/2026-09-08--analysis-layer-manager-performance-readiness.md - AK #5581: retained exploratory 100k-element baseline; unattended campaign withheld on verified Level-4 defects.
+diary/2026-09-08-layer-manager-dependency-upgrade.md - AK #5564 RefactorOps toolchain and XState upgrade with verification boundaries and follow-up.
+diary/2026-09-08-maintainer-lifecycle-dogfood.md - AK #5573 closeout: lifecycle regressions and real Obsidian dogfood, including a native failure that invalidated the first ownership fix.
+diary/2026-09-08-native-staging-isolation.md - AK #5574 native stale-staging reproduction and verified isolation repair.
+diary/2026-09-08-prompt-mutant-resolution.md - AK #5572 resolves one genuine and one equivalent prompt-service mutant; source-aligned quality, CI and build pass.
+diary/2026-09-08-rename-refresh-ownership.md - AK #5575 sequential closeout: native rename focus/caret and stale-event ownership proof.
+diary/2026-09-08-ts-quality-triage.md - AK #5565 closeout: optional CRAP failure traced to diff-path scope mismatch; build verified, repair tracked separately.
+diary/2026-09-08-ts-quality-wrapper-repair.md - AK #5566 repairs diff coordinates with red/green regressions; real replay removes CRAP blocker but exposes two surviving mutants.
+diary/2026-09-08-upstream-pr-replacement.md - AK #5580 publication receipt: two-file PR #2925 opened; #2737 cross-linked and closed with one maintainer mention.
+diary/2026-09-09--ak5583-native-evaluator.md - AK5583: native evaluator development, Gherkin/TDD evidence, approved v2 preregistration and frozen matrix launch.
+diary/README.md - Repo-local session capture for the obsidian-plugins monorepo KES flow.
+Showing 20 of 96 match(es) (page 1/5).
+Next steps: --page 2, --full-list, --verbose
+Strict check: fail (2 issue(s)).
+- apps/lab-vault/Excalidraw/Scripts/LayerManager.md: missing front matter; read_when missing
+- apps/lab-vault/testing.md: read_when missing
+
+Reminder: keep docs up to date as behavior changes. When your task matches any "Read when" hint above, read that doc before coding, and add missing coverage.

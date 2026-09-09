@@ -1,0 +1,11 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-focus.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  08:02:20
+   Duration  126ms (transform 24ms, setup 0ms, import 35ms, tests 3ms, environment 0ms)
+

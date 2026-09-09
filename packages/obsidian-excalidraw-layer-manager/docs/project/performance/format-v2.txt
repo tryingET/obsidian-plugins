@@ -1,0 +1,139 @@
+npm notice run npx
+npm notice run 'biome' check --write scripts/performance test/performance --max-diagnostics=6
+scripts/performance/native-case.js:73:62 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    71 │     try {
+    72 │       const snapshot = { at: new Date().toISOString(), ...(await resources(host.owned.pid)) }
+  > 73 │       await appendFile(join(root, "resource-samples.jsonl"), JSON.stringify(snapshot) + "\n")
+       │                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    74 │       if (
+    75 │         snapshot.rssMiB >= RESOURCE_LIMITS.rssMiB ||
+  
+  i Unsafe fix: Use a template literal.
+  
+     71  71 │       try {
+     72  72 │         const snapshot = { at: new Date().toISOString(), ...(await resources(host.owned.pid)) }
+     73     │ - ······await·appendFile(join(root,·"resource-samples.jsonl"),·JSON.stringify(snapshot)·+·"\n")
+         73 │ + ······await·appendFile(join(root,·"resource-samples.jsonl"),·`${JSON.stringify(snapshot)}\n`)
+     74  74 │         if (
+     75  75 │           snapshot.rssMiB >= RESOURCE_LIMITS.rssMiB ||
+  
+
+scripts/performance/native-case.js:138:55 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    136 │       }
+    137 │       envelopes.push(envelope)
+  > 138 │       await appendFile(join(root, "envelopes.jsonl"), JSON.stringify(envelope) + "\n")
+        │                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    139 │     }
+    140 │     console.log(
+  
+  i Unsafe fix: Use a template literal.
+  
+    136 136 │         }
+    137 137 │         envelopes.push(envelope)
+    138     │ - ······await·appendFile(join(root,·"envelopes.jsonl"),·JSON.stringify(envelope)·+·"\n")
+        138 │ + ······await·appendFile(join(root,·"envelopes.jsonl"),·`${JSON.stringify(envelope)}\n`)
+    139 139 │       }
+    140 140 │       console.log(
+  
+
+scripts/performance/native-matrix.js:134:9 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    132 │       await appendFile(
+    133 │         join(output, "dispatches.jsonl"),
+  > 134 │         JSON.stringify({ at: c.startedAt, case: c.id, command: "heavy-job", argv }) + "\n",
+        │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    135 │       )
+    136 │       const log = await open(join(output, `${c.id}-driver.txt`), "wx")
+  
+  i Unsafe fix: Use a template literal.
+  
+    132 132 │         await appendFile(
+    133 133 │           join(output, "dispatches.jsonl"),
+    134     │ - ········JSON.stringify({·at:·c.startedAt,·case:·c.id,·command:·"heavy-job",·argv·})·+·"\n",
+        134 │ + ········`${JSON.stringify({·at:·c.startedAt,·case:·c.id,·command:·"heavy-job",·argv·})}\n`,
+    135 135 │         )
+    136 136 │         const log = await open(join(output, `${c.id}-driver.txt`), "wx")
+  
+
+scripts/performance/native-page.js:59:21 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    57 │         .sort()
+    58 │         .filter((k) => value[k] !== undefined)
+  > 59 │         .map((k) => JSON.stringify(k) + ":" + canonical(value[k]))
+       │                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    60 │         .join(",")}}`
+    61 │     return JSON.stringify(value)
+  
+  i Unsafe fix: Use a template literal.
+  
+     57  57 │           .sort()
+     58  58 │           .filter((k) => value[k] !== undefined)
+     59     │ - ········.map((k)·=>·JSON.stringify(k)·+·":"·+·canonical(value[k]))
+         59 │ + ········.map((k)·=>·`${JSON.stringify(k)}:${canonical(value[k])}`)
+     60  60 │           .join(",")}}`
+     61  61 │       return JSON.stringify(value)
+  
+
+scripts/performance/native-page.js:64:13 lint/style/useNodejsImportProtocol  FIXABLE  ━━━━━━━━━━━━━━
+
+  i A Node.js builtin module should be imported with the node: protocol.
+  
+    62 │   }
+    63 │   const digest = (value) =>
+  > 64 │     require("crypto").createHash("sha256").update(canonical(value)).digest("hex")
+       │             ^^^^^^^^
+    65 │   const equal = (actual, expected, label) => {
+    66 │     if (digest(actual) !== digest(expected)) throw Error(`${label}: exact semantic mismatch`)
+  
+  i Using the node: protocol is more explicit and signals that the imported module belongs to Node.js.
+  
+  i Unsafe fix: Add the node: protocol.
+  
+     62  62 │     }
+     63  63 │     const digest = (value) =>
+     64     │ - ····require("crypto").createHash("sha256").update(canonical(value)).digest("hex")
+         64 │ + ····require("node:crypto").createHash("sha256").update(canonical(value)).digest("hex")
+     65  65 │     const equal = (actual, expected, label) => {
+     66  66 │       if (digest(actual) !== digest(expected)) throw Error(`${label}: exact semantic mismatch`)
+  
+
+scripts/performance/native-case.js:4:8 lint/correctness/noUnusedImports  FIXABLE  ━━━━━━━━━━━━━━━━━━
+
+  ! This import is unused.
+  
+    2 │ import { appendFile, cp, mkdir, mkdtemp, readdir, readFile } from "node:fs/promises"
+    3 │ import { join, resolve } from "node:path"
+  > 4 │ import { CONTRACT } from "./evaluator-contract.mjs"
+      │        ^^^^^^^^^^^^
+    5 │ import {
+    6 │   expectedFrontOrder,
+  
+  i Unused imports might be the result of an incomplete refactoring.
+  
+  i Unsafe fix: Remove the unused imports.
+  
+      2   2 │   import { appendFile, cp, mkdir, mkdtemp, readdir, readFile } from "node:fs/promises"
+      3   3 │   import { join, resolve } from "node:path"
+      4     │ - import·{·CONTRACT·}·from·"./evaluator-contract.mjs"
+      5   4 │   import {
+      6   5 │     expectedFrontOrder,
+  
+
+Skipped 16 suggested fixes.
+If you wish to apply the suggested (unsafe) fixes, use the command biome check --write --unsafe
+
+The number of diagnostics exceeds the limit allowed. Use --max-diagnostics to increase it.
+Diagnostics not shown: 6.
+Checked 42 files in 23ms. Fixed 20 files.
+Found 2 warnings.
+Found 10 infos.

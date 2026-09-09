@@ -1,0 +1,45 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-window.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/native-window.test.ts (9 tests | 2 failed) 11ms
+     × When Settings is destroyed Then avoid further remote property reads (serialized=false) 2ms
+     × When Settings is destroyed Then avoid further remote property reads (serialized=true) 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/native-window.test.ts > Given an identity-verified disposable native host with startup Settings > When Settings is destroyed Then avoid further remote property reads (serialized=false)
+Error: Object has been destroyed
+ ❯ Object.get [as id] test/performance/native-window.test.ts:86:42
+     84|     const f = fixture()
+     85|     Object.defineProperty(f.settings, "id", {
+     86|       get() { if (f.settings.gone) throw Error("Object has been destro…
+       |                                          ^
+     87|     })
+     88|     const prepare = serialized ? new Function(`return (${prepareNative…
+ ❯ prepareNativeWindow scripts/performance/native-window.js:45:32
+ ❯ test/performance/native-window.test.ts:89:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  test/performance/native-window.test.ts > Given an identity-verified disposable native host with startup Settings > When Settings is destroyed Then avoid further remote property reads (serialized=true)
+Error: Object has been destroyed
+ ❯ Object.get [as id] test/performance/native-window.test.ts:86:42
+     84|     const f = fixture()
+     85|     Object.defineProperty(f.settings, "id", {
+     86|       get() { if (f.settings.gone) throw Error("Object has been destro…
+       |                                          ^
+     87|     })
+     88|     const prepare = serialized ? new Function(`return (${prepareNative…
+ ❯ prepareNativeWindow test/performance/native-window.test.ts:88:34
+ ❯ test/performance/native-window.test.ts:89:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 7 passed (9)
+   Start at  10:49:10
+   Duration  143ms (transform 31ms, setup 0ms, import 40ms, tests 11ms, environment 0ms)
+

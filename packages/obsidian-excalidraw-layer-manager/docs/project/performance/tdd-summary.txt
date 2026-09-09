@@ -1,0 +1,830 @@
+AK5583 native-summary behavioral TDD: deliberately permissive RED stub
+Synthetic envelopes only; no native-host execution proof.
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-summary.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/native-summary.test.ts (40 tests | 38 failed) 159ms
+     × When operation lists are requested Then their exact shape-specific order is stable 6ms
+     × When all cells are present Then 1040 cells retain 3x10 inventories and exclude only six warmups per cell 2ms
+     × When warmups are slow Then raw counts retain them but measured statistics exclude them 6ms
+     × When sample durations vary Then medians average middle values and p95 uses nearest rank 43ms
+     × When wrong role enters a run Then summary rejects it 2ms
+     × When wrong source enters a run Then summary rejects it 1ms
+     × When wrong evaluator lock enters a run Then summary rejects it 1ms
+     × When invalid source hash enters a run Then summary rejects it 1ms
+     × When invalid lock hash enters a run Then summary rejects it 1ms
+     × When unknown seed enters a run Then summary rejects it 1ms
+     × When unknown size enters a run Then summary rejects it 1ms
+     × When unknown shape enters a run Then summary rejects it 1ms
+     × When inapplicable operation enters a run Then summary rejects it 1ms
+     × When wrong scene count enters a run Then summary rejects it 1ms
+     × When packet operation mismatch enters a run Then summary rejects it 1ms
+     × When packet index mismatch enters a run Then summary rejects it 1ms
+     × When negative sample index enters a run Then summary rejects it 1ms
+     × When out of range sample index enters a run Then summary rejects it 5ms
+     × When empty process pass enters a run Then summary rejects it 1ms
+     × When empty host nonce enters a run Then summary rejects it 1ms
+     × When failed packet enters a run Then summary rejects it 1ms
+     × When non-native packet enters a run Then summary rejects it 1ms
+     × When weakened checks enters a run Then summary rejects it 1ms
+     × When an envelope is absent or duplicated Then no scalar summary can hide it 0ms
+     × When a pass changes nonce across operations Then fresh-host provenance fails 1ms
+     × When distinct passes reuse a nonce Then they cannot masquerade as independent processes 1ms
+     × When the same pass spans distinct workloads Then a fresh process per workload pass is not established 2ms
+     × When operation cells use different pass sets Then three passes per cell alone is insufficient 1ms
+     × When source is unchanged Then even implausibly faster samples are never a candidate improvement 5ms
+     × When calibration changes source or either run changes the frozen lock Then comparison fails closed 5ms
+     × When gain equals the 20 percent threshold Then it is not a win 13ms
+     × When calibration reaches but does not exceed 10 percent Then the boundary is accepted 11ms
+     × When one control pass drifts despite a stable pooled median Then calibration is rejected 2ms
+     × When any candidate median regresses more than 10 percent Then a global win is forbidden 1ms
+     × When any candidate p95 regresses while its median improves Then comparison still rejects it 1ms
+     × When a secondary timing regresses behind a faster primary timing Then it cannot be hidden 5ms
+     × When regression is exactly 10 percent Then comparison is no-win rather than rejected 31ms
+     × When an entire candidate operation is missing Then comparison rejects incomplete evidence 1ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 38 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given a frozen complete synthetic native-envelope matrix > When operation lists are requested Then their exact shape-specific order is stable
+AssertionError: expected [] to deeply equal [ 'external-closed', 'open', …(5) ]
+
+- Expected
++ Received
+
+- [
+-   "external-closed",
+-   "open",
+-   "select",
+-   "rename",
+-   "external",
+-   "reorder",
+-   "close",
+- ]
++ []
+
+ ❯ test/performance/native-summary.test.ts:47:66
+     45| describe("Given a frozen complete synthetic native-envelope matrix",()…
+     46|   it("When operation lists are requested Then their exact shape-specif…
+     47|     for(const shape of shapes) expect(operationsForShape(shape)).toEqu…
+       |                                                                  ^
+     48|     expect(()=>operationsForShape("unknown")).toThrow()
+     49|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/38]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given a frozen complete synthetic native-envelope matrix > When all cells are present Then 1040 cells retain 3x10 inventories and exclude only six warmups per cell
+AssertionError: expected { cells: [], tailLabel: 'unverified' } to match object { role: 'baseline', …(7) }
+(2 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "cellCount": 1040,
+-   "lockHash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+-   "measuredCount": 24960,
+-   "processCount": 360,
+-   "role": "baseline",
+-   "sampleCount": 31200,
+-   "sourceHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+-   "warmupCount": 6240,
++   "cells": [],
++   "tailLabel": "unverified",
+  }
+
+ ❯ test/performance/native-summary.test.ts:52:20
+     50|   it("When all cells are present Then 1040 cells retain 3x10 inventori…
+     51|     const result=summarizeNative(baseline,"baseline")
+     52|     expect(result).toMatchObject({role:"baseline",sourceHash:hash("a")…
+       |                    ^
+     53|     expect(result.cells[0]).toMatchObject({sampleCount:30,warmupCount:…
+     54|     expect(result.cells[0].passes).toHaveLength(3)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/38]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given a frozen complete synthetic native-envelope matrix > When warmups are slow Then raw counts retain them but measured statistics exclude them
+TypeError: Cannot read properties of undefined (reading 'metrics')
+ ❯ test/performance/native-summary.test.ts:64:55
+     62|   it("When warmups are slow Then raw counts retain them but measured s…
+     63|     const inputs=baseline.map(e=>e.index<2?scaleSample(e,10000):e)
+     64|     expect(summarizeNative(inputs,"baseline").cells[0].metrics.renderO…
+       |                                                       ^
+     65|   })
+     66|   it("When sample durations vary Then medians average middle values an…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/38]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given a frozen complete synthetic native-envelope matrix > When sample durations vary Then medians average middle values and p95 uses nearest rank
+TypeError: Cannot read properties of undefined (reading 'metrics')
+ ❯ test/performance/native-summary.test.ts:69:55
+     67|     const inputs=baseline.map(e=>scaleSample(e,e.index+1))
+     68|     // Three copies of 3..10: middle is 6.5; nearest-rank p95 is 10.
+     69|     expect(summarizeNative(inputs,"baseline").cells[0].metrics.renderO…
+       |                                                       ^
+     70|   })
+     71|   for(const [label,change] of [
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/38]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given a frozen complete synthetic native-envelope matrix > When wrong role enters a run Then summary rejects it
+ FAIL  test/performance/native-summary.test.ts > Given a frozen complete synthetic native-envelope matrix > When wrong source enters a run Then summary rejects it
+ FAIL  test/performance/native-summary.test.ts > Given a frozen complete synthetic native-envelope matrix > When wrong evaluator lock enters a run Then summary rejects it
+ FAIL  test/performance/native-summary.test.ts > Given a frozen complete synthetic native-envelope matrix > When invalid source hash enters a run Then summary rejects it
+ FAIL  test/performance/native-summary.test.ts > Given a frozen complete synthetic native-envelope matrix > When invalid lock hash enters a run Then summary rejects it
+ FAIL  test/performance/native-summary.test.ts > Given a frozen complete synthetic native-envelope matrix > When unknown seed enters a run Then summary rejects it
+ FAIL  test/performance/native-summary.test.ts > Given a frozen complete synthetic native-envelope matrix > When unknown size enters a run Then summary rejects it
+ FAIL  test/performance/native-summary.test.ts > Given a frozen complete synthetic native-envelope matrix > When unknown shape enters a run Then summary rejects it
+ FAIL  test/performance/native-summary.test.ts > Given a frozen complete synthetic native-envelope matrix > When inapplicable operation enters a run Then summary rejects it
+ FAIL  test/performance/native-summary.test.ts > Given a frozen complete synthetic native-envelope matrix > When wrong scene count enters a run Then summary rejects it
+ FAIL  test/performance/native-summary.test.ts > Given a frozen complete synthetic native-envelope matrix > When packet operation mismatch enters a run Then summary rejects it
+ FAIL  test/performance/native-summary.test.ts > Given a frozen complete synthetic native-envelope matrix > When packet index mismatch enters a run Then summary rejects it
+ FAIL  test/performance/native-summary.test.ts > Given a frozen complete synthetic native-envelope matrix > When negative sample index enters a run Then summary rejects it
+ FAIL  test/performance/native-summary.test.ts > Given a frozen complete synthetic native-envelope matrix > When out of range sample index enters a run Then summary rejects it
+ FAIL  test/performance/native-summary.test.ts > Given a frozen complete synthetic native-envelope matrix > When empty process pass enters a run Then summary rejects it
+ FAIL  test/performance/native-summary.test.ts > Given a frozen complete synthetic native-envelope matrix > When empty host nonce enters a run Then summary rejects it
+ FAIL  test/performance/native-summary.test.ts > Given a frozen complete synthetic native-envelope matrix > When failed packet enters a run Then summary rejects it
+ FAIL  test/performance/native-summary.test.ts > Given a frozen complete synthetic native-envelope matrix > When non-native packet enters a run Then summary rejects it
+ FAIL  test/performance/native-summary.test.ts > Given a frozen complete synthetic native-envelope matrix > When weakened checks enters a run Then summary rejects it
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/native-summary.test.ts:93:76
+     91|   ] as const) {
+     92|     it(`When ${label} enters a run Then summary rejects it`,()=>{
+     93|       expect(()=>summarizeNative(changeFirst(baseline,change),"baselin…
+       |                                                                            ^
+     94|     })
+     95|   }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/38]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given a frozen complete synthetic native-envelope matrix > When an envelope is absent or duplicated Then no scalar summary can hide it
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/native-summary.test.ts:97:63
+     95|   }
+     96|   it("When an envelope is absent or duplicated Then no scalar summary …
+     97|     expect(()=>summarizeNative(baseline.slice(1),"baseline")).toThrow()
+       |                                                               ^
+     98|     expect(()=>summarizeNative([baseline[0],...baseline.slice(0,-1)],"…
+     99|     expect(()=>summarizeNative([],"baseline")).toThrow()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/38]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given a frozen complete synthetic native-envelope matrix > When a pass changes nonce across operations Then fresh-host provenance fails
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/native-summary.test.ts:102:101
+    100|   })
+    101|   it("When a pass changes nonce across operations Then fresh-host prov…
+    102|     expect(()=>summarizeNative(changeFirst(baseline,e=>({...e,hostNonc…
+       |                                                                                                     ^
+    103|   })
+    104|   it("When distinct passes reuse a nonce Then they cannot masquerade a…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/38]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given a frozen complete synthetic native-envelope matrix > When distinct passes reuse a nonce Then they cannot masquerade as independent processes
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/native-summary.test.ts:106:108
+    104|   it("When distinct passes reuse a nonce Then they cannot masquerade a…
+    105|     const pass=baseline[10].processPass,nonce=baseline[0].hostNonce
+    106|     expect(()=>summarizeNative(baseline.map(e=>e.processPass===pass?{.…
+       |                                                                                                            ^
+    107|   })
+    108|   it("When the same pass spans distinct workloads Then a fresh process…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/38]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given a frozen complete synthetic native-envelope matrix > When the same pass spans distinct workloads Then a fresh process per workload pass is not established
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/native-summary.test.ts:111:172
+    109|     const from=baseline.find(e=>e.cell.shape==="pairs")
+    110|     if(!from) throw Error("fixture workload missing")
+    111|     expect(()=>summarizeNative(baseline.map(e=>e.processPass===from.pr…
+       |                                                                                                                                                                            ^
+    112|   })
+    113|   it("When operation cells use different pass sets Then three passes p…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/38]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given a frozen complete synthetic native-envelope matrix > When operation cells use different pass sets Then three passes per cell alone is insufficient
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/native-summary.test.ts:114:167
+    112|   })
+    113|   it("When operation cells use different pass sets Then three passes p…
+    114|     expect(()=>summarizeNative(baseline.map(e=>e.cell.operation==="ope…
+       |                                                                                                                                                                       ^
+    115|   })
+    116| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/38]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given trusted baseline provenance and synthetic unchanged controls > When source is unchanged Then even implausibly faster samples are never a candidate improvement
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/native-summary.test.ts:123:101
+    121|   })
+    122|   it("When source is unchanged Then even implausibly faster samples ar…
+    123|     expect(()=>compareNative(baseline,calibration,candidate.map(e=>({.…
+       |                                                                                                     ^
+    124|   })
+    125|   it("When calibration changes source or either run changes the frozen…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/38]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given trusted baseline provenance and synthetic unchanged controls > When calibration changes source or either run changes the frozen lock Then comparison fails closed
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/native-summary.test.ts:126:101
+    124|   })
+    125|   it("When calibration changes source or either run changes the frozen…
+    126|     expect(()=>compareNative(baseline,calibration.map(e=>({...e,source…
+       |                                                                                                     ^
+    127|     expect(()=>compareNative(baseline,calibration,candidate.map(e=>({.…
+    128|     expect(()=>compareNative(baseline,calibration.map(e=>({...e,lockHa…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/38]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given trusted baseline provenance and synthetic unchanged controls > When gain equals the 20 percent threshold Then it is not a win
+AssertionError: expected 'win' to be 'no-win' // Object.is equality
+
+Expected: "no-win"
+Received: "win"
+
+ ❯ test/performance/native-summary.test.ts:131:76
+    129|   })
+    130|   it("When gain equals the 20 percent threshold Then it is not a win",…
+    131|     expect(compareNative(baseline,calibration,run("candidate",.8)).sta…
+       |                                                                            ^
+    132|   })
+    133|   it("When calibration reaches but does not exceed 10 percent Then the…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/38]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given trusted baseline provenance and synthetic unchanged controls > When calibration reaches but does not exceed 10 percent Then the boundary is accepted
+AssertionError: expected { status: 'win', noise: +0, …(1) } to match object { status: 'win', noise: 0.1, …(1) }
+
+- Expected
++ Received
+
+  {
+-   "noise": 0.1,
++   "noise": 0,
+    "status": "win",
+    "threshold": 0.2,
+  }
+
+ ❯ test/performance/native-summary.test.ts:134:70
+    132|   })
+    133|   it("When calibration reaches but does not exceed 10 percent Then the…
+    134|     expect(compareNative(baseline,run("calibration",1.1),candidate)).t…
+       |                                                                      ^
+    135|     expect(()=>compareNative(baseline,run("calibration",1.10001),candi…
+    136|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/38]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given trusted baseline provenance and synthetic unchanged controls > When one control pass drifts despite a stable pooled median Then calibration is rejected
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/native-summary.test.ts:140:57
+    138|     const first=calibration[0].processPass
+    139|     const noisy=calibration.map(e=>e.processPass===first?scaleSample(e…
+    140|     expect(()=>compareNative(baseline,noisy,candidate)).toThrow()
+       |                                                         ^
+    141|   })
+    142|   it("When any candidate median regresses more than 10 percent Then a …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/38]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given trusted baseline provenance and synthetic unchanged controls > When any candidate median regresses more than 10 percent Then a global win is forbidden
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/native-summary.test.ts:145:64
+    143|     const cell=candidate[0].cell
+    144|     const regression=candidate.map(e=>e.cell===cell?scaleSample(e,1.10…
+    145|     expect(()=>compareNative(baseline,calibration,regression)).toThrow…
+       |                                                                ^
+    146|   })
+    147|   it("When any candidate p95 regresses while its median improves Then …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/38]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given trusted baseline provenance and synthetic unchanged controls > When any candidate p95 regresses while its median improves Then comparison still rejects it
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/native-summary.test.ts:150:64
+    148|     const first=candidate[0]
+    149|     const regression=candidate.map(e=>e.cell===first.cell&&e.processPa…
+    150|     expect(()=>compareNative(baseline,calibration,regression)).toThrow…
+       |                                                                ^
+    151|   })
+    152|   it("When a secondary timing regresses behind a faster primary timing…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/38]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given trusted baseline provenance and synthetic unchanged controls > When a secondary timing regresses behind a faster primary timing Then it cannot be hidden
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/native-summary.test.ts:154:64
+    152|   it("When a secondary timing regresses behind a faster primary timing…
+    153|     const regression=candidate.map(e=>({...e,packet:{...e.packet,timin…
+    154|     expect(()=>compareNative(baseline,calibration,regression)).toThrow…
+       |                                                                ^
+    155|   })
+    156|   it("When regression is exactly 10 percent Then comparison is no-win …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/38]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given trusted baseline provenance and synthetic unchanged controls > When regression is exactly 10 percent Then comparison is no-win rather than rejected
+AssertionError: expected 'win' to be 'no-win' // Object.is equality
+
+Expected: "no-win"
+Received: "win"
+
+ ❯ test/performance/native-summary.test.ts:157:77
+    155|   })
+    156|   it("When regression is exactly 10 percent Then comparison is no-win …
+    157|     expect(compareNative(baseline,calibration,run("candidate",1.1)).st…
+       |                                                                             ^
+    158|   })
+    159|   it("When an entire candidate operation is missing Then comparison re…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/38]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given trusted baseline provenance and synthetic unchanged controls > When an entire candidate operation is missing Then comparison rejects incomplete evidence
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/native-summary.test.ts:160:102
+    158|   })
+    159|   it("When an entire candidate operation is missing Then comparison re…
+    160|     expect(()=>compareNative(baseline,calibration,candidate.filter(e=>…
+       |                                                                                                      ^
+    161|   })
+    162| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/38]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  38 failed | 2 passed (40)
+   Start at  06:36:25
+   Duration  386ms (transform 34ms, setup 0ms, import 130ms, tests 159ms, environment 0ms)
+
+
+RED exit=1 (must be nonzero)
+
+Implementation GREEN attempt 1
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-summary.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/native-summary.test.ts (40 tests | 2 failed) 5782ms
+     × When calibration reaches but does not exceed 10 percent Then the boundary is accepted 396ms
+     × When regression is exactly 10 percent Then comparison is no-win rather than rejected 384ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given trusted baseline provenance and synthetic unchanged controls > When calibration reaches but does not exceed 10 percent Then the boundary is accepted
+Error: unstable calibration: 558301/1000/ungrouped/external-closed
+ ❯ requireThat scripts/performance/native-summary.js:16:56
+     14|
+     15| /** @param {unknown} value @param {string} label */
+     16| function requireThat(value, label) { if (!value) throw Error(label) }
+       |                                                        ^
+     17| /** @param {unknown} value @param {string} label */
+     18| function hash(value, label) { requireThat(typeof value === "string" &&…
+ ❯ compareNative scripts/performance/native-summary.js:160:5
+ ❯ test/performance/native-summary.test.ts:134:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given trusted baseline provenance and synthetic unchanged controls > When regression is exactly 10 percent Then comparison is no-win rather than rejected
+Error: native regression: 558301/1000/ungrouped/external-closed settlement.median
+ ❯ requireThat scripts/performance/native-summary.js:16:56
+     14|
+     15| /** @param {unknown} value @param {string} label */
+     16| function requireThat(value, label) { if (!value) throw Error(label) }
+       |                                                        ^
+     17| /** @param {unknown} value @param {string} label */
+     18| function hash(value, label) { requireThat(typeof value === "string" &&…
+ ❯ compareNative scripts/performance/native-summary.js:167:9
+ ❯ test/performance/native-summary.test.ts:157:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 38 passed (40)
+   Start at  06:38:35
+   Duration  6.01s (transform 46ms, setup 0ms, import 139ms, tests 5.78s, environment 0ms)
+
+
+GREEN attempt 1 exit=1
+
+GREEN attempt 2: fixture uses exact decimal boundary values, production thresholds unchanged
+npm notice run npx
+npm notice run 'biome' check --write scripts/performance/native-summary.js test/performance/native-summary.test.ts
+Checked 2 files in 16ms. Fixed 2 files.
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-summary.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+
+ Test Files  1 passed (1)
+      Tests  40 passed (40)
+   Start at  06:39:39
+   Duration  6.47s (transform 42ms, setup 0ms, import 147ms, tests 6.22s, environment 0ms)
+
+
+GREEN attempt 2 exit=0
+
+Final scoped validation
+npm notice run npx
+npm notice run 'biome' check --write scripts/performance/native-summary.js test/performance/native-summary.test.ts
+Checked 2 files in 13ms. No fixes applied.
+npm notice run npx
+npm notice run 'tsc' --ignoreConfig --allowJs --checkJs --noEmit --strict --target es2022 --module nodenext --moduleResolution nodenext --types node --skipLibCheck scripts/performance/native-summary.js
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-summary.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+
+ Test Files  1 passed (1)
+      Tests  40 passed (40)
+   Start at  06:41:11
+   Duration  6.41s (transform 44ms, setup 0ms, import 142ms, tests 6.18s, environment 0ms)
+
+
+Final scoped validation exit=0
+
+=== APPROVED NATIVE V2 (AK evidence8626): existing V1 implementation against new behavioral contract ===
+Expected RED: V1 repeats-per-seed matrix and ratio-only decisions must fail approved one-block/hybrid rules.
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-summary.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/native-summary.test.ts (45 tests | 18 failed) 135ms
+     × When all cells are present Then seed-specific blocks have 624 cells,72 processes and6240 samples 5ms
+     × When order changes Then sorted block summaries are unchanged and inputs stay intact 1ms
+     × When warmups are slow Then they remain counted but are excluded from each block's statistics 3ms
+     × When subsamples vary Then median and descriptive nearest-rank p95 remain within each seed block 12ms
+     × When 416 cells from48 fresh processes pass Then only semantic holdouts are validated 0ms
+     × When the fixed aggregate exceeds practical and paired-noise bands Then fresh holdout TIMING is still required 1ms
+     × When input sync changes .1 to .2ms Then the1ms floor prevents a relative-noise veto 5ms
+     × When calibration reaches the exact hybrid boundary Then it passes; just above returns inconclusive 3ms
+     × When a nonprimary close cell is noisy Then it blocks readiness without inflating another cell's primary noise threshold 1ms
+     × When seed difficulty varies but matched controls agree Then seed variance is not called noise 28ms
+     × When only one primary cell is lucky Then the fixed multi-cell aggregate cannot select it 5ms
+     × When gains are no larger than the materiality floor Then near-zero ratios cannot manufacture an aggregate win 7ms
+     × When many within-band slowdowns oppose positive gains Then they must penalize the geometric mean 16ms
+     × When aggregate gain equals20 percent Then confirmation is not requested 6ms
+     × When candidate median delta equals the frozen band Then it is accepted descriptively; above it rejects even if calibration is noisy 2ms
+     × When a descriptive p95 moves inside the catastrophic band Then it is not a10-percent veto 1ms
+     × When candidate advertises a coarse timer Then it cannot widen baseline/control-frozen budgets 3ms
+     × When paired primary noise is positive in both directions Then it cannot cancel or collapse through clean cells 5ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 18 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given the approved v2 one-process matched-seed training grid > When all cells are present Then seed-specific blocks have 624 cells,72 processes and6240 samples
+Error: incomplete native sample matrix
+ ❯ requireThat scripts/performance/native-summary.js:17:21
+     15| /** @param {unknown} value @param {string} label @returns {asserts val…
+     16| function requireThat(value, label) {
+     17|   if (!value) throw Error(label)
+       |                     ^
+     18| }
+     19| /** @param {unknown} value @param {string} label */
+ ❯ summarizeNative scripts/performance/native-summary.js:146:3
+ ❯ test/performance/native-summary.test.ts:52:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/18]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given the approved v2 one-process matched-seed training grid > When order changes Then sorted block summaries are unchanged and inputs stay intact
+Error: incomplete native sample matrix
+ ❯ requireThat scripts/performance/native-summary.js:17:21
+     15| /** @param {unknown} value @param {string} label @returns {asserts val…
+     16| function requireThat(value, label) {
+     17|   if (!value) throw Error(label)
+       |                     ^
+     18| }
+     19| /** @param {unknown} value @param {string} label */
+ ❯ summarizeNative scripts/performance/native-summary.js:146:3
+ ❯ test/performance/native-summary.test.ts:60:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/18]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given the approved v2 one-process matched-seed training grid > When warmups are slow Then they remain counted but are excluded from each block's statistics
+Error: incomplete native sample matrix
+ ❯ requireThat scripts/performance/native-summary.js:17:21
+     15| /** @param {unknown} value @param {string} label @returns {asserts val…
+     16| function requireThat(value, label) {
+     17|   if (!value) throw Error(label)
+       |                     ^
+     18| }
+     19| /** @param {unknown} value @param {string} label */
+ ❯ summarizeNative scripts/performance/native-summary.js:146:3
+ ❯ test/performance/native-summary.test.ts:64:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/18]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given the approved v2 one-process matched-seed training grid > When subsamples vary Then median and descriptive nearest-rank p95 remain within each seed block
+Error: incomplete native sample matrix
+ ❯ requireThat scripts/performance/native-summary.js:17:21
+     15| /** @param {unknown} value @param {string} label @returns {asserts val…
+     16| function requireThat(value, label) {
+     17|   if (!value) throw Error(label)
+       |                     ^
+     18| }
+     19| /** @param {unknown} value @param {string} label */
+ ❯ summarizeNative scripts/performance/native-summary.js:146:3
+ ❯ test/performance/native-summary.test.ts:68:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/18]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given the complete two-seed semantic holdout grid > When 416 cells from48 fresh processes pass Then only semantic holdouts are validated
+TypeError: validateNativeHoldouts is not a function
+ ❯ test/performance/native-summary.test.ts:113:12
+    111| describe("Given the complete two-seed semantic holdout grid",()=>{
+    112|   it("When 416 cells from48 fresh processes pass Then only semantic ho…
+    113|     expect(validateNativeHoldouts(holdouts,hash("a"),hash("b"),hash("d…
+       |            ^
+    114|     expect(validateNativeHoldouts(holdouts,hash("a"),hash("b"),hash("d…
+    115|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/18]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given same-seed calibration and candidate block medians > When the fixed aggregate exceeds practical and paired-noise bands Then fresh holdout TIMING is still required
+Error: incomplete native sample matrix
+ ❯ requireThat scripts/performance/native-summary.js:17:21
+     15| /** @param {unknown} value @param {string} label @returns {asserts val…
+     16| function requireThat(value, label) {
+     17|   if (!value) throw Error(label)
+       |                     ^
+     18| }
+     19| /** @param {unknown} value @param {string} label */
+ ❯ summarizeNative scripts/performance/native-summary.js:146:3
+ ❯ compareNative scripts/performance/native-summary.js:276:20
+ ❯ test/performance/native-summary.test.ts:128:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/18]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given same-seed calibration and candidate block medians > When input sync changes .1 to .2ms Then the1ms floor prevents a relative-noise veto
+TypeError: measureNativeCalibration is not a function
+ ❯ test/performance/native-summary.test.ts:144:12
+    142|   it("When input sync changes .1 to .2ms Then the1ms floor prevents a …
+    143|     const base=baseline.map(e=>withInput(e,.1)), cal=calibration.map(e…
+    144|     expect(measureNativeCalibration(base,cal).status).toBe("calibrated…
+       |            ^
+    145|     expect(compareNative(base,cal,next).status).toBe("confirmation-req…
+    146|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/18]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given same-seed calibration and candidate block medians > When calibration reaches the exact hybrid boundary Then it passes; just above returns inconclusive
+TypeError: measureNativeCalibration is not a function
+ ❯ test/performance/native-summary.test.ts:151:12
+    149|   })
+    150|   it("When calibration reaches the exact hybrid boundary Then it passe…
+    151|     expect(measureNativeCalibration(baseline,run("calibration",1.1)).s…
+       |            ^
+    152|     expect(measureNativeCalibration(baseline,run("calibration",1.10001…
+    153|     expect(compareNative(baseline,run("calibration",1.10001),candidate…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/18]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given same-seed calibration and candidate block medians > When a nonprimary close cell is noisy Then it blocks readiness without inflating another cell's primary noise threshold
+TypeError: measureNativeCalibration is not a function
+ ❯ test/performance/native-summary.test.ts:157:20
+    155|   it("When a nonprimary close cell is noisy Then it blocks readiness w…
+    156|     const noisy=calibration.map(e=>e.cell.operation==="close"?scaleSam…
+    157|     const measured=measureNativeCalibration(baseline,noisy)
+       |                    ^
+    158|     expect(measured.status).toBe("inconclusive")
+    159|     expect(measured.inconclusiveCells.length).toBeGreaterThan(0)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/18]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given same-seed calibration and candidate block medians > When seed difficulty varies but matched controls agree Then seed variance is not called noise
+TypeError: measureNativeCalibration is not a function
+ ❯ test/performance/native-summary.test.ts:168:12
+    166|     const seedScale=(e:Envelope)=>2**trainingSeeds.indexOf(e.cell.seed)
+    167|     const base=baseline.map(e=>scaleSample(e,seedScale(e))),cal=calibr…
+    168|     expect(measureNativeCalibration(base,cal).primaryNoise).toBe(0)
+       |            ^
+    169|     expect(compareNative(base,cal,next).status).toBe("confirmation-req…
+    170|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/18]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given same-seed calibration and candidate block medians > When only one primary cell is lucky Then the fixed multi-cell aggregate cannot select it
+Error: incomplete native sample matrix
+ ❯ requireThat scripts/performance/native-summary.js:17:21
+     15| /** @param {unknown} value @param {string} label @returns {asserts val…
+     16| function requireThat(value, label) {
+     17|   if (!value) throw Error(label)
+       |                     ^
+     18| }
+     19| /** @param {unknown} value @param {string} label */
+ ❯ summarizeNative scripts/performance/native-summary.js:146:3
+ ❯ compareNative scripts/performance/native-summary.js:276:20
+ ❯ test/performance/native-summary.test.ts:175:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/18]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given same-seed calibration and candidate block medians > When gains are no larger than the materiality floor Then near-zero ratios cannot manufacture an aggregate win
+Error: incomplete native sample matrix
+ ❯ requireThat scripts/performance/native-summary.js:17:21
+     15| /** @param {unknown} value @param {string} label @returns {asserts val…
+     16| function requireThat(value, label) {
+     17|   if (!value) throw Error(label)
+       |                     ^
+     18| }
+     19| /** @param {unknown} value @param {string} label */
+ ❯ summarizeNative scripts/performance/native-summary.js:146:3
+ ❯ compareNative scripts/performance/native-summary.js:276:20
+ ❯ test/performance/native-summary.test.ts:179:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/18]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given same-seed calibration and candidate block medians > When many within-band slowdowns oppose positive gains Then they must penalize the geometric mean
+Error: incomplete native sample matrix
+ ❯ requireThat scripts/performance/native-summary.js:17:21
+     15| /** @param {unknown} value @param {string} label @returns {asserts val…
+     16| function requireThat(value, label) {
+     17|   if (!value) throw Error(label)
+       |                     ^
+     18| }
+     19| /** @param {unknown} value @param {string} label */
+ ❯ summarizeNative scripts/performance/native-summary.js:146:3
+ ❯ compareNative scripts/performance/native-summary.js:276:20
+ ❯ test/performance/native-summary.test.ts:185:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/18]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given same-seed calibration and candidate block medians > When aggregate gain equals20 percent Then confirmation is not requested
+Error: incomplete native sample matrix
+ ❯ requireThat scripts/performance/native-summary.js:17:21
+     15| /** @param {unknown} value @param {string} label @returns {asserts val…
+     16| function requireThat(value, label) {
+     17|   if (!value) throw Error(label)
+       |                     ^
+     18| }
+     19| /** @param {unknown} value @param {string} label */
+ ❯ summarizeNative scripts/performance/native-summary.js:146:3
+ ❯ compareNative scripts/performance/native-summary.js:276:20
+ ❯ test/performance/native-summary.test.ts:190:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/18]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given same-seed calibration and candidate block medians > When candidate median delta equals the frozen band Then it is accepted descriptively; above it rejects even if calibration is noisy
+Error: incomplete native sample matrix
+ ❯ requireThat scripts/performance/native-summary.js:17:21
+     15| /** @param {unknown} value @param {string} label @returns {asserts val…
+     16| function requireThat(value, label) {
+     17|   if (!value) throw Error(label)
+       |                     ^
+     18| }
+     19| /** @param {unknown} value @param {string} label */
+ ❯ summarizeNative scripts/performance/native-summary.js:146:3
+ ❯ compareNative scripts/performance/native-summary.js:276:20
+ ❯ test/performance/native-summary.test.ts:193:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/18]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given same-seed calibration and candidate block medians > When a descriptive p95 moves inside the catastrophic band Then it is not a10-percent veto
+Error: incomplete native sample matrix
+ ❯ requireThat scripts/performance/native-summary.js:17:21
+     15| /** @param {unknown} value @param {string} label @returns {asserts val…
+     16| function requireThat(value, label) {
+     17|   if (!value) throw Error(label)
+       |                     ^
+     18| }
+     19| /** @param {unknown} value @param {string} label */
+ ❯ summarizeNative scripts/performance/native-summary.js:146:3
+ ❯ compareNative scripts/performance/native-summary.js:276:20
+ ❯ test/performance/native-summary.test.ts:198:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/18]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given same-seed calibration and candidate block medians > When candidate advertises a coarse timer Then it cannot widen baseline/control-frozen budgets
+AssertionError: expected [Function] to throw error matching /budget/ but got 'incomplete native sample matrix'
+
+- Expected:
+/budget/
+
++ Received:
+"incomplete native sample matrix"
+
+ ❯ test/performance/native-summary.test.ts:203:58
+    201|   it("When candidate advertises a coarse timer Then it cannot widen ba…
+    202|     const next=candidate.map(e=>({...withInput(e,12),packet:{...withIn…
+    203|     expect(()=>compareNative(baseline,calibration,next)).toThrow(/budg…
+       |                                                          ^
+    204|   })
+    205|   it("When paired primary noise is positive in both directions Then it…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/18]⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given same-seed calibration and candidate block medians > When paired primary noise is positive in both directions Then it cannot cancel or collapse through clean cells
+TypeError: measureNativeCalibration is not a function
+ ❯ test/performance/native-summary.test.ts:208:12
+    206|     const cal=calibration.map(e=>scaleSample(e,e.cell.seed===558301?1.…
+    207|     const expected=Math.expm1((Math.log1p(.05)+Math.log1p(.05))/3)
+    208|     expect(measureNativeCalibration(baseline,cal).primaryNoise).toBeCl…
+       |            ^
+    209|   })
+    210| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/18]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  18 failed | 27 passed (45)
+   Start at  07:08:38
+   Duration  479ms (transform 212ms, setup 0ms, import 248ms, tests 135ms, environment 0ms)
+
+
+V2 RED exit=1 (must be nonzero)
+
+V2 GREEN attempt1: approved hybrid/floor-adjusted paired-block policy
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-summary.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+
+ Test Files  1 passed (1)
+      Tests  46 passed (46)
+   Start at  07:12:16
+   Duration  2.77s (transform 237ms, setup 0ms, import 278ms, tests 2.40s, environment 0ms)
+
+
+V2 GREEN attempt1 exit=0
+
+V2 final scoped validation; candidate quantum cannot widen frozen control budgets
+npm notice run npx
+npm notice run 'biome' check --write scripts/performance/native-summary.js test/performance/native-summary.test.ts
+Checked 2 files in 20ms. Fixed 2 files.
+npm notice run npx
+npm notice run 'tsc' --ignoreConfig --allowJs --checkJs --noEmit --strict --target es2022 --module nodenext --moduleResolution nodenext --types node --skipLibCheck scripts/performance/native-summary.js
+scripts/performance/native-policy.js(4,14): error TS7006: Parameter 'value' implicitly has an 'any' type.
+Explicit checkJs exit=1 (includes imported parent-owned policy)
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-summary.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/native-summary.test.ts (49 tests | 1 failed) 2758ms
+     × When five matched timer quanta exceed the absolute floor Then they define a frozen equality boundary 161ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given same-seed calibration and candidate block medians > When five matched timer quanta exceed the absolute floor Then they define a frozen equality boundary
+AssertionError: expected [Function] to throw error matching /budget/ but got 'invalid timing order'
+
+- Expected:
+/budget/
+
++ Received:
+"invalid timing order"
+
+ ❯ test/performance/native-summary.test.ts:335:7
+    333|         candidate.map((e) => coarse(withInput(e, 15.001))),
+    334|       ),
+    335|     ).toThrow(/budget/)
+       |       ^
+    336|     expect(
+    337|       compareNative(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 48 passed (49)
+   Start at  07:15:41
+   Duration  3.10s (transform 210ms, setup 0ms, import 250ms, tests 2.76s, environment 0ms)
+
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+npm error workspace obsidian-excalidraw-layer-manager@0.1.0
+npm error location /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+npm error command failed
+npm error command sh -c vitest run test/performance/native-summary.test.ts --cache=false
+
+V2 final tests exit=1
+
+V2 final recheck: synthetic input boundary preserves promiseComplete>=inputSync
+npm notice run npx
+npm notice run 'biome' check --write scripts/performance/native-summary.js test/performance/native-summary.test.ts
+Checked 2 files in 19ms. Fixed 1 file.
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-summary.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+
+ Test Files  1 passed (1)
+      Tests  49 passed (49)
+   Start at  07:16:16
+   Duration  3.11s (transform 189ms, setup 0ms, import 229ms, tests 2.78s, environment 0ms)
+
+
+V2 final green exit=0

@@ -1,0 +1,516 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 check:fast
+npm notice run npm run lint && npm run typecheck && npm run typecheck:scripts
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 lint
+npm notice run biome check .
+docs/evidence/2026-09-08-rename-refresh/rename-acceptance.js:51:42 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    49 │     for (const kind of ["ordinary", "frame"]) {
+    50 │       const before = label(kind)
+  > 51 │       const original = await begin(kind, "AK5575 " + kind + " verified")
+       │                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    52 │       for (let cycle = 0; cycle < 3; cycle++) {
+    53 │         rt.refresh()
+  
+  i Unsafe fix: Use a template literal.
+  
+     49  49 │       for (const kind of ["ordinary", "frame"]) {
+     50  50 │         const before = label(kind)
+     51     │ - ······const·original·=·await·begin(kind,·"AK5575·"·+·kind·+·"·verified")
+         51 │ + ······const·original·=·await·begin(kind,·`AK5575·${kind}·verified`)
+     52  52 │         for (let cycle = 0; cycle < 3; cycle++) {
+     53  53 │           rt.refresh()
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-acceptance.js:57:11 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    55 │         const i = current()
+    56 │         check(
+  > 57 │           kind + " refresh " + cycle + " keeps focused draft/caret",
+       │           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    58 │           !!i &&
+    59 │             document.activeElement === i &&
+  
+  i Unsafe fix: Use a template literal.
+  
+     55  55 │           const i = current()
+     56  56 │           check(
+     57     │ - ··········kind·+·"·refresh·"·+·cycle·+·"·keeps·focused·draft/caret",
+         57 │ + ··········`${kind}·refresh·${cycle}·keeps·focused·draft/caret`,
+     58  58 │             !!i &&
+     59  59 │               document.activeElement === i &&
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-refresh.js:25:27 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    23 │       ...document.querySelectorAll('#lmx-sidepanel-content-root [role="treeitem"]'),
+    24 │     ].find((r) => r.id.endsWith(id))
+  > 25 │     if (!row) throw Error("row missing " + id)
+       │                           ^^^^^^^^^^^^^^^^^^^
+    26 │     row.querySelector('[aria-label="Rename layer"]').click()
+    27 │     await sleep(80)
+  
+  i Unsafe fix: Use a template literal.
+  
+     23  23 │         ...document.querySelectorAll('#lmx-sidepanel-content-root [role="treeitem"]'),
+     24  24 │       ].find((r) => r.id.endsWith(id))
+     25     │ - ····if·(!row)·throw·Error("row·missing·"·+·id)
+         25 │ + ····if·(!row)·throw·Error(`row·missing·${id}`)
+     26  26 │       row.querySelector('[aria-label="Rename layer"]').click()
+     27  27 │       await sleep(80)
+  
+
+docs/evidence/2026-09-08-rename-refresh/rename-refresh.js:30:19 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    28 │     const input = document.querySelector('#lmx-sidepanel-content-root [role="treeitem"] input')
+    29 │     if (!input) throw Error("input missing")
+  > 30 │     const draft = "AK5575 " + kind + " uncommitted draft"
+       │                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    31 │     input.focus()
+    32 │     input.value = draft
+  
+  i Unsafe fix: Use a template literal.
+  
+     28  28 │       const input = document.querySelector('#lmx-sidepanel-content-root [role="treeitem"] input')
+     29  29 │       if (!input) throw Error("input missing")
+     30     │ - ····const·draft·=·"AK5575·"·+·kind·+·"·uncommitted·draft"
+         30 │ + ····const·draft·=·`AK5575·${kind}·uncommitted·draft`
+     31  31 │       input.focus()
+     32  32 │       input.value = draft
+  
+
+scripts/performance/native-case.js:72:62 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    70 │     try {
+    71 │       const snapshot = { at: new Date().toISOString(), ...(await resources(host.owned.pid)) }
+  > 72 │       await appendFile(join(root, "resource-samples.jsonl"), JSON.stringify(snapshot) + "\n")
+       │                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    73 │       if (
+    74 │         snapshot.rssMiB >= RESOURCE_LIMITS.rssMiB ||
+  
+  i Unsafe fix: Use a template literal.
+  
+     70  70 │       try {
+     71  71 │         const snapshot = { at: new Date().toISOString(), ...(await resources(host.owned.pid)) }
+     72     │ - ······await·appendFile(join(root,·"resource-samples.jsonl"),·JSON.stringify(snapshot)·+·"\n")
+         72 │ + ······await·appendFile(join(root,·"resource-samples.jsonl"),·`${JSON.stringify(snapshot)}\n`)
+     73  73 │         if (
+     74  74 │           snapshot.rssMiB >= RESOURCE_LIMITS.rssMiB ||
+  
+
+scripts/performance/native-case.js:138:55 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    136 │       }
+    137 │       envelopes.push(envelope)
+  > 138 │       await appendFile(join(root, "envelopes.jsonl"), JSON.stringify(envelope) + "\n")
+        │                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    139 │     }
+    140 │     console.log(
+  
+  i Unsafe fix: Use a template literal.
+  
+    136 136 │         }
+    137 137 │         envelopes.push(envelope)
+    138     │ - ······await·appendFile(join(root,·"envelopes.jsonl"),·JSON.stringify(envelope)·+·"\n")
+        138 │ + ······await·appendFile(join(root,·"envelopes.jsonl"),·`${JSON.stringify(envelope)}\n`)
+    139 139 │       }
+    140 140 │       console.log(
+  
+
+scripts/performance/native-matrix.js:143:9 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    141 │       await appendFile(
+    142 │         join(output, "dispatches.jsonl"),
+  > 143 │         JSON.stringify({ at: c.startedAt, case: c.id, command: "heavy-job", argv }) + "\n",
+        │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    144 │       )
+    145 │       const log = await open(join(output, `${c.id}-driver.txt`), "wx")
+  
+  i Unsafe fix: Use a template literal.
+  
+    141 141 │         await appendFile(
+    142 142 │           join(output, "dispatches.jsonl"),
+    143     │ - ········JSON.stringify({·at:·c.startedAt,·case:·c.id,·command:·"heavy-job",·argv·})·+·"\n",
+        143 │ + ········`${JSON.stringify({·at:·c.startedAt,·case:·c.id,·command:·"heavy-job",·argv·})}\n`,
+    144 144 │         )
+    145 145 │         const log = await open(join(output, `${c.id}-driver.txt`), "wx")
+  
+
+scripts/performance/native-page.js:323:15 lint/style/useNodejsImportProtocol  FIXABLE  ━━━━━━━━━━━━━
+
+  i A Node.js builtin module should be imported with the node: protocol.
+  
+    321 │     observer?.disconnect()
+    322 │     if (raw)
+  > 323 │       require("fs").appendFileSync(
+        │               ^^^^
+    324 │         b.config.output + "/raw-samples.jsonl",
+    325 │         JSON.stringify(raw) + "\n",
+  
+  i Using the node: protocol is more explicit and signals that the imported module belongs to Node.js.
+  
+  i Unsafe fix: Add the node: protocol.
+  
+    321 321 │       observer?.disconnect()
+    322 322 │       if (raw)
+    323     │ - ······require("fs").appendFileSync(
+        323 │ + ······require("node:fs").appendFileSync(
+    324 324 │           b.config.output + "/raw-samples.jsonl",
+    325 325 │           JSON.stringify(raw) + "\n",
+  
+
+scripts/performance/native-page.js:324:9 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    322 │     if (raw)
+    323 │       require("fs").appendFileSync(
+  > 324 │         b.config.output + "/raw-samples.jsonl",
+        │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    325 │         JSON.stringify(raw) + "\n",
+    326 │       )
+  
+  i Unsafe fix: Use a template literal.
+  
+    322 322 │       if (raw)
+    323 323 │         require("fs").appendFileSync(
+    324     │ - ········b.config.output·+·"/raw-samples.jsonl",
+        324 │ + ········`${b.config.output}/raw-samples.jsonl`,
+    325 325 │           JSON.stringify(raw) + "\n",
+    326 326 │         )
+  
+
+scripts/performance/native-page.js:325:9 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    323 │       require("fs").appendFileSync(
+    324 │         b.config.output + "/raw-samples.jsonl",
+  > 325 │         JSON.stringify(raw) + "\n",
+        │         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    326 │       )
+    327 │   }
+  
+  i Unsafe fix: Use a template literal.
+  
+    323 323 │         require("fs").appendFileSync(
+    324 324 │           b.config.output + "/raw-samples.jsonl",
+    325     │ - ········JSON.stringify(raw)·+·"\n",
+        325 │ + ········`${JSON.stringify(raw)}\n`,
+    326 326 │         )
+    327 327 │     }
+  
+
+scripts/performance/native-preparation.js:59:21 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    57 │         .sort()
+    58 │         .filter((k) => value[k] !== undefined)
+  > 59 │         .map((k) => JSON.stringify(k) + ":" + canonical(value[k]))
+       │                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    60 │         .join(",")}}`
+    61 │     return JSON.stringify(value)
+  
+  i Unsafe fix: Use a template literal.
+  
+     57  57 │           .sort()
+     58  58 │           .filter((k) => value[k] !== undefined)
+     59     │ - ········.map((k)·=>·JSON.stringify(k)·+·":"·+·canonical(value[k]))
+         59 │ + ········.map((k)·=>·`${JSON.stringify(k)}:${canonical(value[k])}`)
+     60  60 │           .join(",")}}`
+     61  61 │       return JSON.stringify(value)
+  
+
+scripts/performance/native-preparation.js:64:13 lint/style/useNodejsImportProtocol  FIXABLE  ━━━━━━━━━━
+
+  i A Node.js builtin module should be imported with the node: protocol.
+  
+    62 │   }
+    63 │   const digest = (value) =>
+  > 64 │     require("crypto").createHash("sha256").update(canonical(value)).digest("hex")
+       │             ^^^^^^^^
+    65 │   const equal = (actual, expected, label) => {
+    66 │     if (digest(actual) !== digest(expected)) throw Error(`${label}: exact semantic mismatch`)
+  
+  i Using the node: protocol is more explicit and signals that the imported module belongs to Node.js.
+  
+  i Unsafe fix: Add the node: protocol.
+  
+     62  62 │     }
+     63  63 │     const digest = (value) =>
+     64     │ - ····require("crypto").createHash("sha256").update(canonical(value)).digest("hex")
+         64 │ + ····require("node:crypto").createHash("sha256").update(canonical(value)).digest("hex")
+     65  65 │     const equal = (actual, expected, label) => {
+     66  66 │       if (digest(actual) !== digest(expected)) throw Error(`${label}: exact semantic mismatch`)
+  
+
+scripts/performance/native-preparation.js:142:11 lint/style/useNodejsImportProtocol  FIXABLE  ━━━━━━━━━━
+
+  i A Node.js builtin module should be imported with the node: protocol.
+  
+    140 │     pluginVersion: p.manifest.version,
+    141 │   }
+  > 142 │   require("fs").writeFileSync(
+        │           ^^^^
+    143 │     config.output + "/fixture.json",
+    144 │     JSON.stringify({
+  
+  i Using the node: protocol is more explicit and signals that the imported module belongs to Node.js.
+  
+  i Unsafe fix: Add the node: protocol.
+  
+    140 140 │       pluginVersion: p.manifest.version,
+    141 141 │     }
+    142     │ - ··require("fs").writeFileSync(
+        142 │ + ··require("node:fs").writeFileSync(
+    143 143 │       config.output + "/fixture.json",
+    144 144 │       JSON.stringify({
+  
+
+scripts/performance/native-preparation.js:143:5 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    141 │   }
+    142 │   require("fs").writeFileSync(
+  > 143 │     config.output + "/fixture.json",
+        │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    144 │     JSON.stringify({
+    145 │       ...fixture,
+  
+  i Unsafe fix: Use a template literal.
+  
+    141 141 │     }
+    142 142 │     require("fs").writeFileSync(
+    143     │ - ····config.output·+·"/fixture.json",
+        143 │ + ····`${config.output}/fixture.json`,
+    144 144 │       JSON.stringify({
+    145 145 │         ...fixture,
+  
+
+scripts/performance/native-prerequisites.js:69:54 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    67 │     argv,
+    68 │   }
+  > 69 │   await writeFile(join(output, `${kind}-exit.json`), JSON.stringify(receipt, null, 2) + "\n", {
+       │                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    70 │     flag: "wx",
+    71 │   })
+  
+  i Unsafe fix: Use a template literal.
+  
+    67 67 │       argv,
+    68 68 │     }
+    69    │ - ··await·writeFile(join(output,·`${kind}-exit.json`),·JSON.stringify(receipt,·null,·2)·+·"\n",·{
+       69 │ + ··await·writeFile(join(output,·`${kind}-exit.json`),·`${JSON.stringify(receipt,·null,·2)}\n`,·{
+    70 70 │       flag: "wx",
+    71 71 │     })
+  
+
+scripts/performance/native-page.js:6:7 lint/complexity/useOptionalChain  FIXABLE  ━━━━━━━━━━━━━━━━━━
+
+  ! Change to an optional chain.
+  
+    4 │ export async function runNativeOperation(operation, index) {
+    5 │   const b = globalThis.__AK5583
+  > 6 │   if (!b || b.effect !== "settled")
+      │       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    7 │     throw Error("fixture unavailable or previous effects indeterminate")
+    8 │   const { api, runtime, digest, equal, dto, sceneProjection, expectedRows } = b
+  
+  i Unsafe fix: Change to an optional chain.
+  
+      4   4 │   export async function runNativeOperation(operation, index) {
+      5   5 │     const b = globalThis.__AK5583
+      6     │ - ··if·(!b·||·b.effect·!==·"settled")
+          6 │ + ··if·(b?.effect·!==·"settled")
+      7   7 │       throw Error("fixture unavailable or previous effects indeterminate")
+      8   8 │     const { api, runtime, digest, equal, dto, sceneProjection, expectedRows } = b
+  
+
+test/performance/native-window.test.ts:34:71 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    32 │     expect(f.settings.close).toHaveBeenCalledOnce()
+    33 │     expect(f.main.close).not.toHaveBeenCalled()
+  > 34 │     expect(f.settings.close.mock.invocationCallOrder[0]).toBeLessThan(f.main.focus.mock.invocationCallOrder[0]!)
+       │                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    35 │     expect(result).toMatchObject({ current: 1, closedSettings: [2], remaining: [1] })
+    36 │   })
+  
+
+scripts/performance/native-host.js:2:1 assist/source/organizeImports  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━
+
+  × Sort these imports.
+  
+     1 │ // Linux-only owned native host. Never attaches to existing endpoints/profiles.
+   > 2 │ import { execFileSync, spawn } from "node:child_process"
+       │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   > 3 │ import { createHash, randomUUID } from "node:crypto"
+   > 4 │ import {
+        ...
+  > 21 │ import { stopOwnedProcess } from "./native-process.js"
+  > 22 │ import { assertHostIdentity, RESOURCE_LIMITS } from "./native-safety.js"
+       │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    23 │ 
+    24 │ export const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..")
+  
+  i Safe fix: Organize imports and exports (Biome)
+  
+     18  18 │   import { build } from "esbuild"
+     19  19 │   import { focusNativeHost } from "./native-focus.js"
+     20     │ - import·{·prepareNativeWindow·}·from·"./native-window.js"
+     21     │ - import·{·stopOwnedProcess·}·from·"./native-process.js"
+     22     │ - import·{·assertHostIdentity,·RESOURCE_LIMITS·}·from·"./native-safety.js"
+         20 │ + import·{·stopOwnedProcess·}·from·"./native-process.js"
+         21 │ + import·{·assertHostIdentity,·RESOURCE_LIMITS·}·from·"./native-safety.js"
+         22 │ + import·{·prepareNativeWindow·}·from·"./native-window.js"
+     23  23 │   
+     24  24 │   export const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..")
+  
+
+scripts/performance/native-window.js format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+    21 21 │     if (
+    22 22 │       main.url !== "app://obsidian.md/index.html" ||
+    23    │ - ····!Number.isSafeInteger(main.rendererPid)·||·main.rendererPid·<=·0·||
+       23 │ + ····!Number.isSafeInteger(main.rendererPid)·||
+       24 │ + ····main.rendererPid·<=·0·||
+    24 25 │       windows.filter((window) => window.id === w.id).length !== 1 ||
+    25 26 │       others.length > 1 ||
+    26 27 │       others.some((window) => {
+    27 28 │         const info = describe(window)
+    28    │ - ······return·info.url·!==·"about:blank"·||·!info.title.startsWith("Settings·-·")·||
+    29    │ - ········info.rendererPid·!==·main.rendererPid·||·info.modal
+       29 │ + ······return·(
+       30 │ + ········info.url·!==·"about:blank"·||
+       31 │ + ········!info.title.startsWith("Settings·-·")·||
+       32 │ + ········info.rendererPid·!==·main.rendererPid·||
+       33 │ + ········info.modal
+       34 │ + ······)
+    30 35 │       })
+    31    │ - ··)·throw·Error("unexpected·native·window·inventory;·no·close/focus·fallback")
+       36 │ + ··)
+       37 │ + ····throw·Error("unexpected·native·window·inventory;·no·close/focus·fallback")
+    32 38 │     const closedSettings = []
+    33 39 │     for (const window of others) {
+  
+
+test/performance/native-window.test.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+     6  6 │       id,
+     7  7 │       gone: false,
+     8    │ - ····isDestroyed()·{·return·this.gone·},
+        8 │ + ····isDestroyed()·{
+        9 │ + ······return·this.gone
+       10 │ + ····},
+     9 11 │       isVisible: () => true,
+    10 12 │       isFocused: () => false,
+    ····· │ 
+    13 15 │       getParentWindow: () => undefined,
+    14 16 │       isModal: () => false,
+    15    │ - ····webContents:·{·id,·getURL:·()·=>·url,·getOSProcessId:·()·=>·pid,·getLastWebPreferences:·()·=>·({})·},
+       17 │ + ····webContents:·{
+       18 │ + ······id,
+       19 │ + ······getURL:·()·=>·url,
+       20 │ + ······getOSProcessId:·()·=>·pid,
+       21 │ + ······getLastWebPreferences:·()·=>·({}),
+       22 │ + ····},
+    16 23 │       show: vi.fn(),
+    17 24 │       focus: vi.fn(),
+    18    │ - ····close:·vi.fn(function·(this:·{·gone:·boolean·})·{·this.gone·=·true·}),
+       25 │ + ····close:·vi.fn(function·(this:·{·gone:·boolean·})·{
+       26 │ + ······this.gone·=·true
+       27 │ + ····}),
+    19 28 │     })
+    20 29 │     const main = window(1, "vault", "app://obsidian.md/index.html")
+    21 30 │     const settings = window(2, "Settings - vault - Obsidian 1.13.4", "about:blank")
+    22 31 │     const windows = [main, settings]
+    23    │ - ··const·remote·=·{·getCurrentWindow:·()·=>·main,·BrowserWindow:·{·getAllWindows:·()·=>·windows.filter(w·=>·!w.gone)·}·}
+       32 │ + ··const·remote·=·{
+       33 │ + ····getCurrentWindow:·()·=>·main,
+       34 │ + ····BrowserWindow:·{·getAllWindows:·()·=>·windows.filter((w)·=>·!w.gone)·},
+       35 │ + ··}
+    24 36 │     return { main, settings, windows, remote, window }
+    25 37 │   }
+    ····· │ 
+    32 44 │       expect(f.settings.close).toHaveBeenCalledOnce()
+    33 45 │       expect(f.main.close).not.toHaveBeenCalled()
+    34    │ - ····expect(f.settings.close.mock.invocationCallOrder[0]).toBeLessThan(f.main.focus.mock.invocationCallOrder[0]!)
+       46 │ + ····expect(f.settings.close.mock.invocationCallOrder[0]).toBeLessThan(
+       47 │ + ······f.main.focus.mock.invocationCallOrder[0]!,
+       48 │ + ····)
+    35 49 │       expect(result).toMatchObject({ current: 1, closedSettings: [2], remaining: [1] })
+    36 50 │     })
+    37 51 │     it("When no secondary window exists Then leave the main host intact", async () => {
+    38    │ - ····const·f·=·fixture();·f.windows.pop()
+    39    │ - ····expect(await·prepareNativeWindow(f.remote)).toMatchObject({·closedSettings:·[],·remaining:·[1]·})
+       52 │ + ····const·f·=·fixture()
+       53 │ + ····f.windows.pop()
+       54 │ + ····expect(await·prepareNativeWindow(f.remote)).toMatchObject({
+       55 │ + ······closedSettings:·[],
+       56 │ + ······remaining:·[1],
+       57 │ + ····})
+    40 58 │       expect(f.main.close).not.toHaveBeenCalled()
+    41 59 │     })
+    42 60 │     it.each(["foreign-renderer", "unknown-window", "duplicate-settings", "wrong-main"])(
+    43    │ - ····"When·inventory·is·%s·Then·fail·before·closing·or·focusing·anything",·async·mode·=>·{
+       61 │ + ····"When·inventory·is·%s·Then·fail·before·closing·or·focusing·anything",
+       62 │ + ····async·(mode)·=>·{
+    44 63 │         const f = fixture()
+    45 64 │         if (mode === "foreign-renderer") f.settings.webContents.getOSProcessId = () => 99
+    46 65 │         if (mode === "unknown-window") f.windows.push(f.window(3, "Other", "about:blank"))
+    47    │ - ······if·(mode·===·"duplicate-settings")·f.windows.push(f.window(3,·"Settings·-·vault",·"about:blank"))
+       66 │ + ······if·(mode·===·"duplicate-settings")
+       67 │ + ········f.windows.push(f.window(3,·"Settings·-·vault",·"about:blank"))
+    48 68 │         if (mode === "wrong-main") f.main.webContents.getURL = () => "about:blank"
+    49 69 │         await expect(prepareNativeWindow(f.remote)).rejects.toThrow(/native window/)
+    ····· │ 
+    54 74 │     it("When Settings prevents close Then fail rather than destroy it or admit measurement", async () => {
+    55 75 │       vi.useFakeTimers()
+    56    │ - ····const·f·=·fixture();·f.settings.close.mockImplementation(()·=>·{})
+       76 │ + ····const·f·=·fixture()
+       77 │ + ····f.settings.close.mockImplementation(()·=>·{})
+    57 78 │       const result = expect(prepareNativeWindow(f.remote)).rejects.toThrow(/native window/)
+    58 79 │       await vi.runAllTimersAsync()
+  
+
+The number of diagnostics exceeds the limit allowed. Use --max-diagnostics to increase it.
+Diagnostics not shown: 31.
+Checked 271 files in 65ms. No fixes applied.
+Found 3 errors.
+Found 22 warnings.
+Found 26 infos.
+check ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Some errors were emitted while running checks.
+  
+
+npm error Lifecycle script `lint` failed with error:
+npm error code 1
+npm error path /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+npm error workspace obsidian-excalidraw-layer-manager@0.1.0
+npm error location /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+npm error command failed
+npm error command sh -c biome check .

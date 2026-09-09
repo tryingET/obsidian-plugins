@@ -1,0 +1,65 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-focus.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/native-focus.test.ts (3 tests | 3 failed) 7ms
+     × When Niri provides window identities Then select only the unique exact fresh owned PID 5ms
+     × When PID proof is absent, foreign or ambiguous Then never fall back to title/app-id 1ms
+     × When a window id is malformed Then no desktop action is admissible 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/native-focus.test.ts > Given native desktop focus must not target a personal Obsidian window > When Niri provides window identities Then select only the unique exact fresh owned PID
+AssertionError: expected { id: 1, pid: 10 } to deeply equal { id: 2, pid: 20 }
+
+- Expected
++ Received
+
+  {
+-   "id": 2,
+-   "pid": 20,
++   "id": 1,
++   "pid": 10,
+  }
+
+ ❯ test/performance/native-focus.test.ts:5:73
+      3| describe('Given native desktop focus must not target a personal Obsidi…
+      4|   it('When Niri provides window identities Then select only the unique…
+      5|     expect(selectOwnedWindow({'1':{id:1,pid:10},'2':{id:2,pid:20}},20)…
+       |                                                                         ^
+      6|   })
+      7|   it('When PID proof is absent, foreign or ambiguous Then never fall b…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  test/performance/native-focus.test.ts > Given native desktop focus must not target a personal Obsidian window > When PID proof is absent, foreign or ambiguous Then never fall back to title/app-id
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/native-focus.test.ts:8:59
+      6|   })
+      7|   it('When PID proof is absent, foreign or ambiguous Then never fall b…
+      8|     expect(()=>selectOwnedWindow({'1':{id:1,pid:10}},20)).toThrow()
+       |                                                           ^
+      9|     expect(()=>selectOwnedWindow({'1':{id:1,pid:null}},20)).toThrow()
+     10|     expect(()=>selectOwnedWindow({'1':{id:1,pid:20},'2':{id:2,pid:20}}…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  test/performance/native-focus.test.ts > Given native desktop focus must not target a personal Obsidian window > When a window id is malformed Then no desktop action is admissible
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/native-focus.test.ts:14:61
+     12|   })
+     13|   it('When a window id is malformed Then no desktop action is admissib…
+     14|     expect(()=>selectOwnedWindow({'1':{id:NaN,pid:20}},20)).toThrow()
+       |                                                             ^
+     15|   })
+     16| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed (3)
+   Start at  07:45:20
+   Duration  134ms (transform 14ms, setup 0ms, import 23ms, tests 7ms, environment 0ms)
+

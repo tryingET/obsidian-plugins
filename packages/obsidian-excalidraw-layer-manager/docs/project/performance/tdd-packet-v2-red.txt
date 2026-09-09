@@ -1,0 +1,28 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-packet.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/native-packet.test.ts (8 tests | 1 failed) 6ms
+     × When phase alignment or measured clock resolution is missing Then v2 refuses the packet 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/native-packet.test.ts > Given independent native semantic digests and complete raw timing evidence > When phase alignment or measured clock resolution is missing Then v2 refuses the packet
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/native-packet.test.ts:32:121
+     30| describe("Given independent native semantic digests and complete raw t…
+     31|   it('When phase alignment or measured clock resolution is missing The…
+     32|     for(const timerQuantumMs of [0,-1,Number.NaN,Infinity])expect(()=>…
+       |                                                                                                                         ^
+     33|     expect(()=>validateNativePacket({...good(),inputPhase:'uncontrolle…
+     34|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 7 passed (8)
+   Start at  07:08:01
+   Duration  166ms (transform 57ms, setup 0ms, import 72ms, tests 6ms, environment 0ms)
+

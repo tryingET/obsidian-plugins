@@ -1,0 +1,31 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-prerequisite-proof.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/native-prerequisite-proof.test.ts (3 tests | 2 failed) 5ms
+     × When post-result integrity failed Then passed semantic content cannot qualify 3ms
+     × When exit is missing, failed, signalled, foreign or cleanup incomplete Then reject 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/native-prerequisite-proof.test.ts > Given a semantic result can precede a later failed child closeout > When post-result integrity failed Then passed semantic content cannot qualify
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/native-prerequisite-proof.test.ts:8:192
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  test/performance/native-prerequisite-proof.test.ts > Given a semantic result can precede a later failed child closeout > When exit is missing, failed, signalled, foreign or cleanup incomplete Then reject
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/native-prerequisite-proof.test.ts:10:218
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 1 passed (3)
+   Start at  09:34:56
+   Duration  138ms (transform 15ms, setup 0ms, import 24ms, tests 5ms, environment 0ms)
+

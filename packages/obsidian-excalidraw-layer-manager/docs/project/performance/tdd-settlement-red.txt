@@ -1,0 +1,87 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-settlement.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/native-settlement.test.ts (3 tests | 3 failed) 8ms
+     × When its revision changes during the first render opportunity Then wait for a fresh stable pair 4ms
+     × When semantic readiness never arrives Then fail at the bounded synchronization gate 2ms
+     × When semantics become stale between frames Then reject false settlement 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/native-settlement.test.ts > Given a dispatched native action that must not be replayed > When its revision changes during the first render opportunity Then wait for a fresh stable pair
+AssertionError: expected 1 to be 2 // Object.is equality
+
+- Expected
++ Received
+
+- 2
++ 1
+
+ ❯ test/performance/native-settlement.test.ts:7:29
+      5|     let time=0,revision=1
+      6|     const result=await settleUntilStable({ready:()=>true,identity:()=>…
+      7|     expect(result.identity).toBe(2)
+       |                             ^
+      8|     expect(result.opportunities).toHaveLength(2)
+      9|     expect(result.attempts).toBeGreaterThan(1)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  test/performance/native-settlement.test.ts > Given a dispatched native action that must not be replayed > When semantic readiness never arrives Then fail at the bounded synchronization gate
+AssertionError: promise resolved "{ settlement: +0, …(3) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "attempts": 0,
++   "identity": 1,
++   "opportunities": [],
++   "settlement": 0,
+  }
+
+ ❯ test/performance/native-settlement.test.ts:14:113
+     12|   it("When semantic readiness never arrives Then fail at the bounded s…
+     13|     let time=0
+     14|     await expect(settleUntilStable({ready:()=>false,identity:()=>1,now…
+       |                                                                                                                 ^
+     15|   })
+     16|   it("When semantics become stale between frames Then reject false set…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  test/performance/native-settlement.test.ts > Given a dispatched native action that must not be replayed > When semantics become stale between frames Then reject false settlement
+AssertionError: promise resolved "{ settlement: +0, …(3) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "attempts": 0,
++   "identity": 1,
++   "opportunities": [],
++   "settlement": 0,
+  }
+
+ ❯ test/performance/native-settlement.test.ts:18:116
+     16|   it("When semantics become stale between frames Then reject false set…
+     17|     let time=0
+     18|     await expect(settleUntilStable({ready:()=>time===0,identity:()=>1,…
+       |                                                                                                                    ^
+     19|   })
+     20| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed (3)
+   Start at  06:16:01
+   Duration  133ms (transform 22ms, setup 0ms, import 30ms, tests 8ms, environment 0ms)
+

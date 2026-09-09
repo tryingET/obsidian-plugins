@@ -1,0 +1,127 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-process.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/native-process.test.ts (34 tests | 6 failed) 19ms
+     × When the verified TERM leader becomes a zombie Then await actual absence without signaling it again 6ms
+     × When a verified zombie persists Then retain indeterminate evidence and never KILL it 3ms
+     × When a tracked child becomes zombie immediately before KILL Then skip the signal and await absence 1ms
+     × When argv is NUL-delimited or Electron-flattened Then exact tokens are retained 1ms
+     × When argv is NUL-delimited or Electron-flattened Then exact tokens are retained 1ms
+     × When the proc stat PID disagrees or fields are malformed Then identity parsing fails closed 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/native-process.test.ts > Given one identity-recorded disposable native process group > When the verified TERM leader becomes a zombie Then await actual absence without signaling it again
+AssertionError: expected 'indeterminate' to be 'stopped' // Object.is equality
+
+Expected: "stopped"
+Received: "indeterminate"
+
+ ❯ test/performance/native-process.test.ts:43:63
+     41|     w.signal.mockImplementation(async () => { w.processes.set(100, { .…
+     42|     w.sleep.mockImplementation(async () => { w.processes.delete(100) })
+     43|     expect((await stopOwnedProcess(owned, w, bounds)).status).toBe("st…
+       |                                                               ^
+     44|     expect(w.signal.mock.calls).toEqual([[100, "SIGTERM"]])
+     45|     expect(w.sleep).toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  test/performance/native-process.test.ts > Given one identity-recorded disposable native process group > When a verified zombie persists Then retain indeterminate evidence and never KILL it
+AssertionError: expected [ { pid: 100, start: '12345', …(2) } ] to match object [ { pid: 100, state: 'Z', …(1) } ]
+(3 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  [
+    {
+-     "cmdlineEmpty": true,
+      "pid": 100,
+-     "state": "Z",
+    },
+  ]
+
+ ❯ test/performance/native-process.test.ts:52:30
+     50|     const result = await stopOwnedProcess(owned, w, bounds)
+     51|     expect(result.status).toBe("indeterminate")
+     52|     expect(result.remaining).toMatchObject([{ pid: 100, state: "Z", cm…
+       |                              ^
+     53|     expect(w.sleep).toHaveBeenCalledTimes(4)
+     54|     expect(w.signal.mock.calls).toEqual([[100, "SIGTERM"]])
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  test/performance/native-process.test.ts > Given one identity-recorded disposable native process group > When a tracked child becomes zombie immediately before KILL Then skip the signal and await absence
+AssertionError: expected [ [ 100, 'SIGTERM' ], …(1) ] to deeply equal [ [ 100, 'SIGTERM' ] ]
+
+- Expected
++ Received
+
+  [
+    [
+      100,
+      "SIGTERM",
+    ],
++   [
++     101,
++     "SIGKILL",
++   ],
+  ]
+
+ ❯ test/performance/native-process.test.ts:93:33
+     91|     w.sleep.mockImplementation(async () => { if (w.processes.get(101)?…
+     92|     expect((await stopOwnedProcess(owned, w, bounds)).status).toBe("st…
+     93|     expect(w.signal.mock.calls).toEqual([[100, "SIGTERM"]])
+       |                                 ^
+     94|   })
+     95|   it("When the matching leader exits after TERM Then only that exact P…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  test/performance/native-process.test.ts > Given Linux proc snapshots for a controlled space-free profile > When argv is NUL-delimited or Electron-flattened Then exact tokens are retained
+ FAIL  test/performance/native-process.test.ts > Given Linux proc snapshots for a controlled space-free profile > When argv is NUL-delimited or Electron-flattened Then exact tokens are retained
+AssertionError: expected { pid: 100, start: '12345', …(3) } to deeply equal { pid: 100, start: '12345', …(4) }
+
+- Expected
++ Received
+
+@@ -5,7 +5,6 @@
+    ],
+    "pgid": 100,
+    "pid": 100,
+    "sid": 100,
+    "start": "12345",
+-   "state": "S",
+  }
+
+ ❯ test/performance/native-process.test.ts:255:22
+    253|     (cmdline) => {
+    254|       const parsed = parseProcessIdentity(100, stat, cmdline)
+    255|       expect(parsed).toEqual({
+       |                      ^
+    256|         pid: 100,
+    257|         start: "12345",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  test/performance/native-process.test.ts > Given Linux proc snapshots for a controlled space-free profile > When the proc stat PID disagrees or fields are malformed Then identity parsing fails closed
+AssertionError: expected [Function] to throw an error
+ ❯ test/performance/native-process.test.ts:268:79
+    266|     expect(() => parseProcessIdentity(101, stat, "obsidian")).toThrow()
+    267|     expect(() => parseProcessIdentity(100, "100 broken", "obsidian")).…
+    268|     expect(() => parseProcessIdentity(100, stat.replace(") S ", ") ? "…
+       |                                                                               ^
+    269|     expect(parseProcessIdentity(100, stat.replace(") S ", ") Z "), "")…
+    270|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 28 passed (34)
+   Start at  10:55:32
+   Duration  198ms (transform 65ms, setup 0ms, import 77ms, tests 19ms, environment 0ms)
+

@@ -1,0 +1,32 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-summary.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/native-summary.test.ts (50 tests | 1 failed) 2834ms
+     × When real baseline/calibration summaries retain their roles Then identity rejection does not fabricate a candidate or nonce 89ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/native-summary.test.ts > Given the controller terminal unchanged-control path > When real baseline/calibration summaries retain their roles Then identity rejection does not fabricate a candidate or nonce
+AssertionError: expected [Function] to throw error including 'unchanged' but got 'assertChangedNativeSubject is not a f…'
+
+Expected: "unchanged"
+Received: "assertChangedNativeSubject is not a function"
+
+ ❯ test/performance/native-summary.test.ts:18:58
+     16|   it('When real baseline/calibration summaries retain their roles Then…
+     17|     const base=summarizeNative(baseline,'baseline'), control=summarize…
+     18|     expect(()=>assertChangedNativeSubject(base,control)).toThrow('unch…
+       |                                                          ^
+     19|     expect(base.role).toBe('baseline');expect(control.role).toBe('cali…
+     20|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 49 passed (50)
+   Start at  09:32:47
+   Duration  3.09s (transform 140ms, setup 0ms, import 177ms, tests 2.83s, environment 0ms)
+

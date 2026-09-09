@@ -1,0 +1,10 @@
+WARN: 7 kernel-protected current-uid process(es) were outside reference inspection
+WARN: 7 kernel-protected current-uid process(es) were outside reference inspection
+retention_admission={"label": "ak5583-host-assets", "retention_deferral": {"admission_scan_scope": "readable-current-uid", "deferred_manifest_sha256": "3048a36f394c095946a69be97f41e225677711cb42170b71d4560beb92efaeba", "deferred_root_dev": 50, "deferred_root_ino": 355143172, "deferred_run_id": "run-1788137699-9655c994d9827ead", "mode": "named-run-age-only", "owner_decision_id": "154", "protected_process_count": 7, "schema": "ai-society-heavy-job-retention-deferral/v1"}, "run_id": "run-1788931255-9eb66f976a6e59d3", "task_id": "5583"}
+retention_deferred_age_run=run-1788137699-9655c994d9827ead
+b66f01d2a6afbb6b7abd93e4b5c6602645f03c16ad2d6dd49fd5a90dddd87872  /home/tryinget/.local/opt/obsidian/Obsidian.AppImage
+65c6f106efc985a902b75fab26b2537d9a49d2536ca2e14d0d1009fb1851ab41  squashfs-root/obsidian
+51218495ad940a8515b202d380bde638be6570a198e121f7ca6d484a8a158917  squashfs-root/resources/obsidian.asar
+WARN: 7 kernel-protected current-uid process(es) were outside reference inspection
+WARN: 7 kernel-protected current-uid process(es) were outside reference inspection
+heavy_job_result=success scratch_cleanup=removed

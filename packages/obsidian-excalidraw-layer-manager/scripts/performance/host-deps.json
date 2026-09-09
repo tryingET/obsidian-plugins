@@ -1,0 +1,9 @@
+{
+  "pluginVersion": "2.27.3",
+  "baseUrl": "https://github.com/zsviczian/obsidian-excalidraw-plugin/releases/download/2.27.3/",
+  "files": {
+    "main.js": "8275e85d0f6314654a3d5ad86125d2e1b0018b4ffd60eddab2bbc8eefa0e13c1",
+    "manifest.json": "30bfc399dae79f7ca1ce050bb2a9497aada72ef576be831375571f5444f428a2",
+    "styles.css": "4a9b329e24abdc310ccd8a0fb91c7863619ceea2a0d266981a86d6c5ebd1abea"
+  }
+}

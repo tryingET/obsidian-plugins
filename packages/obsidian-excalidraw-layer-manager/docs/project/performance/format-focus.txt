@@ -1,0 +1,73 @@
+npm notice run npx
+npm notice run 'biome' check --write scripts/performance/native-focus.d.ts scripts/performance/native-focus.js scripts/performance/native-host.js scripts/performance/native-page.js scripts/performance/native-preparation.js scripts/performance/native-case.js scripts/performance/native-evaluate.js test/performance/native-focus.test.ts --max-diagnostics=3
+scripts/performance/native-case.js:72:62 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    70 │     try {
+    71 │       const snapshot = { at: new Date().toISOString(), ...(await resources(host.owned.pid)) }
+  > 72 │       await appendFile(join(root, "resource-samples.jsonl"), JSON.stringify(snapshot) + "\n")
+       │                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    73 │       if (
+    74 │         snapshot.rssMiB >= RESOURCE_LIMITS.rssMiB ||
+  
+  i Unsafe fix: Use a template literal.
+  
+     70  70 │       try {
+     71  71 │         const snapshot = { at: new Date().toISOString(), ...(await resources(host.owned.pid)) }
+     72     │ - ······await·appendFile(join(root,·"resource-samples.jsonl"),·JSON.stringify(snapshot)·+·"\n")
+         72 │ + ······await·appendFile(join(root,·"resource-samples.jsonl"),·`${JSON.stringify(snapshot)}\n`)
+     73  73 │         if (
+     74  74 │           snapshot.rssMiB >= RESOURCE_LIMITS.rssMiB ||
+  
+
+scripts/performance/native-case.js:138:55 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    136 │       }
+    137 │       envelopes.push(envelope)
+  > 138 │       await appendFile(join(root, "envelopes.jsonl"), JSON.stringify(envelope) + "\n")
+        │                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    139 │     }
+    140 │     console.log(
+  
+  i Unsafe fix: Use a template literal.
+  
+    136 136 │         }
+    137 137 │         envelopes.push(envelope)
+    138     │ - ······await·appendFile(join(root,·"envelopes.jsonl"),·JSON.stringify(envelope)·+·"\n")
+        138 │ + ······await·appendFile(join(root,·"envelopes.jsonl"),·`${JSON.stringify(envelope)}\n`)
+    139 139 │       }
+    140 140 │       console.log(
+  
+
+scripts/performance/native-preparation.js:59:21 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    57 │         .sort()
+    58 │         .filter((k) => value[k] !== undefined)
+  > 59 │         .map((k) => JSON.stringify(k) + ":" + canonical(value[k]))
+       │                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    60 │         .join(",")}}`
+    61 │     return JSON.stringify(value)
+  
+  i Unsafe fix: Use a template literal.
+  
+     57  57 │           .sort()
+     58  58 │           .filter((k) => value[k] !== undefined)
+     59     │ - ········.map((k)·=>·JSON.stringify(k)·+·":"·+·canonical(value[k]))
+         59 │ + ········.map((k)·=>·`${JSON.stringify(k)}:${canonical(value[k])}`)
+     60  60 │           .join(",")}}`
+     61  61 │       return JSON.stringify(value)
+  
+
+Skipped 10 suggested fixes.
+If you wish to apply the suggested (unsafe) fixes, use the command biome check --write --unsafe
+
+The number of diagnostics exceeds the limit allowed. Use --max-diagnostics to increase it.
+Diagnostics not shown: 7.
+Checked 8 files in 14ms. Fixed 5 files.
+Found 1 warning.
+Found 9 infos.

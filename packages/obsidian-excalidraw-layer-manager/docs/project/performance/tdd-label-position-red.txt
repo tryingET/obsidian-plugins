@@ -1,0 +1,35 @@
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance/native-sentinels.test.ts --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+ ❯ test/performance/native-sentinels.test.ts (22 tests | 1 failed) 15ms
+     × When constructing the mixed fixture Then use a resident font and explicit native freehand defaults 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/performance/native-sentinels.test.ts > Given native fixture metadata construction (synthetic source-slice tests) > When constructing the mixed fixture Then use a resident font and explicit native freehand defaults
+AssertionError: expected undefined to be null
+
+- Expected:
+null
+
++ Received:
+undefined
+
+ ❯ test/performance/native-sentinels.test.ts:53:62
+     51|     expect(textFont).toBe(2)
+     52|     expect(ea.style.fontFamily).toBe(5)
+     53|     expect(elements.get(result.ids.text)?.['labelPosition']).toBeNull()
+       |                                                              ^
+     54|     expect(elements.get(result.ids.freehand)?.["strokeOptions"]).toEqu…
+     55|       variability: "variable",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 21 passed (22)
+   Start at  09:17:43
+   Duration  196ms (transform 75ms, setup 0ms, import 88ms, tests 15ms, environment 0ms)
+

@@ -1,0 +1,18 @@
+WARN: 7 kernel-protected current-uid process(es) were outside reference inspection
+WARN: 7 kernel-protected current-uid process(es) were outside reference inspection
+retention_admission={"label": "ak5583-evaluator-tests", "retention_deferral": {"admission_scan_scope": "readable-current-uid", "deferred_manifest_sha256": "3048a36f394c095946a69be97f41e225677711cb42170b71d4560beb92efaeba", "deferred_root_dev": 50, "deferred_root_ino": 355143172, "deferred_run_id": "run-1788137699-9655c994d9827ead", "mode": "named-run-age-only", "owner_decision_id": "154", "protected_process_count": 7, "schema": "ai-society-heavy-job-retention-deferral/v1"}, "run_id": "run-1788931515-f633bdc21a0f8a67", "task_id": "5583"}
+retention_deferred_age_run=run-1788137699-9655c994d9827ead
+npm notice run obsidian-excalidraw-layer-manager@0.1.0 test
+npm notice run vitest run test/performance --cache=false
+
+ RUN  v4.1.11 /home/tryinget/ai-society/softwareco/owned/obsidian-plugins/packages/obsidian-excalidraw-layer-manager
+
+
+ Test Files  13 passed (13)
+      Tests  213 passed (213)
+   Start at  07:25:15
+   Duration  16.30s (transform 2.81s, setup 0ms, import 3.48s, tests 20.28s, environment 1ms)
+
+WARN: 7 kernel-protected current-uid process(es) were outside reference inspection
+WARN: 7 kernel-protected current-uid process(es) were outside reference inspection
+heavy_job_result=success scratch_cleanup=removed
