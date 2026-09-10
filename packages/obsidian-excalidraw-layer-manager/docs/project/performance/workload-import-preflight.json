@@ -3,9 +3,7 @@
   "status": "descriptive-subset",
   "sourceHash": "792f655fa885af2e5b7c80c43a7addac2fb41e31eb76f350705a27eefe843e34",
   "scriptHash": "0770c7f63870b60dac736a3da4a21e58766fefe579d148ef11fc9464499b1ebd",
-  "lockHashes": [
-    "d31e34be9d9eb470057d4d5bc4963626c3610da027b9b82d9f86b4b973ff61ef"
-  ],
+  "lockHashes": ["d31e34be9d9eb470057d4d5bc4963626c3610da027b9b82d9f86b4b973ff61ef"],
   "counts": {
     "requiredCases": 192,
     "suppliedCases": 192,
@@ -10419,9 +10417,7 @@
             "settlement": 0.10000002384185791,
             "renderOpportunity": 4.800000011920929
           },
-          "reasons": [
-            "renderOpportunity calibration median outside frozen budget"
-          ],
+          "reasons": ["renderOpportunity calibration median outside frozen budget"],
           "status": "inconclusive"
         },
         {
@@ -10967,9 +10963,7 @@
             "settlement": 33.44999998807907,
             "renderOpportunity": 28.799999952316284
           },
-          "reasons": [
-            "inputSync calibration p95 outside catastrophic budget"
-          ],
+          "reasons": ["inputSync calibration p95 outside catastrophic budget"],
           "status": "inconclusive"
         },
         {
@@ -11751,9 +11745,7 @@
             "settlement": 0.6500000357627869,
             "renderOpportunity": 0.5
           },
-          "reasons": [
-            "renderOpportunity calibration p95 outside catastrophic budget"
-          ],
+          "reasons": ["renderOpportunity calibration p95 outside catastrophic budget"],
           "status": "inconclusive"
         }
       ],
@@ -14173,9 +14165,7 @@
             "settlement": 0.9500001072883606,
             "renderOpportunity": 8.699999928474426
           },
-          "reasons": [
-            "renderOpportunity calibration median outside frozen budget"
-          ],
+          "reasons": ["renderOpportunity calibration median outside frozen budget"],
           "status": "inconclusive"
         },
         {
@@ -14411,9 +14401,7 @@
             "settlement": 1.5000000596046448,
             "renderOpportunity": 6.349999964237213
           },
-          "reasons": [
-            "renderOpportunity calibration median outside frozen budget"
-          ],
+          "reasons": ["renderOpportunity calibration median outside frozen budget"],
           "status": "inconclusive"
         },
         {
@@ -17069,9 +17057,7 @@
             "settlement": 2.399999976158142,
             "renderOpportunity": 6.049999952316284
           },
-          "reasons": [
-            "renderOpportunity calibration median outside frozen budget"
-          ],
+          "reasons": ["renderOpportunity calibration median outside frozen budget"],
           "status": "inconclusive"
         },
         {
@@ -17319,9 +17305,7 @@
             "settlement": 0.8999999761581421,
             "renderOpportunity": 8.45000010728836
           },
-          "reasons": [
-            "renderOpportunity calibration median outside frozen budget"
-          ],
+          "reasons": ["renderOpportunity calibration median outside frozen budget"],
           "status": "inconclusive"
         },
         {
@@ -17439,9 +17423,7 @@
             "settlement": 0.30000007152557373,
             "renderOpportunity": 0.050000011920928955
           },
-          "reasons": [
-            "renderOpportunity calibration p95 outside catastrophic budget"
-          ],
+          "reasons": ["renderOpportunity calibration p95 outside catastrophic budget"],
           "status": "inconclusive"
         },
         {
@@ -18704,9 +18686,7 @@
             "settlement": 1.4500000476837158,
             "renderOpportunity": 0.3500000238418579
           },
-          "reasons": [
-            "renderOpportunity calibration p95 outside catastrophic budget"
-          ],
+          "reasons": ["renderOpportunity calibration p95 outside catastrophic budget"],
           "status": "inconclusive"
         },
         {
@@ -19013,9 +18993,7 @@
             "settlement": 0.5,
             "renderOpportunity": 11.100000023841858
           },
-          "reasons": [
-            "renderOpportunity calibration median outside frozen budget"
-          ],
+          "reasons": ["renderOpportunity calibration median outside frozen budget"],
           "status": "inconclusive"
         },
         {
@@ -19382,10 +19360,7 @@
       "baselineId": "10000-ungrouped-558301-baseline-0",
       "calibrationId": "10000-ungrouped-558301-calibration-0",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 10000,
@@ -19394,10 +19369,7 @@
       "baselineId": "10000-ungrouped-558302-baseline-1",
       "calibrationId": "10000-ungrouped-558302-calibration-1",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 10000,
@@ -19406,10 +19378,7 @@
       "baselineId": "10000-ungrouped-558303-baseline-2",
       "calibrationId": "10000-ungrouped-558303-calibration-2",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 10000,
@@ -19418,10 +19387,7 @@
       "baselineId": "10000-pairs-558301-baseline-0",
       "calibrationId": "10000-pairs-558301-calibration-0",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 10000,
@@ -19430,10 +19396,7 @@
       "baselineId": "10000-pairs-558302-baseline-1",
       "calibrationId": "10000-pairs-558302-calibration-1",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 10000,
@@ -19442,10 +19405,7 @@
       "baselineId": "10000-pairs-558303-baseline-2",
       "calibrationId": "10000-pairs-558303-calibration-2",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 10000,
@@ -19454,10 +19414,7 @@
       "baselineId": "10000-ten-558301-baseline-0",
       "calibrationId": "10000-ten-558301-calibration-0",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 10000,
@@ -19466,10 +19423,7 @@
       "baselineId": "10000-ten-558302-baseline-1",
       "calibrationId": "10000-ten-558302-calibration-1",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 10000,
@@ -19478,10 +19432,7 @@
       "baselineId": "10000-ten-558303-baseline-2",
       "calibrationId": "10000-ten-558303-calibration-2",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 10000,
@@ -19490,10 +19441,7 @@
       "baselineId": "10000-giant-558301-baseline-0",
       "calibrationId": "10000-giant-558301-calibration-0",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 10000,
@@ -19502,10 +19450,7 @@
       "baselineId": "10000-giant-558302-baseline-1",
       "calibrationId": "10000-giant-558302-calibration-1",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 10000,
@@ -19514,10 +19459,7 @@
       "baselineId": "10000-giant-558303-baseline-2",
       "calibrationId": "10000-giant-558303-calibration-2",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 10000,
@@ -19526,10 +19468,7 @@
       "baselineId": "10000-nested8-558301-baseline-0",
       "calibrationId": "10000-nested8-558301-calibration-0",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 10000,
@@ -19538,10 +19477,7 @@
       "baselineId": "10000-nested8-558302-baseline-1",
       "calibrationId": "10000-nested8-558302-calibration-1",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 10000,
@@ -19550,10 +19486,7 @@
       "baselineId": "10000-nested8-558303-baseline-2",
       "calibrationId": "10000-nested8-558303-calibration-2",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 10000,
@@ -20108,10 +20041,7 @@
       "baselineId": "10000-skewed-558302-baseline-1",
       "calibrationId": "10000-skewed-558302-calibration-1",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 10000,
@@ -20120,10 +20050,7 @@
       "baselineId": "10000-skewed-558303-baseline-2",
       "calibrationId": "10000-skewed-558303-calibration-2",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 50000,
@@ -20132,10 +20059,7 @@
       "baselineId": "50000-ungrouped-558301-baseline-0",
       "calibrationId": "50000-ungrouped-558301-calibration-0",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 50000,
@@ -20144,10 +20068,7 @@
       "baselineId": "50000-ungrouped-558302-baseline-1",
       "calibrationId": "50000-ungrouped-558302-calibration-1",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 50000,
@@ -20156,10 +20077,7 @@
       "baselineId": "50000-ungrouped-558303-baseline-2",
       "calibrationId": "50000-ungrouped-558303-calibration-2",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 50000,
@@ -20168,10 +20086,7 @@
       "baselineId": "50000-pairs-558301-baseline-0",
       "calibrationId": "50000-pairs-558301-calibration-0",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 50000,
@@ -20180,10 +20095,7 @@
       "baselineId": "50000-pairs-558302-baseline-1",
       "calibrationId": "50000-pairs-558302-calibration-1",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 50000,
@@ -20192,10 +20104,7 @@
       "baselineId": "50000-pairs-558303-baseline-2",
       "calibrationId": "50000-pairs-558303-calibration-2",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 50000,
@@ -20204,10 +20113,7 @@
       "baselineId": "50000-ten-558301-baseline-0",
       "calibrationId": "50000-ten-558301-calibration-0",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 50000,
@@ -20216,10 +20122,7 @@
       "baselineId": "50000-ten-558302-baseline-1",
       "calibrationId": "50000-ten-558302-calibration-1",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 50000,
@@ -20228,10 +20131,7 @@
       "baselineId": "50000-ten-558303-baseline-2",
       "calibrationId": "50000-ten-558303-calibration-2",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 50000,
@@ -20240,10 +20140,7 @@
       "baselineId": "50000-giant-558301-baseline-0",
       "calibrationId": "50000-giant-558301-calibration-0",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 50000,
@@ -20252,10 +20149,7 @@
       "baselineId": "50000-giant-558302-baseline-1",
       "calibrationId": "50000-giant-558302-calibration-1",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 50000,
@@ -20264,10 +20158,7 @@
       "baselineId": "50000-giant-558303-baseline-2",
       "calibrationId": "50000-giant-558303-calibration-2",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 50000,
@@ -20276,10 +20167,7 @@
       "baselineId": "50000-nested8-558301-baseline-0",
       "calibrationId": "50000-nested8-558301-calibration-0",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 50000,
@@ -20288,10 +20176,7 @@
       "baselineId": "50000-nested8-558302-baseline-1",
       "calibrationId": "50000-nested8-558302-calibration-1",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 50000,
@@ -20300,10 +20185,7 @@
       "baselineId": "50000-nested8-558303-baseline-2",
       "calibrationId": "50000-nested8-558303-calibration-2",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 50000,
@@ -20312,10 +20194,7 @@
       "baselineId": "50000-skewed-558301-baseline-0",
       "calibrationId": "50000-skewed-558301-calibration-0",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 50000,
@@ -20324,10 +20203,7 @@
       "baselineId": "50000-skewed-558302-baseline-1",
       "calibrationId": "50000-skewed-558302-calibration-1",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 50000,
@@ -20336,10 +20212,7 @@
       "baselineId": "50000-skewed-558303-baseline-2",
       "calibrationId": "50000-skewed-558303-calibration-2",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 100000,
@@ -20348,10 +20221,7 @@
       "baselineId": "100000-ungrouped-558301-baseline-0",
       "calibrationId": "100000-ungrouped-558301-calibration-0",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 100000,
@@ -20360,10 +20230,7 @@
       "baselineId": "100000-ungrouped-558302-baseline-1",
       "calibrationId": "100000-ungrouped-558302-calibration-1",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 100000,
@@ -20372,10 +20239,7 @@
       "baselineId": "100000-ungrouped-558303-baseline-2",
       "calibrationId": "100000-ungrouped-558303-calibration-2",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 100000,
@@ -20384,10 +20248,7 @@
       "baselineId": "100000-pairs-558301-baseline-0",
       "calibrationId": "100000-pairs-558301-calibration-0",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 100000,
@@ -20396,10 +20257,7 @@
       "baselineId": "100000-pairs-558302-baseline-1",
       "calibrationId": "100000-pairs-558302-calibration-1",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 100000,
@@ -20408,10 +20266,7 @@
       "baselineId": "100000-pairs-558303-baseline-2",
       "calibrationId": "100000-pairs-558303-calibration-2",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 100000,
@@ -20420,10 +20275,7 @@
       "baselineId": "100000-ten-558301-baseline-0",
       "calibrationId": "100000-ten-558301-calibration-0",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 100000,
@@ -20432,10 +20284,7 @@
       "baselineId": "100000-ten-558302-baseline-1",
       "calibrationId": "100000-ten-558302-calibration-1",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 100000,
@@ -20444,10 +20293,7 @@
       "baselineId": "100000-ten-558303-baseline-2",
       "calibrationId": "100000-ten-558303-calibration-2",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 100000,
@@ -20456,10 +20302,7 @@
       "baselineId": "100000-giant-558301-baseline-0",
       "calibrationId": "100000-giant-558301-calibration-0",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 100000,
@@ -20468,10 +20311,7 @@
       "baselineId": "100000-giant-558302-baseline-1",
       "calibrationId": "100000-giant-558302-calibration-1",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 100000,
@@ -20480,10 +20320,7 @@
       "baselineId": "100000-giant-558303-baseline-2",
       "calibrationId": "100000-giant-558303-calibration-2",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 100000,
@@ -20492,10 +20329,7 @@
       "baselineId": "100000-nested8-558301-baseline-0",
       "calibrationId": "100000-nested8-558301-calibration-0",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 100000,
@@ -20504,10 +20338,7 @@
       "baselineId": "100000-nested8-558302-baseline-1",
       "calibrationId": "100000-nested8-558302-calibration-1",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 100000,
@@ -20516,10 +20347,7 @@
       "baselineId": "100000-nested8-558303-baseline-2",
       "calibrationId": "100000-nested8-558303-calibration-2",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 100000,
@@ -20528,10 +20356,7 @@
       "baselineId": "100000-skewed-558301-baseline-0",
       "calibrationId": "100000-skewed-558301-calibration-0",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 100000,
@@ -20540,10 +20365,7 @@
       "baselineId": "100000-skewed-558302-baseline-1",
       "calibrationId": "100000-skewed-558302-calibration-1",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     },
     {
       "size": 100000,
@@ -20552,10 +20374,7 @@
       "baselineId": "100000-skewed-558303-baseline-2",
       "calibrationId": "100000-skewed-558303-calibration-2",
       "status": "unpaired",
-      "missingRoles": [
-        "baseline",
-        "calibration"
-      ]
+      "missingRoles": ["baseline", "calibration"]
     }
   ],
   "globalAggregateAvailable": false,
