@@ -1,5 +1,5 @@
 ---
-summary: "AK5583 authenticated recovery implementation, owner capacity reconciliation, TDD and pre-native validation."
+summary: "AK5583 authenticated native recovery: 27 new passes, two new censors and a 50k semantic-settlement stop; focus causality unresolved."
 read_when:
   - "Reviewing the additive matrix03 recovery and the September10 native continuation lineage."
 type: "reference"
@@ -60,3 +60,43 @@ requested a short owner-cleanup interval for its unrelated retained root; parent
 launch pending its release. This is coordination, not authority transfer.
 
 AK5583 remains incomplete at this checkpoint. No new native baseline or improvement claimed.
+
+## Native execution and subsequent evidence
+
+After peer release, foreground02:48:22–03:41:45UTC ran all fresh prerequisites successfully
+(AK8801), then30cases:27passed,2resource-censored,1semantic-settlement failure (AK8802).
+Overall ledger:77passed,4actualcensors,30not-admitted,1operationalfailure,80pending.
+The new censors are10kungrouped and50kten;50knested8 calibration failed renameindex5,
+49/90validpackets, at60seconds with altered scenehead and External4 instead of Renamed5.
+Resource limit was not crossed. All owned hosts stopped and owner scratch was removed.
+Independent audit verified89uniquenonces,534absenttrackedidentities and36absentscratchroots/aliases.
+
+The operator clarified that the1Password popup appeared before its process started;
+process creation waited for operator approval. **No-focus-interference was not proved**: the timeoutcatch
+omits focus/lostFocus and precedes the postsettlement focuscheck. Earlier shorthand excluding
+focus is corrected. A malformed-focus validator acceptance gap was also observed only in
+in-memory controls; retained successful packets had consistent declarations. No causal
+attribution or automatic replay follows from these facts.
+
+[Results](../packages/obsidian-excalidraw-layer-manager/docs/project/performance/2026-09-10-native-recovery-results.md)
+link the byte-compared raw archive SHA256
+`d257727377d3d9523f06845d5ab8cce50b9a0dea6d28e8fddba37512784e32a6`.
+The single-use recovery receipt remains consumed. Desktop/native reservations are released;
+no next native case is queued. Peer5618 subsequently removed its own retained root, leaving
+owner status93records3rootsquarantine0lockfree at04:02UTC. This evidence did not satisfy the
+then-current full per-workload completion scope.
+
+## Operator-approved bounded acceptance
+
+The operator judged further baseline sweeps disproportionate and explicitly agreed to stop,
+adopt the verified subset as a bounded baseline, and validate only affected workloads plus
+semantic regressions during subsequent optimization. AK8814 records that acceptance;
+done-contract version3 replaces full-grid completion with bounded baseline closeout.
+
+77passes and4real resource censors are accepted as the starting evidence. The30not-admitted,
+1operational failure and80pending cases remain unchanged. Popup interference is plausible,
+not proven causal attribution. No additional native tests or product changes follow from
+this acceptance. Existing70test recovery proof, full main/isolated CI, fresh prerequisites,
+independent native audit and byte-compared archive supply validation; no full-matrix or
+performance-improvement claim is made. Future work must resolve authentication prompts
+before measurements and respect the consumed-lock and original-subject boundaries.
