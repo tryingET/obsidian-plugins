@@ -14,6 +14,7 @@ Shared engineering lane and discipline guidance comes from `/home/tryinget/ai-so
 This file records the repo-local selected subset for obsidian-plugins, a Obsidian plugins monorepo. The repo `AGENTS.md` remains the operating authority for repo-specific workflow, source-owner boundaries, and read order.
 
 Machine-readable selection lives in `policy/engineering-lane.json`.
+Release pin: engineering-core v0.12.1 (`5be0f0a294014f2f7aee1ca5adcb6f3c76553e11`).
 
 ## Selected lanes
 
@@ -47,6 +48,8 @@ uv tool -n run --from ~/ai-society/core/engineering-core engineering-core list-t
 ## Repo-local deviations and emphasis
 
 - Prefer repo-local deterministic wrappers, `Justfile` targets, and package scripts over ad-hoc commands.
+- This Obsidian script package uses npm/Node and Vitest rather than Bun: keep its existing host-specific build, deployment and test workflow instead of adopting service-oriented Bun defaults.
+- `dependency-cruiser@18` does not support the TypeScript 7 compiler API yet; its `arch` command currently reports zero modules and a missing compatible TypeScript transpiler. The baseline gate passes, but this is not a valid architecture coverage claim. Replacing the tool requires a separate decision, not a silent downgrade to TypeScript 6.
 - Keep package/app-local validation and release behavior in the owning package or app surface.
 - Treat this file as a selector and override note, not a replacement for `AGENTS.md` or runtime task/evidence authority.
 - When local practice intentionally diverges from engineering-core guidance, record the reason here or in the owning project/decision document.
