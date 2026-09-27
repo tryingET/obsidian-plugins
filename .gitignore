@@ -12,3 +12,6 @@ apps/*/.obsidian/workspace*.json
 apps/*/.obsidian/cache
 apps/*/.obsidian/workspace.json
 .pi-subagent-sessions/
+# SCI local workspace index/DB/logs (not the committed ontology/ source tree)
+.ontology/
+
